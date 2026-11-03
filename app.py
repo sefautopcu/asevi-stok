@@ -9,7 +9,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve "keyboard_double" yazısını gizleyen özel CSS tasarımı
+# Kurumsal Sol Menü ve "keyboard_double" yazısını kesin olarak gizleyen özel CSS tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -18,8 +18,9 @@ st.markdown("""
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { color: #E8EAED !important; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     
-    /* Streamlit daraltma butonundaki kalan yazı kalıntısını tamamen gizle */
-    [data-testid="collapsedControl"] span, [data-testid="stSidebarNav"] span { display: none !important; }
+    /* Streamlit daraltma butonundaki metin kalıntısını ve ikon taşmalarını tamamen gizle */
+    button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
+    section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
     </style>
 """, unsafe_allow_html=True)
 
