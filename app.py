@@ -176,7 +176,6 @@ def loglari_kaydet(veri):
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
-# İhtiyaç Sahipleri ve Dağıtım Verileri (Örnekler temizlendi, boş başlatıldı)
 def ihtiyac_sahiplerini_yukle():
     if os.path.exists(IHTIYAC_SAHIPLERI_DOSYASI):
         try:
@@ -222,6 +221,9 @@ if "aktif_menu" not in st.session_state:
 
 if "silme_mesaji" not in st.session_state:
     st.session_state.silme_mesaji = ""
+
+if "kisi_silme_mesaji" not in st.session_state:
+    st.session_state.kisi_silme_mesaji = ""
 
 # Türkçe Tarih Dönüştürücü Fonksiyon
 def bugunun_turkce_tarihi():
@@ -743,37 +745,66 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 # 6. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ
 elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     st.header("👥 İhtiyaç Sahibi ve Günlük / Aylık / Yıllık Yemek Dağıtım Takibi")
-    st.markdown("Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun ve kimin ne zaman ne kadar süreyle yemek aldığını takip edin.")
+    st.markdown("Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun, yönetin ve yemek dağıtımlarını takip edin.")
 
-    tab1, tab2, tab3 = st.tabs(["📋 İhtiyaç Sahibi Listesi ve Ekleme", "🍲 Yemek Dağıtım Girişi", "📊 Dağıtım Raporları (Günlük/Aylık/Yıllık)"])
+    tab1, tab2, tab3 = st.tabs(["📋 İhtiyaç Sahibi Listesi, Ekle ve Sil", "🍲 Yemek Dağıtım Girişi", "📊 Dağıtım Raporları (Günlük/Aylık/Yıllık)"])
 
     with tab1:
-        st.subheader("Kayıtlı İhtiyaç Sahipleri")
-        if yonetici_modu:
-            with st.form("ihtiyac_sahibi_formu"):
-                st.markdown("**Yeni İhtiyaç Sahibi / Hane Kaydı**")
-                yeni_tc_hane = st.text_input("T.C. Kimlik No / Hane No").strip()
-                yeni_ad = st.text_input("Adı Soyadı / Hane Unvanı").strip().upper()
-                yeni_tel = st.text_input("Telefon Numarası")
-                yeni_adres = st.text_input("Açık Adres")
-                yeni_birey = st.number_input("Aile / Hane Birey Sayısı", min_value=1, value=1)
-                
-                kaydet_btn = st.form_submit_button("İhtiyaç Sahibini Kaydet")
-                if kaydet_btn and yeni_ad:
-                    st.session_state.ihtiyac_sahipleri.append({
-                        "id": f"IHT-{len(st.session_state.ihtiyac_sahipleri)+1:03d}",
-                        "tc_hane": yeni_tc_hane,
-                        "ad_soyad": yeni_ad,
-                        "telefon": yeni_tel,
-                        "adres": yeni_adres,
-                        "birey_sayisi": yeni_birey
-                    })
-                    ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
-                    st.success(f"Başarılı! {yeni_ad} sisteme kaydedildi.")
-                    st.rerun()
-        else:
-            st.info("👁️ Gözlemci modundasınız. Yeni kişi eklemek için sol menüden yönetici şifresini giriniz.")
+        if st.session_state.kisi_silme_mesaji:
+            st.success(st.session_state.kisi_silme_mesaji)
+            st.session_state.kisi_silme_mesaji = ""
 
+        if yonetici_modu:
+            col_form_ekle, col_form_sil = st.columns(2)
+            
+            with col_form_ekle:
+                with st.form("ihtiyac_sahibi_formu"):
+                    st.markdown("**➕ Yeni İhtiyaç Sahibi / Hane Ekle**")
+                    yeni_tc_hane = st.text_input("T.C. Kimlik No / Hane No").strip()
+                    yeni_ad = st.text_input("Adı Soyadı / Hane Unvanı").strip().upper()
+                    yeni_tel = st.text_input("Telefon Numarası")
+                    yeni_adres = st.text_input("Açık Adres")
+                    yeni_birey = st.number_input("Aile / Hane Birey Sayısı", min_value=1, value=1)
+                    
+                    kaydet_btn = st.form_submit_button("İhtiyaç Sahibini Kaydet")
+                    if kaydet_btn and yeni_ad:
+                        st.session_state.ihtiyac_sahipleri.append({
+                            "id": f"IHT-{len(st.session_state.ihtiyac_sahipleri)+1:03d}",
+                            "tc_hane": yeni_tc_hane,
+                            "ad_soyad": yeni_ad,
+                            "telefon": yeni_tel,
+                            "adres": yeni_adres,
+                            "birey_sayisi": yeni_birey
+                        })
+                        ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                        st.success(f"Başarılı! {yeni_ad} sisteme kaydedildi.")
+                        st.rerun()
+
+            with col_form_sil:
+                with st.form("ihtiyac_sahibi_sil_formu"):
+                    st.markdown("**🗑️ Kayıtlı İhtiyaç Sahibini Sil**")
+                    if st.session_state.ihtiyac_sahipleri:
+                        kisi_secenekleri_sil = [f"{k['id']} - {k['ad_soyad']} (T.C./Hane: {k.get('tc_hane', '-')})" for k in st.session_state.ihtiyac_sahipleri]
+                        secilen_silinecek = st.selectbox("Silinecek Kişiyi / Haneyi Seçin", kisi_secenekleri_sil)
+                        sil_btn = st.form_submit_button("Seçilen Kişiyi Sistemden Sil", type="primary")
+                        
+                        if sil_btn:
+                            silinecek_id = secilen_silinecek.split(" - ")[0]
+                            silinen_kisi_obj = next((k for k in st.session_state.ihtiyac_sahipleri if k["id"] == silinecek_id), None)
+                            silinen_isim = silinen_kisi_obj["ad_soyad"] if silinen_kisi_obj else ""
+                            
+                            st.session_state.ihtiyac_sahipleri = [k for k in st.session_state.ihtiyac_sahipleri if k["id"] != silinecek_id]
+                            ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                            
+                            st.session_state.kisi_silme_mesaji = f"Başarılı! {silinen_isim} sistemden silindi."
+                            st.rerun()
+                    else:
+                        st.info("Silinecek kayıt bulunmuyor.")
+        else:
+            st.info("👁️ Gözlemci modundasınız. Yeni kişi eklemek veya silmek için sol menüden yönetici şifresini giriniz.")
+
+        st.markdown("---")
+        st.subheader("📋 Kayıtlı İhtiyaç Sahipleri Listesi")
         if st.session_state.ihtiyac_sahipleri:
             kisi_liste_gosterim = []
             for k in st.session_state.ihtiyac_sahipleri:
@@ -792,7 +823,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     with tab2:
         st.subheader("🍲 Günlük Yemek Dağıtım Kaydı")
         if not st.session_state.ihtiyac_sahipleri:
-            st.warning("Önce 'İhtiyaç Sahibi Listesi ve Ekleme' sekmesinden kişi kaydı yapmalısınız.")
+            st.warning("Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı yapmalısınız.")
         elif not yonetici_modu:
             st.warning("⚠️ Gözlemci modundasınız. Dağıtım kaydı girmek için sol menüden yönetici şifresini giriniz.")
         else:
@@ -877,7 +908,7 @@ elif menu == "Kullanım Takibi":
     with col_b_k:
         st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
             
-    st.markdown("Eylül ve Ekim ayı fiyat değişimleri dahil olmak üzere ürünlerin tüketim miktarlarını, fire oranlarını ve toplam harcanan bütçeyi inceleyin.")
+    st.markdown("Eylül and Ekim ayı fiyat değişimleri dahil olmak üzere ürünlerin tüketim miktarlarını, fire oranlarını ve toplam harcanan bütçeyi inceleyin.")
     
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     secenek_listesi = ["Tüm Ürünler (Genel Özet)"] + benzersiz_urunler
@@ -946,7 +977,7 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     with col_b_f:
         st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
         
-    st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
+    st.markdown("Gönderdiğiniz resmi listedeki Eylül and Ekim ayı alım fiyatı değişimleri dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
 
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     fiyat_tablosu_verisi = []
