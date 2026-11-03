@@ -87,6 +87,7 @@ DAGITIM_LOG_DOSYASI = "asevi_dagitim_loglari.json"
 PERSONEL_DOSYASI = "asevi_personel_veritabani.json"
 SIFRE_DOSYASI = "asevi_yonetici_sifre.json"
 TATIL_DOSYASI = "asevi_resmi_tatiller.json"
+SILINENS_DOSYASI = "asevi_silinen_urunler_loglari.json"
 
 # Stok Başlangıç Listesi
 varsayilan_girisler = [
@@ -176,7 +177,7 @@ varsayilan_resmi_tatiller = [
     {"tarih": "2026-10-29", "aciklama": "Cumhuriyet Bayramı"}
 ]
 
-# Ekim Ayı Tüketim Verileri (İşlemi yapan bilgisiyle)
+# Ekim Ayı Tüketim Verileri
 ekim_tuketimleri_verileri = [
     ("KIRMIZI LAHANA", 15.0), ("MAYDANOZ", 3.1), ("ELMA", 41.0), ("ERİK", 50.0), 
     ("ŞEFTALİ", 50.0), ("SOĞAN", 29.0), ("PATATES", 72.0), ("KABAK", 35.0), 
@@ -239,6 +240,19 @@ def loglari_yukle():
 
 def loglari_kaydet(veri):
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(veri, f, ensure_ascii=False, indent=4)
+
+def silinen_urun_loglarini_yukle():
+    if os.path.exists(SILINENS_DOSYASI):
+        try:
+            with open(SILINENS_DOSYASI, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def silinen_urun_loglarini_kaydet(veri):
+    with open(SILINENS_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
 def ihtiyac_sahiplerini_yukle():
@@ -311,6 +325,9 @@ if "girisler" not in st.session_state:
 
 if "kullanim_loglari" not in st.session_state:
     st.session_state.kullanim_loglari = loglari_yukle()
+
+if "silinen_urun_loglari" not in st.session_state:
+    st.session_state.silinen_urun_loglari = silinen_urun_loglarini_yukle()
 
 if "ihtiyac_sahipleri" not in st.session_state:
     st.session_state.ihtiyac_sahipleri = ihtiyac_sahiplerini_yukle()
@@ -839,21 +856,55 @@ elif menu == "Ürün Sil / Düzenle":
         st.markdown("Depoda kayıtlı olan tüm ürünleri ve fatura girişlerini aşağıda görebilir, silmek istediğiniz kaydı seçerek sistemden kalıcı olarak kaldırabilirsiniz.")
         
         if not st.session_state.girisler:
-            st.info("Sistemde silinecek kayıt bulunmuyor.")
+            st.info("Sistemde silinecek kayıt bulunugor.")
         else:
-            secenekler = [f"{g['id']} - {g['urun']} (Tarih: {g['tarih']}, Kalan: {g['kalan']} {g['birim']}, Fiyat: {g['fiyat']} TL)" for g in st.session_state.girisler]
-            secilen_kayit_str = st.selectbox("Silmek İstediğiniz Kaydı / Faturayı Seçin", secenekler)
-            secilen_id = secilen_kayit_str.split(" - ")[0]
-            ilgili_oge = next((g for g in st.session_state.girisler if g["id"] == secilen_id), None)
-            
-            if ilgili_oge:
-                st.warning(f"⚠️ **{ilgili_oge['urun']}** adlı kaydı silmek üzeresiniz.")
-                if st.button("Seçilen Ürünü / Kaydı Kalıcı Olarak Sil", type="primary"):
-                    silinen_urun_adi = ilgili_oge['urun']
-                    st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
-                    verileri_kaydet(st.session_state.girisler)
-                    st.session_state.silme_mesaji = f"Başarılı! {silinen_urun_adi} sistemden silindi."
-                    st.rerun()
+            with st.form("urun_silme_formu"):
+                secenekler = [f"{g['id']} - {g['urun']} (Tarih: {g['tarih']}, Kalan: {g['kalan']} {g['birim']}, Fiyat: {g['fiyat']} TL)" for g in st.session_state.girisler]
+                secilen_kayit_str = st.selectbox("Silmek İstediğiniz Kaydı / Faturayı Seçin", secenekler)
+                silme_nedeni_input = st.text_input("Silme Nedeni / Gerekçesi", "Örn: Yanlış giriş / Mükerrer kayıt")
+                sil_onay_btn = st.form_submit_button("Seçilen Ürünü / Kaydı Kalıcı Olarak Sil", type="primary")
+
+                if sil_onay_btn:
+                    secilen_id = secilen_kayit_str.split(" - ")[0]
+                    ilgili_oge = next((g for g in st.session_state.girisler if g["id"] == secilen_id), None)
+                    if ilgili_oge:
+                        silinen_urun_adi = ilgili_oge['urun']
+                        islem_tarihi_str = str(datetime.date.today())
+                        islem_yapan_kisi = st.session_state.aktif_kullanici
+
+                        # Silinenler arşivine ekle
+                        st.session_state.silinen_urun_loglari.append({
+                            "tarih": islem_tarihi_str,
+                            "urun": silinen_urun_adi,
+                            "kayit_id": ilgili_oge['id'],
+                            "detay": f"Miktar: {ilgili_oge['miktar']} {ilgili_oge['birim']}, Fiyat: {ilgili_oge['fiyat']} ₺",
+                            "neden": silme_nedeni_input if silme_nedeni_input else "Belirtilmedi",
+                            "islem_yapan": islem_yapan_kisi
+                        })
+                        silinen_urun_loglarini_kaydet(st.session_state.silinen_urun_loglari)
+
+                        # Stoktan kaldır
+                        st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
+                        verileri_kaydet(st.session_state.girisler)
+                        
+                        st.session_state.silme_mesaji = f"Başarılı! {silinen_urun_adi} sistemden silindi ve arşive kaydedildi."
+                        st.rerun()
+
+    st.markdown("---")
+    st.subheader("📋 Silinen Ürünler ve İşlem Geçmişi Arşivi")
+    silinen_loglar = st.session_state.silinen_urun_loglari
+    if silinen_loglar:
+        silinen_tablo_verisi = [{
+            "Silinme Tarihi": sl["tarih"],
+            "Kayıt ID": sl.get("kayit_id", "-"),
+            "Ürün Adı": sl["urun"],
+            "Detaylar": sl.get("detay", "-"),
+            "Silme Nedeni": sl["neden"],
+            "İşlemi Yapan": sl.get("islem_yapan", "admin")
+        } for sl in silinen_loglar]
+        st.dataframe(silinen_tablo_verisi, use_container_width=True)
+    else:
+        st.info("Sistemden henüz silinmiş bir ürün kaydı bulunmuyor.")
 
 
 # 4. FİRE / ZAYİAT GİRİŞİ VE İZLEME EKRANI
