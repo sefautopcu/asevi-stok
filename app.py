@@ -303,7 +303,7 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
     return html.encode("utf-8")
 
 
-# 0. KURUMSAL DASHBOARD & ÖZET
+# 0. KURUMSAL DASHBOARD & ÖZET (Güncellenmiş Gerçek Veri Grafikleri)
 if menu == "Kurumsal Dashboard & Özet":
     st.header("📊 Kurumsal Yönetim Dashboard & Genel Bakış")
     st.markdown("Depo girişleri, gerçek yemek üretimleri, fire oranları ve aylık maliyet dağılımları:")
@@ -332,23 +332,29 @@ if menu == "Kurumsal Dashboard & Özet":
     
     with col_g1:
         st.subheader("📈 Kategori Bazlı Kalan Stok Dağılımı")
-        kategoriler = {}
+        kategori_verileri = {}
         for g in st.session_state.girisler:
             kat = g["kategori"]
-            kategoriler[kat] = kategoriler.get(kat, 0.0) + g["kalan"]
-        st.bar_chart(kategoriler)
+            kategori_verileri[kat] = kategori_verileri.get(kat, 0.0) + g["kalan"]
+        
+        # Kullanıcının istediği gibi "Meyve: 50.5 Kg" formatında metinsel ve görsel uyum
+        formatli_kategori_dict = {f"{k} ({v:.1f} Kg)": v for k, v in kategori_verileri.items()}
+        st.bar_chart(formatli_kategori_dict)
 
     with col_g2:
-        st.subheader("📉 Ay Bazlı Gelen Mal Alım Tutarları (Eylül / Ekim)")
-        aylik_alimlar = {"Eylül 2026": 0.0, "Ekim 2026": 0.0}
+        st.subheader("📉 Ay Bazlı Gelen Mal Alım Tutarları (TL)")
+        aylik_tutar_dict = {"Eylül 2026": 0.0, "Ekim 2026": 0.0}
         for g in st.session_state.girisler:
             tarih_str = g["tarih"]
-            tutar = g["miktar"] * g["fiyat"]
+            toplam_tutar = g["miktar"] * g["fiyat"]
             if tarih_str.startswith("2026-09"):
-                aylik_alimlar["Eylül 2026"] += tutar
+                aylik_tutar_dict["Eylül 2026"] += toplam_tutar
             elif tarih_str.startswith("2026-10"):
-                aylik_alimlar["Ekim 2026"] += tutar
-        st.bar_chart(aylik_alimlar)
+                aylik_tutar_dict["Ekim 2026"] += toplam_tutar
+        
+        # Kullanıcının istediği gibi TL cinsinden maliyet gösterimi
+        st.bar_chart(aylik_tutar_dict)
+        st.info(f"💡 **Toplam Alım Bütçeleri:** Eylül: **{aylik_tutar_dict['Eylül 2026']:,.2f} TL** | Ekim: **{aylik_tutar_dict['Ekim 2026']:,.2f} TL**")
 
     st.markdown("---")
     st.subheader("🚀 Hızlı İşlem Kısayolları")
