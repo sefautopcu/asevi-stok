@@ -314,11 +314,11 @@ if "personeller" not in st.session_state:
 if "resmi_tatiller" not in st.session_state:
     st.session_state.resmi_tatiller = resmi_tatilleri_yukle()
 
-# Oturum Durumları (Kullanıcı Adı ve Yetki)
+# Oturum Durumları
 if "oturum_aktif" not in st.session_state:
     st.session_state.oturum_aktif = False
 if "aktif_kullanici" not in st.session_state:
-    st.session_state.aktif_kullanici = None  # "admin" veya "asci"
+    st.session_state.aktif_kullanici = None  # "admin", "asci", "misafir"
 
 if "aktif_menu" not in st.session_state:
     st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
@@ -386,7 +386,6 @@ menuler_listesi = [
 ]
 
 for m in menuler_listesi:
-    # Eğer aşçı giriş yapmışsa ve Personel menüsündeyse buton pasif/uyarı amaçlı gösterilebilir veya erişim kısıtlanabilir
     btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
     if st.sidebar.button(m, use_container_width=True, type=btn_type):
         if m == "Personel & Çalışma Süresi Takibi" and st.session_state.aktif_kullanici == "asci":
@@ -397,7 +396,7 @@ for m in menuler_listesi:
 
 menu = st.session_state.aktif_menu
 
-# Aşçı kullanıcısı doğrudan bu sayfadaysa ve yetkisi yoksa anasayfaya yönlendir
+# Aşçı kullanıcısı personel sayfasındaysa anasayfaya yönlendir
 if menu == "Personel & Çalışma Süresi Takibi" and st.session_state.aktif_kullanici == "asci":
     st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
     st.rerun()
@@ -408,7 +407,7 @@ aktif_yonetici_sifresi = yonetici_sifresi_yukle()
 
 if not st.session_state.oturum_aktif:
     with st.sidebar.form("giris_formu"):
-        secilen_kullanici_tipi = st.selectbox("Kullanıcı Adı / Rol", ["admin", "asci"])
+        secilen_kullanici_tipi = st.selectbox("Kullanıcı Adı / Rol", ["admin", "asci", "misafir"])
         sifre_input = st.text_input("Şifre", type="password", placeholder="Şifre giriniz...")
         giris_butonu = st.form_submit_button("Giriş Yap", use_container_width=True)
         if giris_butonu:
@@ -422,12 +421,22 @@ if not st.session_state.oturum_aktif:
                 st.session_state.aktif_kullanici = "asci"
                 st.success("Aşçı olarak giriş yapıldı!")
                 st.rerun()
+            elif secilen_kullanici_tipi == "misafir" and sifre_input == "Erzurum25":
+                st.session_state.oturum_aktif = True
+                st.session_state.aktif_kullanici = "misafir"
+                st.success("Misafir olarak giriş yapıldı!")
+                st.rerun()
             else:
                 st.error("Hatalı kullanıcı adı veya şifre!")
 else:
     col_kilit1, col_kilit2 = st.sidebar.columns([3, 1])
     with col_kilit1:
-        rol_adi = "👑 Admin (Tam Yetkili)" if st.session_state.aktif_kullanici == "admin" else "👨‍🍳 Aşçı (Kısıtlı Yetkili)"
+        if st.session_state.aktif_kullanici == "admin":
+            rol_adi = "👑 Admin (Tam Yetkili)"
+        elif st.session_state.aktif_kullanici == "asci":
+            rol_adi = "👨‍🍳 Aşçı"
+        else:
+            rol_adi = "👀 Misafir (Gözlemci)"
         st.sidebar.markdown(f'<p style="color: #059669; font-size: 13px; margin: 0; padding-top: 5px; font-weight: 600;">🔓 {rol_adi}</p>', unsafe_allow_html=True)
     with col_kilit2:
         if st.sidebar.button("🔒", help="Çıkış yap"):
@@ -454,6 +463,7 @@ else:
 
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
 asci_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "asci")
+misafir_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "misafir")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="color: #6B7280 !important; font-size: 11px; text-align: center; margin-top: 10px;">sefautopcu</p>', unsafe_allow_html=True)
@@ -770,7 +780,9 @@ elif menu == "Güncel Stok Durumu":
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
     st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
     
-    if not yonetici_modu and not asci_modu:
+    if misafir_modu:
+        st.warning("👀 Misafir modundasınız. Bu ekranda yalnızca gözlem yapabilirsiniz, yeni ürün ekleyemezsiniz.")
+    elif not yonetici_modu and not asci_modu:
         st.warning("⚠️ Giriş yapmadınız. Yeni ürün eklemek için sol menüden giriş yapmanız gereklidir.")
     else:
         with st.form("fatura_formu"):
@@ -803,7 +815,9 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
 elif menu == "Ürün Sil / Düzenle":
     st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
     
-    if not yonetici_modu:
+    if misafir_modu:
+        st.warning("👀 Misafir modundasınız. Bu ekranda yalnızca gözlem yapabilirsiniz, silme işlemi gerçekleştiremezsiniz.")
+    elif not yonetici_modu:
         st.warning("⚠️ Bu ekrana erişmek ve ürün silmek için **Admin (Sefa Bey)** hesabıyla giriş yapmanız gereklidir.")
     else:
         if st.session_state.silme_mesaji:
@@ -834,7 +848,9 @@ elif menu == "Ürün Sil / Düzenle":
 elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi ve Durum İzleme")
     
-    if not yonetici_modu and not asci_modu:
+    if misafir_modu:
+        st.warning("👀 Misafir modundasınız. Bu ekranda yalnızca kayıtlı fireleri gözlemleyebilirsiniz, yeni fire düşemezsiniz.")
+    elif not yonetici_modu and not asci_modu:
         st.warning("⚠️ Fire düşmek için sol menüden giriş yapmanız gereklidir.")
     else:
         with st.form("fire_formu"):
@@ -905,7 +921,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     if "sepet" not in st.session_state:
         st.session_state.sepet = []
         
-    if yonetici_modu or asci_modu:
+    if misafir_modu:
+        st.info("👀 Misafir modundasınız. Bu ekranda yalnızca maliyet hesaplamalarını ve sepeti gözlemleyebilirsiniz, üretim yapamazsınız.")
+    elif yonetici_modu or asci_modu:
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             secilen_urun = st.selectbox("Malzeme Seç", benzersiz_urunler, key="yemek_urun")
@@ -1009,7 +1027,9 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             st.success(st.session_state.kisi_silme_mesaji)
             st.session_state.kisi_silme_mesaji = ""
 
-        if yonetici_modu or asci_modu:
+        if misafir_modu:
+            st.info("👀 Misafir modundasınız. Bu ekranda yalnızca kayıtlı ihtiyaç sahiplerini gözlemleyebilirsiniz.")
+        elif yonetici_modu or asci_modu:
             col_form_ekle, col_form_sil = st.columns(2)
             
             with col_form_ekle:
@@ -1077,7 +1097,9 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 
     with tab2:
         st.subheader("🍲 Günlük Yemek Dağıtım Kaydı")
-        if not st.session_state.ihtiyac_sahipleri:
+        if misafir_modu:
+            st.info("👀 Misafir modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
+        elif not st.session_state.ihtiyac_sahipleri:
             st.warning("Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı yapmalısınız.")
         elif not yonetici_modu and not asci_modu:
             st.warning("⚠️ Dağıtım kaydı girmek için sol menüden giriş yapın.")
@@ -1158,10 +1180,10 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             st.info("Seçilen kriterlere uygun yemek dağıtım kaydı bulunamadı.")
 
 
-# 7. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ (Aşçı erişemez)
+# 7. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ (Aşçı ve Misafir erişemez)
 elif menu == "Personel & Çalışma Süresi Takibi":
-    if asci_modu:
-        st.error("⛔ Yetkisiz Erişim! Aşçı kullanıcısı 'Personel & Çalışma Süresi Takibi' ekranına erişemez.")
+    if asci_modu or misafir_modu:
+        st.error("⛔ Yetkisiz Erişim! Bu ekrana yalnızca Admin kullanıcısı erişebilir.")
     else:
         st.header("👥 Personel Giriş/Çıkış, İzin, Saatlik İzin, Sağlık Raporu ve Resmi Tatil Yönetimi")
         st.markdown("Personel bilgilerini yönetin, yıllık izin, saatlik izin ve sağlık raporu kayıtlarını tutun, çalışma sürelerini hesaplayıp Excel'e aktarın.")
