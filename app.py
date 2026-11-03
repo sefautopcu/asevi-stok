@@ -22,7 +22,7 @@ st.markdown("""
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-    /* Sol Menü Butonları Tasarımı (Seçilmeyenler net okunur gri/koyu ton) */
+    /* Sol Menü Butonları Tasarımı */
     section[data-testid="stSidebar"] button[kind="secondary"] {
         background-color: #2D3748 !important;
         color: #F1F5F9 !important;
@@ -41,14 +41,14 @@ st.markdown("""
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
 
-# Eylül, Ekim Mal Alımları, Ekim Tüketimleri ve Ekim Firelerine Göre Güncellenmiş Stok Listesi
+# Stok Başlangıç Listesi
 varsayilan_girisler = [
     {"id": "STK-001", "tarih": "2026-09-28", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": max(0.0, 42.8 - 15.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-002", "tarih": "2026-09-28", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": max(0.0, 20.0 - 3.1), "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-003", "tarih": "2026-09-28", "urun": "MUZ", "kategori": "MEYVE", "birim": "Kg", "miktar": 54.5, "kalan": max(0.0, 54.5 - 54.5), "fiyat": 110.0, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-003", "tarih": "2026-09-28", "urun": "MUZ", "kategori": "MEYVE", "birim": "Kg", "miktar": 54.5, "kalan": 0.0, "fiyat": 110.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-004", "tarih": "2026-09-28", "urun": "ELMA", "kategori": "MEYVE", "birim": "Kg", "miktar": 82.0, "kalan": max(0.0, 82.0 - 41.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-005", "tarih": "2026-09-28", "urun": "ERİK", "kategori": "MEYVE", "birim": "Kg", "miktar": 62.0, "kalan": max(0.0, 62.0 - 50.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-006", "tarih": "2026-09-28", "urun": "ŞEFTALİ", "kategori": "MEYVE", "birim": "Kg", "miktar": 50.0, "kalan": max(0.0, 50.0 - 50.0), "fiyat": 90.0, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-006", "tarih": "2026-09-28", "urun": "ŞEFTALİ", "kategori": "MEYVE", "birim": "Kg", "miktar": 50.0, "kalan": 0.0, "fiyat": 90.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-007", "tarih": "2026-09-28", "urun": "SOĞAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 400.0, "kalan": max(0.0, 400.0 - 29.0), "fiyat": 35.0, "depo": "Sebze Deposu"},
     {"id": "STK-008", "tarih": "2026-09-28", "urun": "PATATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 755.0, "kalan": max(0.0, 755.0 - 72.0), "fiyat": 33.0, "depo": "Sebze Deposu"},
     {"id": "STK-009", "tarih": "2026-09-28", "urun": "KABAK", "kategori": "SEBZE", "birim": "Kg", "miktar": 52.0, "kalan": max(0.0, 52.0 - 35.0), "fiyat": 45.0, "depo": "Soğuk Hava Deposu +5/+6"},
@@ -125,7 +125,7 @@ ekim_tuketimleri_verileri = [
     ("GALETA UNU", 1.0), ("KIRMIZI TATLI PUL BİBER", 0.01), ("YEŞİL MERCİMEK", 2.0)
 ]
 
-# Ekim Ayı Fire Verileri (Güncellenmiş Liste)
+# Kesin Fire Verileri
 ekim_fire_verileri = [
     ("MUZ", 54.50),
     ("ISPANAK", 60.00),
@@ -179,15 +179,21 @@ def loglari_yukle():
             "tutar": miktar * bulunan_fiyat
         })
         
+    # Dosya varsa ve içinde Fire/Zayiat kaydı bulunmuyorsa zorunlu olarak güncelle
     if os.path.exists(KULLANIM_LOG_DOSYASI):
         try:
             with open(KULLANIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
                 kayitli = json.load(f)
-                if kayitli:
+                fire_varmi = any(k.get("tur") == "Fire/Zayiat" for k in kayitli)
+                if kayitli and fire_varmi:
                     return kayitli
         except Exception:
             pass
             
+    # Kayıtlı dosya yoksa veya içinde fire kaydı eksikse tam listeyi yaz
+    with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(tum_loglar, f, ensure_ascii=False, indent=4)
+        
     return tum_loglar
 
 def loglari_kaydet(veri):
@@ -197,12 +203,8 @@ def loglari_kaydet(veri):
 if "girisler" not in st.session_state:
     st.session_state.girisler = verileri_yukle()
 
-if "kullanim_loglari" not in st.session_state:
-    st.session_state.kullanim_loglari = loglari_yukle()
-else:
-    if not st.session_state.kullanim_loglari:
-        st.session_state.kullanim_loglari = loglari_yukle()
-        loglari_kaydet(st.session_state.kullanim_loglari)
+# Her açılışta logları zorunlu olarak güncelledik (Eski önbellek sorununu çözmek için)
+st.session_state.kullanim_loglari = loglari_yukle()
 
 if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
@@ -229,7 +231,7 @@ def bugunun_turkce_tarihi():
     ay_adi = aylar.get(simdi.month, "")
     return f"{simdi.day} {ay_adi} {simdi.year}, {gun_adi}"
 
-# Üst Bilgi ve Başlık (Türkçe Tarih ile)
+# Üst Bilgi ve Başlık
 st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
@@ -281,7 +283,6 @@ else:
 
 yonetici_modu = st.session_state.yonetici_aktif
 
-# Sol menünün en altına küçük puntolarla imza
 st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="color: #94A3B8 !important; font-size: 11px; text-align: center; margin-top: 10px;">sefautopcu</p>', unsafe_allow_html=True)
 
@@ -584,7 +585,7 @@ elif menu == "Ürün Sil / Düzenle":
                     st.session_state.silme_mesaji = mesaj_metni
                     st.rerun()
 
-# 4. FİRE / ZAYİAT GİRİŞİ (Tüm Ürünler seçeneği eklendi)
+# 4. FİRE / ZAYİAT GİRİŞİ (Tüm Ürünler seçeneği dahil)
 elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
     
@@ -596,7 +597,6 @@ elif menu == "Fire / Zayiat Girişi":
         secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", secenek_listesi_fire)
         
         if secilen_urun == "Tüm Ürünler":
-            st.info("Genel Toplu Fire / Zayiat Girişi (Not: Özel toplu düşüşler için ürün bazlı seçim yapabilirsiniz)")
             secilen_gercek_urun = st.selectbox("İşlem Yapılacak Spesifik Ürünü Seçin", benzersiz_urunler)
         else:
             secilen_gercek_urun = secilen_urun
