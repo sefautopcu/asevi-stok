@@ -9,22 +9,22 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve "keyboard_double" yazısını kesin olarak gizleyen özel CSS tasarımı
+# Kurumsal Sol Menü ve Stil Tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
     .stSidebar { background-color: #202124 !important; padding-top: 15px; }
-    /* Sol menü genel metinleri beyaz ve net */
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { color: #E8EAED !important; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     
-    /* Streamlit daraltma butonundaki metin kalıntısını ve ikon taşmalarını tamamen gizle */
+    /* Daraltma butonundaki metin kalıntısını tamamen gizle */
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
     </style>
 """, unsafe_allow_html=True)
 
 VERI_DOSYASI = "asevi_stok_veritabani.json"
+KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
 
 # Varsayılan 62 Kalem Ürün ve Başlangıç Verileri
 varsayilan_girisler = [
@@ -106,8 +106,25 @@ def verileri_kaydet(veri):
     with open(VERI_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
+def loglari_yukle():
+    if os.path.exists(KULLANIM_LOG_DOSYASI):
+        try:
+            with open(KULLANIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    else:
+        return []
+
+def loglari_kaydet(veri):
+    with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(veri, f, ensure_ascii=False, indent=4)
+
 if "girisler" not in st.session_state:
     st.session_state.girisler = verileri_yukle()
+
+if "kullanim_loglari" not in st.session_state:
+    st.session_state.kullanim_loglari = loglari_yukle()
 
 if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
@@ -117,12 +134,18 @@ st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ
+# SOL MENÜ (Yeni "Kullanım Takibi" menüsü eklendi)
 st.sidebar.markdown("### 📋 MENÜLER")
 
 menu = st.sidebar.radio(
     "Genel İşlemler",
-    ["Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle", "Fire / Zayiat Girişi", "Günlük Yemek Üretimi & Maliyet Raporu"],
+    [
+        "Güncel Stok Durumu", 
+        "Yeni Mal Alımı / Fatura Ekle", 
+        "Fire / Zayiat Girişi", 
+        "Günlük Yemek Üretimi & Maliyet Raporu",
+        "Kullanım Takibi"
+    ],
     label_visibility="visible"
 )
 
@@ -278,20 +301,36 @@ elif menu == "Fire / Zayiat Girişi":
             if fire_miktari > 0:
                 kalan_dusulecek = fire_miktari
                 toplam_zarar = 0.0
+                bugun_str = str(datetime.date.today())
+                
                 for g in ilgili_girisler:
                     if kalan_dusulecek <= 0:
                         break
                     if g["kalan"] >= kalan_dusulecek:
                         dusulen = kalan_dusulecek
                         g["kalan"] -= dusulen
-                        toplam_zarar += (dusulen * g["fiyat"])
+                        maliyet_zarar = dusulen * g["fiyat"]
+                        toplam_zarar += maliyet_zarar
                         kalan_dusulecek = 0
                     else:
                         dusulen = g["kalan"]
                         g["kalan"] = 0
-                        toplam_zarar += (dusulen * g["fiyat"])
+                        maliyet_zarar = dusulen * g["fiyat"]
+                        toplam_zarar += maliyet_zarar
                         kalan_dusulecek -= dusulen
+                        
                 verileri_kaydet(st.session_state.girisler)
+                
+                # Kullanım loglarına fire kaydı ekle
+                st.session_state.kullanim_loglari.append({
+                    "tarih": bugun_str,
+                    "urun": secilen_urun,
+                    "tur": "Fire/Zayiat",
+                    "miktar": fire_miktari,
+                    "tutar": toplam_zarar
+                })
+                loglari_kaydet(st.session_state.kullanim_loglari)
+                
                 st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL")
 
 # 4. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
@@ -361,20 +400,37 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         st.metric("Kişi Başı Maliyet", f"{kisi_basi:.2f} TL")
         
         if yonetici_modu and st.button("Üretimi Tamamla, Stoktan Düş ve Excel Raporu Al"):
+            bugun_str = str(datetime.date.today())
             for item in st.session_state.sepet:
                 urun = item["urun"]
                 istenen = item["miktar"]
                 ilgili = [g for g in st.session_state.girisler if g["urun"] == urun and g["kalan"] > 0]
                 kalan_d = istenen
+                urun_maliyeti = 0.0
                 for g in ilgili:
                     if kalan_d <= 0: break
                     if g["kalan"] >= kalan_d:
-                        g["kalan"] -= kalan_d
+                        harcanan = kalan_d
+                        g["kalan"] -= harcanan
+                        urun_maliyeti += harcanan * g["fiyat"]
                         kalan_d = 0
                     else:
-                        kalan_d -= g["kalan"]
+                        harcanan = g["kalan"]
                         g["kalan"] = 0
+                        urun_maliyeti += harcanan * g["fiyat"]
+                        kalan_d -= harcanan
+                
+                # Kullanım loglarına yemek üretim tüketimi ekle
+                st.session_state.kullanim_loglari.append({
+                    "tarih": bugun_str,
+                    "urun": urun,
+                    "tur": "Yemek Üretimi",
+                    "miktar": istenen,
+                    "tutar": urun_maliyeti
+                })
+            
             verileri_kaydet(st.session_state.girisler)
+            loglari_kaydet(st.session_state.kullanim_loglari)
             
             wb = openpyxl.Workbook()
             ws = wb.active
@@ -467,3 +523,80 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             wb.save(rapor_adi)
             st.success("Üretim kaydedildi, stoktan düşüldü ve rapor hazırlandı!")
             st.session_state.sepet = []
+
+# 5. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
+elif menu == "Kullanım Takibi":
+    st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
+    st.markdown("Ürünlerin aylık ve yıllık tüketim miktarlarını, fire oranlarını ve harcanan toplam bütçeyi inceleyin.")
+    
+    benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+    
+    col_F1, col_F2 = st.columns(2)
+    with col_F1:
+        secilen_urun_takip = st.selectbox("İncelemek İstediğiniz Ürünü Seçin", benzersiz_urunler)
+    with col_F2:
+        zaman_filtresi = st.radio("Zaman Aralığı", ["Tüm Zamanlar", "Aylık Görünüm", "Yıllık Özet"], horizontal=True)
+        
+    loglar = st.session_state.kullanim_loglari
+    
+    # Seçilen ürünün loglarını filtrele
+    urun_loglari = [l for l in loglar if l["urun"] == secilen_urun_takip]
+    
+    if zaman_filtresi == "Aylık Görünüm":
+        aylar_dict = {
+            "01": "Ocak", "02": "Şubat", "03": "Mart", "04": "Nisan", 
+            "05": "Mayıs", "06": "Haziran", "07": "Temmuz", "08": "Ağustos", 
+            "09": "Eylül", "10": "Ekim", "11": "Kasım", "12": "Aralık"
+        }
+        mevcut_aylar = sorted(list(set(l["tarih"][:7] for l in urun_loglari)))
+        if mevcut_aylar:
+            secilen_ay_kodu = st.selectbox("Ay Seçin", mevcut_aylar, format_func=lambda x: f"{aylar_dict.get(x[5:], x[5:])} {x[:4]}")
+            urun_loglari = [l for l in urun_loglari if l["tarih"].startswith(secilen_ay_kodu)]
+        else:
+            st.info("Bu ürün için henüz kayıtlı kullanım veya fire geçmişi bulunmuyor.")
+            
+    elif zaman_filtresi == "Yıllık Özet":
+        mevcut_yillar = sorted(list(set(l["tarih"][:4] for l in urun_loglari)))
+        if mevcut_yillar:
+            secilen_yil = st.selectbox("Yıl Seçin", mevcut_yillar)
+            urun_loglari = [l for l in urun_loglari if l["tarih"].startswith(secilen_yil)]
+        else:
+            st.info("Bu ürün için henüz kayıtlı kullanım veya fire geçmişi bulunmuyor.")
+
+    # Metrik Hesaplamalari
+    toplam_kullanim_mik = sum(l["miktar"] for l in urun_loglari if l["tur"] == "Yemek Üretimi")
+    toplam_kullanim_tutar = sum(l["tutar"] for l in urun_loglari if l["tur"] == "Yemek Üretimi")
+    
+    toplam_fire_mik = sum(l["miktar"] for l in urun_loglari if l["tur"] == "Fire/Zayiat")
+    toplam_fire_tutar = sum(l["tutar"] for l in urun_loglari if l["tur"] == "Fire/Zayiat")
+    
+    genel_toplam_tutar = toplam_kullanim_tutar + toplam_fire_tutar
+
+    st.markdown("---")
+    st.subheader(f"📌 {secilen_urun_takip} - Özet Performans Kartları")
+    
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.metric("Yemekte Kullanılan Miktar", f"{toplam_kullanim_mik:.1f}")
+    with m2:
+        st.metric("Üretim Maliyeti", f"{toplam_kullanim_tutar:.2f} ₺")
+    with m3:
+        st.metric("Fire / Zayiat Miktarı", f"{toplam_fire_mik:.1f}", delta_color="inverse")
+    with m4:
+        st.metric("Toplam Harcama / Maliyet", f"{genel_toplam_tutar:.2f} ₺")
+
+    st.markdown("---")
+    st.subheader("📋 Detaylı İşlem Geçmişi Tablosu")
+    
+    if urun_loglari:
+        tablo_verisi = []
+        for l in urun_loglari:
+            tablo_verisi.append({
+                "Tarih": l["tarih"],
+                "İşlem Türü": l["tur"],
+                "Miktar": l["miktar"],
+                "Toplam Tutar (₺)": f"{l['tutar']:.2f} ₺"
+            })
+        st.dataframe(tablo_verisi, use_container_width=True)
+    else:
+        st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı. (Not: Yeni yemek üretimi yaptıkça veya fire girdikçe bu tablolar otomatik dolacaktır).")
