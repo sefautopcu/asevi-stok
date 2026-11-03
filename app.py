@@ -7,15 +7,16 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 # Sayfa Yapılandırması
-st.set_page_config(page_title="Aziziye SYDV - Aşevi Kontrol Paneli", page_icon="🍲", layout="wide")
+st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Tasarım ve Özel Sol Menü Renk/Stil Ayarları
+# İstediğiniz #375360 renk koduna sahip özel sol menü ve beyaz yazı tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
-    .stSidebar { background-color: #0F172A !important; padding-top: 10px; }
+    .stSidebar { background-color: #375360 !important; padding-top: 10px; }
+    .stSidebar * { color: #FFFFFF !important; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .sidebar-section-title { color: #34D399; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-top: 20px; margin-bottom: 8px; letter-spacing: 1px; }
+    .sidebar-section-title { color: #FFFFFF; font-size: 13px; font-weight: bold; text-transform: uppercase; margin-top: 15px; margin-bottom: 5px; letter-spacing: 1px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -112,13 +113,15 @@ st.markdown("### 🏛️ AZİZİYE SYDV - KONTROL PANELİ")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ AĞACI (Gönderdiğiniz son görsele birebir uyumlu, yeşilimsi tonlarda açılır menü)
-st.sidebar.markdown('<p class="sidebar-section-title">GENEL İŞLEMLER</p>', unsafe_allow_html=True)
-menu = st.sidebar.radio(
-    "Genel İşlemler",
-    ["Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle", "Fire / Zayiat Girişi", "Günlük Yemek Üretimi & Maliyet Raporu"],
-    label_visibility="collapsed"
-)
+# SOL MENÜ: Tıklanmadan açılmayan "Genel İşlemler" Açılır Menüsü (Expander) ve Sistem & Yönetim
+st.sidebar.markdown('<p class="sidebar-section-title">MENÜLER</p>', unsafe_allow_html=True)
+
+with st.sidebar.expander("📂 GENEL İŞLEMLER", expanded=True):
+    menu = st.radio(
+        "Genel İşlemler",
+        ["Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle", "Fire / Zayiat Girişi", "Günlük Yemek Üretimi & Maliyet Raporu"],
+        label_visibility="collapsed"
+    )
 
 st.sidebar.markdown('<p class="sidebar-section-title">SİSTEM & YÖNETİM</p>', unsafe_allow_html=True)
 st.sidebar.markdown("• Ayarlar & Yedekleme")
@@ -126,7 +129,7 @@ st.sidebar.markdown("• Ayarlar & Yedekleme")
 # Yönetici Girişi ve Kilit Mekanizması "Sistem & Yönetim" altında yer alıyor
 st.sidebar.markdown("---")
 if not st.session_state.yonetici_aktif:
-    st.sidebar.markdown('<p style="color: #94A3B8; font-size: 11px; margin-bottom: 2px;">Yönetici Girişi</p>', unsafe_allow_html=True)
+    st.sidebar.markdown('<p style="color: #FFFFFF; font-size: 11px; margin-bottom: 2px;">Yönetici Girişi</p>', unsafe_allow_html=True)
     sifre_input = st.sidebar.text_input("Yönetici Şifresi", type="password", key="sifre_kutusu", label_visibility="collapsed", placeholder="Şifre giriniz...")
     if sifre_input == "sydv25":
         st.session_state.yonetici_aktif = True
