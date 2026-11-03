@@ -9,13 +9,13 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye SYDV - Aşevi Kontrol Paneli", page_icon="🍲", layout="wide")
 
-# Gönderdiğiniz görsele birebir uyumlu kurumsal koyu lacivert sol menü ve panel tasarımı
+# Kurumsal Tasarım ve Özel Sol Menü Renk/Stil Ayarları
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
     .stSidebar { background-color: #0F172A !important; padding-top: 10px; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .sidebar-section-title { color: #94A3B8; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-top: 15px; margin-bottom: 5px; letter-spacing: 1px; }
+    .sidebar-section-title { color: #34D399; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-top: 20px; margin-bottom: 8px; letter-spacing: 1px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -112,10 +112,7 @@ st.markdown("### 🏛️ AZİZİYE SYDV - KONTROL PANELİ")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ AĞACI (Gönderdiğiniz görsele benzer şekilde kategorize edilmiş hiyerarşik yapı)
-st.sidebar.markdown("### 🍲 İEYS Panel")
-st.sidebar.markdown("---")
-
+# SOL MENÜ AĞACI (Gönderdiğiniz son görsele birebir uyumlu, yeşilimsi tonlarda açılır menü)
 st.sidebar.markdown('<p class="sidebar-section-title">GENEL İŞLEMLER</p>', unsafe_allow_html=True)
 menu = st.sidebar.radio(
     "Genel İşlemler",
@@ -123,30 +120,25 @@ menu = st.sidebar.radio(
     label_visibility="collapsed"
 )
 
-st.sidebar.markdown('<p class="sidebar-section-title">DEPO & YÖNETİM</p>', unsafe_allow_html=True)
-st.sidebar.markdown("• **Depo Envanteri**")
-st.sidebar.markdown("• **Maliyet Analizleri**")
-
 st.sidebar.markdown('<p class="sidebar-section-title">SİSTEM & YÖNETİM</p>', unsafe_allow_html=True)
-st.sidebar.markdown("• **Ayarlar & Yedekleme**")
+st.sidebar.markdown("• Ayarlar & Yedekleme")
 
-# OTURUM & YETKİ BÖLÜMÜ (Sol menünün en altında düşük puntolu şifre alanı ve kilit butonu)
+# Yönetici Girişi ve Kilit Mekanizması "Sistem & Yönetim" altında yer alıyor
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="color: #64748B; font-size: 10px; margin-bottom: 2px;">OTURUM & YETKİ</p>', unsafe_allow_html=True)
-
 if not st.session_state.yonetici_aktif:
-    sifre_input = st.sidebar.text_input("Yönetici Şifresi", type="password", key="sifre_kutusu", label_visibility="collapsed", placeholder="Yönetici şifresi...")
+    st.sidebar.markdown('<p style="color: #94A3B8; font-size: 11px; margin-bottom: 2px;">Yönetici Girişi</p>', unsafe_allow_html=True)
+    sifre_input = st.sidebar.text_input("Yönetici Şifresi", type="password", key="sifre_kutusu", label_visibility="collapsed", placeholder="Şifre giriniz...")
     if sifre_input == "sydv25":
         st.session_state.yonetici_aktif = True
-        st.rerun() # Şifre doğru girilince sayfayı anında yeniler ve yönetici yapar
+        st.rerun()
 else:
     col_kilit1, col_kilit2 = st.sidebar.columns([3, 1])
     with col_kilit1:
-        st.markdown('<p style="color: #10B981; font-size: 11px; margin: 0;">🔓 Yönetici Modu Aktif</p>', unsafe_allow_html=True)
+        st.sidebar.markdown('<p style="color: #34D399; font-size: 11px; margin: 0;">🔓 Yönetici Aktif</p>', unsafe_allow_html=True)
     with col_kilit2:
-        if st.button("🔒", help="Kilitlesin ve Gözlemci Moduna Döner"):
+        if st.sidebar.button("🔒", help="Kilitlesin ve Gözlemci Moduna Döner"):
             st.session_state.yonetici_aktif = False
-            st.rerun() # Kilit logosuna basılınca sayfayı yenileyip tekrar gözlemci yapar
+            st.rerun()
 
 yonetici_modu = st.session_state.yonetici_aktif
 
@@ -235,7 +227,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
     st.header("📝 Yeni Fatura ve Mal Alımı Girişi (Örn. Greyfurt vb.)")
     
     if not yonetici_modu:
-        st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
+        st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için 'Sistem & Yönetim' bölümünden yönetici şifresini girmeniz gereklidir.")
     else:
         with st.form("fatura_formu"):
             tarih = st.date_input("Alım Tarihi", datetime.date.today())
@@ -267,7 +259,7 @@ elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
     
     if not yonetici_modu:
-        st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
+        st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için 'Sistem & Yönetim' bölümünden yönetici şifresini girmeniz gereklidir.")
     else:
         benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
         secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", benzersiz_urunler)
