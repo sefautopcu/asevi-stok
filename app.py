@@ -543,10 +543,22 @@ def ortak_indirme_alani(excel_veri, pdf_veri, dosya_adi_koku, unique_key):
             )
 
 
-# 0. KURUMSAL DASHBOARD & ÖZET
+# 0. KURUMSAL DASHBOARD & ÖZET (GÖSTERGE PANELİ TASARIMI)
 if menu == "Kurumsal Dashboard & Özet":
-    st.header("📊 Kurumsal Yönetim Dashboard & Genel Bakış")
-    st.markdown("Depo girişleri, gerçek yemek üretimleri, fire oranları ve aylık maliyet dağılımları:")
+    # Referans görseldeki gibi şık koyu/modern başlık kartı konteyneri
+    st.markdown("""
+        <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 24px 30px; border-radius: 16px; color: white; margin-bottom: 25px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">2026 YILI BAŞARI & ÖZET GRAFİĞİ</h2>
+                    <p style="color: #94A3B8; margin: 5px 0 0 0; font-size: 14px;">Aziziye Sosyal Yardımlaşma ve Dayanışma Vakfı Aşevi Operasyon Paneli</p>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.1); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #38BDF8;">
+                    harikasite.web.tr
+                </div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
     toplam_stok_kalemi = len(set(g["urun"] for g in st.session_state.girisler))
     toplam_envanter_maliyeti = sum(g["kalan"] * g["fiyat"] for g in st.session_state.girisler)
@@ -555,6 +567,7 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
     toplam_fire_tutar = sum(l["tutar"] for l in loglar if l["tur"] == "Fire/Zayiat")
 
+    # Üst Özet Göstergeleri (Metrik Kartları)
     c1, c2, c3 = st.columns(3)
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
@@ -563,10 +576,17 @@ if menu == "Kurumsal Dashboard & Özet":
     with c3:
         st.metric("Toplam Stok Değeri", f"{toplam_envanter_maliyeti:,.2f} ₺")
 
-    st.markdown("---")
-    
-    st.markdown("### 🍩 Kategori Bazlı Stok Dağılımı & Analiz")
-    col_k1, col_k2 = st.columns([1, 1])
+    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+
+    # 1. GÖSTERGE PANELİ KARTI: Kategori Dağılımı (Donut) ve Yanında Sütun Grafik / Metrikler
+    st.markdown("""
+        <div style="background: #1E293B; padding: 24px; border-radius: 16px; border: 1px solid #334155; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="color: #38BDF8; font-weight: 600; font-size: 15px; margin-bottom: 15px; display: flex; align-items: center;">
+                <span style="font-size: 18px; margin-right: 8px;">┃</span> Kategori Bazlı Stok Dağılımı & Envanter Analizi
+            </div>
+    """, unsafe_allow_html=True)
+
+    col_k1, col_k2 = st.columns([1.2, 1])
     
     with col_k1:
         kategori_verileri = {}
@@ -576,34 +596,47 @@ if menu == "Kurumsal Dashboard & Özet":
         
         df_kat = pd.DataFrame(list(kategori_verileri.items()), columns=["Kategori", "Kalan Stok"])
         
+        # Tamamen referans görseldeki gibi şık donut grafik (koyu arkaplan uyumlu)
         fig_donut = px.pie(
             df_kat, 
             names="Kategori", 
             values="Kalan Stok", 
             hole=0.65,
-            color_discrete_sequence=['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1']
+            color_discrete_sequence=['#38BDF8', '#34D399', '#FBBF24', '#F87171', '#A78BFA', '#F472B6', '#818CF8']
         )
-        fig_donut.update_traces(textposition='inside', textinfo='percent+label')
+        fig_donut.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#1E293B', width=2)))
         fig_donut.update_layout(
             margin=dict(l=10, r=10, t=10, b=10),
-            height=300,
+            height=280,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter', size=12, color='#374151'),
+            font=dict(family='Inter', size=12, color='#F8FAFC'),
             showlegend=False
         )
         st.plotly_chart(fig_donut, use_container_width=True)
 
     with col_k2:
-        st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
-        st.markdown("##### 📌 Envanter Özet Bilgileri")
-        st.info(f"Depoda toplam **{toplam_stok_kalemi}** farklı ürün kalemi bulunmaktadır. Kategorilere göre kalan stok dağılımı yandaki halka grafikte modern renk paletiyle özetlenmiştir.")
-        st.metric("Toplam Envanter Değeri", f"₺{toplam_envanter_maliyeti:,.2f}")
+        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+        toplam_stok_miktari_genel = sum(kategori_verileri.values())
+        st.markdown(f"""
+            <div style="color: #F8FAFC; font-size: 14px; line-height: 1.6;">
+                <p style="margin-bottom: 10px;">Depomuzda an itibariyle toplam <strong style="color: #38BDF8;">{toplam_stok_miktari_genel:,.1f} birim</strong> ürün aktif olarak bulunmaktadır.</p>
+                <p style="margin-bottom: 15px;">Envanterin büyük bir kısmı <strong style="color: #34D399;">Kuru Gıda</strong> ve <strong style="color: #FBBF24;">Sebze</strong> depolarında güvenle muhafaza edilmektedir.</p>
+            </div>
+        """, unsafe_allow_html=True)
+        st.metric("Toplam Aktif Stok Hacmi", f"{toplam_stok_miktari_genel:,.1f} Birim")
 
-    st.markdown("---")
-    
-    st.markdown("### 📊 Aylık Mal Alım & Bütçe Dağılımı")
-    col_a1, col_a2 = st.columns([1, 1])
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # 2. GÖSTERGE PANELİ KARTI: Dönemsel Alım / Maliyet Karşılaştırması
+    st.markdown("""
+        <div style="background: #1E293B; padding: 24px; border-radius: 16px; border: 1px solid #334155; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="color: #38BDF8; font-weight: 600; font-size: 15px; margin-bottom: 15px; display: flex; align-items: center;">
+                <span style="font-size: 18px; margin-right: 8px;">┃</span> Dönemsel Mal Alım & Bütçe Dağılım Grafiği
+            </div>
+    """, unsafe_allow_html=True)
+
+    col_a1, col_a2 = st.columns([1.2, 1])
     
     with col_a1:
         eylul_tutar = sum(g["miktar"] * g["fiyat"] for g in st.session_state.girisler if g["tarih"].startswith("2026-09"))
@@ -614,32 +647,38 @@ if menu == "Kurumsal Dashboard & Özet":
             "Toplam Alım": [eylul_tutar, ekim_tutar]
         })
         
+        # Referans görseldeki modern sütun grafik stili
         fig_ay = px.bar(
             df_ay, 
             x="Dönem", 
             y="Toplam Alım", 
             text="Toplam Alım",
-            color_discrete_sequence=['#10B981']
+            color_discrete_sequence=['#34D399']
         )
-        fig_ay.update_traces(texttemplate='₺%{text:,.2f}', textposition='auto')
+        fig_ay.update_traces(texttemplate='₺%{text:,.2f}', textposition='auto', marker=dict(cornerradius=6))
         fig_ay.update_layout(
             margin=dict(l=20, r=20, t=20, b=20),
-            height=300,
+            height=280,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=False),
-            yaxis=dict(showgrid=True, gridcolor='#E5E7EB'),
-            font=dict(family='Inter', size=12, color='#374151')
+            xaxis=dict(showgrid=False, tickfont=dict(color='#F8FAFC')),
+            yaxis=dict(showgrid=True, gridcolor='#334155', tickfont=dict(color='#F8FAFC')),
+            font=dict(family='Inter', size=12, color='#F8FAFC')
         )
         st.plotly_chart(fig_ay, use_container_width=True)
 
     with col_a2:
-        st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-        st.markdown("##### 💼 Dönemsel Bütçe Özeti")
-        st.markdown(f"**Eylül 2026 Toplam Alım:** `₺{eylul_tutar:,.2f}`")
-        st.markdown(f"**Ekim 2026 Toplam Alım:** `₺{ekim_tutar:,.2f}`")
+        st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
         toplam_butce = eylul_tutar + ekim_tutar
+        st.markdown(f"""
+            <div style="color: #F8FAFC; font-size: 14px; line-height: 1.6;">
+                <p style="margin-bottom: 8px;"><strong>Eylül 2026 Alım Bütçesi:</strong> <span style="color: #34D399; font-weight: 600;">₺{eylul_tutar:,.2f}</span></p>
+                <p style="margin-bottom: 15px;"><strong>Ekim 2026 Alım Bütçesi:</strong> <span style="color: #38BDF8; font-weight: 600;">₺{ekim_tutar:,.2f}</span></p>
+            </div>
+        """, unsafe_allow_html=True)
         st.metric("İki Aylık Toplam Alım Bütçesi", f"₺{toplam_butce:,.2f}")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.subheader("🚀 Hızlı İşlem Kısayolları")
@@ -1400,7 +1439,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                 "teshis": r_teshis
                             })
                             personelleri_kaydet(st.session_state.personeller)
-                            st.success(f"{secilen_p_saat_adi} için sağlık raporu başarıyla kaydedildi!")
+                            st.success(f"{secilen_p_rapor_adi} için sağlık raporu başarıyla kaydedildi!")
                             st.rerun()
                 else:
                     st.info("👁️ Gözlemci modundasınız. Sağlık raporu eklemek için yönetici şifresini giriniz.")
