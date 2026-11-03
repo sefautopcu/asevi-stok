@@ -9,14 +9,13 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# İstediğiniz #182828 renk koduna sahip özel sol menü ve beyaz yazı tasarımı
+# Sol menü arka planı #182828 ve yazılar beyaz olacak şekilde özel tasarım
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
-    .stSidebar { background-color: #375360 !important; padding-top: 10px; }
+    .stSidebar { background-color: #182828 !important; padding-top: 10px; }
     .stSidebar * { color: #FFFFFF !important; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .sidebar-section-title { color: #FFFFFF; font-size: 13px; font-weight: bold; text-transform: uppercase; margin-top: 15px; margin-bottom: 5px; letter-spacing: 1px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -113,8 +112,8 @@ st.markdown("### 🏛️ AZİZİYE SYDV - KONTROL PANELİ")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ: Tıklanmadan açılmayan "Genel İşlemler" Açılır Menüsü (Expander) ve Sistem & Yönetim
-st.sidebar.markdown('<p class="sidebar-section-title">MENÜLER</p>', unsafe_allow_html=True)
+# SOL MENÜ: Açılır kapanır Genel İşlemler
+st.sidebar.markdown("### 📋 MENÜLER")
 
 with st.sidebar.expander("📂 GENEL İŞLEMLER", expanded=True):
     menu = st.radio(
@@ -123,13 +122,10 @@ with st.sidebar.expander("📂 GENEL İŞLEMLER", expanded=True):
         label_visibility="collapsed"
     )
 
-st.sidebar.markdown('<p class="sidebar-section-title">SİSTEM & YÖNETİM</p>', unsafe_allow_html=True)
-st.sidebar.markdown("• Ayarlar & Yedekleme")
-
-# Yönetici Girişi ve Kilit Mekanizması "Sistem & Yönetim" altında yer alıyor
+# Yönetici Girişi ve Kilit Mekanizması sol menünün en altında
 st.sidebar.markdown("---")
+st.sidebar.markdown("### 🔐 YÖNETİCİ GİRİŞİ")
 if not st.session_state.yonetici_aktif:
-    st.sidebar.markdown('<p style="color: #FFFFFF; font-size: 11px; margin-bottom: 2px;">Yönetici Girişi</p>', unsafe_allow_html=True)
     sifre_input = st.sidebar.text_input("Yönetici Şifresi", type="password", key="sifre_kutusu", label_visibility="collapsed", placeholder="Şifre giriniz...")
     if sifre_input == "sydv25":
         st.session_state.yonetici_aktif = True
@@ -137,7 +133,7 @@ if not st.session_state.yonetici_aktif:
 else:
     col_kilit1, col_kilit2 = st.sidebar.columns([3, 1])
     with col_kilit1:
-        st.sidebar.markdown('<p style="color: #34D399; font-size: 11px; margin: 0;">🔓 Yönetici Aktif</p>', unsafe_allow_html=True)
+        st.sidebar.markdown('<p style="color: #34D399; font-size: 12px; margin: 0;">🔓 Yönetici Aktif</p>', unsafe_allow_html=True)
     with col_kilit2:
         if st.sidebar.button("🔒", help="Kilitlesin ve Gözlemci Moduna Döner"):
             st.session_state.yonetici_aktif = False
@@ -230,7 +226,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
     st.header("📝 Yeni Fatura ve Mal Alımı Girişi (Örn. Greyfurt vb.)")
     
     if not yonetici_modu:
-        st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için 'Sistem & Yönetim' bölümünden yönetici şifresini girmeniz gereklidir.")
+        st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
         with st.form("fatura_formu"):
             tarih = st.date_input("Alım Tarihi", datetime.date.today())
@@ -262,7 +258,7 @@ elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
     
     if not yonetici_modu:
-        st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için 'Sistem & Yönetim' bölümünden yönetici şifresini girmeniz gereklidir.")
+        st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
         benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
         secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", benzersiz_urunler)
