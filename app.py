@@ -7,15 +7,15 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 # Sayfa Yapılandırması
-st.set_page_config(page_title="Aziziye Aşevi - Kontrol Paneli", page_icon="🍲", layout="wide")
+st.set_page_config(page_title="Aziziye SYDV - Aşevi Kontrol Paneli", page_icon="🍲", layout="wide")
 
-# Kurumsal Tasarım (CSS Stilleri - Gönderdiğiniz görsele uyumlu koyu lacivert/kurumsal tonlar)
+# Gönderdiğiniz görsele birebir uyumlu kurumsal koyu lacivert sol menü ve panel tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
-    .stSidebar { background-color: #0F172A !important; }
+    .stSidebar { background-color: #0F172A !important; padding-top: 10px; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .metric-card { background-color: #FFFFFF; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-left: 5px solid #1E3A8A; }
+    .sidebar-section-title { color: #94A3B8; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-top: 15px; margin-bottom: 5px; letter-spacing: 1px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -104,25 +104,52 @@ def verileri_kaydet(veri):
 if "girisler" not in st.session_state:
     st.session_state.girisler = verileri_yukle()
 
-# Başlık ve Üst Bilgi Alanı (Kurumsal Görünüm)
-st.markdown("### 🏛️ AZİZİYE SYDV - AŞEVİ KONTROL PANELİ")
-st.markdown(f"**Tarih:** {datetime.date.today().strftime('%d %B %Y, %A')}")
+if "yonetici_aktif" not in st.session_state:
+    st.session_state.yonetici_aktif = False
+
+# Üst Bilgi ve Başlık
+st.markdown("### 🏛️ AZİZİYE SYDV - KONTROL PANELİ")
+st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# Sol Menü ve Yetkilendirme (Yönetici / Gözlemci Modu)
-st.sidebar.markdown("## ⚙️ KONTROL PANELİ")
-menu = st.sidebar.selectbox("Menü Seçin", ["Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle", "Fire / Zayiat Girişi", "Günlük Yemek Üretimi & Maliyet Raporu"])
-
+# SOL MENÜ AĞACI (Gönderdiğiniz görsele benzer şekilde kategorize edilmiş hiyerarşik yapı)
+st.sidebar.markdown("### 🍲 İEYS Panel")
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 🔐 Oturum & Yetki")
-yonetici_sifresi = st.sidebar.text_input("Yönetici Şifresi", type="password")
-# Yönetici şifresini kendiniz belirleyebilirsiniz (Örn: "sydv25" yaptık, istediğiniz gibi değiştirebilirsiniz)
-yonetici_modu = (yonetici_sifresi == "sydv25")
 
-if yonetici_modu:
-    st.sidebar.success("🔓 Yönetici Modu Aktif (Değişiklik yapabilirsiniz)")
+st.sidebar.markdown('<p class="sidebar-section-title">GENEL İŞLEMLER</p>', unsafe_allow_html=True)
+menu = st.sidebar.radio(
+    "Genel İşlemler",
+    ["Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle", "Fire / Zayiat Girişi", "Günlük Yemek Üretimi & Maliyet Raporu"],
+    label_visibility="collapsed"
+)
+
+st.sidebar.markdown('<p class="sidebar-section-title">DEPO & YÖNETİM</p>', unsafe_allow_html=True)
+st.sidebar.markdown("• **Depo Envanteri**")
+st.sidebar.markdown("• **Maliyet Analizleri**")
+
+st.sidebar.markdown('<p class="sidebar-section-title">SİSTEM & YÖNETİM</p>', unsafe_allow_html=True)
+st.sidebar.markdown("• **Ayarlar & Yedekleme**")
+
+# OTURUM & YETKİ BÖLÜMÜ (Sol menünün en altında düşük puntolu şifre alanı ve kilit butonu)
+st.sidebar.markdown("---")
+st.sidebar.markdown('<p style="color: #64748B; font-size: 10px; margin-bottom: 2px;">OTURUM & YETKİ</p>', unsafe_allow_html=True)
+
+if not st.session_state.yonetici_aktif:
+    sifre_input = st.sidebar.text_input("Yönetici Şifresi", type="password", key="sifre_kutusu", label_visibility="collapsed", placeholder="Yönetici şifresi...")
+    if sifre_input == "sydv25":
+        st.session_state.yonetici_aktif = True
+        st.rerun() # Şifre doğru girilince sayfayı anında yeniler ve yönetici yapar
 else:
-    st.sidebar.info("👁️ Gözlemci Modu (Sadece görüntüleme)")
+    col_kilit1, col_kilit2 = st.sidebar.columns([3, 1])
+    with col_kilit1:
+        st.markdown('<p style="color: #10B981; font-size: 11px; margin: 0;">🔓 Yönetici Modu Aktif</p>', unsafe_allow_html=True)
+    with col_kilit2:
+        if st.button("🔒", help="Kilitlesin ve Gözlemci Moduna Döner"):
+            st.session_state.yonetici_aktif = False
+            st.rerun() # Kilit logosuna basılınca sayfayı yenileyip tekrar gözlemci yapar
+
+yonetici_modu = st.session_state.yonetici_aktif
+
 
 # 1. GÜNCEL STOK DURUMU
 if menu == "Güncel Stok Durumu":
@@ -130,7 +157,6 @@ if menu == "Güncel Stok Durumu":
     with col_baslik:
         st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
     with col_buton:
-        # Sağ üst Excel Raporu İndirme Butonu
         if st.button("📥 Excel İndir"):
             wb = openpyxl.Workbook()
             ws = wb.active
@@ -140,7 +166,6 @@ if menu == "Güncel Stok Durumu":
             header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
             header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
             title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
-            bold_font = Font(name="Calibri", size=11, bold=True)
             regular_font = Font(name="Calibri", size=11)
             thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
 
@@ -175,7 +200,7 @@ if menu == "Güncel Stok Durumu":
 
             excel_adi = "asevi_guncel_stok_raporu.xlsx"
             wb.save(excel_adi)
-            st.success(f"Stok raporu başarıyla indirildi!")
+            st.success("Stok raporu başarıyla indirildi!")
 
     depolar = ["Tümü", "Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"]
     secilen_depo = st.selectbox("Depo Konumuna Göre Filtrele", depolar)
@@ -210,11 +235,10 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
     st.header("📝 Yeni Fatura ve Mal Alımı Girişi (Örn. Greyfurt vb.)")
     
     if not yonetici_modu:
-        st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için sol menüden Yönetici Şifresi girmeniz gereklidir.")
+        st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
         with st.form("fatura_formu"):
             tarih = st.date_input("Alım Tarihi", datetime.date.today())
-            # Listede olmayan yeni bir ürün (örn: GREYFURT) buraya yazılıp eklenebilir
             urun = st.text_input("Ürün Adı (Örn: GREYFURT - Büyük Harfle)").strip().upper()
             kategori = st.selectbox("Kategori", ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"])
             birim = st.selectbox("Birim", ["Kg", "Adet", "Lt"])
@@ -243,7 +267,7 @@ elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
     
     if not yonetici_modu:
-        st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için sol menüden Yönetici Şifresi girmeniz gereklidir.")
+        st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
         benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
         secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", benzersiz_urunler)
@@ -357,7 +381,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         g["kalan"] = 0
             verileri_kaydet(st.session_state.girisler)
             
-            # Excel Oluşturma
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Günlük Maliyet Raporu"
@@ -447,5 +470,5 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
             rapor_adi = "asevi_gunluk_maliyet_raporu.xlsx"
             wb.save(rapor_adi)
-            st.success(f"Üretim kaydedildi, stoktan düşüldü ve rapor hazırlandı!")
+            st.success("Üretim kaydedildi, stoktan düşüldü ve rapor hazırlandı!")
             st.session_state.sepet = []
