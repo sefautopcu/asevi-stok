@@ -10,52 +10,54 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Görsellerdeki Modern Glassmorphism & Soft UI Tasarımı (CSS Entegrasyonu)
+# Gönderdiğiniz Modern Dashboard Referansına Göre Güncellenmiş Glassmorphism & Soft UI Tasarımı (CSS Entegrasyonu)
 st.markdown("""
     <style>
     .main { 
-        background-color: #F4F6F9 !important; 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #FAFAFB !important; 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
     .stSidebar { 
-        background-color: #EAEFF5 !important; 
-        padding-top: 15px; 
-        border-right: 1px solid #D1DCE5;
+        background-color: #F4F5F7 !important; 
+        padding-top: 10px; 
+        border-right: 1px solid #E5E7EB;
     }
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-        color: #2C3E50 !important; 
-        font-size: 14px; 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        color: #374151 !important; 
+        font-size: 13.5px; 
+        font-family: 'Inter', sans-serif; 
     }
     h1, h2, h3 { 
-        color: #1E293B; 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        color: #111827; 
+        font-family: 'Inter', sans-serif; 
+        letter-spacing: -0.025em;
     }
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
+    /* Yan Menü Butonları - Referans Tasarımdaki Şık Liste Görünümü */
     section[data-testid="stSidebar"] button[kind="secondary"] {
-        background-color: #FFFFFF !important;
-        color: #334155 !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 12px !important;
-        font-weight: 500 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        transition: all 0.3s ease;
+        background-color: transparent !important;
+        color: #4B5563 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        text-align: left !important;
+        font-weight: 400 !important;
+        padding: 6px 10px !important;
+        box-shadow: none !important;
+        transition: all 0.2s ease;
     }
     section[data-testid="stSidebar"] button[kind="secondary"]:hover {
-        background-color: #F8FAFC !important;
-        color: #0F172A !important;
-        border-color: #94A3B8 !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        background-color: #EFEFF1 !important;
+        color: #111827 !important;
     }
     section[data-testid="stSidebar"] button[kind="primary"] {
-        background-color: #1E293B !important;
-        color: #FFFFFF !important;
-        border: 1px solid #1E293B !important;
-        border-radius: 12px !important;
+        background-color: #E5E7EB !important;
+        color: #111827 !important;
+        border: none !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+        box-shadow: none !important;
     }
     section[data-testid="stSidebar"] [data-testid="stExpander"] summary {
         display: flex !important;
@@ -66,13 +68,13 @@ st.markdown("""
         font-weight: 600 !important;
         margin: 0 !important;
     }
-    div.stMetric {
-        background: rgba(255, 255, 255, 0.8) !important;
-        backdrop-filter: blur(12px);
-        border: 1px solid #E2E8F0;
-        padding: 15px 20px;
-        border-radius: 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    /* Modern Kart Yapıları */
+    div.stMetric, div[data-testid="stExpander"], div.stForm {
+        background: #FFFFFF !important;
+        border: 1px solid #E5E7EB;
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -360,11 +362,11 @@ def bugunun_turkce_tarihi():
     gunler = {0: "Pazartesi", 1: "Salı", 2: "Çarşamba", 3: "Perşembe", 4: "Cuma", 5: "Cumartesi", 6: "Pazar"}
     return f"{simdi.day} {aylar.get(simdi.month, '')} {simdi.year}, {gunler.get(simdi.weekday(), '')}"
 
-st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
+st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-st.sidebar.markdown('<p style="color: #1E293B !important; font-size: 15px; font-weight: bold; margin-bottom: 10px;">📋 Ana Menü</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="color: #111827 !important; font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Ana Menü</p>', unsafe_allow_html=True)
 
 menuler_listesi = [
     "Kurumsal Dashboard & Özet",
@@ -411,7 +413,6 @@ else:
             st.session_state.yonetici_aktif = False
             st.rerun()
 
-    # Temizlenmiş ve ok simgesiyle güncellenmiş Şifreyi Değiştir başlığı
     with st.sidebar.expander("➡️ Şifreyi Değiştir"):
         with st.form("sifre_degistir_form"):
             eski_sifre = st.text_input("Mevcut Şifre", type="password")
@@ -431,7 +432,7 @@ else:
 yonetici_modu = st.session_state.yonetici_aktif
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="color: #64748B !important; font-size: 11px; text-align: center; margin-top: 10px;">sefautopcu</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="color: #6B7280 !important; font-size: 11px; text-align: center; margin-top: 10px;">sefautopcu</p>', unsafe_allow_html=True)
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -440,14 +441,14 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
     ws.title = "Rapor"
     ws.views.sheetView[0].showGridLines = True
     
-    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    header_fill = PatternFill(start_color="111827", end_color="111827", fill_type="solid")
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
+    title_font = Font(name="Calibri", size=14, bold=True, color="111827")
     regular_font = Font(name="Calibri", size=11)
-    thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
+    thin_border = Border(left=Side(style='thin', color='E5E7EB'), right=Side(style='thin', color='E5E7EB'), top=Side(style='thin', color='E5E7EB'), bottom=Side(style='thin', color='E5E7EB'))
 
     ws.cell(row=1, column=1, value=baslik_str).font = title_font
-    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.date.today())}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
+    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.date.today())}").font = Font(name="Calibri", size=11, italic=True, color="4B5563")
 
     if not veri_listesi:
         excel_buffer = io.BytesIO()
@@ -483,19 +484,19 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
         <meta charset="utf-8">
         <title>{baslik}</title>
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #1E293B; }}
-            h2 {{ color: #1E3A8A; margin-bottom: 5px; }}
-            p {{ color: #64748B; font-size: 14px; margin-top: 0; }}
+            body {{ font-family: 'Inter', sans-serif; margin: 30px; color: #111827; }}
+            h2 {{ color: #111827; margin-bottom: 5px; }}
+            p {{ color: #4B5563; font-size: 14px; margin-top: 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-            th {{ background-color: #1E3A8A; color: white; padding: 10px; text-align: left; font-size: 13px; }}
-            td {{ border: 1px solid #CBD5E0; padding: 8px 10px; font-size: 13px; }}
-            tr:nth-child(even) {{ background-color: #F8FAFC; }}
+            th {{ background-color: #111827; color: white; padding: 10px; text-align: left; font-size: 13px; }}
+            td {{ border: 1px solid #E5E7EB; padding: 8px 10px; font-size: 13px; }}
+            tr:nth-child(even) {{ background-color: #F9FAFB; }}
         </style>
     </head>
     <body>
         <h2>{baslik}</h2>
         <p>Rapor Tarihi: {datetime.date.today()}</p>
-        <hr style="border: 0; border-top: 1px solid #E2E8F0;"/>
+        <hr style="border: 0; border-top: 1px solid #E5E7EB;"/>
     """
     if veri_listesi:
         headers = list(veri_listesi[0].keys())
