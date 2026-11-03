@@ -307,7 +307,32 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
     return html.encode("utf-8")
 
 
-# 0. KURUMSAL DASHBOARD & ÖZET (Güncellenmiş Gerçek Veri Grafikleri & Toplam Stok Değeri)
+# Ortak "İndir" Bileşeni Oluşturan Yardımcı Fonksiyon
+def ortak_indirme_alani(excel_veri, pdf_veri, dosya_adi_koku, unique_key):
+    col_sec, col_btn = st.columns([2, 1])
+    with col_sec:
+        format_secimi = st.selectbox("İndirilecek Formatı Seçin", ["Excel (.xlsx)", "PDF / HTML (.html)"], key=f"sel_{unique_key}")
+    with col_btn:
+        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+        if "Excel" in format_secimi:
+            st.download_button(
+                label="📥 Raporu İndir",
+                data=excel_veri,
+                file_name=f"{dosya_adi_koku}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"btn_{unique_key}"
+            )
+        else:
+            st.download_button(
+                label="📥 Raporu İndir",
+                data=pdf_veri,
+                file_name=f"{dosya_adi_koku}.html",
+                mime="text/html",
+                key=f"btn_{unique_key}"
+            )
+
+
+# 0. KURUMSAL DASHBOARD & ÖZET
 if menu == "Kurumsal Dashboard & Özet":
     st.header("📊 Kurumsal Yönetim Dashboard & Genel Bakış")
     st.markdown("Depo girişleri, gerçek yemek üretimleri, fire oranları ve aylık maliyet dağılımları:")
@@ -320,7 +345,6 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_uretim_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Yemek Üretimi")
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
 
-    # 5'li Metrik Kartı Tasarımı
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
@@ -380,7 +404,7 @@ if menu == "Kurumsal Dashboard & Özet":
 
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
-    col_baslik, col_btn_excel, col_btn_pdf = st.columns([2, 1, 1])
+    col_baslik, col_indir_alan = st.columns([2, 2])
     with col_baslik:
         st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
 
@@ -404,21 +428,8 @@ elif menu == "Güncel Stok Durumu":
     excel_data = tablo_to_excel_bytes(excel_liste, "Aziziye Aşevi - Güncel Stok Raporu")
     pdf_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Güncel Stok Raporu", excel_liste)
 
-    with col_btn_excel:
-        st.download_button(
-            label="🟩 Excel İndir",
-            data=excel_data,
-            file_name="asevi_guncel_stok_raporu.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-    with col_btn_pdf:
-        st.download_button(
-            label="🟥 PDF İndir",
-            data=pdf_data,
-            file_name="asevi_guncel_stok_raporu.html",
-            mime="text/html"
-        )
+    with col_indir_alan:
+        ortak_indirme_alani(excel_data, pdf_data, "asevi_guncel_stok_raporu", "stok_sayfasi")
 
     depolar = ["Tümü", "Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"]
     secilen_depo = st.selectbox("Depo Konumuna Göre Filtrele", depolar)
@@ -534,7 +545,7 @@ elif menu == "Fire / Zayiat Girişi":
 
 # 4. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
-    col_baslik_r, col_btn_ex, col_btn_pd = st.columns([2, 1, 1])
+    col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi ve Maliyet Hesaplama")
     
@@ -596,11 +607,10 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             excel_sepet_liste.append({"Malzeme": urun, "Kategori": kategori, "Birim": birim, "Miktar": istenen, "Birim Maliyet (TL)": round(ilk_fiyat, 2), "Toplam Maliyet (TL)": round(maliyet, 2)})
 
         pdf_data = tablo_to_html_pdf_bytes(f"Yemek Maliyet Raporu - {yemek_adi}", excel_sepet_liste)
+        excel_sepet_data = tablo_to_excel_bytes(excel_sepet_liste, f"Yemek Maliyet Raporu - {yemek_adi}")
 
-        with col_btn_ex:
-            st.download_button("🟩 Excel Raporu", data=tablo_to_excel_bytes(excel_sepet_liste, f"Yemek Maliyet Raporu - {yemek_adi}"), file_name="yemek_maliyet_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        with col_btn_pd:
-            st.download_button("🟥 PDF Raporu", data=pdf_data, file_name="yemek_maliyet_raporu.html", mime="text/html")
+        with col_indir_alan:
+            ortak_indirme_alani(excel_sepet_data, pdf_data, "yemek_maliyet_raporu", "yemek_sayfasi")
             
         for row in islenmis_sepet:
             st.write(f"• **{row['Malzeme']}** - {row['Miktar']} {row['Birim']} | Birim Fiyat: {row['Birim Maliyet']:.2f} ₺ | Toplam: **{row['Toplam Maliyet']:.2f} ₺**")
@@ -643,14 +653,14 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             st.success("Üretim kaydedildi ve stoktan düşüldü!")
             st.session_state.sepet = []
     else:
-        with col_btn_ex:
-            st.download_button("🟩 Excel Raporu", data=tablo_to_excel_bytes([], "Boş Rapor"), file_name="yemek_maliyet_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        with col_btn_pd:
-            st.download_button("🟥 PDF Raporu", data=b"<html><body>Henuz malzeme eklenmedi.</body></html>", file_name="yemek_maliyet_raporu.html", mime="text/html")
+        empty_excel = tablo_to_excel_bytes([], "Boş Rapor")
+        empty_pdf = tablo_to_html_pdf_bytes("Boş Rapor", [])
+        with col_indir_alan:
+            ortak_indirme_alani(empty_excel, empty_pdf, "bos_yemek_raporu", "yemek_bos_sayfasi")
 
 # 5. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
 elif menu == "Kullanım Takibi":
-    col_b_k, col_ex_k, col_pd_k = st.columns([2, 1, 1])
+    col_b_k, col_indir_alan = st.columns([2, 2])
     with col_b_k:
         st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
             
@@ -706,11 +716,10 @@ elif menu == "Kullanım Takibi":
         })
 
     pdf_data = tablo_to_html_pdf_bytes(f"Kullanım Raporu - {secilen_urun_takip}", tablo_verisi)
+    excel_data = tablo_to_excel_bytes(tablo_verisi, f"Kullanım Raporu - {secilen_urun_takip}")
 
-    with col_ex_k:
-        st.download_button("🟩 Excel İndir", data=tablo_to_excel_bytes(tablo_verisi, f"Kullanım Raporu - {secilen_urun_takip}"), file_name="kullanim_takip_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="excel_kullanim")
-    with col_pd_k:
-        st.download_button("🟥 PDF İndir", data=pdf_data, file_name="kullanim_takip_raporu.html", mime="text/html", key="pdf_kullanim")
+    with col_indir_alan:
+        ortak_indirme_alani(excel_data, pdf_data, "kullanim_takip_raporu", "kullanim_sayfasi")
 
     st.markdown("---")
     st.subheader(f"📌 {secilen_urun_takip} - Özet Performans Kartları")
@@ -735,7 +744,7 @@ elif menu == "Kullanım Takibi":
 
 # 6. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
-    col_b_f, col_ex_f, col_pd_f = st.columns([2, 1, 1])
+    col_b_f, col_indir_alan = st.columns([2, 2])
     with col_b_f:
         st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
         
@@ -758,10 +767,9 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
         })
 
     pdf_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Ürün Birim Fiyatları", fiyat_tablosu_verisi)
+    excel_data = tablo_to_excel_bytes(fiyat_tablosu_verisi, "Aziziye Aşevi - Ürün Birim Fiyatları")
 
-    with col_ex_f:
-        st.download_button("🟩 Excel İndir", data=tablo_to_excel_bytes(fiyat_tablosu_verisi, "Aziziye Aşevi - Ürün Birim Fiyatları"), file_name="urun_birim_fiyatlari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="key_excel_fiyat")
-    with col_pd_f:
-        st.download_button("🟥 PDF İndir", data=pdf_data, file_name="urun_birim_fiyatlari.html", mime="text/html", key="key_pdf_fiyat")
+    with col_indir_alan:
+        ortak_indirme_alani(excel_data, pdf_data, "urun_birim_fiyatlari", "fiyat_sayfasi")
 
     st.dataframe(fiyat_tablosu_verisi, use_container_width=True)
