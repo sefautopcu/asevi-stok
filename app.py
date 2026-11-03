@@ -57,10 +57,15 @@ st.markdown("""
         font-weight: 600 !important;
         box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
     }
-    /* Expander içi düzgün hizalama için ek stil */
+    /* Expander başlığındaki çakışmayı önlemek için düzeltilmiş esnek düzen */
+    section[data-testid="stSidebar"] [data-testid="stExpander"] summary {
+        display: flex !important;
+        align-items: center !important;
+    }
     section[data-testid="stSidebar"] [data-testid="stExpander"] summary p {
         font-size: 13px !important;
         font-weight: 600 !important;
+        margin: 0 !important;
     }
     div.stMetric {
         background: rgba(255, 255, 255, 0.8) !important;
@@ -407,8 +412,8 @@ else:
             st.session_state.yonetici_aktif = False
             st.rerun()
 
-    # Çakışma önlenecek şekilde düzeltilen expander başlığı
-    with st.sidebar.expander("🔑 Şifre Değiştir"):
+    # Expander başlığı çakışması giderildi
+    with st.sidebar.expander("🔑 Şifreyi Değiştir"):
         with st.form("sifre_degistir_form"):
             eski_sifre = st.text_input("Mevcut Şifre", type="password")
             yeni_sifre_1 = st.text_input("Yeni Şifre", type="password")
