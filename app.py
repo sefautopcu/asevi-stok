@@ -160,7 +160,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔐 YÖNETİCİ GİRİŞİ")
 if not st.session_state.yonetici_aktif:
     sifre_input = st.sidebar.text_input("Yönetici Şifresi", type="password", key="sifre_kutusu", label_visibility="collapsed", placeholder="Şifre giriniz...")
-    if sifre_input == "sydv25":
+    if sifre_input == "Ss123321":
         st.session_state.yonetici_aktif = True
         st.rerun()
 else:
