@@ -133,17 +133,18 @@ if "kullanim_loglari" not in st.session_state:
 if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
 
-# Üst Bilgi ve Başlık
+# Üst Bilgi ve Başlık (İstediğiniz gibi sadece "Hoş geldiniz")
 st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
-st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
+st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ (Sadeleştirilmiş ana kategori yapısı)
+# SOL MENÜ
 st.sidebar.markdown("### 📋 MENÜLER")
 
 menu = st.sidebar.radio(
     "Ana Menü",
     [
+        "Kurumsal Dashboard & Özet",
         "Güncel Stok Durumu", 
         "Yeni Mal Alımı / Fatura Ekle", 
         "Fire / Zayiat Girişi", 
@@ -174,8 +175,67 @@ else:
 yonetici_modu = st.session_state.yonetici_aktif
 
 
+# 0. KURUMSAL DASHBOARD & ÖZET (İLK AÇILIŞ EKRANI)
+if menu == "Kurumsal Dashboard & Özet":
+    st.header("📊 Kurumsal Yönetim Dashboard & Genel Bakış")
+    st.markdown("İçinde bulunduğumuz döneme ait depo girişleri, yemek üretimleri, fire oranları ve aylık maliyet dağılımları:")
+
+    # İstatistik Hesaplamaları
+    toplam_stok_kalemi = len(st.session_state.girisler)
+    toplam_envanter_miktari = sum(g["kalan"] for g in st.session_state.girisler)
+    toplam_envanter_maliyeti = sum(g["kalan"] * g["fiyat"] for g in st.session_state.girisler)
+
+    # Özet Kartlar
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Kalem")
+    with c2:
+        st.metric("Depodaki Toplam Miktar", f"{toplam_envanter_miktari:,.1f} Birim")
+    with c3:
+        st.metric("Güncel Depo Maliyeti", f"{toplam_envanter_maliyeti:,.2f} ₺")
+    with c4:
+        st.metric("Yönetici Yetki Durumu", "Aktif 🔓" if yonetici_modu else "Gözlemci 👁️")
+
+    st.markdown("---")
+    
+    # Grafik ve Analiz Bölümleri
+    col_g1, col_g2 = st.columns(2)
+    
+    with col_g1:
+        st.subheader("📈 Kategori Bazlı Stok Dağılımı")
+        kategoriler = {}
+        for g in st.session_state.girisler:
+            kat = g["kategori"]
+            kategoriler[kat] = kategoriler.get(kat, 0.0) + g["kalan"]
+        
+        # Streamlit yerleşik bar grafiği
+        st.bar_chart(kategoriler)
+
+    with col_g2:
+        st.subheader("📉 Depo Maliyet Dağılımı")
+        depolar = {}
+        for g in st.session_state.girisler:
+            dep = g["depo"]
+            depolar[dep] = depolar.get(dep, 0.0) + (g["kalan"] * g["fiyat"])
+            
+        st.bar_chart(depolar)
+
+    st.markdown("---")
+    st.subheader("🚀 Hızlı İşlem Kısayolları")
+    q1, q2, q3 = st.columns(3)
+    with q1:
+        if st.button("📦 Stok Durumuna Git", use_container_width=True):
+            pass
+    with q2:
+        if st.button("🍲 Yemek Üretimi Yap", use_container_width=True):
+            pass
+    with q3:
+        if st.button("📋 Birim Fiyatları İncele", use_container_width=True):
+            pass
+
+
 # 1. GÜNCEL STOK DURUMU
-if menu == "Güncel Stok Durumu":
+elif menu == "Güncel Stok Durumu":
     col_baslik, col_btn_excel, col_btn_pdf = st.columns([2, 1, 1])
     with col_baslik:
         st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
@@ -543,7 +603,7 @@ elif menu == "Kullanım Takibi":
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_f, col_ex_f, col_pd_f = st.columns([2, 1, 1])
     with col_b_f:
-        st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
+        st.header("📋 Ürünlerin Eylül and Ekim Ayı Birim Fiyat Tablosu")
     with col_ex_f:
         st.download_button("🟩 Excel İndir", data=b"Birim Fiyatlar Excel", file_name="urun_birim_fiyatlari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="excel_fiyat")
     with col_pd_f:
