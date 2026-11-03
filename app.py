@@ -125,7 +125,7 @@ ekim_tuketimleri_verileri = [
     ("GALETA UNU", 1.0), ("KIRMIZI TATLI PUL BİBER", 0.01), ("YEŞİL MERCİMEK", 2.0)
 ]
 
-# Ekim Ayı Fire Verileri (Yüklediğiniz son tablodan alındı)
+# Ekim Ayı Fire Verileri (Güncellenmiş Liste)
 ekim_fire_verileri = [
     ("MUZ", 54.50),
     ("ISPANAK", 60.00),
@@ -149,10 +149,8 @@ def verileri_kaydet(veri):
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
 def loglari_yukle():
-    # Tüm logları (Tüketim + Fire) eksiksiz oluşturan ortak fonksiyon
     tum_loglar = []
     
-    # 1. Tüketimleri Ekle
     for urun_adi, miktar in ekim_tuketimleri_verileri:
         bulunan_fiyat = 50.0
         for g in varsayilan_girisler:
@@ -167,7 +165,6 @@ def loglari_yukle():
             "tutar": miktar * bulunan_fiyat
         })
 
-    # 2. Fireleri Ekle
     for urun_adi, miktar in ekim_fire_verileri:
         bulunan_fiyat = 50.0
         for g in varsayilan_girisler:
@@ -587,7 +584,7 @@ elif menu == "Ürün Sil / Düzenle":
                     st.session_state.silme_mesaji = mesaj_metni
                     st.rerun()
 
-# 4. FİRE / ZAYİAT GİRİŞİ
+# 4. FİRE / ZAYİAT GİRİŞİ (Tüm Ürünler seçeneği eklendi)
 elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
     
@@ -595,13 +592,20 @@ elif menu == "Fire / Zayiat Girişi":
         st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
         benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
-        secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", benzersiz_urunler)
+        secenek_listesi_fire = ["Tüm Ürünler"] + benzersiz_urunler
+        secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", secenek_listesi_fire)
         
-        ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_urun and g["kalan"] > 0]
+        if secilen_urun == "Tüm Ürünler":
+            st.info("Genel Toplu Fire / Zayiat Girişi (Not: Özel toplu düşüşler için ürün bazlı seçim yapabilirsiniz)")
+            secilen_gercek_urun = st.selectbox("İşlem Yapılacak Spesifik Ürünü Seçin", benzersiz_urunler)
+        else:
+            secilen_gercek_urun = secilen_urun
+            
+        ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_gercek_urun and g["kalan"] > 0]
         toplam_stok = sum(g["kalan"] for g in ilgili_girisler)
         
-        st.info(f"Seçilen Ürün Mevcut Stoğu: {toplam_stok}")
-        fire_miktari = st.number_input("Fire Miktarı", min_value=0.0, max_value=float(toplam_stok), step=0.1)
+        st.info(f"Seçilen Ürün ({secilen_gercek_urun}) Mevcut Stoğu: {toplam_stok}")
+        fire_miktari = st.number_input("Fire Miktarı", min_value=0.0, max_value=float(toplam_stok) if toplam_stok>0 else 1.0, step=0.1)
         aciklama = st.text_input("Fire Nedeni (Örn: Çürüme / S.T.T)")
         
         if st.button("Fireyi Düş ve Kaydet"):
@@ -630,7 +634,7 @@ elif menu == "Fire / Zayiat Girişi":
                 
                 st.session_state.kullanim_loglari.append({
                     "tarih": bugun_str,
-                    "urun": secilen_urun,
+                    "urun": secilen_gercek_urun,
                     "tur": "Fire/Zayiat",
                     "miktar": fire_miktari,
                     "tutar": toplam_zarar
