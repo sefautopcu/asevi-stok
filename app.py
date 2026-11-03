@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve Stil Tasarımı
+# Kurumsal Sol Menü ve Stil Tasarımı (Radio butonlarını ve üst üste binmeleri gizleyen özel CSS)
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -18,9 +18,23 @@ st.markdown("""
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { color: #E8EAED !important; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     
-    /* Daraltma butonundaki metin kalıntısını tamamen gizle */
+    /* Daraltma butonundaki metin ve ikon kalıntılarını tamamen gizle */
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
+    
+    /* Radio butonların solundaki daire kutucukları tamamen gizle ve şık liste görünümü ver */
+    .stRadio div[role="radiogroup"] label div:first-child { display: none !important; }
+    .stRadio div[role="radiogroup"] label {
+        background-color: #2D3748;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        border-radius: 6px;
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+    .stRadio div[role="radiogroup"] label:hover {
+        background-color: #4A5568;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -138,7 +152,7 @@ st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ (İstediğiniz gibi "MENÜLER" yazısı kaldırıldı ve açılır-kapanır akordeon yapıya bağlandı)
+# SOL MENÜ (Temiz açılır-kapanır akordeon yapı ve kutucuksuz menü elemanları)
 with st.sidebar.expander("📂 Ana Menü", expanded=True):
     menu = st.radio(
         "Menü Seçimi",
