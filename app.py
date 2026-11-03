@@ -176,7 +176,7 @@ varsayilan_resmi_tatiller = [
     {"tarih": "2026-10-29", "aciklama": "Cumhuriyet Bayramı"}
 ]
 
-# Ekim Ayı Tüketim Verileri
+# Ekim Ayı Tüketim Verileri (İşlemi yapan bilgisiyle)
 ekim_tuketimleri_verileri = [
     ("KIRMIZI LAHANA", 15.0), ("MAYDANOZ", 3.1), ("ELMA", 41.0), ("ERİK", 50.0), 
     ("ŞEFTALİ", 50.0), ("SOĞAN", 29.0), ("PATATES", 72.0), ("KABAK", 35.0), 
@@ -217,7 +217,7 @@ def loglari_yukle():
             if g["urun"] == urun_adi:
                 bulunan_fiyat = g["fiyat"]
                 break
-        tum_loglar.append({"tarih": "2026-10-31", "urun": urun_adi, "tur": "Yemek Üretimi", "miktar": miktar, "tutar": miktar * bulunan_fiyat})
+        tum_loglar.append({"tarih": "2026-10-31", "urun": urun_adi, "tur": "Yemek Üretimi", "miktar": miktar, "tutar": miktar * bulunan_fiyat, "islem_yapan": "admin"})
 
     for urun_adi, miktar in ekim_fire_verileri:
         bulunan_fiyat = 50.0
@@ -225,7 +225,16 @@ def loglari_yukle():
             if g["urun"] == urun_adi:
                 bulunan_fiyat = g["fiyat"]
                 break
-        tum_loglar.append({"tarih": "2026-10-31", "urun": urun_adi, "tur": "Fire/Zayiat", "miktar": miktar, "tutar": miktar * bulunan_fiyat})
+        tum_loglar.append({"tarih": "2026-10-31", "urun": urun_adi, "tur": "Fire/Zayiat", "miktar": miktar, "tutar": miktar * bulunan_fiyat, "islem_yapan": "admin"})
+    
+    if os.path.exists(KULLANIM_LOG_DOSYASI):
+        try:
+            with open(KULLANIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
+                kayitli_loglar = json.load(f)
+                if kayitli_loglar:
+                    return kayitli_loglar
+        except Exception:
+            pass
     return tum_loglar
 
 def loglari_kaydet(veri):
@@ -300,7 +309,8 @@ def yonetici_sifresi_kaydet(yeni_sifre):
 if "girisler" not in st.session_state:
     st.session_state.girisler = verileri_yukle()
 
-st.session_state.kullanim_loglari = loglari_yukle()
+if "kullanim_loglari" not in st.session_state:
+    st.session_state.kullanim_loglari = loglari_yukle()
 
 if "ihtiyac_sahipleri" not in st.session_state:
     st.session_state.ihtiyac_sahipleri = ihtiyac_sahiplerini_yukle()
@@ -796,6 +806,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             
             submitted = st.form_submit_button("Depoya Yeni Ürün / Fatura Ekle")
             if submitted and urun:
+                islem_yapan_kisi = st.session_state.aktif_kullanici
                 st.session_state.girisler.append({
                     "id": f"FAT-{len(st.session_state.girisler)+1:03d}",
                     "tarih": str(tarih),
@@ -805,10 +816,11 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "miktar": miktar,
                     "kalan": miktar,
                     "fiyat": fiyat,
-                    "depo": depo
+                    "depo": depo,
+                    "islem_yapan": islem_yapan_kisi
                 })
                 verileri_kaydet(st.session_state.girisler)
-                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
+                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi. (İşlemi Yapan: {islem_yapan_kisi})")
 
 
 # 3. ÜRÜN SİL / DÜZENLE
@@ -877,6 +889,7 @@ elif menu == "Fire / Zayiat Girişi":
                     kalan_dusulecek = fire_miktari
                     toplam_zarar = 0.0
                     bugun_str = str(datetime.date.today())
+                    islem_yapan_kisi = st.session_state.aktif_kullanici
                     
                     for g in ilgili_girisler:
                         if kalan_dusulecek <= 0:
@@ -893,16 +906,29 @@ elif menu == "Fire / Zayiat Girişi":
                             kalan_dusulecek -= dusulen
                             
                     verileri_kaydet(st.session_state.girisler)
-                    st.session_state.kullanim_loglari.append({"tarih": bugun_str, "urun": secilen_gercek_urun, "tur": "Fire/Zayiat", "miktar": fire_miktari, "tutar": toplam_zarar})
+                    st.session_state.kullanim_loglari.append({
+                        "tarih": bugun_str, 
+                        "urun": secilen_gercek_urun, 
+                        "tur": "Fire/Zayiat", 
+                        "miktar": fire_miktari, 
+                        "tutar": toplam_zarar, 
+                        "islem_yapan": islem_yapan_kisi
+                    })
                     loglari_kaydet(st.session_state.kullanim_loglari)
-                    st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL")
+                    st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL (İşlemi Yapan: {islem_yapan_kisi})")
                     st.rerun()
 
     st.markdown("---")
     st.subheader("📋 Sistemde Kayıtlı Olan Tüm Fire ve Zayiat Durumları")
     fire_loglari = [l for l in st.session_state.kullanim_loglari if l["tur"] == "Fire/Zayiat"]
     if fire_loglari:
-        fire_tablo_verisi = [{"Tarih": fl["tarih"], "Ürün Adı": fl["urun"], "Fire Miktarı (Kg)": f"{fl['miktar']:.2f} Kg", "Maddi Zarar (₺)": f"{fl['tutar']:.2f} ₺"} for fl in fire_loglari]
+        fire_tablo_verisi = [{
+            "Tarih": fl["tarih"], 
+            "Ürün Adı": fl["urun"], 
+            "Fire Miktarı (Kg)": f"{fl['miktar']:.2f} Kg", 
+            "Maddi Zarar (₺)": f"{fl['tutar']:.2f} ₺",
+            "İşlemi Yapan": fl.get("islem_yapan", "admin")
+        } for fl in fire_loglari]
         st.dataframe(fire_tablo_verisi, use_container_width=True)
     else:
         st.info("Sistemde kayıtlı henüz bir fire veya zayiat bulunmuyor.")
@@ -984,6 +1010,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         
         if (yonetici_modu or asci_modu) and st.button("Üretimi Tamamla ve Stoktan Düş"):
             bugun_str = str(datetime.date.today())
+            islem_yapan_kisi = st.session_state.aktif_kullanici
             for item in st.session_state.sepet:
                 urun = item["urun"]
                 istenen = item["miktar"]
@@ -1002,11 +1029,18 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         urun_maliyeti += harcanan * g["fiyat"]
                         kalan_d -= harcanan
                 
-                st.session_state.kullanim_loglari.append({"tarih": bugun_str, "urun": urun, "tur": "Yemek Üretimi", "miktar": istenen, "tutar": urun_maliyeti})
+                st.session_state.kullanim_loglari.append({
+                    "tarih": bugun_str, 
+                    "urun": urun, 
+                    "tur": "Yemek Üretimi", 
+                    "miktar": istenen, 
+                    "tutar": urun_maliyeti, 
+                    "islem_yapan": islem_yapan_kisi
+                })
             
             verileri_kaydet(st.session_state.girisler)
             loglari_kaydet(st.session_state.kullanim_loglari)
-            st.success("Üretim kaydedildi ve stoktan düşüldü!")
+            st.success(f"Üretim kaydedildi ve stoktan düşüldü! (İşlemi Yapan: {islem_yapan_kisi})")
             st.session_state.sepet = []
     else:
         empty_excel = tablo_to_excel_bytes([], "Boş Rapor")
@@ -1043,16 +1077,18 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                     
                     kaydet_btn = st.form_submit_button("İhtiyaç Sahibini Kaydet")
                     if kaydet_btn and yeni_ad:
+                        islem_yapan_kisi = st.session_state.aktif_kullanici
                         st.session_state.ihtiyac_sahipleri.append({
                             "id": f"IHT-{len(st.session_state.ihtiyac_sahipleri)+1:03d}",
                             "tc_hane": yeni_tc_hane,
                             "ad_soyad": yeni_ad,
                             "telefon": yeni_tel,
                             "adres": yeni_adres,
-                            "birey_sayisi": yeni_birey
+                            "birey_sayisi": yeni_birey,
+                            "islem_yapan": islem_yapan_kisi
                         })
                         ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
-                        st.success(f"Başarılı! {yeni_ad} sisteme kaydedildi.")
+                        st.success(f"Başarılı! {yeni_ad} sisteme kaydedildi. (İşlemi Yapan: {islem_yapan_kisi})")
                         st.rerun()
 
             with col_form_sil:
@@ -1089,7 +1125,8 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                     "Adı Soyadı": k["ad_soyad"],
                     "Telefon": k["telefon"],
                     "Adres": k["adres"],
-                    "Birey Sayısı": k["birey_sayisi"]
+                    "Birey Sayısı": k["birey_sayisi"],
+                    "İşlemi Yapan": k.get("islem_yapan", "admin")
                 })
             st.dataframe(kisi_liste_gosterim, use_container_width=True)
         else:
@@ -1113,14 +1150,16 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 
                 dagitim_ekle_btn = st.form_submit_button("Dağıtımı Kaydet")
                 if dagitim_ekle_btn:
+                    islem_yapan_kisi = st.session_state.aktif_kullanici
                     st.session_state.dagitim_loglari.append({
                         "tarih": str(d_tarih),
                         "kisi": secilen_kisi,
                         "menu": menu_adi,
-                        "porsiyon": porsiyon_mik
+                        "porsiyon": porsiyon_mik,
+                        "islem_yapan": islem_yapan_kisi
                     })
                     dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
-                    st.success(f"Başarılı! {secilen_kisi} adlı kişiye yapılan yemek dağıtımı kaydedildi.")
+                    st.success(f"Başarılı! {secilen_kisi} adlı kişiye yapılan yemek dağıtımı kaydedildi. (İşlemi Yapan: {islem_yapan_kisi})")
                     st.rerun()
 
     with tab3:
@@ -1165,7 +1204,8 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 "Tarih": d["tarih"],
                 "İhtiyaç Sahibi": d["kisi"],
                 "Verilen Yemek / Menü": d["menu"],
-                "Porsiyon": d["porsiyon"]
+                "Porsiyon": d["porsiyon"],
+                "İşlemi Yapan": d.get("islem_yapan", "admin")
             })
 
         pdf_data_d = tablo_to_html_pdf_bytes(f"Yemek Dağıtım Raporu - {secilen_rapor_kisi}", tablo_dagitim)
@@ -1676,7 +1716,14 @@ elif menu == "Kullanım Takibi":
     toplam_fire_tutar = sum(l["tutar"] for l in urun_loglari if l["tur"] == "Fire/Zayiat")
     genel_toplam_tutar = toplam_kullanim_tutar + toplam_fire_tutar
 
-    tablo_verisi = [{"Tarih": l["tarih"], "Ürün Adı": l["urun"], "İşlem Türü": l["tur"], "Miktar": l["miktar"], "Toplam Tutar (₺)": f"{l['tutar']:.2f} ₺"} for l in urun_loglari]
+    tablo_verisi = [{
+        "Tarih": l["tarih"], 
+        "Ürün Adı": l["urun"], 
+        "İşlem Türü": l["tur"], 
+        "Miktar": l["miktar"], 
+        "Toplam Tutar (₺)": f"{l['tutar']:.2f} ₺",
+        "İşlemi Yapan": l.get("islem_yapan", "admin")
+    } for l in urun_loglari]
 
     pdf_data = tablo_to_html_pdf_bytes(f"Kullanım Raporu - {secilen_urun_takip}", tablo_verisi)
     excel_data = tablo_to_excel_bytes(tablo_verisi, f"Kullanım Raporu - {secilen_urun_takip}")
