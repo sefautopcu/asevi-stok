@@ -1104,13 +1104,14 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 
 # 7. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
 elif menu == "Personel & Çalışma Süresi Takibi":
-    st.header("👥 Personel Giriş/Çıkış, İzin, Saatlik İzin ve Resmi Tatil Yönetimi")
-    st.markdown("Personel bilgilerini yönetin, günlük ve saatlik izinleri kaydedin, çalışma sürelerini resmi tatiller ve hafta sonları hariç hesaplayıp Excel'e aktarın.")
+    st.header("👥 Personel Giriş/Çıkış, İzin, Saatlik İzin, Sağlık Raporu ve Resmi Tatil Yönetimi")
+    st.markdown("Personel bilgilerini yönetin, yıllık izin, saatlik izin ve sağlık raporu kayıtlarını tutun, çalışma sürelerini hesaplayıp Excel'e aktarın.")
 
-    tab_p1, tab_p2, tab_p3, tab_p4, tab_p5 = st.tabs([
+    tab_p1, tab_p2, tab_p3, tab_p4, tab_p5, tab_p6 = st.tabs([
         "📋 Personel Listesi & Ekle", 
         "🏖️ Yıllık İzin İşlemleri", 
         "⏰ Saatlik İzin İşlemleri", 
+        "🩺 Sağlık Raporu İşlemleri",
         "⏱️ Çalışma Süresi Raporları", 
         "🎉 Resmi Tatiller Yönetimi"
     ])
@@ -1135,7 +1136,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         "aktif": p_devam,
                         "is_cikis": str(p_cikis) if not p_devam else "-",
                         "izinler": [],
-                        "saatlik_izinler": []
+                        "saatlik_izinler": [],
+                        "saglik_raporlari": []
                     })
                     personelleri_kaydet(st.session_state.personeller)
                     st.success(f"Başarılı! {p_ad} sisteme eklendi.")
@@ -1161,6 +1163,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 net_gun, izin_gunu = net_calisma_gunu_hesapla(b_tarih, b_bitis, p.get("izinler", []), st.session_state.resmi_tatiller)
                 
                 toplam_saatlik_izin_adet = len(p.get("saatlik_izinler", []))
+                toplam_saglik_raporu_adet = len(p.get("saglik_raporlari", []))
 
                 p_liste_gosterim.append({
                     "Kayıt No": p["id"],
@@ -1170,7 +1173,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     "İşten Çıkış": p["is_cikis"],
                     "Durum": "Çalışıyor" if p["aktif"] else "Ayrıldı",
                     "İzin Gün Sayısı": izin_gunu,
-                    "Saatlik İzin Adeti": toplam_saatlik_izin_adet,
+                    "Saatlik İzin": toplam_saatlik_izin_adet,
+                    "Sağlık Raporu": toplam_saglik_raporu_adet,
                     "Net Çalışma (Gün)": net_gun
                 })
                 excel_personel_ozet.append({
@@ -1181,6 +1185,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     "Durum": "Çalışıyor" if p["aktif"] else "Ayrıldı",
                     "İzin Gün Sayısı": izin_gunu,
                     "Saatlik İzin Adeti": toplam_saatlik_izin_adet,
+                    "Sağlık Raporu Adeti": toplam_saglik_raporu_adet,
                     "Net Çalışma Gün": net_gun
                 })
 
@@ -1363,6 +1368,91 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 st.info("Kayıtlı saatlik izin bulunmuyor.")
 
     with tab_p4:
+        st.subheader("🩺 Sağlık Raporu Girişi ve Takibi")
+        st.markdown("Personelin aldığı sağlık raporlarını kaç gün sürdüğü, hangi kurumdan ve hangi teşhisle alındığı bilgileriyle kaydedin, Excel'e aktarın.")
+
+        if not st.session_state.personeller:
+            st.warning("Önce personel kaydı yapmalısınız.")
+        else:
+            p_adlar_r = {p["ad_soyad"]: p for p in st.session_state.personeller}
+            secilen_p_rapor_adi = st.selectbox("Rapor Eklenecek Personel", list(p_adlar_r.keys()), key="rapor_p_sec")
+            secilen_p_rapor_obj = p_adlar_r[secilen_p_rapor_adi]
+
+            col_r_ekle, col_r_sil = st.columns(2)
+
+            with col_r_ekle:
+                if yonetici_modu:
+                    with st.form("saglik_raporu_ekle_form"):
+                        st.markdown("**➕ Yeni Sağlık Raporu Ekle**")
+                        r_bas_tarih = st.date_input("Rapor Başlangıç Tarihi", datetime.date.today())
+                        r_gun_sayisi = st.number_input("Rapor Kaç Gün Süreli?", min_value=1, value=3)
+                        r_kurum = st.text_input("Raporun Alındığı Kurum / Hastane", "Örn: Erzurum Şehir Hastanesi")
+                        r_teshis = st.text_input("Teşhis / Hastalık Açıklaması", "Örn: Üst Solunum Yolu Enfeksiyonu")
+                        
+                        r_ekle_btn = st.form_submit_button("Sağlık Raporunu Kaydet")
+                        if r_ekle_btn and r_kurum and r_teshis:
+                            yeni_r_id = f"RAPOR-{datetime.datetime.now().strftime('%H%M%S')}"
+                            secilen_p_rapor_obj.setdefault("saglik_raporlari", []).append({
+                                "id": yeni_r_id,
+                                "baslangic_tarihi": str(r_bas_tarih),
+                                "gun_sayisi": int(r_gun_sayisi),
+                                "kurum": r_kurum,
+                                "teshis": r_teshis
+                            })
+                            personelleri_kaydet(st.session_state.personeller)
+                            st.success(f"{secilen_p_saat_adi} için sağlık raporu başarıyla kaydedildi!")
+                            st.rerun()
+                else:
+                    st.info("👁️ Gözlemci modundasınız. Sağlık raporu eklemek için yönetici şifresini giriniz.")
+
+            with col_r_sil:
+                if yonetici_modu:
+                    with st.form("saglik_raporu_sil_form"):
+                        st.markdown("**🗑️ Sağlık Raporu Kaydını Sil**")
+                        mevcut_raporlar = secilen_p_rapor_obj.get("saglik_raporlari", [])
+                        if mevcut_raporlar:
+                            r_secenekler = [f"{rz['id']} | Başlangıç: {rz['baslangic_tarihi']} ({rz['gun_sayisi']} Gün) - {rz['teshis']} ({rz['kurum']})" for rz in mevcut_raporlar]
+                            secilen_r_sil = st.selectbox("Silinecek Raporu Seçin", r_secenekler)
+                            r_sil_btn = st.form_submit_button("Seçilen Raporu Sil", type="primary")
+                            
+                            if r_sil_btn:
+                                r_sil_id = secilen_r_sil.split(" | ")[0]
+                                secilen_p_rapor_obj["saglik_raporlari"] = [rz for rz in mevcut_raporlar if rz["id"] != r_sil_id]
+                                personelleri_kaydet(st.session_state.personeller)
+                                st.success("Sağlık raporu kaydı silindi!")
+                                st.rerun()
+                        else:
+                            st.info("Kayıtlı sağlık raporu bulunmuyor.")
+                else:
+                    st.info("👁️ Gözlemci modundasınız.")
+
+            st.markdown("---")
+            col_rtitle, col_rindir = st.columns([2, 2])
+            with col_rtitle:
+                st.markdown(f"**📌 {secilen_p_rapor_adi} - Sağlık Raporu Geçmişi:**")
+            
+            rapor_liste_tablo = []
+            for rz in secilen_p_rapor_obj.get("saglik_raporlari", []):
+                rapor_liste_tablo.append({
+                    "Kayıt No": rz["id"],
+                    "Personel": secilen_p_rapor_adi,
+                    "Başlangıç Tarihi": rz["baslangic_tarihi"],
+                    "Süre (Gün)": rz["gun_sayisi"],
+                    "Alındığı Kurum / Hastane": rz["kurum"],
+                    "Teşhis": rz["teshis"]
+                })
+
+            if rapor_liste_tablo:
+                ex_r_bytes = tablo_to_excel_bytes(rapor_liste_tablo, f"Sağlık Raporları - {secilen_p_rapor_adi}")
+                pdf_r_bytes = tablo_to_html_pdf_bytes(f"Sağlık Raporları - {secilen_p_rapor_adi}", rapor_liste_tablo)
+                with col_rindir:
+                    ortak_indirme_alani(ex_r_bytes, pdf_r_bytes, f"saglik_raporu_{secilen_p_rapor_adi}", "rapor_indir_btn")
+
+                st.dataframe(rapor_liste_tablo, use_container_width=True)
+            else:
+                st.info("Kayıtlı sağlık raporu bulunmuyor.")
+
+    with tab_p5:
         col_b_pr, col_indir_pr = st.columns([2, 2])
         with col_b_pr:
             st.subheader("⏱️ Personel Çalışma Süresi Özeti & Excel Dökümü")
@@ -1379,6 +1469,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 
                 net_gun, izin_gunu = net_calisma_gunu_hesapla(b_tarih, b_bitis, p.get("izinler", []), st.session_state.resmi_tatiller)
                 saatlik_adet = len(p.get("saatlik_izinler", []))
+                saglik_adet = len(p.get("saglik_raporlari", []))
 
                 rapor_listesi.append({
                     "Adı Soyadı": p["ad_soyad"],
@@ -1387,6 +1478,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     "İşten Çıkış": p["is_cikis"],
                     "Yıllık İzin (Gün)": izin_gunu,
                     "Saatlik İzin Adeti": saatlik_adet,
+                    "Sağlık Raporu Adeti": saglik_adet,
                     "Net Çalışma Süresi (Gün)": net_gun
                 })
                 excel_personel_liste.append({
@@ -1396,6 +1488,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     "İşten Çıkış": p["is_cikis"],
                     "Yıllık İzin (Gün)": izin_gunu,
                     "Saatlik İzin Adeti": saatlik_adet,
+                    "Sağlık Raporu Adeti": saglik_adet,
                     "Net Çalışma Süresi (Gün)": net_gun
                 })
 
@@ -1410,7 +1503,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
         else:
             st.info("Personel bulunmuyor.")
 
-    with tab_p5:
+    with tab_p6:
         st.subheader("🎉 Resmi Tatiller Listesi ve Yönetimi")
         st.markdown("Çalışma süreleri hesaplanırken düşülecek resmi tatilleri aşağıdan inceleyebilir, yeni tatil ekleyebilir veya mevcut tatilleri silebilirsiniz.")
 
