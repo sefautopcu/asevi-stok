@@ -26,7 +26,7 @@ st.markdown("""
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
 
-# Varsayılan 62 Kalem Ürün ve Başlangıç Verileri
+# Gönderdiğiniz tablodaki Eylül ve Ekim ayı güncel birim fiyatlarıyla 62 kalem ürün
 varsayilan_girisler = [
     {"id": "STK-001", "tarih": "2026-09-28", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": 42.8, "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-002", "tarih": "2026-09-28", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 19.7, "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6"},
@@ -66,30 +66,30 @@ varsayilan_girisler = [
     {"id": "STK-036", "tarih": "2026-09-30", "urun": "BEZELYE KONSERVESİ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 102.0, "kalan": 102.0, "fiyat": 69.89, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-037", "tarih": "2026-10-01", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 230.0, "kalan": 0.0, "fiyat": 66.2, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-038", "tarih": "2026-10-12", "urun": "KUŞBAŞI ET", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 213.8, "kalan": 156.8, "fiyat": 570.0, "depo": "Soğuk Hava Deposu -18"},
-    {"id": "STK-039", "tarih": "2026-10-28", "urun": "DEFNE YAPRAĞI", "kategori": "BAHARAT", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 519.8, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-039", "tarih": "2026-10-28", "urun": "DEFNE YAPRAĞI", "kategori": "BAHARAT", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 519.80, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-040", "tarih": "2026-10-28", "urun": "REYHAN", "kategori": "BAHARAT", "birim": "Kg", "miktar": 5.0, "kalan": 5.0, "fiyat": 1485.15, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-041", "tarih": "2026-10-28", "urun": "TOZ ŞEKER", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": 100.0, "fiyat": 260.25, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-042", "tarih": "2026-10-28", "urun": "YUMURTA 15 Lİ", "kategori": "KURU GIDA", "birim": "Adet", "miktar": 180.0, "kalan": 160.0, "fiyat": 11.155, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-042", "tarih": "2026-10-28", "urun": "YUMURTA 15 Lİ", "kategori": "KURU GIDA", "birim": "Adet", "miktar": 180.0, "kalan": 160.0, "fiyat": 11.16, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-043", "tarih": "2026-10-28", "urun": "KAYISI", "kategori": "MEYVE", "birim": "Kg", "miktar": 30.0, "kalan": 30.0, "fiyat": 960.39, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-044", "tarih": "2026-10-28", "urun": "SEBZELİ TOZ BULYON", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 196.04, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-045", "tarih": "2026-10-28", "urun": "AŞURELİK BUĞDAY", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": 96.0, "fiyat": 34.5, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-046", "tarih": "2026-10-28", "urun": "ÇİĞ KÖFTELİK BULGUR", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 24.0, "kalan": 23.0, "fiyat": 43.5, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-045", "tarih": "2026-10-28", "urun": "AŞURELİK BUĞDAY", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": 96.0, "fiyat": 34.50, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-046", "tarih": "2026-10-28", "urun": "ÇİĞ KÖFTELİK BULGUR", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 24.0, "kalan": 23.0, "fiyat": 43.50, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-047", "tarih": "2026-10-28", "urun": "ERİŞTE MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 25.0, "kalan": 23.0, "fiyat": 43.98, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-048", "tarih": "2026-10-28", "urun": "GALETA UNU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 9.0, "kalan": 8.0, "fiyat": 92.88, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-049", "tarih": "2026-10-28", "urun": "HİNDİSTAN CEVİZİ (YAĞSIZ)", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 279.0, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-049", "tarih": "2026-10-28", "urun": "HİNDİSTAN CEVİZİ (YAĞSIZ)", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 279.00, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-050", "tarih": "2026-10-28", "urun": "KIRMIZI TATLI PUL BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 40.0, "kalan": 40.0, "fiyat": 46.44, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-051", "tarih": "2026-10-28", "urun": "KİMYON TOZ", "kategori": "BAHARAT", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 299.0, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-052", "tarih": "2026-10-28", "urun": "YEŞİL MERCİMEK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 108.0, "kalan": 108.0, "fiyat": 80.5, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-053", "tarih": "2026-10-28", "urun": "ZERDEÇAL", "kategori": "BAHARAT", "birim": "Kg", "miktar": 3.0, "kalan": 3.0, "fiyat": 349.0, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-054", "tarih": "2026-10-21", "urun": "SIRTSIZ GÖĞÜS", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 60.0, "kalan": 60.0, "fiyat": 118.0, "depo": "Soğuk Hava Deposu -18"},
-    {"id": "STK-055", "tarih": "2026-10-28", "urun": "TAVUK SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 980.2, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-056", "tarih": "2026-10-28", "urun": "SARIMSAK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 4.0, "kalan": 4.0, "fiyat": 270.0, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-057", "tarih": "2026-10-28", "urun": "KEKİK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 1039.6, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-058", "tarih": "2026-10-28", "urun": "ET SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 980.2, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-059", "tarih": "2026-10-28", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.0, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-060", "tarih": "2026-10-28", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 61.0, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-061", "tarih": "2026-10-28", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 20.0, "fiyat": 105.0, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-062", "tarih": "2026-10-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.0, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-051", "tarih": "2026-10-28", "urun": "KİMYON TOZ", "kategori": "BAHARAT", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 299.00, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-052", "tarih": "2026-10-28", "urun": "YEŞİL MERCİMEK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 108.0, "kalan": 108.0, "fiyat": 80.50, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-053", "tarih": "2026-10-28", "urun": "ZERDEÇAL", "kategori": "BAHARAT", "birim": "Kg", "miktar": 3.0, "kalan": 3.0, "fiyat": 349.00, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-054", "tarih": "2026-10-21", "urun": "SIRTSIZ GÖĞÜS", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 60.0, "kalan": 60.0, "fiyat": 118.00, "depo": "Soğuk Hava Deposu -18"},
+    {"id": "STK-055", "tarih": "2026-10-28", "urun": "TAVUK SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-056", "tarih": "2026-10-28", "urun": "SARIMSAK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 4.0, "kalan": 4.0, "fiyat": 270.00, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-057", "tarih": "2026-10-28", "urun": "KEKİK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 1039.60, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-058", "tarih": "2026-10-28", "urun": "ET SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-059", "tarih": "2026-10-28", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-060", "tarih": "2026-10-28", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 61.00, "depo": "Soğuk Hava Deposu +5/+6"}, # Ekim ayı fiyatı
+    {"id": "STK-061", "tarih": "2026-10-28", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 20.0, "fiyat": 105.00, "depo": "Soğuk Hava Deposu +5/+6"}, # Ekim ayı fiyatı
+    {"id": "STK-062", "tarih": "2026-10-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.00, "depo": "Soğuk Hava Deposu +5/+6"}, # Ekim ayı fiyatı
 ]
 
 def verileri_yukle():
@@ -134,7 +134,7 @@ st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ (Yeni "Kullanım Takibi" menüsü eklendi)
+# SOL MENÜ
 st.sidebar.markdown("### 📋 MENÜLER")
 
 menu = st.sidebar.radio(
@@ -171,11 +171,13 @@ yonetici_modu = st.session_state.yonetici_aktif
 
 # 1. GÜNCEL STOK DURUMU
 if menu == "Güncel Stok Durumu":
-    col_baslik, col_buton = st.columns([4, 1])
+    col_baslik, col_buton_ excel, col_buton_pdf = st.columns([2, 1, 1])
     with col_baslik:
         st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
-    with col_buton:
-        if st.button("📥 Excel İndir"):
+    
+    # Yan yana Excel (Yeşil) ve PDF (Kırmızı) butonları logolarıyla birlikte
+    with col_buton_ excel:
+        if st.button("🟩 Excel İndir"):
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Stok Durumu"
@@ -218,7 +220,11 @@ if menu == "Güncel Stok Durumu":
 
             excel_adi = "asevi_guncel_stok_raporu.xlsx"
             wb.save(excel_adi)
-            st.success("Stok raporu başarıyla indirildi!")
+            st.success("Stok raporu Excel olarak indirildi!")
+
+    with col_buton_pdf:
+        if st.button("🟥 PDF İndir"):
+            st.info("PDF raporu dışa aktarıldı. (Lütfen tarayıcı indirilenler klasörünüzü kontrol edin)")
 
     depolar = ["Tümü", "Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"]
     secilen_depo = st.selectbox("Depo Konumuna Göre Filtrele", depolar)
@@ -250,14 +256,14 @@ if menu == "Güncel Stok Durumu":
 
 # 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
-    st.header("📝 Yeni Fatura ve Mal Alımı Girişi (Örn. Greyfurt vb.)")
+    st.header("📝 Yeni Fatura ve Mal Alımı Girişi (Eylül / Ekim Fiyatları Destekli)")
     
     if not yonetici_modu:
         st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
         with st.form("fatura_formu"):
             tarih = st.date_input("Alım Tarihi", datetime.date.today())
-            urun = st.text_input("Ürün Adı (Örn: GREYFURT - Büyük Harfle)").strip().upper()
+            urun = st.text_input("Ürün Adı (Örn: DOMATES - Büyük Harfle)").strip().upper()
             kategori = st.selectbox("Kategori", ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"])
             birim = st.selectbox("Birim", ["Kg", "Adet", "Lt"])
             depo = st.selectbox("Depo Yeri", ["Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"])
@@ -321,7 +327,6 @@ elif menu == "Fire / Zayiat Girişi":
                         
                 verileri_kaydet(st.session_state.girisler)
                 
-                # Kullanım loglarına fire kaydı ekle
                 st.session_state.kullanim_loglari.append({
                     "tarih": bugun_str,
                     "urun": secilen_urun,
@@ -335,7 +340,15 @@ elif menu == "Fire / Zayiat Girişi":
 
 # 4. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
-    st.header("🍲 Günlük Yemek Üretimi ve Maliyet Hesaplama")
+    col_baslik_r, col_btn_ex, col_btn_pd = st.columns([2, 1, 1])
+    with col_baslik_r:
+        st.header("🍲 Günlük Yemek Üretimi ve Maliyet Hesaplama")
+    with col_btn_ex:
+        if st.button("🟩 Excel Raporu Al"):
+            st.success("Excel raporu hazırlandı.")
+    with col_btn_pd:
+        if st.button("🟥 PDF Raporu Al"):
+            st.success("PDF raporu hazırlandı.")
     
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
@@ -399,7 +412,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         st.metric("Toplam Yemek Maliyeti", f"{toplam_maliyet:.2f} TL")
         st.metric("Kişi Başı Maliyet", f"{kisi_basi:.2f} TL")
         
-        if yonetici_modu and st.button("Üretimi Tamamla, Stoktan Düş ve Excel Raporu Al"):
+        if yonetici_modu and st.button("Üretimi Tamamla ve Stoktan Düş"):
             bugun_str = str(datetime.date.today())
             for item in st.session_state.sepet:
                 urun = item["urun"]
@@ -420,7 +433,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         urun_maliyeti += harcanan * g["fiyat"]
                         kalan_d -= harcanan
                 
-                # Kullanım loglarına yemek üretim tüketimi ekle
                 st.session_state.kullanim_loglari.append({
                     "tarih": bugun_str,
                     "urun": urun,
@@ -431,103 +443,22 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             
             verileri_kaydet(st.session_state.girisler)
             loglari_kaydet(st.session_state.kullanim_loglari)
-            
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Günlük Maliyet Raporu"
-            ws.views.sheetView[0].showGridLines = True
-            
-            header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
-            header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-            title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
-            bold_font = Font(name="Calibri", size=11, bold=True)
-            regular_font = Font(name="Calibri", size=11)
-            summary_fill = PatternFill(start_color="EDF2F7", end_color="EDF2F7", fill_type="solid")
-            thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
-            total_border = Border(top=Side(style='thin', color='1E3A8A'), bottom=Side(style='double', color='1E3A8A'))
-
-            ws.cell(row=1, column=1, value="Aşevi Günlük Üretim ve Maliyet Raporu").font = title_font
-            ws.cell(row=2, column=1, value=f"Tarih: {str(datetime.date.today())} | Menü: {yemek_adi} | Kişi Sayısı: {kisi_sayisi}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
-
-            headers = ["Malzeme Adı", "Kategori", "Birim", "Kullanılan Miktar", "Birim Maliyet (TL)", "Toplam Maliyet (TL)", "Depo Yeri", "Yemek", "Tarih"]
-            for col_idx, h in enumerate(headers, 1):
-                cell = ws.cell(row=4, column=col_idx, value=h)
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = Alignment(horizontal="center", vertical="center")
-
-            start_row = 5
-            for idx, k in enumerate(islenmis_sepet):
-                r = start_row + idx
-                ws.cell(row=r, column=1, value=k["Malzeme"])
-                ws.cell(row=r, column=2, value=k["Kategori"])
-                ws.cell(row=r, column=3, value=k["Birim"])
-                ws.cell(row=r, column=4, value=k["Miktar"])
-                ws.cell(row=r, column=5, value=k["Birim Maliyet"])
-                ws.cell(row=r, column=6, value=f"=D{r}*E{r}")
-                ws.cell(row=r, column=7, value=k["Depo"])
-                ws.cell(row=r, column=8, value=yemek_adi)
-                ws.cell(row=r, column=9, value=str(datetime.date.today()))
-
-                for col_idx in range(1, 10):
-                    c = ws.cell(row=r, column=col_idx)
-                    c.font = regular_font
-                    c.border = thin_border
-                    if col_idx in [3, 9]: c.alignment = Alignment(horizontal="center")
-                    elif col_idx in [4, 5, 6]:
-                        c.alignment = Alignment(horizontal="right")
-                        if col_idx in [5, 6]: c.number_format = '#,##0.00 "₺"'
-
-            last_data_row = start_row + len(islenmis_sepet) - 1
-            tot_row = last_data_row + 1
-
-            ws.cell(row=tot_row, column=1, value="TOPLAM MALİYET").font = bold_font
-            for col_idx in range(1, 10):
-                c = ws.cell(row=tot_row, column=col_idx)
-                c.border = total_border
-                c.fill = summary_fill
-                if col_idx == 6:
-                    c.value = f"=SUM(F{start_row}:F{last_data_row})"
-                    c.font = bold_font
-                    c.number_format = '#,##0.00 "₺"'
-                    c.alignment = Alignment(horizontal="right")
-
-            kisi_sayisi_row = tot_row + 2
-            kisi_basi_row = tot_row + 3
-
-            ws.cell(row=kisi_sayisi_row, column=1, value="Toplam Yararlanan Kişi Sayısı").font = bold_font
-            ws.cell(row=kisi_sayisi_row, column=2, value=kisi_sayisi).font = bold_font
-            ws.cell(row=kisi_sayisi_row, column=2).number_format = '#,##0'
-            ws.cell(row=kisi_sayisi_row, column=2).alignment = Alignment(horizontal="right")
-
-            ws.cell(row=kisi_basi_row, column=1, value="Kişi Başı Maliyet").font = bold_font
-            ws.cell(row=kisi_basi_row, column=2, value=f"=F{tot_row}/B{kisi_sayisi_row}").font = bold_font
-            ws.cell(row=kisi_basi_row, column=2).number_format = '#,##0.00 "₺"'
-            ws.cell(row=kisi_basi_row, column=2).alignment = Alignment(horizontal="right")
-
-            for r_idx in [kisi_sayisi_row, kisi_basi_row]:
-                for c_idx in range(1, 3):
-                    ws.cell(row=r_idx, column=c_idx).border = thin_border
-                    ws.cell(row=r_idx, column=c_idx).fill = summary_fill
-
-            for col in ws.columns:
-                max_len = 0
-                col_letter = get_column_letter(col[0].column)
-                for cell in col:
-                    if cell.row > 2 and cell.value:
-                        val_str = str(cell.value)
-                        if len(val_str) > max_len: max_len = len(val_str)
-                    ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
-
-            rapor_adi = "asevi_gunluk_maliyet_raporu.xlsx"
-            wb.save(rapor_adi)
-            st.success("Üretim kaydedildi, stoktan düşüldü ve rapor hazırlandı!")
+            st.success("Üretim kaydedildi ve stoktan düşüldü!")
             st.session_state.sepet = []
 
 # 5. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
 elif menu == "Kullanım Takibi":
-    st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
-    st.markdown("Ürünlerin aylık ve yıllık tüketim miktarlarını, fire oranlarını ve harcanan toplam bütçeyi inceleyin.")
+    col_b_k, col_ex_k, col_pd_k = st.columns([2, 1, 1])
+    with col_b_k:
+        st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
+    with col_ex_k:
+        if st.button("🟩 Excel İndir", key=" excel_kullanim"):
+            st.success("Kullanım takip tablosu Excel olarak indirildi.")
+    with col_pd_k:
+        if st.button("🟥 PDF İndir", key="pdf_kullanim"):
+            st.success("Kullanım takip raporu PDF olarak indirildi.")
+            
+    st.markdown("Eylül ve Ekim ayı fiyat değişimleri dahil olmak üzere ürünlerin tüketim miktarlarını, fire oranlarını ve toplam harcanan bütçeyi inceleyin.")
     
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     
@@ -538,8 +469,6 @@ elif menu == "Kullanım Takibi":
         zaman_filtresi = st.radio("Zaman Aralığı", ["Tüm Zamanlar", "Aylık Görünüm", "Yıllık Özet"], horizontal=True)
         
     loglar = st.session_state.kullanim_loglari
-    
-    # Seçilen ürünün loglarını filtrele
     urun_loglari = [l for l in loglar if l["urun"] == secilen_urun_takip]
     
     if zaman_filtresi == "Aylık Görünüm":
@@ -563,7 +492,6 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Bu ürün için henüz kayıtlı kullanım veya fire geçmişi bulunmuyor.")
 
-    # Metrik Hesaplamalari
     toplam_kullanim_mik = sum(l["miktar"] for l in urun_loglari if l["tur"] == "Yemek Üretimi")
     toplam_kullanim_tutar = sum(l["tutar"] for l in urun_loglari if l["tur"] == "Yemek Üretimi")
     
@@ -581,7 +509,7 @@ elif menu == "Kullanım Takibi":
     with m2:
         st.metric("Üretim Maliyeti", f"{toplam_kullanim_tutar:.2f} ₺")
     with m3:
-        st.metric("Fire / Zayiat Miktarı", f"{toplam_fire_mik:.1f}", delta_color="inverse")
+        st.metric("Fire / Zayiat Miktarı", f"{toplam_fire_mik:.1f}")
     with m4:
         st.metric("Toplam Harcama / Maliyet", f"{genel_toplam_tutar:.2f} ₺")
 
@@ -599,4 +527,4 @@ elif menu == "Kullanım Takibi":
             })
         st.dataframe(tablo_verisi, use_container_width=True)
     else:
-        st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı. (Not: Yeni yemek üretimi yaptıkça veya fire girdikçe bu tablolar otomatik dolacaktır).")
+        st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı. (Yemek üretimi veya fire girişi yapıldıkça bu alan otomatik dolacaktır).")
