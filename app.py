@@ -110,7 +110,6 @@ def urun_kalori_hesapla(urun_adi, miktar, birim):
         if k in urun_upper:
             birim_kalori = v
             break
-    # Kg veya Litre için 1000 birim (gram/ml), Adet için 100 gram baz alınır
     carp = 1000 if birim in ["Kg", "Lt"] else 100
     return (miktar * carp * birim_kalori) / 100.0
 
@@ -369,11 +368,16 @@ if "resmi_tatiller" not in st.session_state:
 if "kalori_sepeti" not in st.session_state:
     st.session_state.kalori_sepeti = []
 
-# Oturum Durumları (Varsayılan olarak oturum kapalı ve rol "misafir" / gözlemci)
+# --- OTURUM KALICILIĞI (URL Query Params ile F5 Yenilemelerinde Kaybolmama) ---
+query_params = st.query_params
+
 if "oturum_aktif" not in st.session_state:
-    st.session_state.oturum_aktif = False
-if "aktif_kullanici" not in st.session_state:
-    st.session_state.aktif_kullanici = "misafir"  
+    if "auth" in query_params and query_params["auth"] == "true" and "user" in query_params:
+        st.session_state.oturum_aktif = True
+        st.session_state.aktif_kullanici = query_params["user"]
+    else:
+        st.session_state.oturum_aktif = False
+        st.session_state.aktif_kullanici = "misafir"
 
 if "aktif_menu" not in st.session_state:
     st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
@@ -462,34 +466,41 @@ if not st.session_state.oturum_aktif:
             if kullanici_adi_input == "admin" and sifre_input == aktif_yonetici_sifresi:
                 st.session_state.oturum_aktif = True
                 st.session_state.aktif_kullanici = "admin"
+                st.query_params["auth"] = "true"
+                st.query_params["user"] = "admin"
                 st.success("Admin olarak giriş yapıldı!")
                 st.rerun()
             elif kullanici_adi_input == "asci" and sifre_input == "sydv25":
                 st.session_state.oturum_aktif = True
                 st.session_state.aktif_kullanici = "asci"
+                st.query_params["auth"] = "true"
+                st.query_params["user"] = "asci"
                 st.success("Aşçı olarak giriş yapıldı!")
                 st.rerun()
             elif kullanici_adi_input == "misafir" and sifre_input == "Erzurum25":
                 st.session_state.oturum_aktif = True
                 st.session_state.aktif_kullanici = "misafir"
+                st.query_params["auth"] = "true"
+                st.query_params["user"] = "misafir"
                 st.success("Misafir olarak giriş yapıldı!")
                 st.rerun()
             else:
                 st.error("Hatalı kullanıcı adı veya şifre!")
 else:
-    col_kilit1, col_kilit2 = st.sidebar.columns([3, 1])
+    col_kilit1, col_kilit2 = st.sidebar.columns([2, 2])
     with col_kilit1:
         if st.session_state.aktif_kullanici == "admin":
-            rol_adi = "👑 Admin (Tam Yetkili)"
+            rol_adi = "👑 Admin"
         elif st.session_state.aktif_kullanici == "asci":
             rol_adi = "👨‍🍳 Aşçı"
         else:
-            rol_adi = "👀 Misafir (Gözlemci)"
+            rol_adi = "👀 Misafir"
         st.sidebar.markdown(f'<p style="color: #059669; font-size: 13px; margin: 0; padding-top: 5px; font-weight: 600;">🔓 {rol_adi}</p>', unsafe_allow_html=True)
     with col_kilit2:
-        if st.sidebar.button("🔒", help="Çıkış yap"):
+        if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"):
             st.session_state.oturum_aktif = False
             st.session_state.aktif_kullanici = "misafir"
+            st.query_params.clear()
             st.rerun()
 
     if st.session_state.aktif_kullanici == "admin":
@@ -1120,7 +1131,6 @@ elif menu == "Kalori Hesaplama Aracı":
             u_mik = item["miktar"]
             u_birim = item["birim"]
             
-            # Kalori hesapla
             malzeme_kalori = urun_kalori_hesapla(u_adi, u_mik, u_birim)
             toplam_tarif_kalorisi += malzeme_kalori
 
