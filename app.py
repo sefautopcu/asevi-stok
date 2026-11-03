@@ -9,7 +9,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve Okunabilir Tertemiz Yazı Tasarımı (Çakışmaları önleyen özel CSS)
+# Kurumsal Sol Menü ve "keyboard_double" yazısını gizleyen özel CSS tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -17,6 +17,9 @@ st.markdown("""
     /* Sol menü genel metinleri beyaz ve net */
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { color: #E8EAED !important; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    
+    /* Streamlit daraltma butonundaki kalan yazı kalıntısını tamamen gizle */
+    [data-testid="collapsedControl"] span, [data-testid="stSidebarNav"] span { display: none !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -113,7 +116,7 @@ st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ: Çakışmaları önleyen, kurumsal ve okunaklı radio menü yapısı
+# SOL MENÜ
 st.sidebar.markdown("### 📋 MENÜLER")
 
 menu = st.sidebar.radio(
