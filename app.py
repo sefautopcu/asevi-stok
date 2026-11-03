@@ -150,7 +150,6 @@ if "yonetici_aktif" not in st.session_state:
 if "aktif_menu" not in st.session_state:
     st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
 
-# Oturum Durumu ile Silindi Bildirimi Tutma (Sayfa yenilense bile mesajın ekranda kalması için)
 if "silme_mesaji" not in st.session_state:
     st.session_state.silme_mesaji = ""
 
@@ -343,23 +342,17 @@ if menu == "Kurumsal Dashboard & Özet":
     st.markdown("Depo girişleri, gerçek yemek üretimleri, fire oranları ve aylık maliyet dağılımları:")
 
     toplam_stok_kalemi = len(set(g["urun"] for g in st.session_state.girisler))
-    toplam_envanter_miktari = sum(g["kalan"] for g in st.session_state.girisler)
     toplam_envanter_maliyeti = sum(g["kalan"] * g["fiyat"] for g in st.session_state.girisler)
 
     loglar = st.session_state.kullanim_loglari
-    toplam_uretim_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Yemek Üretimi")
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3 = st.columns(3)
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
     with c2:
-        st.metric("Depodaki Kalan Miktar", f"{toplam_envanter_miktari:,.1f} Birim")
-    with c3:
-        st.metric("Yemekte Kullanılan Miktar", f"{toplam_uretim_mik:,.1f} Birim")
-    with c4:
         st.metric("Toplam Fire / Zayiat", f"{toplam_fire_mik:,.1f} Birim")
-    with c5:
+    with c3:
         st.metric("Toplam Stok Değeri", f"{toplam_envanter_maliyeti:,.2f} ₺")
 
     st.markdown("---")
@@ -496,14 +489,13 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 verileri_kaydet(st.session_state.girisler)
                 st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
 
-# 3. ÜRÜN SİL / DÜZENLE (Kalıcı ve Garantili Başarı Mesajı)
+# 3. ÜRÜN SİL / DÜZENLE
 elif menu == "Ürün Sil / Düzenle":
     st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
     
     if not yonetici_modu:
         st.warning("⚠️ Gözlemci modundasınız. Sistemden ürün silmek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
-        # Eğer daha önceden silme mesajı hafızaya atıldıysa burada ekrana yazdıralım ve temizleyelim
         if st.session_state.silme_mesaji:
             st.success(st.session_state.silme_mesaji)
             st.session_state.silme_mesaji = ""
@@ -527,7 +519,6 @@ elif menu == "Ürün Sil / Düzenle":
                     st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
                     verileri_kaydet(st.session_state.girisler)
                     
-                    # Hem toast (sağ üst bildirim balonu) hem de oturum hafızasına mesaj kaydı
                     mesaj_metni = f"Başarılı! {silinen_urun_adi} sistemden silindi."
                     st.toast(mesaj_metni, icon="✅")
                     st.session_state.silme_mesaji = mesaj_metni
