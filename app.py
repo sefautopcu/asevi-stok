@@ -6,15 +6,15 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-# Sayfa Yapılandırması
+# Sayfa Yapılandırması (İstediğiniz yeni isimle güncellendi)
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Sol menü arka planı #182828 ve yazılar beyaz olacak şekilde özel tasarım
+# Gönderdiğiniz görseldeki antrasit/koyu gri tonlarında modern sol menü tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
-    .stSidebar { background-color: #182828 !important; padding-top: 10px; }
-    .stSidebar * { color: #FFFFFF !important; }
+    .stSidebar { background-color: #202124 !important; padding-top: 15px; }
+    .stSidebar * { color: #E8EAED !important; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     </style>
 """, unsafe_allow_html=True)
@@ -108,7 +108,7 @@ if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
 
 # Üst Bilgi ve Başlık
-st.markdown("### 🏛️ AZİZİYE SYDV - KONTROL PANELİ")
+st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
