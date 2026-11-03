@@ -7,7 +7,17 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 # Sayfa Yapılandırması
-st.set_page_config(page_title="Aziziye Aşevi Stok ve Maliyet Yönetimi", page_icon="🍲", layout="wide")
+st.set_page_config(page_title="Aziziye Aşevi - Kontrol Paneli", page_icon="🍲", layout="wide")
+
+# Kurumsal Tasarım (CSS Stilleri - Gönderdiğiniz görsele uyumlu koyu lacivert/kurumsal tonlar)
+st.markdown("""
+    <style>
+    .main { background-color: #F8FAFC; }
+    .stSidebar { background-color: #0F172A !important; }
+    h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .metric-card { background-color: #FFFFFF; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-left: 5px solid #1E3A8A; }
+    </style>
+""", unsafe_allow_html=True)
 
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 
@@ -94,23 +104,83 @@ def verileri_kaydet(veri):
 if "girisler" not in st.session_state:
     st.session_state.girisler = verileri_yukle()
 
-# Başlık
-st.title("🍲 Aziziye Aşevi - Profesyonel Stok ve Maliyet Yönetimi")
+# Başlık ve Üst Bilgi Alanı (Kurumsal Görünüm)
+st.markdown("### 🏛️ AZİZİYE SYDV - AŞEVİ KONTROL PANELİ")
+st.markdown(f"**Tarih:** {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# Yan Menü
+# Sol Menü ve Yetkilendirme (Yönetici / Gözlemci Modu)
+st.sidebar.markdown("## ⚙️ KONTROL PANELİ")
 menu = st.sidebar.selectbox("Menü Seçin", ["Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle", "Fire / Zayiat Girişi", "Günlük Yemek Üretimi & Maliyet Raporu"])
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🔐 Oturum & Yetki")
+yonetici_sifresi = st.sidebar.text_input("Yönetici Şifresi", type="password")
+# Yönetici şifresini kendiniz belirleyebilirsiniz (Örn: "sydv25" yaptık, istediğiniz gibi değiştirebilirsiniz)
+yonetici_modu = (yonetici_sifresi == "sydv25")
+
+if yonetici_modu:
+    st.sidebar.success("🔓 Yönetici Modu Aktif (Değişiklik yapabilirsiniz)")
+else:
+    st.sidebar.info("👁️ Gözlemci Modu (Sadece görüntüleme)")
 
 # 1. GÜNCEL STOK DURUMU
 if menu == "Güncel Stok Durumu":
-    st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
-    
-    # Depo Filtresi
+    col_baslik, col_buton = st.columns([4, 1])
+    with col_baslik:
+        st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
+    with col_buton:
+        # Sağ üst Excel Raporu İndirme Butonu
+        if st.button("📥 Excel İndir"):
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Stok Durumu"
+            ws.views.sheetView[0].showGridLines = True
+            
+            header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+            header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+            title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
+            bold_font = Font(name="Calibri", size=11, bold=True)
+            regular_font = Font(name="Calibri", size=11)
+            thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
+
+            ws.cell(row=1, column=1, value="Aziziye Aşevi - Güncel Stok Raporu").font = title_font
+            ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.date.today())}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
+
+            headers = ["Ürün Adı", "Kategori", "Birim", "Kalan Miktar", "Depo Yeri"]
+            for col_idx, h in enumerate(headers, 1):
+                cell = ws.cell(row=4, column=col_idx, value=h)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+
+            benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+            row_idx = 5
+            for u in benzersiz_urunler:
+                toplam_kalan = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
+                kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
+                birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
+                depo = next((g["depo"] for g in st.session_state.girisler if g["urun"] == u), "Merkez Depo")
+                
+                ws.cell(row=row_idx, column=1, value=u)
+                ws.cell(row=row_idx, column=2, value=kategori)
+                ws.cell(row=row_idx, column=3, value=birim)
+                ws.cell(row=row_idx, column=4, value=toplam_kalan)
+                ws.cell(row=row_idx, column=5, value=depo)
+                for col_idx in range(1, 6):
+                    c = ws.cell(row=row_idx, column=col_idx)
+                    c.font = regular_font
+                    c.border = thin_border
+                row_idx += 1
+
+            excel_adi = "asevi_guncel_stok_raporu.xlsx"
+            wb.save(excel_adi)
+            st.success(f"Stok raporu başarıyla indirildi!")
+
     depolar = ["Tümü", "Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"]
     secilen_depo = st.selectbox("Depo Konumuna Göre Filtrele", depolar)
     
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
-    
     stok_tablosu = []
     kritik_urunler = []
     
@@ -123,10 +193,9 @@ if menu == "Güncel Stok Durumu":
         if secilen_depo == "Tümü" or depo == secilen_depo:
             stok_tablosu.append({"Ürün Adı": u, "Kategori": kategori, "Birim": birim, "Kalan Miktar": toplam_kalan, "Depo Yeri": depo})
             
-        if toplam_kalan <= 10.0:  # 10 birim altı kritik stok kabul edilir
+        if toplam_kalan <= 10.0:
             kritik_urunler.append((u, toplam_kalan, birim, depo))
 
-    # Kritik Stok Uyarısı
     if kritik_urunler:
         with st.expander("⚠️ DİKKAT: Kritik Seviyedeki Veya Tükenen Ürünler!", expanded=True):
             for ku, km, kb, kd in kritik_urunler:
@@ -136,110 +205,80 @@ if menu == "Güncel Stok Durumu":
     for row in stok_tablosu:
         st.write(f"• **{row['Ürün Adı']}** | Kategori: {row['Kategori']} | Kalan: **{row['Kalan Miktar']} {row['Birim']}** | Depo: {row['Depo Yeri']}")
 
-    # Excel İndirme Butonu
-    if st.button("📥 Güncel Stok Durumunu Excel Olarak İndir"):
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Stok Durumu"
-        ws.views.sheetView[0].showGridLines = True
-        
-        header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
-        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-        title_font = Font(name="Calibri", size=14, bold=True, color="1A365D")
-        bold_font = Font(name="Calibri", size=11, bold=True)
-        regular_font = Font(name="Calibri", size=11)
-        thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
-
-        ws.cell(row=1, column=1, value="Aziziye Aşevi - Güncel Stok Raporu").font = title_font
-        ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.date.today())}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
-
-        headers = ["Ürün Adı", "Kategori", "Birim", "Kalan Miktar", "Depo Yeri"]
-        for col_idx, h in enumerate(headers, 1):
-            cell = ws.cell(row=4, column=col_idx, value=h)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-
-        for idx, k in enumerate(stok_tablosu):
-            r = 5 + idx
-            ws.cell(row=r, column=1, value=k["Ürün Adı"])
-            ws.cell(row=r, column=2, value=k["Kategori"])
-            ws.cell(row=r, column=3, value=k["Birim"])
-            ws.cell(row=r, column=4, value=k["Kalan Miktar"])
-            ws.cell(row=r, column=5, value=k["Depo Yeri"])
-            for col_idx in range(1, 6):
-                c = ws.cell(row=r, column=col_idx)
-                c.font = regular_font
-                c.border = thin_border
-
-        excel_adi = "asevi_guncel_stok_raporu.xlsx"
-        wb.save(excel_adi)
-        st.success(f"Stok raporu '{excel_adi}' olarak başarıyla kaydedildi!")
-
 # 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
-    st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
-    with st.form("fatura_formu"):
-        tarih = st.date_input("Alım Tarihi", datetime.date.today())
-        urun = st.text_input("Ürün Adı (Büyük Harf)").strip().upper()
-        kategori = st.selectbox("Kategori", ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"])
-        birim = st.selectbox("Birim", ["Kg", "Adet", "Lt"])
-        depo = st.selectbox("Depo Yeri", ["Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"])
-        miktar = st.number_input("Toplam Miktar", min_value=0.1, step=1.0)
-        fiyat = st.number_input("Birim Fiyat (TL)", min_value=0.01, step=0.1)
-        
-        submitted = st.form_submit_button("Depoya Ekle (Üzerine Yaz)")
-        if submitted and urun:
-            st.session_state.girisler.append({
-                "id": f"FAT-{len(st.session_state.girisler)+1:03d}",
-                "tarih": str(tarih),
-                "urun": urun,
-                "kategori": kategori,
-                "birim": birim,
-                "miktar": miktar,
-                "kalan": miktar,
-                "fiyat": fiyat,
-                "depo": depo
-            })
-            verileri_kaydet(st.session_state.girisler)
-            st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
+    st.header("📝 Yeni Fatura ve Mal Alımı Girişi (Örn. Greyfurt vb.)")
+    
+    if not yonetici_modu:
+        st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için sol menüden Yönetici Şifresi girmeniz gereklidir.")
+    else:
+        with st.form("fatura_formu"):
+            tarih = st.date_input("Alım Tarihi", datetime.date.today())
+            # Listede olmayan yeni bir ürün (örn: GREYFURT) buraya yazılıp eklenebilir
+            urun = st.text_input("Ürün Adı (Örn: GREYFURT - Büyük Harfle)").strip().upper()
+            kategori = st.selectbox("Kategori", ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"])
+            birim = st.selectbox("Birim", ["Kg", "Adet", "Lt"])
+            depo = st.selectbox("Depo Yeri", ["Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"])
+            miktar = st.number_input("Toplam Miktar", min_value=0.1, step=1.0)
+            fiyat = st.number_input("Birim Fiyat (TL)", min_value=0.01, step=0.1)
+            
+            submitted = st.form_submit_button("Depoya Yeni Ürün / Fatura Ekle")
+            if submitted and urun:
+                st.session_state.girisler.append({
+                    "id": f"FAT-{len(st.session_state.girisler)+1:03d}",
+                    "tarih": str(tarih),
+                    "urun": urun,
+                    "kategori": kategori,
+                    "birim": birim,
+                    "miktar": miktar,
+                    "kalan": miktar,
+                    "fiyat": fiyat,
+                    "depo": depo
+                })
+                verileri_kaydet(st.session_state.girisler)
+                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi ve kalıcı olarak kaydedildi.")
 
 # 3. FİRE / ZAYİAT GİRİŞİ
 elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
-    benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
-    secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", benzersiz_urunler)
     
-    ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_urun and g["kalan"] > 0]
-    toplam_stok = sum(g["kalan"] for g in ilgili_girisler)
-    
-    st.info(f"Seçilen Ürün Mevcut Stoğu: {toplam_stok}")
-    fire_miktari = st.number_input("Fire Miktarı", min_value=0.0, max_value=float(toplam_stok), step=0.1)
-    aciklama = st.text_input("Fire Nedeni (Örn: Çürüme / S.T.T)")
-    
-    if st.button("Fireyi Düş ve Kaydet"):
-        if fire_miktari > 0:
-            kalan_dusulecek = fire_miktari
-            toplam_zarar = 0.0
-            for g in ilgili_girisler:
-                if kalan_dusulecek <= 0:
-                    break
-                if g["kalan"] >= kalan_dusulecek:
-                    dusulen = kalan_dusulecek
-                    g["kalan"] -= dusulen
-                    toplam_zarar += (dusulen * g["fiyat"])
-                    kalan_dusulecek = 0
-                else:
-                    dusulen = g["kalan"]
-                    g["kalan"] = 0
-                    toplam_zarar += (dusulen * g["fiyat"])
-                    kalan_dusulecek -= dusulen
-            verileri_kaydet(st.session_state.girisler)
-            st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL")
+    if not yonetici_modu:
+        st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için sol menüden Yönetici Şifresi girmeniz gereklidir.")
+    else:
+        benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+        secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", benzersiz_urunler)
+        
+        ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_urun and g["kalan"] > 0]
+        toplam_stok = sum(g["kalan"] for g in ilgili_girisler)
+        
+        st.info(f"Seçilen Ürün Mevcut Stoğu: {toplam_stok}")
+        fire_miktari = st.number_input("Fire Miktarı", min_value=0.0, max_value=float(toplam_stok), step=0.1)
+        aciklama = st.text_input("Fire Nedeni (Örn: Çürüme / S.T.T)")
+        
+        if st.button("Fireyi Düş ve Kaydet"):
+            if fire_miktari > 0:
+                kalan_dusulecek = fire_miktari
+                toplam_zarar = 0.0
+                for g in ilgili_girisler:
+                    if kalan_dusulecek <= 0:
+                        break
+                    if g["kalan"] >= kalan_dusulecek:
+                        dusulen = kalan_dusulecek
+                        g["kalan"] -= dusulen
+                        toplam_zarar += (dusulen * g["fiyat"])
+                        kalan_dusulecek = 0
+                    else:
+                        dusulen = g["kalan"]
+                        g["kalan"] = 0
+                        toplam_zarar += (dusulen * g["fiyat"])
+                        kalan_dusulecek -= dusulen
+                verileri_kaydet(st.session_state.girisler)
+                st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL")
 
 # 4. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     st.header("🍲 Günlük Yemek Üretimi ve Maliyet Hesaplama")
+    
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
     
@@ -248,18 +287,21 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     if "sepet" not in st.session_state:
         st.session_state.sepet = []
         
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col1:
-        secilen_urun = st.selectbox("Malzeme Seç", benzersiz_urunler, key="yemek_urun")
-    with col2:
-        ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_urun and g["kalan"] > 0]
-        stok_max = sum(g["kalan"] for g in ilgili_girisler)
-        kullanilacak_miktar = st.number_input(f"Miktar (Stok: {stok_max})", min_value=0.0, max_value=float(stok_max) if stok_max>0 else 0.1, step=0.1, key="yemek_miktar")
-    with col3:
-        if st.button("Sepete Ekle"):
-            if kullanilacak_miktar > 0 and kullanilacak_miktar <= stok_max:
-                st.session_state.sepet.append({"urun": secilen_urun, "miktar": kullanilacak_miktar, "girisler": ilgili_girisler})
-                st.success("Eklendi!")
+    if yonetici_modu:
+        col1, col2, col3 = st.columns([2, 1, 1])
+        with col1:
+            secilen_urun = st.selectbox("Malzeme Seç", benzersiz_urunler, key="yemek_urun")
+        with col2:
+            ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_urun and g["kalan"] > 0]
+            stok_max = sum(g["kalan"] for g in ilgili_girisler)
+            kullanilacak_miktar = st.number_input(f"Miktar (Stok: {stok_max})", min_value=0.0, max_value=float(stok_max) if stok_max>0 else 0.1, step=0.1, key="yemek_miktar")
+        with col3:
+            if st.button("Sepete Ekle"):
+                if kullanilacak_miktar > 0 and kullanilacak_miktar <= stok_max:
+                    st.session_state.sepet.append({"urun": secilen_urun, "miktar": kullanilacak_miktar, "girisler": ilgili_girisler})
+                    st.success("Eklendi!")
+    else:
+        st.info("👁️ Gözlemci modundasınız. Malzeme ekleme ve üretim yapma yetkisi sadece yöneticidedir.")
                 
     if st.session_state.sepet:
         st.subheader("Seçilen Malzemeler")
@@ -299,7 +341,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         st.metric("Toplam Yemek Maliyeti", f"{toplam_maliyet:.2f} TL")
         st.metric("Kişi Başı Maliyet", f"{kisi_basi:.2f} TL")
         
-        if st.button("Üretimi Tamamla, Stoktan Düş ve Excel Raporu Al"):
+        if yonetici_modu and st.button("Üretimi Tamamla, Stoktan Düş ve Excel Raporu Al"):
             for item in st.session_state.sepet:
                 urun = item["urun"]
                 istenen = item["miktar"]
@@ -321,16 +363,14 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             ws.title = "Günlük Maliyet Raporu"
             ws.views.sheetView[0].showGridLines = True
             
-            header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
+            header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
             header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-            title_font = Font(name="Calibri", size=14, bold=True, color="1A365D")
+            title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
             bold_font = Font(name="Calibri", size=11, bold=True)
             regular_font = Font(name="Calibri", size=11)
-            zebra_fill = PatternFill(start_color="F7FAFC", end_color="F7FAFC", fill_type="solid")
-            white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
             summary_fill = PatternFill(start_color="EDF2F7", end_color="EDF2F7", fill_type="solid")
             thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
-            total_border = Border(top=Side(style='thin', color='1A365D'), bottom=Side(style='double', color='1A365D'))
+            total_border = Border(top=Side(style='thin', color='1E3A8A'), bottom=Side(style='double', color='1E3A8A'))
 
             ws.cell(row=1, column=1, value="Aşevi Günlük Üretim ve Maliyet Raporu").font = title_font
             ws.cell(row=2, column=1, value=f"Tarih: {str(datetime.date.today())} | Menü: {yemek_adi} | Kişi Sayısı: {kisi_sayisi}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
@@ -345,7 +385,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             start_row = 5
             for idx, k in enumerate(islenmis_sepet):
                 r = start_row + idx
-                fill = zebra_fill if r % 2 == 0 else white_fill
                 ws.cell(row=r, column=1, value=k["Malzeme"])
                 ws.cell(row=r, column=2, value=k["Kategori"])
                 ws.cell(row=r, column=3, value=k["Birim"])
@@ -360,7 +399,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     c = ws.cell(row=r, column=col_idx)
                     c.font = regular_font
                     c.border = thin_border
-                    c.fill = fill
                     if col_idx in [3, 9]: c.alignment = Alignment(horizontal="center")
                     elif col_idx in [4, 5, 6]:
                         c.alignment = Alignment(horizontal="right")
@@ -409,5 +447,5 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
             rapor_adi = "asevi_gunluk_maliyet_raporu.xlsx"
             wb.save(rapor_adi)
-            st.success(f"Üretim kaydedildi, stoktan düşüldü ve '{rapor_adi}' olarak Excel raporu oluşturuldu!")
+            st.success(f"Üretim kaydedildi, stoktan düşüldü ve rapor hazırlandı!")
             st.session_state.sepet = []
