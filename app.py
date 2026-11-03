@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import io
 import streamlit as st
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -26,7 +27,6 @@ st.markdown("""
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
 
-# Eylül ve Ekim ayı güncel birim fiyatlarıyla 62 kalem ürün veritabanı
 varsayilan_girisler = [
     {"id": "STK-001", "tarih": "2026-09-28", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": 42.8, "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-002", "tarih": "2026-09-28", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 19.7, "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6"},
@@ -175,55 +175,68 @@ if menu == "Güncel Stok Durumu":
     with col_baslik:
         st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
     
+    # Excel oluşturma ve doğrudan kullanıcının İndirilenler klasörüne indirme mekanizması
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Stok Durumu"
+    ws.views.sheetView[0].showGridLines = True
+    
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
+    regular_font = Font(name="Calibri", size=11)
+    thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
+
+    ws.cell(row=1, column=1, value="Aziziye Aşevi - Güncel Stok Raporu").font = title_font
+    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.date.today())}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
+
+    headers = ["Ürün Adı", "Kategori", "Birim", "Kalan Miktar", "Depo Yeri"]
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col_idx, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    benzersiz_urunler_Excel = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+    row_idx = 5
+    for u in benzersiz_urunler_Excel:
+        toplam_kalan_ex = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
+        kategori_ex = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
+        birim_ex = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
+        depo_ex = next((g["depo"] for g in st.session_state.girisler if g["urun"] == u), "Merkez Depo")
+        
+        ws.cell(row=row_idx, column=1, value=u)
+        ws.cell(row=row_idx, column=2, value=kategori_ex)
+        ws.cell(row=row_idx, column=3, value=birim_ex)
+        ws.cell(row=row_idx, column=4, value=toplam_kalan_ex)
+        ws.cell(row=row_idx, column=5, value=depo_ex)
+        for col_idx in range(1, 6):
+            c = ws.cell(row=row_idx, column=col_idx)
+            c.font = regular_font
+            c.border = thin_border
+        row_idx += 1
+
+    excel_buffer = io.BytesIO()
+    wb.save(excel_buffer)
+    excel_data = excel_buffer.getvalue()
+
     with col_btn_excel:
-        if st.button("🟩 Excel İndir"):
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Stok Durumu"
-            ws.views.sheetView[0].showGridLines = True
-            
-            header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
-            header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-            title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
-            regular_font = Font(name="Calibri", size=11)
-            thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
-
-            ws.cell(row=1, column=1, value="Aziziye Aşevi - Güncel Stok Raporu").font = title_font
-            ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.date.today())}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
-
-            headers = ["Ürün Adı", "Kategori", "Birim", "Kalan Miktar", "Depo Yeri"]
-            for col_idx, h in enumerate(headers, 1):
-                cell = ws.cell(row=4, column=col_idx, value=h)
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = Alignment(horizontal="center", vertical="center")
-
-            benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
-            row_idx = 5
-            for u in benzersiz_urunler:
-                toplam_kalan = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
-                kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
-                birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
-                depo = next((g["depo"] for g in st.session_state.girisler if g["urun"] == u), "Merkez Depo")
-                
-                ws.cell(row=row_idx, column=1, value=u)
-                ws.cell(row=row_idx, column=2, value=kategori)
-                ws.cell(row=row_idx, column=3, value=birim)
-                ws.cell(row=row_idx, column=4, value=toplam_kalan)
-                ws.cell(row=row_idx, column=5, value=depo)
-                for col_idx in range(1, 6):
-                    c = ws.cell(row=row_idx, column=col_idx)
-                    c.font = regular_font
-                    c.border = thin_border
-                row_idx += 1
-
-            excel_adi = "asevi_guncel_stok_raporu.xlsx"
-            wb.save(excel_adi)
-            st.success("Stok raporu Excel olarak indirildi!")
+        st.download_button(
+            label="🟩 Excel İndir",
+            data=excel_data,
+            file_name="asevi_guncel_stok_raporu.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     with col_btn_pdf:
-        if st.button("🟥 PDF İndir"):
-            st.info("PDF raporu dışa aktarıldı.")
+        # Örnek PDF indirme butonu altyapısı (kullanıcının cihazına indirir)
+        pdf_ornek_veri = b"%PDF-1.4 Aziziye Asevi Stok Raporu PDF"
+        st.download_button(
+            label="🟥 PDF İndir",
+            data=pdf_ornek_veri,
+            file_name="asevi_guncel_stok_raporu.pdf",
+            mime="application/pdf"
+        )
 
     depolar = ["Tümü", "Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"]
     secilen_depo = st.selectbox("Depo Konumuna Göre Filtrele", depolar)
@@ -343,11 +356,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi ve Maliyet Hesaplama")
     with col_btn_ex:
-        if st.button("🟩 Excel Raporu Al"):
-            st.success("Excel raporu hazırlandı.")
+        st.download_button("🟩 Excel Raporu", data=b"Excel Raporu", file_name="yemek_maliyet_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     with col_btn_pd:
-        if st.button("🟥 PDF Raporu Al"):
-            st.success("PDF raporu hazırlandı.")
+        st.download_button("🟥 PDF Raporu", data=b"PDF Raporu", file_name="yemek_maliyet_raporu.pdf", mime="application/pdf")
     
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
@@ -451,11 +462,9 @@ elif menu == "Kullanım Takibi":
     with col_b_k:
         st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
     with col_ex_k:
-        if st.button("🟩 Excel İndir", key="excel_kullanim"):
-            st.success("Kullanım takip tablosu Excel olarak indirildi.")
+        st.download_button("🟩 Excel İndir", data=b"Kullanim Raporu Excel", file_name="kullanim_takip_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="excel_kullanim")
     with col_pd_k:
-        if st.button("🟥 PDF İndir", key="pdf_kullanim"):
-            st.success("Kullanım takip raporu PDF olarak indirildi.")
+        st.download_button("🟥 PDF İndir", data=b"Kullanim Raporu PDF", file_name="kullanim_takip_raporu.pdf", mime="application/pdf", key="pdf_kullanim")
             
     st.markdown("Eylül ve Ekim ayı fiyat değişimleri dahil olmak üzere ürünlerin tüketim miktarlarını, fire oranlarını ve toplam harcanan bütçeyi inceleyin.")
     
