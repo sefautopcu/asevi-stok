@@ -103,15 +103,16 @@ KALORI_TABLOSU = {
     "ŞEKER": 387, "TOZ ŞEKER": 387, "TUZ": 0, "İRMİK": 360, "BEZELYE": 81, "BEZELYE KONSERVESİ": 81
 }
 
-def urun_kalori_hesapla(urun_adi, miktar):
+def urun_kalori_hesapla(urun_adi, miktar, birim):
     urun_upper = urun_adi.upper()
     birim_kalori = 100  # Varsayılan
     for k, v in KALORI_TABLOSU.items():
         if k in urun_upper:
             birim_kalori = v
             break
-    # 100 gram/ml başına kalori üzerinden hesap
-    return (miktar * birim_kalori) / 100.0
+    # Kg veya Litre için 1000 birim (gram/ml), Adet için 100 gram baz alınır
+    carp = 1000 if birim in ["Kg", "Lt"] else 100
+    return (miktar * carp * birim_kalori) / 100.0
 
 # Stok Başlangıç Listesi
 varsayilan_girisler = [
@@ -365,6 +366,9 @@ if "personeller" not in st.session_state:
 if "resmi_tatiller" not in st.session_state:
     st.session_state.resmi_tatiller = resmi_tatilleri_yukle()
 
+if "kalori_sepeti" not in st.session_state:
+    st.session_state.kalori_sepeti = []
+
 # Oturum Durumları (Varsayılan olarak oturum kapalı ve rol "misafir" / gözlemci)
 if "oturum_aktif" not in st.session_state:
     st.session_state.oturum_aktif = False
@@ -430,6 +434,7 @@ menuler_listesi = [
     "Ürün Sil / Düzenle", 
     "Fire / Zayiat Girişi", 
     "Günlük Yemek Üretimi & Maliyet Raporu",
+    "Kalori Hesaplama Aracı",
     "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
     "Personel & Çalışma Süresi Takibi",
     "Kullanım Takibi",
@@ -712,8 +717,8 @@ if menu == "Kurumsal Dashboard & Özet":
             st.session_state.aktif_menu = "Günlük Yemek Üretimi & Maliyet Raporu"
             st.rerun()
     with q3:
-        if st.button("📋 Birim Fiyatları İncele", use_container_width=True):
-            st.session_state.aktif_menu = "Ürün Birim Fiyatları & Ay Analizi"
+        if st.button("🔥 Kalori Hesaplama Aracı", use_container_width=True):
+            st.session_state.aktif_menu = "Kalori Hesaplama Aracı"
             st.rerun()
 
 
@@ -949,11 +954,11 @@ elif menu == "Fire / Zayiat Girişi":
         st.info("Sistemde kayıtlı henüz bir fire veya zayiat bulunmuyor.")
 
 
-# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU (KALORİ HESAPLAMALI)
+# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU (STOKTAN DÜŞMELİ)
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
-        st.header("🍲 Günlük Yemek Üretimi, Maliyet ve Kalori Hesaplama")
+        st.header("🍲 Günlük Yemek Üretimi ve Maliyet Hesaplama")
     
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
@@ -963,7 +968,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         st.session_state.sepet = []
         
     if misafir_modu:
-        st.info("👀 Misafir modundasınız. Bu ekranda yalnızca maliyet, kalori hesaplamalarını ve sepeti gözlemleyebilirsiniz, üretim yapamazsınız.")
+        st.info("👀 Misafir modundasınız. Bu ekranda yalnızca maliyet hesaplamalarını ve sepeti gözlemleyebilirsiniz, üretim yapamazsınız.")
     else:
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
@@ -979,9 +984,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     st.success("Eklendi!")
                 
     if st.session_state.sepet:
-        st.subheader("Seçilen Malzemeler ve Besin Değerleri")
+        st.subheader("Seçilen Malzemeler")
         toplam_maliyet = 0.0
-        toplam_kalori = 0.0
         islenmis_sepet = []
         excel_sepet_liste = []
 
@@ -1006,35 +1010,21 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     kalan_d -= g["kalan"]
                     
             toplam_maliyet += maliyet
-            
-            # Kalori hesapla (Kg veya Adet cinsinden toplam kalori)
-            malzeme_kalori = urun_kalori_hesapla(urun, istenen * 1000 if birim == "Kg" else istenen * 100)
-            toplam_kalori += malzeme_kalori
+            islenmis_sepet.append({"Malzeme": urun, "Kategori": kategori, "Birim": birim, "Miktar": istenen, "Birim Maliyet": ilk_fiyat, "Toplam Maliyet": maliyet, "Depo": depo})
+            excel_sepet_liste.append({"Malzeme": urun, "Kategori": kategori, "Birim": birim, "Miktar": istenen, "Birim Maliyet (TL)": round(ilk_fiyat, 2), "Toplam Maliyet (TL)": round(maliyet, 2)})
 
-            islenmis_sepet.append({"Malzeme": urun, "Kategori": kategori, "Birim": birim, "Miktar": istenen, "Birim Maliyet": ilk_fiyat, "Toplam Maliyet": maliyet, "Tahmini Kalori": f"{malzeme_kalori:,.0f} kcal", "Depo": depo})
-            excel_sepet_liste.append({"Malzeme": urun, "Kategori": kategori, "Birim": birim, "Miktar": istenen, "Birim Maliyet (TL)": round(ilk_fiyat, 2), "Toplam Maliyet (TL)": round(maliyet, 2), "Tahmini Kalori (kcal)": round(malzeme_kalori, 1)})
-
-        pdf_data = tablo_to_html_pdf_bytes(f"Yemek Maliyet & Kalori Raporu - {yemek_adi}", excel_sepet_liste)
-        excel_sepet_data = tablo_to_excel_bytes(excel_sepet_liste, f"Yemek Maliyet & Kalori Raporu - {yemek_adi}")
+        pdf_data = tablo_to_html_pdf_bytes(f"Yemek Maliyet Raporu - {yemek_adi}", excel_sepet_liste)
+        excel_sepet_data = tablo_to_excel_bytes(excel_sepet_liste, f"Yemek Maliyet Raporu - {yemek_adi}")
 
         with col_indir_alan:
-            ortak_indirme_alani(excel_sepet_data, pdf_data, "yemek_maliyet_kalori_raporu", "yemek_sayfasi")
+            ortak_indirme_alani(excel_sepet_data, pdf_data, "yemek_maliyet_raporu", "yemek_sayfasi")
             
         for row in islenmis_sepet:
-            st.write(f"• **{row['Malzeme']}** - {row['Miktar']} {row['Birim']} | Birim Fiyat: {row['Birim Maliyet']:.2f} ₺ | Toplam: **{row['Toplam Maliyet']:.2f} ₺** | Kalori: *{row['Tahmini Kalori']}*")
+            st.write(f"• **{row['Malzeme']}** - {row['Miktar']} {row['Birim']} | Birim Fiyat: {row['Birim Maliyet']:.2f} ₺ | Toplam: **{row['Toplam Maliyet']:.2f} ₺**")
         
-        kisi_basi_maliyet = toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0
-        kisi_basi_kalori = toplam_kalori / kisi_sayisi if kisi_sayisi > 0 else 0
-
-        c_met1, c_met2, c_met3, c_met4 = st.columns(4)
-        with c_met1:
-            st.metric("Toplam Yemek Maliyeti", f"{toplam_maliyet:.2f} TL")
-        with c_met2:
-            st.metric("Kişi Başı Maliyet", f"{kisi_basi_maliyet:.2f} TL")
-        with c_met3:
-            st.metric("Toplam Yemek Kalorisi", f"{toplam_kalori:,.0f} kcal")
-        with c_met4:
-            st.metric("1 Porsiyon Kalori (Ort.)", f"{kisi_basi_kalori:,.0f} kcal")
+        kisi_basi = toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0
+        st.metric("Toplam Yemek Maliyeti", f"{toplam_maliyet:.2f} TL")
+        st.metric("Kişi Başı Maliyet", f"{kisi_basi:.2f} TL")
         
         if not misafir_modu and st.button("Üretimi Tamamla ve Stoktan Düş"):
             bugun_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -1063,14 +1053,12 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     "tur": "Yemek Üretimi", 
                     "miktar": istenen, 
                     "tutar": urun_maliyeti, 
-                    "islem_yapan": islem_yapan_kisi,
-                    "yemek_adi": yemek_adi,
-                    "kisi_sayisi": kisi_sayisi
+                    "islem_yapan": islem_yapan_kisi
                 })
             
             verileri_kaydet(st.session_state.girisler)
             loglari_kaydet(st.session_state.kullanim_loglari)
-            st.success(f"Üretim kaydedildi, stoktan düşüldü ve kalori değerleri işlendi! (İşlemi Yapan: {islem_yapan_kisi} - {bugun_str})")
+            st.success(f"Üretim kaydedildi ve stoktan düşüldü! (İşlemi Yapan: {islem_yapan_kisi})")
             st.session_state.sepet = []
     else:
         empty_excel = tablo_to_excel_bytes([], "Boş Rapor")
@@ -1079,7 +1067,98 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             ortak_indirme_alani(empty_excel, empty_pdf, "bos_yemek_raporu", "yemek_bos_sayfasi")
 
 
-# 6. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ
+# 6. MÜSTAKİL KALORİ HESAPLAMA ARACI
+elif menu == "Kalori Hesaplama Aracı":
+    col_b_kal, col_indir_kal = st.columns([2, 2])
+    with col_b_kal:
+        st.header("🔥 Bağımsız Kalori ve Besin Değeri Hesaplama Aracı")
+    
+    st.markdown("Bu ekranda herhangi bir yemek tarifi için **birden fazla malzeme seçebilir**, gramajlarını girerek toplam kaloriyi ve **1 porsiyon ortalama kaloriyi** hesaplayabilirsiniz. Bu işlem depodaki gerçek stoklarınızı etkilemez, yalnızca saf hesaplama yapar.")
+
+    col_tarif_adi, col_kisi_giris = st.columns(2)
+    with col_tarif_adi:
+        kalori_tarif_adi = st.text_input("Tarif / Yemek Adı", "Örn: Etli Kuru Fasulye ve Pilav Menüsü")
+    with col_kisi_giris:
+        kalori_kisi_sayisi = st.number_input("Planlanan Kişi / Porsiyon Sayısı", min_value=1, value=100)
+
+    benzersiz_urunler_kalori = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+    
+    col_k_ sec1, col_k_sec2, col_k_sec3 = st.columns([2, 1, 1])
+    with col_k_sec1:
+        secilen_kalori_urun = st.selectbox("Malzeme Seçin", benzersiz_urunler_kalori, key="kalori_urun_sec")
+    with col_k_sec2:
+        kalori_miktar_input = st.number_input("Miktar", min_value=0.1, value=1.0, step=0.5, key="kalori_ miktar_input")
+    with col_k_sec3:
+        kalori_birim_input = st.selectbox("Birim", ["Kg", "Adet", "Lt"], key="kalori_birim_input")
+
+    col_btn_ekle, col_btn_sifirla = st.columns([1, 1])
+    with col_btn_ekle:
+        if st.button("➕ Listeye Malzeme Ekle", use_container_width=True):
+            st.session_state.kalori_sepeti.append({
+                "urun": secilen_kalori_urun,
+                "miktar": kalori_miktar_input,
+                "birim": kalori_birim_input
+            })
+            st.success(f"{secilen_kalori_urun} listeye eklendi!")
+
+    with col_btn_sifirla:
+        if st.button("🔄 Hesaplamayı Sıfırla", use_container_width=True, type="secondary"):
+            st.session_state.kalori_sepeti = []
+            st.success("Liste başarıyla sıfırlandı!")
+            st.rerun()
+
+    st.markdown("---")
+    if st.session_state.kalori_sepeti:
+        st.subheader(f"📋 '{kalori_tarif_adi}' İçin Seçilen Malzemeler")
+        
+        toplam_tarif_kalorisi = 0.0
+        kalori_tablo_verisi = []
+        excel_kalori_liste = []
+
+        for item in st.session_state.kalori_sepeti:
+            u_adi = item["urun"]
+            u_mik = item["miktar"]
+            u_birim = item["birim"]
+            
+            # Kalori hesapla
+            malzeme_kalori = urun_kalori_hesapla(u_adi, u_mik, u_birim)
+            toplam_tarif_kalorisi += malzeme_kalori
+
+            kalori_tablo_verisi.append({
+                "Malzeme": u_adi,
+                "Miktar": f"{u_mik} {u_birim}",
+                "Tahmini Kalori": f"{malzeme_kalori:,.0f} kcal"
+            })
+            excel_kalori_liste.append({
+                "Malzeme": u_adi,
+                "Miktar": f"{u_mik} {u_birim}",
+                "Tahmini Kalori (kcal)": round(malzeme_kalori, 1)
+            })
+
+        pdf_kalori_data = tablo_to_html_pdf_bytes(f"Kalori Hesaplama Raporu - {kalori_tarif_adi}", excel_kalori_liste)
+        excel_kalori_data = tablo_to_excel_bytes(excel_kalori_liste, f"Kalori Hesaplama Raporu - {kalori_tarif_adi}")
+
+        with col_indir_kal:
+            ortak_indirme_alani(excel_kalori_data, pdf_kalori_data, "kalori_hesaplama_raporu", "kalori_sayfasi")
+
+        st.dataframe(kalori_tablo_verisi, use_container_width=True)
+
+        kisi_basi_kalori_sonuc = toplam_tarif_kalorisi / kalori_kisi_sayisi if kalori_kisi_sayisi > 0 else 0
+
+        km1, km2 = st.columns(2)
+        with km1:
+            st.metric("Toplam Tarif Kalorisi", f"{toplam_tarif_kalorisi:,.0f} kcal")
+        with km2:
+            st.metric("1 Porsiyon Kalori (Ortalama)", f"{kisi_basi_kalori_sonuc:,.0f} kcal")
+    else:
+        empty_excel_k = tablo_to_excel_bytes([], "Boş Rapor")
+        empty_pdf_k = tablo_to_html_pdf_bytes("Boş Rapor", [])
+        with col_indir_kal:
+            ortak_indirme_alani(empty_excel_k, empty_pdf_k, "bos_kalori_raporu", "kalori_bos_sayfasi")
+        st.info("Henüz hesaplama için malzeme eklenmedi. Yukarıdan malzeme seçip ekleyebilirsiniz.")
+
+
+# 7. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ
 elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     st.header("👥 İhtiyaç Sahibi ve Günlük / Aylık / Yıllık Yemek Dağıtım Takibi")
     st.markdown("Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun, yönetin ve yemek dağıtımlarını takip edin.")
@@ -1249,7 +1328,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             st.info("Seçilen kriterlere uygun yemek dağıtım kaydı bulunamadı.")
 
 
-# 7. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
+# 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
 elif menu == "Personel & Çalışma Süresi Takibi":
     if not yonetici_modu:
         st.error("⚠️ Yönetici harici giriş yapılamaz. Bu ekrana erişim yetkiniz bulunmamaktadır.")
@@ -1702,7 +1781,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 st.info("Kayıtlı resmi tatil bulunmuyor.")
 
 
-# 8. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
+# 9. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
 elif menu == "Kullanım Takibi":
     col_b_k, col_indir_alan = st.columns([2, 2])
     with col_b_k:
@@ -1779,7 +1858,7 @@ elif menu == "Kullanım Takibi":
         st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı.")
 
 
-# 9. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
+# 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_f, col_indir_alan = st.columns([2, 2])
     with col_b_f:
