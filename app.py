@@ -40,6 +40,8 @@ st.markdown("""
 
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
+IHTIYAC_SAHIPLERI_DOSYASI = "asevi_ihtiyac_sahipleri.json"
+DAGITIM_LOG_DOSYASI = "asevi_dagitim_loglari.json"
 
 # Stok Başlangıç Listesi
 varsayilan_girisler = [
@@ -150,20 +152,13 @@ def verileri_kaydet(veri):
 
 def loglari_yukle():
     tum_loglar = []
-    
     for urun_adi, miktar in ekim_tuketimleri_verileri:
         bulunan_fiyat = 50.0
         for g in varsayilan_girisler:
             if g["urun"] == urun_adi:
                 bulunan_fiyat = g["fiyat"]
                 break
-        tum_loglar.append({
-            "tarih": "2026-10-31",
-            "urun": urun_adi,
-            "tur": "Yemek Üretimi",
-            "miktar": miktar,
-            "tutar": miktar * bulunan_fiyat
-        })
+        tum_loglar.append({"tarih": "2026-10-31", "urun": urun_adi, "tur": "Yemek Üretimi", "miktar": miktar, "tutar": miktar * bulunan_fiyat})
 
     for urun_adi, miktar in ekim_fire_verileri:
         bulunan_fiyat = 50.0
@@ -171,27 +166,60 @@ def loglari_yukle():
             if g["urun"] == urun_adi:
                 bulunan_fiyat = g["fiyat"]
                 break
-        tum_loglar.append({
-            "tarih": "2026-10-31",
-            "urun": urun_adi,
-            "tur": "Fire/Zayiat",
-            "miktar": miktar,
-            "tutar": miktar * bulunan_fiyat
-        })
+        tum_loglar.append({"tarih": "2026-10-31", "urun": urun_adi, "tur": "Fire/Zayiat", "miktar": miktar, "tutar": miktar * bulunan_fiyat})
         
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(tum_loglar, f, ensure_ascii=False, indent=4)
-        
     return tum_loglar
 
 def loglari_kaydet(veri):
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
+# İhtiyaç Sahipleri ve Dağıtım Verileri
+def ihtiyac_sahiplerini_yukle():
+    if os.path.exists(IHTIYAC_SAHIPLERI_DOSYASI):
+        try:
+            with open(IHTIYAC_SAHIPLERI_DOSYASI, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return [
+        {"id": "IHT-001", "ad_soyad": "AHMET YILMAZ", "telefon": "0532 111 2233", "adres": "Merkez Mah. No:1", "birey_sayisi": 4},
+        {"id": "IHT-002", "ad_soyad": "FATMA DEMİR", "telefon": "0542 222 3344", "adres": "Yavuz Selim Cad. No:12", "birey_sayisi": 2}
+    ]
+
+def ihtiyac_sahiplerini_kaydet(veri):
+    with open(IHTIYAC_SAHIPLERI_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(veri, f, ensure_ascii=False, indent=4)
+
+def dagitim_loglarini_yukle():
+    if os.path.exists(DAGITIM_LOG_DOSYASI):
+        try:
+            with open(DAGITIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return [
+        {"tarih": "2026-10-30", "kisi": "AHMET YILMAZ", "menu": "Ispanak Yemeği ve Pilav", "porsiyon": 4},
+        {"tarih": "2026-10-31", "kisi": "AHMET YILMAZ", "menu": "Kuru Fasulye ve Pilav", "porsiyon": 4},
+        {"tarih": "2026-10-31", "kisi": "FATMA DEMİR", "menu": "Kuru Fasulye ve Pilav", "porsiyon": 2}
+    ]
+
+def dagitim_loglarini_kaydet(veri):
+    with open(DAGITIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(veri, f, ensure_ascii=False, indent=4)
+
 if "girisler" not in st.session_state:
     st.session_state.girisler = verileri_yukle()
 
 st.session_state.kullanim_loglari = loglari_yukle()
+
+if "ihtiyac_sahipleri" not in st.session_state:
+    st.session_state.ihtiyac_sahipleri = ihtiyac_sahiplerini_yukle()
+
+if "dagitim_loglari" not in st.session_state:
+    st.session_state.dagitim_loglari = dagitim_loglarini_yukle()
 
 if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
@@ -205,18 +233,9 @@ if "silme_mesaji" not in st.session_state:
 # Türkçe Tarih Dönüştürücü Fonksiyon
 def bugunun_turkce_tarihi():
     simdi = datetime.date.today()
-    aylar = {
-        1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 
-        5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos", 
-        9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"
-    }
-    gunler = {
-        0: "Pazartesi", 1: "Salı", 2: "Çarşamba", 3: "Perşembe", 
-        4: "Cuma", 5: "Cumartesi", 6: "Pazar"
-    }
-    gun_adi = gunler.get(simdi.weekday(), "")
-    ay_adi = aylar.get(simdi.month, "")
-    return f"{simdi.day} {ay_adi} {simdi.year}, {gun_adi}"
+    aylar = {1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"}
+    gunler = {0: "Pazartesi", 1: "Salı", 2: "Çarşamba", 3: "Perşembe", 4: "Cuma", 5: "Cumartesi", 6: "Pazar"}
+    return f"{simdi.day} {aylar.get(simdi.month, '')} {simdi.year}, {gunler.get(simdi.weekday(), '')}"
 
 # Üst Bilgi ve Başlık
 st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
@@ -233,6 +252,7 @@ menuler_listesi = [
     "Ürün Sil / Düzenle", 
     "Fire / Zayiat Girişi", 
     "Günlük Yemek Üretimi & Maliyet Raporu",
+    "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
     "Kullanım Takibi",
     "Ürün Birim Fiyatları & Ay Analizi"
 ]
@@ -400,13 +420,7 @@ if menu == "Kurumsal Dashboard & Özet":
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
     with c2:
-        # Fire miktarının yanında kırmızı renkli aşağı yönlü ok ile maddi karşılığı gösteriliyor
-        st.metric(
-            "Toplam Fire / Zayiat", 
-            f"{toplam_fire_mik:,.1f} Kg", 
-            delta=f"📉 {toplam_fire_tutar:,.2f} ₺", 
-            delta_color="inverse"
-        )
+        st.metric("Toplam Fire / Zayiat", f"{toplam_fire_mik:,.1f} Kg", delta=f"📉 {toplam_fire_tutar:,.2f} ₺", delta_color="inverse")
     with c3:
         st.metric("Toplam Stok Değeri", f"{toplam_envanter_maliyeti:,.2f} ₺")
 
@@ -470,13 +484,7 @@ elif menu == "Güncel Stok Durumu":
         birim_ex = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
         depo_ex = next((g["depo"] for g in st.session_state.girisler if g["urun"] == u), "Merkez Depo")
         
-        excel_liste.append({
-            "Ürün Adı": u,
-            "Kategori": kategori_ex,
-            "Birim": birim_ex,
-            "Kalan Miktar": toplam_kalan_ex,
-            "Depo Yeri": depo_ex
-        })
+        excel_liste.append({"Ürün Adı": u, "Kategori": kategori_ex, "Birim": birim_ex, "Kalan Miktar": toplam_kalan_ex, "Depo Yeri": depo_ex})
 
     excel_data = tablo_to_excel_bytes(excel_liste, "Aziziye Aşevi - Güncel Stok Raporu")
     pdf_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Güncel Stok Raporu", excel_liste)
@@ -562,21 +570,16 @@ elif menu == "Ürün Sil / Düzenle":
         else:
             secenekler = [f"{g['id']} - {g['urun']} (Tarih: {g['tarih']}, Kalan: {g['kalan']} {g['birim']}, Fiyat: {g['fiyat']} TL)" for g in st.session_state.girisler]
             secilen_kayit_str = st.selectbox("Silmek İstediğiniz Kaydı / Faturayı Seçin", secenekler)
-            
             secilen_id = secilen_kayit_str.split(" - ")[0]
             ilgili_oge = next((g for g in st.session_state.girisler if g["id"] == secilen_id), None)
             
             if ilgili_oge:
-                st.warning(f"⚠️ **{ilgili_oge['urun']}** adlı kaydı (ID: {ilgili_oge['id']}, Miktar: {ilgili_oge['miktar']} {ilgili_oge['birim']}, Tarih: {ilgili_oge['tarih']}) silmek üzeresiniz.")
-                
+                st.warning(f"⚠️ **{ilgili_oge['urun']}** adlı kaydı silmek üzeresiniz.")
                 if st.button("Seçilen Ürünü / Kaydı Kalıcı Olarak Sil", type="primary"):
                     silinen_urun_adi = ilgili_oge['urun']
                     st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
                     verileri_kaydet(st.session_state.girisler)
-                    
-                    mesaj_metni = f"Başarılı! {silinen_urun_adi} sistemden silindi."
-                    st.toast(mesaj_metni, icon="✅")
-                    st.session_state.silme_mesaji = mesaj_metni
+                    st.session_state.silme_mesaji = f"Başarılı! {silinen_urun_adi} sistemden silindi."
                     st.rerun()
 
 # 4. FİRE / ZAYİAT GİRİŞİ VE İZLEME EKRANI
@@ -617,44 +620,25 @@ elif menu == "Fire / Zayiat Girişi":
                         if g["kalan"] >= kalan_dusulecek:
                             dusulen = kalan_dusulecek
                             g["kalan"] -= dusulen
-                            maliyet_zarar = dusulen * g["fiyat"]
-                            toplam_zarar += maliyet_zarar
+                            toplam_zarar += dusulen * g["fiyat"]
                             kalan_dusulecek = 0
                         else:
                             dusulen = g["kalan"]
                             g["kalan"] = 0
-                            maliyet_zarar = dusulen * g["fiyat"]
-                            toplam_zarar += maliyet_zarar
+                            toplam_zarar += dusulen * g["fiyat"]
                             kalan_dusulecek -= dusulen
                             
                     verileri_kaydet(st.session_state.girisler)
-                    
-                    st.session_state.kullanim_loglari.append({
-                        "tarih": bugun_str,
-                        "urun": secilen_gercek_urun,
-                        "tur": "Fire/Zayiat",
-                        "miktar": fire_miktari,
-                        "tutar": toplam_zarar
-                    })
+                    st.session_state.kullanim_loglari.append({"tarih": bugun_str, "urun": secilen_gercek_urun, "tur": "Fire/Zayiat", "miktar": fire_miktari, "tutar": toplam_zarar})
                     loglari_kaydet(st.session_state.kullanim_loglari)
-                    
                     st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL")
                     st.rerun()
 
     st.markdown("---")
     st.subheader("📋 Sistemde Kayıtlı Olan Tüm Fire ve Zayiat Durumları")
-    
     fire_loglari = [l for l in st.session_state.kullanim_loglari if l["tur"] == "Fire/Zayiat"]
-    
     if fire_loglari:
-        fire_tablo_verisi = []
-        for fl in fire_loglari:
-            fire_tablo_verisi.append({
-                "Tarih": fl["tarih"],
-                "Ürün Adı": fl["urun"],
-                "Fire Miktarı (Kg)": f"{fl['miktar']:.2f} Kg",
-                "Maddi Zarar (₺)": f"{fl['tutar']:.2f} ₺"
-            })
+        fire_tablo_verisi = [{"Tarih": fl["tarih"], "Ürün Adı": fl["urun"], "Fire Miktarı (Kg)": f"{fl['miktar']:.2f} Kg", "Maddi Zarar (₺)": f"{fl['tutar']:.2f} ₺"} for fl in fire_loglari]
         st.dataframe(fire_tablo_verisi, use_container_width=True)
     else:
         st.info("Sistemde kayıtlı henüz bir fire veya zayiat bulunmuyor.")
@@ -667,7 +651,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
-    
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     
     if "sepet" not in st.session_state:
@@ -699,7 +682,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             urun = item["urun"]
             istenen = item["miktar"]
             ilgili = [g for g in st.session_state.girisler if g["urun"] == urun and g["kalan"] > 0]
-            
             kalan_d = istenen
             maliyet = 0.0
             ilk_fiyat = ilgili[0]["fiyat"] if ilgili else 0.0
@@ -710,13 +692,11 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             for g in ilgili:
                 if kalan_d <= 0: break
                 if g["kalan"] >= kalan_d:
-                    dus = kalan_d
-                    maliyet += dus * g["fiyat"]
+                    maliyet += kalan_d * g["fiyat"]
                     kalan_d = 0
                 else:
-                    dus = g["kalan"]
-                    maliyet += dus * g["fiyat"]
-                    kalan_d -= dus
+                    maliyet += g["kalan"] * g["fiyat"]
+                    kalan_d -= g["kalan"]
                     
             toplam_maliyet += maliyet
             islenmis_sepet.append({"Malzeme": urun, "Kategori": kategori, "Birim": birim, "Miktar": istenen, "Birim Maliyet": ilk_fiyat, "Toplam Maliyet": maliyet, "Depo": depo})
@@ -746,9 +726,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 for g in ilgili:
                     if kalan_d <= 0: break
                     if g["kalan"] >= kalan_d:
-                        harcanan = kalan_d
-                        g["kalan"] -= harcanan
-                        urun_maliyeti += harcanan * g["fiyat"]
+                        g["kalan"] -= kalan_d
+                        urun_maliyeti += kalan_d * g["fiyat"]
                         kalan_d = 0
                     else:
                         harcanan = g["kalan"]
@@ -756,13 +735,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         urun_maliyeti += harcanan * g["fiyat"]
                         kalan_d -= harcanan
                 
-                st.session_state.kullanim_loglari.append({
-                    "tarih": bugun_str,
-                    "urun": urun,
-                    "tur": "Yemek Üretimi",
-                    "miktar": istenen,
-                    "tutar": urun_maliyeti
-                })
+                st.session_state.kullanim_loglari.append({"tarih": bugun_str, "urun": urun, "tur": "Yemek Üretimi", "miktar": istenen, "tutar": urun_maliyeti})
             
             verileri_kaydet(st.session_state.girisler)
             loglari_kaydet(st.session_state.kullanim_loglari)
@@ -774,7 +747,135 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         with col_indir_alan:
             ortak_indirme_alani(empty_excel, empty_pdf, "bos_yemek_raporu", "yemek_bos_sayfasi")
 
-# 6. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
+# 6. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ
+elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
+    st.header("👥 İhtiyaç Sahibi ve Günlük / Aylık / Yıllık Yemek Dağıtım Takibi")
+    st.markdown("Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun ve kimin ne zaman ne kadar süreyle yemek aldığını takip edin.")
+
+    tab1, tab2, tab3 = st.tabs(["📋 İhtiyaç Sahibi Listesi ve Ekleme", "🍲 Yemek Dağıtım Girişi", "📊 Dağıtım Raporları (Günlük/Aylık/Yıllık)"])
+
+    with tab1:
+        st.subheader("Kayıtlı İhtiyaç Sahipleri")
+        if yonetici_modu:
+            with st.form("ihtiyac_sahibi_formu"):
+                st.markdown("**Yeni İhtiyaç Sahibi / Hane Kaydı**")
+                yeni_ad = st.text_input("Adı Soyadı / Hane Unvanı").strip().upper()
+                yeni_tel = st.text_input("Telefon Numarası")
+                yeni_adres = st.text_input("Açık Adres")
+                yeni_birey = st.number_input("Aile / Hane Birey Sayısı", min_value=1, value=1)
+                
+                kaydet_btn = st.form_submit_button("İhtiyaç Sahibini Kaydet")
+                if kaydet_btn and yeni_ad:
+                    st.session_state.ihtiyac_sahipleri.append({
+                        "id": f"IHT-{len(st.session_state.ihtiyac_sahipleri)+1:03d}",
+                        "ad_soyad": yeni_ad,
+                        "telefon": yeni_tel,
+                        "adres": yeni_adres,
+                        "birey_sayisi": yeni_birey
+                    })
+                    ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                    st.success(f"Başarılı! {yeni_ad} sisteme kaydedildi.")
+                    st.rerun()
+        else:
+            st.info("👁️ Gözlemci modundasınız. Yeni kişi eklemek için sol menüden yönetici şifresini giriniz.")
+
+        if st.session_state.ihtiyac_sahipleri:
+            kisi_liste_gosterim = []
+            for k in st.session_state.ihtiyac_sahipleri:
+                kisi_liste_gosterim.append({
+                    "Kayıt No": k["id"],
+                    "Adı Soyadı": k["ad_soyad"],
+                    "Telefon": k["telefon"],
+                    "Adres": k["adres"],
+                    "Birey Sayısı": k["birey_sayisi"]
+                })
+            st.dataframe(kisi_liste_gosterim, use_container_width=True)
+        else:
+            st.info("Sistemde kayıtlı ihtiyaç sahibi bulunmuyor.")
+
+    with tab2:
+        st.subheader("🍲 Günlük Yemek Dağıtım Kaydı")
+        if not st.session_state.ihtiyac_sahipleri:
+            st.warning("Önce 'İhtiyaç Sahibi Listesi ve Ekleme' sekmesinden kişi kaydı yapmalısınız.")
+        elif not yonetici_modu:
+            st.warning("⚠️ Gözlemci modundasınız. Dağıtım kaydı girmek için sol menüden yönetici şifresini giriniz.")
+        else:
+            with st.form("dagitim_formu"):
+                d_tarih = st.date_input("Dağıtım Tarihi", datetime.date.today())
+                kisi_secenekleri = [k["ad_soyad"] for k in st.session_state.ihtiyac_sahipleri]
+                secilen_kisi = st.selectbox("Yemek Alan Kişi / Hane", kisi_secenekleri)
+                menu_adi = st.text_input("Verilen Menü / Yemek Adı", "Ispanak Yemeği ve Pilav")
+                porsiyon_mik = st.number_input("Verilen Porsiyon / Sefer Tası Miktarı", min_value=1, value=1)
+                
+                dagitim_ekle_btn = st.form_submit_button("Dağıtımı Kaydet")
+                if dagitim_ekle_btn:
+                    st.session_state.dagitim_loglari.append({
+                        "tarih": str(d_tarih),
+                        "kisi": secilen_kisi,
+                        "menu": menu_adi,
+                        "porsiyon": porsiyon_mik
+                    })
+                    dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
+                    st.success(f"Başarılı! {secilen_kisi} adlı kişiye yapılan yemek dağıtımı kaydedildi.")
+                    st.rerun()
+
+    with tab3:
+        col_b_d, col_indir_alan = st.columns([2, 2])
+        with col_b_d:
+            st.subheader("📊 Kim Ne Kadar Süredir Yemek Almış?")
+
+        kisi_secenekleri_rapor = ["Tüm İhtiyaç Sahipleri (Genel Rapor)"] + [k["ad_soyad"] for k in st.session_state.ihtiyac_sahipleri]
+        secilen_rapor_kisi = st.selectbox("Raporlanacak Kişiyi Seçin", kisi_secenekleri_rapor, key="rapor_kisi_sec")
+        
+        dagitimlar = st.session_state.dagitim_loglari
+        if secilen_rapor_kisi != "Tüm İhtiyaç Sahipleri (Genel Rapor)":
+            dagitimlar = [d for d in dagitimlar if d["kisi"] == secilen_rapor_kisi]
+
+        zaman_kriteri = st.radio("Zaman Periyodu Seçin", ["Tüm Zamanlar", "Günlük", "Aylık", "Yıllık"], horizontal=True, key="rapor_zaman_kriteri")
+
+        simdi_str = str(datetime.date.today())
+        if zaman_kriteri == "Günlük":
+            dagitimlar = [d for d in dagitimlar if d["tarih"] == simdi_str]
+        elif zaman_kriteri == "Aylık":
+            ay_kodu = simdi_str[:7] # YYYY-MM
+            dagitimlar = [d for d in dagitimlar if d["tarih"].startswith(ay_kodu)]
+        elif zaman_kriteri == "Yıllık":
+            yil_kodu = simdi_str[:4] # YYYY
+            dagitimlar = [d for d in dagitimlar if d["tarih"].startswith(yil_kodu)]
+
+        toplam_porsiyon_alınan = sum(d["porsiyon"] for d in dagitimlar)
+        toplam_alis_sefer_sayisi = len(dagitimlar)
+
+        m1, m2 = st.columns(2)
+        with m1:
+            st.metric("Toplam Alınan Öğün / Sefer Sayısı", f"{toplam_alis_sefer_sayisi} Kez")
+        with m2:
+            st.metric("Toplam Dağıtılan Porsiyon", f"{toplam_porsiyon_alınan} Porsiyon")
+
+        st.markdown("---")
+        st.subheader("📋 Detaylı Dağıtım Geçmişi")
+        
+        tablo_dagitim = []
+        for d in dagitimlar:
+            tablo_dagitim.append({
+                "Tarih": d["tarih"],
+                "İhtiyaç Sahibi": d["kisi"],
+                "Verilen Yemek / Menü": d["menu"],
+                "Porsiyon": d["porsiyon"]
+            })
+
+        pdf_data_d = tablo_to_html_pdf_bytes(f"Yemek Dağıtım Raporu - {secilen_rapor_kisi}", tablo_dagitim)
+        excel_data_d = tablo_to_excel_bytes(tablo_dagitim, f"Yemek Dağıtım Raporu - {secilen_rapor_kisi}")
+
+        with col_indir_alan:
+            ortak_indirme_alani(excel_data_d, pdf_data_d, "yemek_dagitim_raporu", "dagitim_sayfasi")
+
+        if tablo_dagitim:
+            st.dataframe(tablo_dagitim, use_container_width=True)
+        else:
+            st.info("Seçilen kriterlere uygun yemek dağıtım kaydı bulunamadı.")
+
+# 7. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
 elif menu == "Kullanım Takibi":
     col_b_k, col_indir_alan = st.columns([2, 2])
     with col_b_k:
@@ -792,50 +893,30 @@ elif menu == "Kullanım Takibi":
         zaman_filtresi = st.radio("Zaman Aralığı", ["Tüm Zamanlar", "Aylık Görünüm", "Yıllık Özet"], horizontal=True)
         
     loglar = st.session_state.kullanim_loglari
-    
     if secilen_urun_takip == "Tüm Ürünler (Genel Özet)":
         urun_loglari = loglar
     else:
         urun_loglari = [l for l in loglar if l["urun"] == secilen_urun_takip]
     
     if zaman_filtresi == "Aylık Görünüm":
-        aylar_dict = {
-            "01": "Ocak", "02": "Şubat", "03": "Mart", "04": "Nisan", 
-            "05": "Mayıs", "06": "Haziran", "07": "Temmuz", "08": "Ağustos", 
-            "09": "Eylül", "10": "Ekim", "11": "Kasım", "12": "Aralık"
-        }
+        aylar_dict = {1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"}
         mevcut_aylar = sorted(list(set(l["tarih"][:7] for l in loglar)))
         if mevcut_aylar:
-            secilen_ay_kodu = st.selectbox("Ay Seçin", mevcut_aylar, format_func=lambda x: f"{aylar_dict.get(x[5:], x[5:])} {x[:4]}")
+            secilen_ay_kodu = st.selectbox("Ay Seçin", mevcut_aylar, format_func=lambda x: f"{aylar_dict.get(int(x[5:]), x[5:])} {x[:4]}")
             urun_loglari = [l for l in urun_loglari if l["tarih"].startswith(secilen_ay_kodu)]
-        else:
-            st.info("Kayıtlı kullanım veya fire geçmişi bulunmuyor.")
-            
     elif zaman_filtresi == "Yıllık Özet":
         mevcut_yillar = sorted(list(set(l["tarih"][:4] for l in loglar)))
         if mevcut_yillar:
             secilen_yil = st.selectbox("Yıl Seçin", mevcut_yillar)
             urun_loglari = [l for l in urun_loglari if l["tarih"].startswith(secilen_yil)]
-        else:
-            st.info("Kayıtlı kullanım veya fire geçmişi bulunmuyor.")
 
     toplam_kullanim_mik = sum(l["miktar"] for l in urun_loglari if l["tur"] == "Yemek Üretimi")
     toplam_kullanim_tutar = sum(l["tutar"] for l in urun_loglari if l["tur"] == "Yemek Üretimi")
-    
     toplam_fire_mik = sum(l["miktar"] for l in urun_loglari if l["tur"] == "Fire/Zayiat")
     toplam_fire_tutar = sum(l["tutar"] for l in urun_loglari if l["tur"] == "Fire/Zayiat")
-    
     genel_toplam_tutar = toplam_kullanim_tutar + toplam_fire_tutar
 
-    tablo_verisi = []
-    for l in urun_loglari:
-        tablo_verisi.append({
-            "Tarih": l["tarih"],
-            "Ürün Adı": l["urun"],
-            "İşlem Türü": l["tur"],
-            "Miktar": l["miktar"],
-            "Toplam Tutar (₺)": f"{l['tutar']:.2f} ₺"
-        })
+    tablo_verisi = [{"Tarih": l["tarih"], "Ürün Adı": l["urun"], "İşlem Türü": l["tur"], "Miktar": l["miktar"], "Toplam Tutar (₺)": f"{l['tutar']:.2f} ₺"} for l in urun_loglari]
 
     pdf_data = tablo_to_html_pdf_bytes(f"Kullanım Raporu - {secilen_urun_takip}", tablo_verisi)
     excel_data = tablo_to_excel_bytes(tablo_verisi, f"Kullanım Raporu - {secilen_urun_takip}")
@@ -858,17 +939,16 @@ elif menu == "Kullanım Takibi":
 
     st.markdown("---")
     st.subheader("📋 Detaylı İşlem Geçmişi Tablosu")
-    
     if urun_loglari:
         st.dataframe(tablo_verisi, use_container_width=True)
     else:
         st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı.")
 
-# 7. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
+# 8. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_f, col_indir_alan = st.columns([2, 2])
     with col_b_f:
-        st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
+        st.header("📋 Ürünlerin Eylül and Ekim Ayı Birim Fiyat Tablosu")
         
     st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
 
@@ -882,11 +962,7 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
         ekim_kayitlari = [g["fiyat"] for g in st.session_state.girisler if g["urun"] == u and g["tarih"].startswith("2026-10")]
         ekim_fiyat_str = f"₺{ekim_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if ekim_kayitlari else "-"
 
-        fiyat_tablosu_verisi.append({
-            "Ürün Adı": u,
-            "Birim Fiyat Eylül": eylul_fiyat_str,
-            "Birim Fiyat Ekim": ekim_fiyat_str
-        })
+        fiyat_tablosu_verisi.append({"Ürün Adı": u, "Birim Fiyat Eylül": eylul_fiyat_str, "Birim Fiyat Ekim": ekim_fiyat_str})
 
     pdf_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Ürün Birim Fiyatları", fiyat_tablosu_verisi)
     excel_data = tablo_to_excel_bytes(fiyat_tablosu_verisi, "Aziziye Aşevi - Ürün Birim Fiyatları")
