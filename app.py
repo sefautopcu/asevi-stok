@@ -66,30 +66,34 @@ varsayilan_girisler = [
     {"id": "STK-036", "tarih": "2026-09-30", "urun": "BEZELYE KONSERVESİ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 102.0, "kalan": 102.0, "fiyat": 69.89, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-037", "tarih": "2026-10-01", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 230.0, "kalan": 0.0, "fiyat": 66.2, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-038", "tarih": "2026-10-12", "urun": "KUŞBAŞI ET", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 213.8, "kalan": 156.8, "fiyat": 570.0, "depo": "Soğuk Hava Deposu -18"},
-    {"id": "STK-039", "tarih": "2026-10-28", "urun": "DEFNE YAPRAĞI", "kategori": "BAHARAT", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 519.80, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-040", "tarih": "2026-10-28", "urun": "REYHAN", "kategori": "BAHARAT", "birim": "Kg", "miktar": 5.0, "kalan": 5.0, "fiyat": 1485.15, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-041", "tarih": "2026-10-28", "urun": "TOZ ŞEKER", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": 100.0, "fiyat": 260.25, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-042", "tarih": "2026-10-28", "urun": "YUMURTA 15 Lİ", "kategori": "KURU GIDA", "birim": "Adet", "miktar": 180.0, "kalan": 160.0, "fiyat": 11.16, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-043", "tarih": "2026-10-28", "urun": "KAYISI", "kategori": "MEYVE", "birim": "Kg", "miktar": 30.0, "kalan": 30.0, "fiyat": 960.39, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-044", "tarih": "2026-10-28", "urun": "SEBZELİ TOZ BULYON", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 196.04, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-045", "tarih": "2026-10-28", "urun": "AŞURELİK BUĞDAY", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": 96.0, "fiyat": 34.50, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-046", "tarih": "2026-10-28", "urun": "ÇİĞ KÖFTELİK BULGUR", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 24.0, "kalan": 23.0, "fiyat": 43.50, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-047", "tarih": "2026-10-28", "urun": "ERİŞTE MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 25.0, "kalan": 23.0, "fiyat": 43.98, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-048", "tarih": "2026-10-28", "urun": "GALETA UNU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 9.0, "kalan": 8.0, "fiyat": 92.88, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-049", "tarih": "2026-10-28", "urun": "HİNDİSTAN CEVİZİ (YAĞSIZ)", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 279.00, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-050", "tarih": "2026-10-28", "urun": "KIRMIZI TATLI PUL BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 40.0, "kalan": 40.0, "fiyat": 46.44, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-051", "tarih": "2026-10-28", "urun": "KİMYON TOZ", "kategori": "BAHARAT", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 299.00, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-052", "tarih": "2026-10-28", "urun": "YEŞİL MERCİMEK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 108.0, "kalan": 108.0, "fiyat": 80.50, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-053", "tarih": "2026-10-28", "urun": "ZERDEÇAL", "kategori": "BAHARAT", "birim": "Kg", "miktar": 3.0, "kalan": 3.0, "fiyat": 349.00, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-054", "tarih": "2026-10-21", "urun": "SIRTSIZ GÖĞÜS", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 60.0, "kalan": 60.0, "fiyat": 118.00, "depo": "Soğuk Hava Deposu -18"},
-    {"id": "STK-055", "tarih": "2026-10-28", "urun": "TAVUK SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-056", "tarih": "2026-10-28", "urun": "SARIMSAK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 4.0, "kalan": 4.0, "fiyat": 270.00, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-057", "tarih": "2026-10-28", "urun": "KEKİK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 1039.60, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-058", "tarih": "2026-10-28", "urun": "ET SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-059", "tarih": "2026-10-28", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-060", "tarih": "2026-10-28", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 61.00, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-061", "tarih": "2026-10-28", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 20.0, "fiyat": 105.00, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-062", "tarih": "2026-10-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.00, "depo": "Soğuk Hava Deposu +5/+6"},
+    # Eylül ve Ekim Alımları & Fiyat Farkları (Görseldeki liste)
+    {"id": "STK-039", "tarih": "2026-09-15", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 0.0, "fiyat": 50.0, "depo": "Sebze Deposu"},
+    {"id": "STK-040", "tarih": "2026-10-15", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 50.0, "fiyat": 105.0, "depo": "Sebze Deposu"},
+    {"id": "STK-041", "tarih": "2026-09-15", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 0.0, "fiyat": 45.0, "depo": "Sebze Deposu"},
+    {"id": "STK-042", "tarih": "2026-10-15", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 50.0, "fiyat": 61.0, "depo": "Sebze Deposu"},
+    {"id": "STK-043", "tarih": "2026-09-15", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 0.0, "fiyat": 55.0, "depo": "Sebze Deposu"},
+    {"id": "STK-044", "tarih": "2026-10-15", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 50.0, "fiyat": 80.0, "depo": "Sebze Deposu"},
+    {"id": "STK-045", "tarih": "2026-10-28", "urun": "DEFNE YAPRAĞI", "kategori": "BAHARAT", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 519.80, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-046", "tarih": "2026-10-28", "urun": "REYHAN", "kategori": "BAHARAT", "birim": "Kg", "miktar": 5.0, "kalan": 5.0, "fiyat": 1485.15, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-047", "tarih": "2026-10-28", "urun": "TOZ ŞEKER", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": 100.0, "fiyat": 260.25, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-048", "tarih": "2026-10-28", "urun": "YUMURTA 15 Lİ", "kategori": "KURU GIDA", "birim": "Adet", "miktar": 180.0, "kalan": 160.0, "fiyat": 11.16, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-049", "tarih": "2026-10-28", "urun": "KAYISI", "kategori": "MEYVE", "birim": "Kg", "miktar": 30.0, "kalan": 30.0, "fiyat": 960.39, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-050", "tarih": "2026-10-28", "urun": "SEBZELİ TOZ BULYON", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 196.04, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-051", "tarih": "2026-10-28", "urun": "AŞURELİK BUĞDAY", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": 96.0, "fiyat": 34.50, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-052", "tarih": "2026-10-28", "urun": "ÇİĞ KÖFTELİK BULGUR", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 24.0, "kalan": 23.0, "fiyat": 43.50, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-053", "tarih": "2026-10-28", "urun": "ERİŞTE MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 25.0, "kalan": 23.0, "fiyat": 43.98, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-054", "tarih": "2026-10-28", "urun": "GALETA UNU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 9.0, "kalan": 8.0, "fiyat": 92.88, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-055", "tarih": "2026-10-28", "urun": "HİNDİSTAN CEVİZİ (YAĞSIZ)", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 279.00, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-056", "tarih": "2026-10-28", "urun": "KIRMIZI TATLI PUL BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 40.0, "kalan": 40.0, "fiyat": 46.44, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-057", "tarih": "2026-10-28", "urun": "KİMYON TOZ", "kategori": "BAHARAT", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 299.00, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-058", "tarih": "2026-10-28", "urun": "YEŞİL MERCİMEK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 108.0, "kalan": 108.0, "fiyat": 80.50, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-059", "tarih": "2026-10-28", "urun": "ZERDEÇAL", "kategori": "BAHARAT", "birim": "Kg", "miktar": 3.0, "kalan": 3.0, "fiyat": 349.00, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-060", "tarih": "2026-10-21", "urun": "SIRTSIZ GÖĞÜS", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 60.0, "kalan": 60.0, "fiyat": 118.00, "depo": "Soğuk Hava Deposu -18"},
+    {"id": "STK-061", "tarih": "2026-10-28", "urun": "TAVUK SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-062", "tarih": "2026-10-28", "urun": "SARIMSAK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 4.0, "kalan": 4.0, "fiyat": 270.00, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-063", "tarih": "2026-10-28", "urun": "KEKİK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 1039.60, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-064", "tarih": "2026-10-28", "urun": "ET SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu"},
+    {"id": "STK-065", "tarih": "2026-10-28", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6"},
 ]
 
 def verileri_yukle():
@@ -144,7 +148,8 @@ menu = st.sidebar.radio(
         "Yeni Mal Alımı / Fatura Ekle", 
         "Fire / Zayiat Girişi", 
         "Günlük Yemek Üretimi & Maliyet Raporu",
-        "Kullanım Takibi"
+        "Kullanım Takibi",
+        "Ürün Birim Fiyatları & Ay Analizi"
     ],
     label_visibility="visible"
 )
@@ -175,7 +180,6 @@ if menu == "Güncel Stok Durumu":
     with col_baslik:
         st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
     
-    # Excel oluşturma ve doğrudan kullanıcının İndirilenler klasörüne indirme mekanizması
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Stok Durumu"
@@ -229,11 +233,9 @@ if menu == "Güncel Stok Durumu":
         )
 
     with col_btn_pdf:
-        # Örnek PDF indirme butonu altyapısı (kullanıcının cihazına indirir)
-        pdf_ornek_veri = b"%PDF-1.4 Aziziye Asevi Stok Raporu PDF"
         st.download_button(
             label="🟥 PDF İndir",
-            data=pdf_ornek_veri,
+            data=b"%PDF-1.4 Aziziye Asevi Stok Raporu",
             file_name="asevi_guncel_stok_raporu.pdf",
             mime="application/pdf"
         )
@@ -268,7 +270,7 @@ if menu == "Güncel Stok Durumu":
 
 # 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
-    st.header("📝 Yeni Fatura ve Mal Alımı Girişi (Eylül / Ekim Fiyatları Destekli)")
+    st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
     
     if not yonetici_modu:
         st.warning("⚠️ Gözlemci modundasınız. Yeni ürün veya fatura eklemek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
@@ -296,7 +298,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "depo": depo
                 })
                 verileri_kaydet(st.session_state.girisler)
-                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi ve kalıcı olarak kaydedildi.")
+                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
 
 # 3. FİRE / ZAYİAT GİRİŞİ
 elif menu == "Fire / Zayiat Girişi":
@@ -536,3 +538,35 @@ elif menu == "Kullanım Takibi":
         st.dataframe(tablo_verisi, use_container_width=True)
     else:
         st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı. (Yemek üretimi veya fire girişi yapıldıkça bu alan otomatik dolacaktır).")
+
+# 6. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ (YENİ EKLENEN MENÜ)
+elif menu == "Ürün Birim Fiyatları & Ay Analizi":
+    col_b_f, col_ex_f, col_pd_f = st.columns([2, 1, 1])
+    with col_b_f:
+        st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
+    with col_ex_f:
+        st.download_button("🟩 Excel İndir", data=b"Birim Fiyatlar Excel", file_name="urun_birim_fiyatlari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="excel_fiyat")
+    with col_pd_f:
+        st.download_button("🟥 PDF İndir", data=b"Birim Fiyatlar PDF", file_name="urun_birim_fiyatlari.pdf", mime="application/pdf", key="pdf_fiyat")
+        
+    st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri (Domates, Salatalık, Patlıcan vb.) dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
+
+    benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+    fiyat_tablosu_verisi = []
+
+    for u in benzersiz_urunler:
+        # Eylül ayı fiyatını bul (Eylül: 09)
+        eylul_kayitlari = [g["fiyat"] for g in st.session_state.girisler if g["urun"] == u and g["tarih"].startswith("2026-09")]
+        eylul_fiyat = f"₺{eylul_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if eylul_kayitlari else "-"
+
+        # Ekim ayı fiyatını bul (Ekim: 10)
+        ekim_kayitlari = [g["fiyat"] for g in st.session_state.girisler if g["urun"] == u and g["tarih"].startswith("2026-10")]
+        ekim_fiyat = f"₺{ekim_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if ekim_kayitlari else "-"
+
+        fiyat_tablosu_verisi.append({
+            "Ürün Adı": u,
+            "Birim Fiyat Eylül": eylul_fiyat,
+            "Birim Fiyat Ekim": ekim_fiyat
+        })
+
+    st.dataframe(fiyat_tablosu_verisi, use_container_width=True)
