@@ -303,7 +303,7 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
     return html.encode("utf-8")
 
 
-# 0. KURUMSAL DASHBOARD & ÖZET (Güncellenmiş Gerçek Veri Grafikleri)
+# 0. KURUMSAL DASHBOARD & ÖZET (Güncellenmiş Gerçek Veri Grafikleri & Toplam Stok Değeri)
 if menu == "Kurumsal Dashboard & Özet":
     st.header("📊 Kurumsal Yönetim Dashboard & Genel Bakış")
     st.markdown("Depo girişleri, gerçek yemek üretimleri, fire oranları ve aylık maliyet dağılımları:")
@@ -316,7 +316,8 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_uretim_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Yemek Üretimi")
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
 
-    c1, c2, c3, c4 = st.columns(4)
+    # 5'li Metrik Kartı Tasarımı (İstediğiniz gibi Toplam Stok Değeri eklendi)
+    c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
     with c2:
@@ -325,6 +326,8 @@ if menu == "Kurumsal Dashboard & Özet":
         st.metric("Yemekte Kullanılan Miktar", f"{toplam_uretim_mik:,.1f} Birim")
     with c4:
         st.metric("Toplam Fire / Zayiat", f"{toplam_fire_mik:,.1f} Birim")
+    with c5:
+        st.metric("Toplam Stok Değeri", f"{toplam_envanter_maliyeti:,.2f} ₺")
 
     st.markdown("---")
     
@@ -337,8 +340,8 @@ if menu == "Kurumsal Dashboard & Özet":
             kat = g["kategori"]
             kategori_verileri[kat] = kategori_verileri.get(kat, 0.0) + g["kalan"]
         
-        # Kullanıcının istediği gibi "Meyve: 50.5 Kg" formatında metinsel ve görsel uyum
-        formatli_kategori_dict = {f"{k} ({v:.1f} Kg)": v for k, v in kategori_verileri.items()}
+        # Etiketlerin uzunluk ve kesilme sorununu önlemek için net format
+        formatli_kategori_dict = {f"{k} -> {v:.1f} Kg": v for k, v in kategori_verileri.items()}
         st.bar_chart(formatli_kategori_dict)
 
     with col_g2:
@@ -352,7 +355,6 @@ if menu == "Kurumsal Dashboard & Özet":
             elif tarih_str.startswith("2026-10"):
                 aylik_tutar_dict["Ekim 2026"] += toplam_tutar
         
-        # Kullanıcının istediği gibi TL cinsinden maliyet gösterimi
         st.bar_chart(aylik_tutar_dict)
         st.info(f"💡 **Toplam Alım Bütçeleri:** Eylül: **{aylik_tutar_dict['Eylül 2026']:,.2f} TL** | Ekim: **{aylik_tutar_dict['Ekim 2026']:,.2f} TL**")
 
