@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve Stil Tasarımı
+# Kurumsal Sol Menü ve Stil Tasarımı (Okunabilir menü renkleri)
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -21,20 +21,6 @@ st.markdown("""
     /* Daraltma butonundaki metin ve ikon kalıntılarını tamamen gizle */
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
-    
-    /* Radio butonların solundaki daire kutucukları tamamen gizle ve şık liste görünümü ver */
-    .stRadio div[role="radiogroup"] label div:first-child { display: none !important; }
-    .stRadio div[role="radiogroup"] label {
-        background-color: #2D3748;
-        padding: 8px 12px;
-        margin-bottom: 6px;
-        border-radius: 6px;
-        transition: background 0.2s;
-        cursor: pointer;
-    }
-    .stRadio div[role="radiogroup"] label:hover {
-        background-color: #4A5568;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -147,7 +133,6 @@ if "kullanim_loglari" not in st.session_state:
 if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
 
-# Oturum durumunda aktif menü takibi
 if "aktif_menu" not in st.session_state:
     st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
 
@@ -156,8 +141,8 @@ st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ (Tamamen temiz, buton tabanlı açılır-kapanır özel akordeon menü)
-st.sidebar.markdown("### 📂 Ana Menü")
+# SOL MENÜ (Okunabilir, net butonlar)
+st.sidebar.markdown("### 📋 Ana Menü")
 
 menuler_listesi = [
     "Kurumsal Dashboard & Özet",
@@ -170,7 +155,7 @@ menuler_listesi = [
 ]
 
 for m in menuler_listesi:
-    # Aktif menü seçiliyken butonu farklı renkte gösterelim
+    # Seçili olan menü turuncu/mavi (primary), seçilmeyenler gri tonda okunur buton
     btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
     if st.sidebar.button(m, use_container_width=True, type=btn_type):
         st.session_state.aktif_menu = m
@@ -178,20 +163,26 @@ for m in menuler_listesi:
 
 menu = st.session_state.aktif_menu
 
-# Yönetici Girişi ve Kilit Mekanizması sol menünün en altında
+# Yönetici Girişi ve Yeni Şifre Mekanizması (Ss123321)
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔐 YÖNETİCİ GİRİŞİ")
 if not st.session_state.yonetici_aktif:
-    sifre_input = st.sidebar.text_input("Yönetici Şifresi", type="password", key="sifre_kutusu", label_visibility="collapsed", placeholder="Şifre giriniz...")
-    if sifre_input == "sydv25":
-        st.session_state.yonetici_aktif = True
-        st.rerun()
+    with st.sidebar.form("giris_formu"):
+        sifre_input = st.text_input("Yönetici Şifresi", type="password", placeholder="Şifre giriniz...")
+        giris_butonu = st.form_submit_button("Giriş Yap", use_container_width=True)
+        if giris_butonu:
+            if sifre_input == "Ss123321":
+                st.session_state.yonetici_aktif = True
+                st.success("Giriş başarılı!")
+                st.rerun()
+            else:
+                st.error("Hatalı şifre!")
 else:
     col_kilit1, col_kilit2 = st.sidebar.columns([3, 1])
     with col_kilit1:
-        st.sidebar.markdown('<p style="color: #34D399; font-size: 12px; margin: 0;">🔓 Yönetici Aktif</p>', unsafe_allow_html=True)
+        st.sidebar.markdown('<p style="color: #34D399; font-size: 13px; margin: 0; padding-top: 5px;">🔓 Yönetici Aktif</p>', unsafe_allow_html=True)
     with col_kilit2:
-        if st.sidebar.button("🔒", help="Kilitlesin ve Gözlemci Moduna Döner"):
+        if st.sidebar.button("🔒", help="Çıkış yap ve Gözlemci Moduna dön"):
             st.session_state.yonetici_aktif = False
             st.rerun()
 
