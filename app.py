@@ -399,7 +399,6 @@ if menu == "Kurumsal Dashboard & Özet":
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
     with c2:
-        # Birim yerine Kg olarak güncellendi
         st.metric("Toplam Fire / Zayiat", f"{toplam_fire_mik:,.1f} Kg")
     with c3:
         st.metric("Toplam Stok Değeri", f"{toplam_envanter_maliyeti:,.2f} ₺")
@@ -573,63 +572,85 @@ elif menu == "Ürün Sil / Düzenle":
                     st.session_state.silme_mesaji = mesaj_metni
                     st.rerun()
 
-# 4. FİRE / ZAYİAT GİRİŞİ
+# 4. FİRE / ZAYİAT GİRİŞİ VE İZLEME EKRANI
 elif menu == "Fire / Zayiat Girişi":
-    st.header("🗑️ Fire / Zayiat Bildirimi")
+    st.header("🗑️ Fire / Zayiat Bildirimi ve Durum İzleme")
     
     if not yonetici_modu:
         st.warning("⚠️ Gözlemci modundasınız. Fire düşmek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
-        benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
-        secenek_listesi_fire = ["Tüm Ürünler"] + benzersiz_urunler
-        secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", secenek_listesi_fire)
-        
-        if secilen_urun == "Tüm Ürünler":
-            secilen_gercek_urun = st.selectbox("İşlem Yapılacak Spesifik Ürünü Seçin", benzersiz_urunler)
-        else:
-            secilen_gercek_urun = secilen_urun
+        with st.form("fire_formu"):
+            st.subheader("Yeni Fire Girişi Yap")
+            benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+            secenek_listesi_fire = ["Tüm Ürünler"] + benzersiz_urunler
+            secilen_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", secenek_listesi_fire)
             
-        ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_gercek_urun and g["kalan"] > 0]
-        toplam_stok = sum(g["kalan"] for g in ilgili_girisler)
-        
-        st.info(f"Seçilen Ürün ({secilen_gercek_urun}) Mevcut Stoğu: {toplam_stok}")
-        fire_miktari = st.number_input("Fire Miktarı", min_value=0.0, max_value=float(toplam_stok) if toplam_stok>0 else 1.0, step=0.1)
-        aciklama = st.text_input("Fire Nedeni (Örn: Çürüme / S.T.T)")
-        
-        if st.button("Fireyi Düş ve Kaydet"):
-            if fire_miktari > 0:
-                kalan_dusulecek = fire_miktari
-                toplam_zarar = 0.0
-                bugun_str = str(datetime.date.today())
+            if secilen_urun == "Tüm Ürünler":
+                secilen_gercek_urun = st.selectbox("İşlem Yapılacak Spesifik Ürünü Seçin", benzersiz_urunler)
+            else:
+                secilen_gercek_urun = secilen_urun
                 
-                for g in ilgili_girisler:
-                    if kalan_dusulecek <= 0:
-                        break
-                    if g["kalan"] >= kalan_dusulecek:
-                        dusulen = kalan_dusulecek
-                        g["kalan"] -= dusulen
-                        maliyet_zarar = dusulen * g["fiyat"]
-                        toplam_zarar += maliyet_zarar
-                        kalan_dusulecek = 0
-                    else:
-                        dusulen = g["kalan"]
-                        g["kalan"] = 0
-                        maliyet_zarar = dusulen * g["fiyat"]
-                        toplam_zarar += maliyet_zarar
-                        kalan_dusulecek -= dusulen
-                        
-                verileri_kaydet(st.session_state.girisler)
-                
-                st.session_state.kullanim_loglari.append({
-                    "tarih": bugun_str,
-                    "urun": secilen_gercek_urun,
-                    "tur": "Fire/Zayiat",
-                    "miktar": fire_miktari,
-                    "tutar": toplam_zarar
-                })
-                loglari_kaydet(st.session_state.kullanim_loglari)
-                
-                st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL")
+            ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_gercek_urun and g["kalan"] > 0]
+            toplam_stok = sum(g["kalan"] for g in ilgili_girisler)
+            
+            st.info(f"Seçilen Ürün ({secilen_gercek_urun}) Mevcut Stoğu: {toplam_stok}")
+            fire_miktari = st.number_input("Fire Miktarı", min_value=0.0, max_value=float(toplam_stok) if toplam_stok>0 else 1.0, step=0.1)
+            aciklama = st.text_input("Fire Nedeni (Örn: Çürüme / S.T.T)")
+            
+            submitted_fire = st.form_submit_button("Fireyi Düş ve Kaydet")
+            if submitted_fire:
+                if fire_miktari > 0:
+                    kalan_dusulecek = fire_miktari
+                    toplam_zarar = 0.0
+                    bugun_str = str(datetime.date.today())
+                    
+                    for g in ilgili_girisler:
+                        if kalan_dusulecek <= 0:
+                            break
+                        if g["kalan"] >= kalan_dusulecek:
+                            dusulen = kalan_dusulecek
+                            g["kalan"] -= dusulen
+                            maliyet_zarar = dusulen * g["fiyat"]
+                            toplam_zarar += maliyet_zarar
+                            kalan_dusulecek = 0
+                        else:
+                            dusulen = g["kalan"]
+                            g["kalan"] = 0
+                            maliyet_zarar = dusulen * g["fiyat"]
+                            toplam_zarar += maliyet_zarar
+                            kalan_dusulecek -= dusulen
+                            
+                    verileri_kaydet(st.session_state.girisler)
+                    
+                    st.session_state.kullanim_loglari.append({
+                        "tarih": bugun_str,
+                        "urun": secilen_gercek_urun,
+                        "tur": "Fire/Zayiat",
+                        "miktar": fire_miktari,
+                        "tutar": toplam_zarar
+                    })
+                    loglari_kaydet(st.session_state.kullanim_loglari)
+                    
+                    st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL")
+                    st.rerun()
+
+    st.markdown("---")
+    st.subheader("📋 Sistemde Kayıtlı Olan Tüm Fire ve Zayiat Durumları")
+    
+    fire_loglari = [l for l in st.session_state.kullanim_loglari if l["tur"] == "Fire/Zayiat"]
+    
+    if fire_loglari:
+        fire_tablo_verisi = []
+        for fl in fire_loglari:
+            fire_tablo_verisi.append({
+                "Tarih": fl["tarih"],
+                "Ürün Adı": fl["urun"],
+                "Fire Miktarı (Kg)": f"{fl['miktar']:.2f} Kg",
+                "Maddi Zarar (₺)": f"{fl['tutar']:.2f} ₺"
+            })
+        st.dataframe(fire_tablo_verisi, use_container_width=True)
+    else:
+        st.info("Sistemde kayıtlı henüz bir fire veya zayiat bulunmuyor.")
 
 # 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
