@@ -179,18 +179,6 @@ def loglari_yukle():
             "tutar": miktar * bulunan_fiyat
         })
         
-    # Dosya varsa ve içinde Fire/Zayiat kaydı bulunmuyorsa zorunlu olarak güncelle
-    if os.path.exists(KULLANIM_LOG_DOSYASI):
-        try:
-            with open(KULLANIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
-                kayitli = json.load(f)
-                fire_varmi = any(k.get("tur") == "Fire/Zayiat" for k in kayitli)
-                if kayitli and fire_varmi:
-                    return kayitli
-        except Exception:
-            pass
-            
-    # Kayıtlı dosya yoksa veya içinde fire kaydı eksikse tam listeyi yaz
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(tum_loglar, f, ensure_ascii=False, indent=4)
         
@@ -203,7 +191,6 @@ def loglari_kaydet(veri):
 if "girisler" not in st.session_state:
     st.session_state.girisler = verileri_yukle()
 
-# Her açılışta logları zorunlu olarak güncelledik (Eski önbellek sorununu çözmek için)
 st.session_state.kullanim_loglari = loglari_yukle()
 
 if "yonetici_aktif" not in st.session_state:
@@ -412,7 +399,8 @@ if menu == "Kurumsal Dashboard & Özet":
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
     with c2:
-        st.metric("Toplam Fire / Zayiat", f"{toplam_fire_mik:,.1f} Birim")
+        # Birim yerine Kg olarak güncellendi
+        st.metric("Toplam Fire / Zayiat", f"{toplam_fire_mik:,.1f} Kg")
     with c3:
         st.metric("Toplam Stok Değeri", f"{toplam_envanter_maliyeti:,.2f} ₺")
 
@@ -585,7 +573,7 @@ elif menu == "Ürün Sil / Düzenle":
                     st.session_state.silme_mesaji = mesaj_metni
                     st.rerun()
 
-# 4. FİRE / ZAYİAT GİRİŞİ (Tüm Ürünler seçeneği dahil)
+# 4. FİRE / ZAYİAT GİRİŞİ
 elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
     
