@@ -407,21 +407,21 @@ aktif_yonetici_sifresi = yonetici_sifresi_yukle()
 
 if not st.session_state.oturum_aktif:
     with st.sidebar.form("giris_formu"):
-        secilen_kullanici_tipi = st.selectbox("Kullanıcı Adı / Rol", ["admin", "asci", "misafir"])
+        kullanici_adi_input = st.text_input("Kullanıcı Adı", placeholder="Kullanıcı adı giriniz...").strip().lower()
         sifre_input = st.text_input("Şifre", type="password", placeholder="Şifre giriniz...")
         giris_butonu = st.form_submit_button("Giriş Yap", use_container_width=True)
         if giris_butonu:
-            if secilen_kullanici_tipi == "admin" and sifre_input == aktif_yonetici_sifresi:
+            if kullanici_adi_input == "admin" and sifre_input == aktif_yonetici_sifresi:
                 st.session_state.oturum_aktif = True
                 st.session_state.aktif_kullanici = "admin"
                 st.success("Admin olarak giriş yapıldı!")
                 st.rerun()
-            elif secilen_kullanici_tipi == "asci" and sifre_input == "sydv25":
+            elif kullanici_adi_input == "asci" and sifre_input == "sydv25":
                 st.session_state.oturum_aktif = True
                 st.session_state.aktif_kullanici = "asci"
                 st.success("Aşçı olarak giriş yapıldı!")
                 st.rerun()
-            elif secilen_kullanici_tipi == "misafir" and sifre_input == "Erzurum25":
+            elif kullanici_adi_input == "misafir" and sifre_input == "Erzurum25":
                 st.session_state.oturum_aktif = True
                 st.session_state.aktif_kullanici = "misafir"
                 st.success("Misafir olarak giriş yapıldı!")
