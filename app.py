@@ -150,6 +150,10 @@ if "yonetici_aktif" not in st.session_state:
 if "aktif_menu" not in st.session_state:
     st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
 
+# Oturum Durumu ile Silindi Bildirimi Tutma (Sayfa yenilense bile mesajın ekranda kalması için)
+if "silme_mesaji" not in st.session_state:
+    st.session_state.silme_mesaji = ""
+
 # Türkçe Tarih Dönüştürücü Fonksiyon
 def bugunun_turkce_tarihi():
     simdi = datetime.date.today()
@@ -492,13 +496,18 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 verileri_kaydet(st.session_state.girisler)
                 st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
 
-# 3. ÜRÜN SİL / DÜZENLE (St.success ile birebir aynı uyarı formatı)
+# 3. ÜRÜN SİL / DÜZENLE (Kalıcı ve Garantili Başarı Mesajı)
 elif menu == "Ürün Sil / Düzenle":
     st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
     
     if not yonetici_modu:
         st.warning("⚠️ Gözlemci modundasınız. Sistemden ürün silmek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
     else:
+        # Eğer daha önceden silme mesajı hafızaya atıldıysa burada ekrana yazdıralım ve temizleyelim
+        if st.session_state.silme_mesaji:
+            st.success(st.session_state.silme_mesaji)
+            st.session_state.silme_mesaji = ""
+
         st.markdown("Depoda kayıtlı olan tüm ürünleri ve fatura girişlerini aşağıda görebilir, silmek istediğiniz kaydı seçerek sistemden kalıcı olarak kaldırabilirsiniz.")
         
         if not st.session_state.girisler:
@@ -518,7 +527,10 @@ elif menu == "Ürün Sil / Düzenle":
                     st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
                     verileri_kaydet(st.session_state.girisler)
                     
-                    st.success(f"Başarılı! {silinen_urun_adi} sistemden silindi.")
+                    # Hem toast (sağ üst bildirim balonu) hem de oturum hafızasına mesaj kaydı
+                    mesaj_metni = f"Başarılı! {silinen_urun_adi} sistemden silindi."
+                    st.toast(mesaj_metni, icon="✅")
+                    st.session_state.silme_mesaji = mesaj_metni
                     st.rerun()
 
 # 4. FİRE / ZAYİAT GİRİŞİ
