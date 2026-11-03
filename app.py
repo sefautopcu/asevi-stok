@@ -394,12 +394,19 @@ if menu == "Kurumsal Dashboard & Özet":
 
     loglar = st.session_state.kullanim_loglari
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
+    toplam_fire_tutar = sum(l["tutar"] for l in loglar if l["tur"] == "Fire/Zayiat")
 
     c1, c2, c3 = st.columns(3)
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
     with c2:
-        st.metric("Toplam Fire / Zayiat", f"{toplam_fire_mik:,.1f} Kg")
+        # Fire miktarının yanında kırmızı renkli aşağı yönlü ok ile maddi karşılığı gösteriliyor
+        st.metric(
+            "Toplam Fire / Zayiat", 
+            f"{toplam_fire_mik:,.1f} Kg", 
+            delta=f"📉 {toplam_fire_tutar:,.2f} ₺", 
+            delta_color="inverse"
+        )
     with c3:
         st.metric("Toplam Stok Değeri", f"{toplam_envanter_maliyeti:,.2f} ₺")
 
