@@ -43,8 +43,7 @@ KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
 
 # Eylül, Ekim Mal Alımları ve Ekim Tüketimlerine Göre Güncellenmiş Stok Başlangıç Listesi
 varsayilan_girisler = [
-    # Eylül Alımları ve Açılış Stokları
-    {"id": "STK-001", "tarih": "2026-09-28", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": 42.8 - 15.0, "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-001", "tarih": "2026-09-28", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": max(0.0, 42.8 - 15.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-002", "tarih": "2026-09-28", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": max(0.0, 20.0 - 3.1), "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-003", "tarih": "2026-09-28", "urun": "MUZ", "kategori": "MEYVE", "birim": "Kg", "miktar": 54.5, "kalan": 0.0, "fiyat": 110.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-004", "tarih": "2026-09-28", "urun": "ELMA", "kategori": "MEYVE", "birim": "Kg", "miktar": 82.0, "kalan": max(0.0, 82.0 - 41.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6"},
@@ -82,8 +81,6 @@ varsayilan_girisler = [
     {"id": "STK-036", "tarih": "2026-09-30", "urun": "BEZELYE KONSERVESİ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 102.0, "kalan": max(0.0, 102.0 - 42.5), "fiyat": 69.89, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-037", "tarih": "2026-10-01", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 230.0, "kalan": max(0.0, 230.0 - 215.0), "fiyat": 66.20, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-038", "tarih": "2026-10-12", "urun": "KUŞBAŞI ET", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 213.8, "kalan": max(0.0, 213.8 - 85.0), "fiyat": 570.00, "depo": "Soğuk Hava Deposu -18"},
-
-    # Ekim Tablosundan Gelen Mal Alımları ve Kullanım Sonrası Kalanlar
     {"id": "STK-039", "tarih": "2026-10-21", "urun": "SIRTSIZ GÖĞÜS", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 60.0, "kalan": max(0.0, 60.0 - 35.0), "fiyat": 118.00, "depo": "Soğuk Hava Deposu -18"},
     {"id": "STK-040", "tarih": "2026-10-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.00, "depo": "Sebze Deposu"},
     {"id": "STK-041", "tarih": "2026-10-28", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 20.0, "fiyat": 105.00, "depo": "Sebze Deposu"},
@@ -112,6 +109,22 @@ varsayilan_girisler = [
     {"id": "STK-064", "tarih": "2026-10-28", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6"}
 ]
 
+# Ekim Ayı Tüketim Verileri (Otomatik Log Kaydı Oluşturulması İçin)
+ekim_tuketimleri_verileri = [
+    ("KIRMIZI LAHANA", 15.0), ("MAYDANOZ", 3.1), ("ELMA", 41.0), ("ERİK", 50.0), 
+    ("ŞEFTALİ", 50.0), ("SOĞAN", 29.0), ("PATATES", 72.0), ("KABAK", 35.0), 
+    ("HAVUÇ", 15.0), ("ISPANAK", 22.0), ("PATLICAN", 5.0), ("ÇARLİ", 19.0), 
+    ("DOMATES", 52.0), ("SALATALIK", 13.0), ("BALDO PİRİNÇ", 62.0), ("KURU FASULYE", 30.0), 
+    ("NOHUT", 16.0), ("ARPA ŞEHRİYE", 6.0), ("BURGU MAKARNA", 30.0), ("İNCE UZUN MAKARNA", 27.0), 
+    ("KIRMIZI MERCİMEK", 11.0), ("PİLAVLIK BULGUR", 65.0), ("TEL ŞEHRİYE", 4.0), ("TUZ", 2.65), 
+    ("TEREYAĞI", 29.4), ("TENEKE AYÇİÇEK YAĞI", 15.0), ("İRMİK", 10.0), ("TOZ KARABİBER", 0.32), 
+    ("KIRMIZI TATLI TOZ BİBER", 0.54), ("KURU NANE", 0.25), ("UN", 6.0), ("DOMATES SALÇASI", 42.5), 
+    ("BEZELYE KONSERVESİ", 42.5), ("TAM YAĞLI YOĞURT", 215.0), ("KUŞBAŞI ET", 85.0), 
+    ("SIRTSIZ GÖĞÜS", 35.0), ("DEFNE YAPRAĞI", 0.01), ("TOZ ŞEKER", 10.0), ("YUMURTA 15 Lİ", 20.0), 
+    ("AŞURELİK BUĞDAY", 4.0), ("ÇİĞ KÖFTELİK BULGUR", 1.0), ("ERİŞTE MAKARNA", 2.0), 
+    ("GALETA UNU", 1.0), ("KIRMIZI TATLI PUL BİBER", 0.01), ("YEŞİL MERCİMEK", 2.0)
+]
+
 def verileri_yukle():
     if os.path.exists(VERI_DOSYASI):
         try:
@@ -132,9 +145,39 @@ def loglari_yukle():
             with open(KULLANIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
-            return []
+            # Dosya yoksa veya boşsa Ekim tüketimlerini varsayılan log olarak ekle
+            varsayilan_loglar = []
+            for urun_adi, miktar in ekim_tuketimleri_verileri:
+                # Ürünün fiyatını bul
+                bulunan_fiyat = 50.0
+                for g in varsayilan_girisler:
+                    if g["urun"] == urun_adi:
+                        bulunan_fiyat = g["fiyat"]
+                        break
+                varsayilan_loglar.append({
+                    "tarih": "2026-10-31",
+                    "urun": urun_adi,
+                    "tur": "Yemek Üretimi",
+                    "miktar": miktar,
+                    "tutar": miktar * bulunan_fiyat
+                })
+            return varsayilan_loglar
     else:
-        return []
+        varsayilan_loglar = []
+        for urun_adi, miktar in ekim_tuketimleri_verileri:
+            bulunan_fiyat = 50.0
+            for g in varsayilan_girisler:
+                if g["urun"] == urun_adi:
+                    bulunan_fiyat = g["fiyat"]
+                    break
+            varsayilan_loglar.append({
+                "tarih": "2026-10-31",
+                "urun": urun_adi,
+                "tur": "Yemek Üretimi",
+                "miktar": miktar,
+                "tutar": miktar * bulunan_fiyat
+            })
+        return varsayilan_loglar
 
 def loglari_kaydet(veri):
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
@@ -145,6 +188,23 @@ if "girisler" not in st.session_state:
 
 if "kullanim_loglari" not in st.session_state:
     st.session_state.kullanim_loglari = loglari_yukle()
+else:
+    # Eğer loglar boşsa otomatik doldur
+    if not st.session_state.kullanim_loglari:
+        for urun_adi, miktar in ekim_tuketimleri_verileri:
+            bulunan_fiyat = 50.0
+            for g in st.session_state.girisler:
+                if g["urun"] == urun_adi:
+                    bulunan_fiyat = g["fiyat"]
+                    break
+            st.session_state.kullanim_loglari.append({
+                "tarih": "2026-10-31",
+                "urun": urun_adi,
+                "tur": "Yemek Üretimi",
+                "miktar": miktar,
+                "tutar": miktar * bulunan_fiyat
+            })
+        loglari_kaydet(st.session_state.kullanim_loglari)
 
 if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
@@ -702,15 +762,20 @@ elif menu == "Kullanım Takibi":
     st.markdown("Eylül ve Ekim ayı fiyat değişimleri dahil olmak üzere ürünlerin tüketim miktarlarını, fire oranlarını ve toplam harcanan bütçeyi inceleyin.")
     
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+    secenek_listesi = ["Tüm Ürünler (Genel Özet)"] + benzersiz_urunler
     
     col_F1, col_F2 = st.columns(2)
     with col_F1:
-        secilen_urun_takip = st.selectbox("İncelemek İstediğiniz Ürünü Seçin", benzersiz_urunler)
+        secilen_urun_takip = st.selectbox("İncelemek İstediğiniz Ürünü Seçin", secenek_listesi)
     with col_F2:
         zaman_filtresi = st.radio("Zaman Aralığı", ["Tüm Zamanlar", "Aylık Görünüm", "Yıllık Özet"], horizontal=True)
         
     loglar = st.session_state.kullanim_loglari
-    urun_loglari = [l for l in loglar if l["urun"] == secilen_urun_takip]
+    
+    if secilen_urun_takip == "Tüm Ürünler (Genel Özet)":
+        urun_loglari = loglar
+    else:
+        urun_loglari = [l for l in loglar if l["urun"] == secilen_urun_takip]
     
     if zaman_filtresi == "Aylık Görünüm":
         aylar_dict = {
@@ -718,20 +783,20 @@ elif menu == "Kullanım Takibi":
             "05": "Mayıs", "06": "Haziran", "07": "Temmuz", "08": "Ağustos", 
             "09": "Eylül", "10": "Ekim", "11": "Kasım", "12": "Aralık"
         }
-        mevcut_aylar = sorted(list(set(l["tarih"][:7] for l in urun_loglari)))
+        mevcut_aylar = sorted(list(set(l["tarih"][:7] for l in loglar)))
         if mevcut_aylar:
             secilen_ay_kodu = st.selectbox("Ay Seçin", mevcut_aylar, format_func=lambda x: f"{aylar_dict.get(x[5:], x[5:])} {x[:4]}")
             urun_loglari = [l for l in urun_loglari if l["tarih"].startswith(secilen_ay_kodu)]
         else:
-            st.info("Bu ürün için henüz kayıtlı kullanım veya fire geçmişi bulunmuyor.")
+            st.info("Kayıtlı kullanım veya fire geçmişi bulunmuyor.")
             
     elif zaman_filtresi == "Yıllık Özet":
-        mevcut_yillar = sorted(list(set(l["tarih"][:4] for l in urun_loglari)))
+        mevcut_yillar = sorted(list(set(l["tarih"][:4] for l in loglar)))
         if mevcut_yillar:
             secilen_yil = st.selectbox("Yıl Seçin", mevcut_yillar)
             urun_loglari = [l for l in urun_loglari if l["tarih"].startswith(secilen_yil)]
         else:
-            st.info("Bu ürün için henüz kayıtlı kullanım veya fire geçmişi bulunmuyor.")
+            st.info("Kayıtlı kullanım veya fire geçmişi bulunmuyor.")
 
     toplam_kullanim_mik = sum(l["miktar"] for l in urun_loglari if l["tur"] == "Yemek Üretimi")
     toplam_kullanim_tutar = sum(l["tutar"] for l in urun_loglari if l["tur"] == "Yemek Üretimi")
@@ -745,6 +810,7 @@ elif menu == "Kullanım Takibi":
     for l in urun_loglari:
         tablo_verisi.append({
             "Tarih": l["tarih"],
+            "Ürün Adı": l["urun"],
             "İşlem Türü": l["tur"],
             "Miktar": l["miktar"],
             "Toplam Tutar (₺)": f"{l['tutar']:.2f} ₺"
@@ -775,7 +841,7 @@ elif menu == "Kullanım Takibi":
     if urun_loglari:
         st.dataframe(tablo_verisi, use_container_width=True)
     else:
-        st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı. (Yemek üretimi veya fire girişi yapıldıkça bu alan otomatik dolacaktır).")
+        st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı.")
 
 # 7. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
