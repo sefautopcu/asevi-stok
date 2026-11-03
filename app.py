@@ -26,7 +26,7 @@ st.markdown("""
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
 
-# Gönderdiğiniz tablodaki Eylül ve Ekim ayı güncel birim fiyatlarıyla 62 kalem ürün
+# Eylül ve Ekim ayı güncel birim fiyatlarıyla 62 kalem ürün veritabanı
 varsayilan_girisler = [
     {"id": "STK-001", "tarih": "2026-09-28", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": 42.8, "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-002", "tarih": "2026-09-28", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 19.7, "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6"},
@@ -87,9 +87,9 @@ varsayilan_girisler = [
     {"id": "STK-057", "tarih": "2026-10-28", "urun": "KEKİK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 1039.60, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-058", "tarih": "2026-10-28", "urun": "ET SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-059", "tarih": "2026-10-28", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-060", "tarih": "2026-10-28", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 61.00, "depo": "Soğuk Hava Deposu +5/+6"}, # Ekim ayı fiyatı
-    {"id": "STK-061", "tarih": "2026-10-28", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 20.0, "fiyat": 105.00, "depo": "Soğuk Hava Deposu +5/+6"}, # Ekim ayı fiyatı
-    {"id": "STK-062", "tarih": "2026-10-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.00, "depo": "Soğuk Hava Deposu +5/+6"}, # Ekim ayı fiyatı
+    {"id": "STK-060", "tarih": "2026-10-28", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 61.00, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-061", "tarih": "2026-10-28", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 20.0, "fiyat": 105.00, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-062", "tarih": "2026-10-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.00, "depo": "Soğuk Hava Deposu +5/+6"},
 ]
 
 def verileri_yukle():
@@ -171,12 +171,11 @@ yonetici_modu = st.session_state.yonetici_aktif
 
 # 1. GÜNCEL STOK DURUMU
 if menu == "Güncel Stok Durumu":
-    col_baslik, col_buton_ excel, col_buton_pdf = st.columns([2, 1, 1])
+    col_baslik, col_btn_excel, col_btn_pdf = st.columns([2, 1, 1])
     with col_baslik:
         st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
     
-    # Yan yana Excel (Yeşil) ve PDF (Kırmızı) butonları logolarıyla birlikte
-    with col_buton_ excel:
+    with col_btn_excel:
         if st.button("🟩 Excel İndir"):
             wb = openpyxl.Workbook()
             ws = wb.active
@@ -222,9 +221,9 @@ if menu == "Güncel Stok Durumu":
             wb.save(excel_adi)
             st.success("Stok raporu Excel olarak indirildi!")
 
-    with col_buton_pdf:
+    with col_btn_pdf:
         if st.button("🟥 PDF İndir"):
-            st.info("PDF raporu dışa aktarıldı. (Lütfen tarayıcı indirilenler klasörünüzü kontrol edin)")
+            st.info("PDF raporu dışa aktarıldı.")
 
     depolar = ["Tümü", "Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"]
     secilen_depo = st.selectbox("Depo Konumuna Göre Filtrele", depolar)
@@ -452,7 +451,7 @@ elif menu == "Kullanım Takibi":
     with col_b_k:
         st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
     with col_ex_k:
-        if st.button("🟩 Excel İndir", key=" excel_kullanim"):
+        if st.button("🟩 Excel İndir", key="excel_kullanim"):
             st.success("Kullanım takip tablosu Excel olarak indirildi.")
     with col_pd_k:
         if st.button("🟥 PDF İndir", key="pdf_kullanim"):
