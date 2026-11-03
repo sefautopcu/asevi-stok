@@ -7,7 +7,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import plotly.express as px
-import plotly.graph_objects as go
+import pandas as pd
 
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
@@ -573,21 +573,16 @@ if menu == "Kurumsal Dashboard & Özet":
             kat = g["kategori"]
             kategori_verileri[kat] = kategori_verileri.get(kat, 0.0) + g["kalan"]
         
-        # Profesyonel Plotly Bar Grafiği
-        kat_isimleri = list(kategori_verileri.keys())
-        kat_degerleri = list(kategori_verileri.values())
-        
-        fig_kat = go.Figure(data=[
-            go.Bar(
-                x=kat_isimleri,
-                y=kat_degerleri,
-                marker_color='#111827',
-                text=[f"{v:.1f} Kg" for v in kat_degerleri],
-                textposition='auto',
-                hoovertext=[f"Kategori: {k}<br>Kalan Stok: {v:.1f} Kg" for k, v in kategori_verileri.items()],
-                hoverinfo='text'
-            )
-        ])
+        # Hatasız ve Profesyonel Plotly Express Bar Grafiği
+        df_kat = pd.DataFrame(list(kategori_verileri.items()), columns=["Kategori", "Kalan Stok"])
+        fig_kat = px.bar(
+            df_kat, 
+            x="Kategori", 
+            y="Kalan Stok", 
+            text="Kalan Stok",
+            color_discrete_sequence=['#111827']
+        )
+        fig_kat.update_traces(texttemplate='%{text:.1f} Kg', textposition='auto')
         fig_kat.update_layout(
             margin=dict(l=20, r=20, t=30, b=20),
             height=320,
@@ -604,20 +599,19 @@ if menu == "Kurumsal Dashboard & Özet":
         eylul_tutar = sum(g["miktar"] * g["fiyat"] for g in st.session_state.girisler if g["tarih"].startswith("2026-09"))
         ekim_tutar = sum(g["miktar"] * g["fiyat"] for g in st.session_state.girisler if g["tarih"].startswith("2026-10"))
         
-        aylar = ["Eylül 2026", "Ekim 2026"]
-        tutarlar = [eylul_tutar, ekim_tutar]
+        df_ay = pd.DataFrame({
+            "Dönem": ["Eylül 2026", "Ekim 2026"],
+            "Toplam Alım": [eylul_tutar, ekim_tutar]
+        })
         
-        fig_ay = go.Figure(data=[
-            go.Bar(
-                x=aylar,
-                y=tutarlar,
-                marker_color='#3B82F6',
-                text=[f"₺{t:,.2f}" for t in tutarlar],
-                textposition='auto',
-                hoovertext=[f"Dönem: {a}<br>Toplam Alım: ₺{t:,.2f}" for a, t in zip(aylar, tutarlar)],
-                hoverinfo='text'
-            )
-        ])
+        fig_ay = px.bar(
+            df_ay, 
+            x="Dönem", 
+            y="Toplam Alım", 
+            text="Toplam Alım",
+            color_discrete_sequence=['#3B82F6']
+        )
+        fig_ay.update_traces(texttemplate='₺%{text:,.2f}', textposition='auto')
         fig_ay.update_layout(
             margin=dict(l=20, r=20, t=30, b=20),
             height=320,
