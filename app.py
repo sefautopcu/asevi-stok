@@ -178,6 +178,7 @@ menuler_listesi = [
     "Kurumsal Dashboard & Özet",
     "Güncel Stok Durumu", 
     "Yeni Mal Alımı / Fatura Ekle", 
+    "Ürün Sil / Düzenle", 
     "Fire / Zayiat Girişi", 
     "Günlük Yemek Üretimi & Maliyet Raporu",
     "Kullanım Takibi",
@@ -450,7 +451,6 @@ elif menu == "Güncel Stok Durumu":
         if toplam_kalan <= 10.0:
             kritik_urunler.append((u, toplam_kalan, birim, depo))
 
-    # expanded=False yapılarak kapalı gelmesi sağlandı
     if kritik_urunler:
         with st.expander("⚠️ DİKKAT: Kritik Seviyedeki Veya Tükenen Ürünler!", expanded=False):
             for ku, km, kb, kd in kritik_urunler:
@@ -492,7 +492,37 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 verileri_kaydet(st.session_state.girisler)
                 st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
 
-# 3. FİRE / ZAYİAT GİRİŞİ
+# YENİ: 3. ÜRÜN SİL / DÜZENLE
+elif menu == "Ürün Sil / Düzenle":
+    st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
+    
+    if not yonetici_modu:
+        st.warning("⚠️ Gözlemci modundasınız. Sistemden ürün silmek için sol menünün en altından yönetici şifresini girmeniz gereklidir.")
+    else:
+        st.markdown("Depoda kayıtlı olan tüm ürünleri ve fatura girişlerini aşağıda görebilir, silmek istediğiniz kaydı seçerek sistemden kalıcı olarak kaldırabilirsiniz.")
+        
+        if not st.session_state.girisler:
+            st.info("Sistemde silinecek kayıt bulunmuyor.")
+        else:
+            # Seçim için ürün kayıtlarını benzersiz ID ve ürün adıyla listeleyelim
+            secenekler = [f"{g['id']} - {g['urun']} (Tarih: {g['tarih']}, Kalan: {g['kalan']} {g['birim']}, Fiyat: {g['fiyat']} TL)" for g in st.session_state.girisler]
+            secilen_kayit_str = st.selectbox("Silmek İstediğiniz Kaydı / Faturayı Seçin", secenekler)
+            
+            # Seçilen kaydın ID'sini bulalım
+            secilen_id = secilen_kayit_str.split(" - ")[0]
+            
+            ilgili_oge = next((g for g in st.session_state.girisler if g["id"] == secilen_id), None)
+            
+            if ilgili_oge:
+                st.warning(f"⚠️ **{ilgili_oge['urun']}** adlı kaydı (ID: {ilgili_oge['id']}, Miktar: {ilgili_oge['miktar']} {ilgili_oge['birim']}, Tarih: {ilgili_oge['tarih']}) silmek üzeresiniz.")
+                
+                if st.button("Seçilen Ürünü / Kaydı Kalıcı Olarak Sil", type="primary"):
+                    st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
+                    verileri_kaydet(st.session_state.girisler)
+                    st.success(f"'{ilgili_oge['urun']}' kaydı başarıyla silindi!")
+                    st.rerun()
+
+# 4. FİRE / ZAYİAT GİRİŞİ
 elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
     
@@ -544,7 +574,7 @@ elif menu == "Fire / Zayiat Girişi":
                 
                 st.success(f"Fire başarıyla düşüldü. Toplam Maddi Zarar: {toplam_zarar:.2f} TL")
 
-# 4. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
+# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
@@ -659,7 +689,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         with col_indir_alan:
             ortak_indirme_alani(empty_excel, empty_pdf, "bos_yemek_raporu", "yemek_bos_sayfasi")
 
-# 5. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
+# 6. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
 elif menu == "Kullanım Takibi":
     col_b_k, col_indir_alan = st.columns([2, 2])
     with col_b_k:
@@ -743,7 +773,7 @@ elif menu == "Kullanım Takibi":
     else:
         st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı. (Yemek üretimi veya fire girişi yapıldıkça bu alan otomatik dolacaktır).")
 
-# 6. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
+# 7. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_f, col_indir_alan = st.columns([2, 2])
     with col_b_f:
