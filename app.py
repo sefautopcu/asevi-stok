@@ -7,6 +7,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 
 # Sayfa Yapılandırması
@@ -564,38 +565,50 @@ if menu == "Kurumsal Dashboard & Özet":
 
     st.markdown("---")
     
-    col_g1, col_g2 = st.columns(2)
+    # 1. KART: Referans görseldeki gibi Kategori Dağılımı ve Donut Grafik Kurgusu
+    st.markdown("### 🍩 Kategori Bazlı Stok Dağılımı & Analiz")
+    col_k1, col_k2 = st.columns([1, 1])
     
-    with col_g1:
-        st.subheader("📈 Kategori Bazlı Kalan Stok Dağılımı")
+    with col_k1:
         kategori_verileri = {}
         for g in st.session_state.girisler:
             kat = g["kategori"]
             kategori_verileri[kat] = kategori_verileri.get(kat, 0.0) + g["kalan"]
         
-        # Hatasız ve Profesyonel Plotly Express Bar Grafiği
         df_kat = pd.DataFrame(list(kategori_verileri.items()), columns=["Kategori", "Kalan Stok"])
-        fig_kat = px.bar(
+        
+        # Referans görseldeki gibi şık Donut (Halka) Grafik
+        fig_donut = px.pie(
             df_kat, 
-            x="Kategori", 
-            y="Kalan Stok", 
-            text="Kalan Stok",
-            color_discrete_sequence=['#111827']
+            names="Kategori", 
+            values="Kalan Stok", 
+            hole=0.65,
+            color_discrete_sequence=['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1']
         )
-        fig_kat.update_traces(texttemplate='%{text:.1f} Kg', textposition='auto')
-        fig_kat.update_layout(
-            margin=dict(l=20, r=20, t=30, b=20),
-            height=320,
+        fig_donut.update_traces(textposition='inside', textinfo='percent+label')
+        fig_donut.update_layout(
+            margin=dict(l=10, r=10, t=10, b=10),
+            height=300,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=False, tickangle=-25),
-            yaxis=dict(showgrid=True, gridcolor='#E5E7EB'),
-            font=dict(family='Inter', size=12, color='#374151')
+            font=dict(family='Inter', size=12, color='#374151'),
+            showlegend=False
         )
-        st.plotly_chart(fig_kat, use_container_width=True)
+        st.plotly_chart(fig_donut, use_container_width=True)
 
-    with col_g2:
-        st.subheader("📉 Ay Bazlı Gelen Mal Alım Tutarları (TL)")
+    with col_k2:
+        st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
+        st.markdown("##### 📌 Envanter Özet Bilgileri")
+        st.info(f"Depoda toplam **{toplam_stok_kalemi}** farklı ürün kalemi bulunmaktadır. Kategorilere göre kalan stok dağılımı yandaki halka grafikte modern renk paletiyle özetlenmiştir.")
+        st.metric("Toplam Envanter Değeri", f"₺{toplam_envanter_maliyeti:,.2f}")
+
+    st.markdown("---")
+    
+    # 2. KART: Referans görseldeki gibi Ay Bazlı Alım ve Ciro Karşılaştırması
+    st.markdown("### 📊 Aylık Mal Alım & Bütçe Dağılımı")
+    col_a1, col_a2 = st.columns([1, 1])
+    
+    with col_a1:
         eylul_tutar = sum(g["miktar"] * g["fiyat"] for g in st.session_state.girisler if g["tarih"].startswith("2026-09"))
         ekim_tutar = sum(g["miktar"] * g["fiyat"] for g in st.session_state.girisler if g["tarih"].startswith("2026-10"))
         
@@ -604,17 +617,18 @@ if menu == "Kurumsal Dashboard & Özet":
             "Toplam Alım": [eylul_tutar, ekim_tutar]
         })
         
+        # Referans görseldeki modern yumuşak çubuk grafik
         fig_ay = px.bar(
             df_ay, 
             x="Dönem", 
             y="Toplam Alım", 
             text="Toplam Alım",
-            color_discrete_sequence=['#3B82F6']
+            color_discrete_sequence=['#10B981']
         )
         fig_ay.update_traces(texttemplate='₺%{text:,.2f}', textposition='auto')
         fig_ay.update_layout(
-            margin=dict(l=20, r=20, t=30, b=20),
-            height=320,
+            margin=dict(l=20, r=20, t=20, b=20),
+            height=300,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             xaxis=dict(showgrid=False),
@@ -622,7 +636,14 @@ if menu == "Kurumsal Dashboard & Özet":
             font=dict(family='Inter', size=12, color='#374151')
         )
         st.plotly_chart(fig_ay, use_container_width=True)
-        st.info(f"💡 **Toplam Alım Bütçeleri:** Eylül: **{eylul_tutar:,.2f} TL** | Ekim: **{ekim_tutar:,.2f} TL**")
+
+    with col_a2:
+        st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+        st.markdown("##### 💼 Dönemsel Bütçe Özeti")
+        st.markdown(f"**Eylül 2026 Toplam Alım:** `₺{eylul_tutar:,.2f}`")
+        st.markdown(f"**Ekim 2026 Toplam Alım:** `₺{ekim_tutar:,.2f}`")
+        toplam_butce = eylul_tutar + ekim_tutar
+        st.metric("İki Aylık Toplam Alım Bütçesi", f"₺{toplam_butce:,.2f}")
 
     st.markdown("---")
     st.subheader("🚀 Hızlı İşlem Kısayolları")
