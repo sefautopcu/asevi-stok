@@ -176,7 +176,7 @@ def loglari_kaydet(veri):
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
-# İhtiyaç Sahipleri ve Dağıtım Verileri
+# İhtiyaç Sahipleri ve Dağıtım Verileri (Örnekler temizlendi, boş başlatıldı)
 def ihtiyac_sahiplerini_yukle():
     if os.path.exists(IHTIYAC_SAHIPLERI_DOSYASI):
         try:
@@ -184,10 +184,7 @@ def ihtiyac_sahiplerini_yukle():
                 return json.load(f)
         except Exception:
             return []
-    return [
-        {"id": "IHT-001", "ad_soyad": "AHMET YILMAZ", "telefon": "0532 111 2233", "adres": "Merkez Mah. No:1", "birey_sayisi": 4},
-        {"id": "IHT-002", "ad_soyad": "FATMA DEMİR", "telefon": "0542 222 3344", "adres": "Yavuz Selim Cad. No:12", "birey_sayisi": 2}
-    ]
+    return []
 
 def ihtiyac_sahiplerini_kaydet(veri):
     with open(IHTIYAC_SAHIPLERI_DOSYASI, "w", encoding="utf-8") as f:
@@ -200,11 +197,7 @@ def dagitim_loglarini_yukle():
                 return json.load(f)
         except Exception:
             return []
-    return [
-        {"tarih": "2026-10-30", "kisi": "AHMET YILMAZ", "menu": "Ispanak Yemeği ve Pilav", "porsiyon": 4},
-        {"tarih": "2026-10-31", "kisi": "AHMET YILMAZ", "menu": "Kuru Fasulye ve Pilav", "porsiyon": 4},
-        {"tarih": "2026-10-31", "kisi": "FATMA DEMİR", "menu": "Kuru Fasulye ve Pilav", "porsiyon": 2}
-    ]
+    return []
 
 def dagitim_loglarini_kaydet(veri):
     with open(DAGITIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
@@ -759,6 +752,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
         if yonetici_modu:
             with st.form("ihtiyac_sahibi_formu"):
                 st.markdown("**Yeni İhtiyaç Sahibi / Hane Kaydı**")
+                yeni_tc_hane = st.text_input("T.C. Kimlik No / Hane No").strip()
                 yeni_ad = st.text_input("Adı Soyadı / Hane Unvanı").strip().upper()
                 yeni_tel = st.text_input("Telefon Numarası")
                 yeni_adres = st.text_input("Açık Adres")
@@ -768,6 +762,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 if kaydet_btn and yeni_ad:
                     st.session_state.ihtiyac_sahipleri.append({
                         "id": f"IHT-{len(st.session_state.ihtiyac_sahipleri)+1:03d}",
+                        "tc_hane": yeni_tc_hane,
                         "ad_soyad": yeni_ad,
                         "telefon": yeni_tel,
                         "adres": yeni_adres,
@@ -784,6 +779,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             for k in st.session_state.ihtiyac_sahipleri:
                 kisi_liste_gosterim.append({
                     "Kayıt No": k["id"],
+                    "T.C. Kimlik No / Hane No": k.get("tc_hane", ""),
                     "Adı Soyadı": k["ad_soyad"],
                     "Telefon": k["telefon"],
                     "Adres": k["adres"],
@@ -837,10 +833,10 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
         if zaman_kriteri == "Günlük":
             dagitimlar = [d for d in dagitimlar if d["tarih"] == simdi_str]
         elif zaman_kriteri == "Aylık":
-            ay_kodu = simdi_str[:7] # YYYY-MM
+            ay_kodu = simdi_str[:7]
             dagitimlar = [d for d in dagitimlar if d["tarih"].startswith(ay_kodu)]
         elif zaman_kriteri == "Yıllık":
-            yil_kodu = simdi_str[:4] # YYYY
+            yil_kodu = simdi_str[:4]
             dagitimlar = [d for d in dagitimlar if d["tarih"].startswith(yil_kodu)]
 
         toplam_porsiyon_alınan = sum(d["porsiyon"] for d in dagitimlar)
@@ -948,7 +944,7 @@ elif menu == "Kullanım Takibi":
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_f, col_indir_alan = st.columns([2, 2])
     with col_b_f:
-        st.header("📋 Ürünlerin Eylül and Ekim Ayı Birim Fiyat Tablosu")
+        st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
         
     st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
 
