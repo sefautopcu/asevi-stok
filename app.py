@@ -41,11 +41,11 @@ st.markdown("""
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
 
-# Eylül, Ekim Mal Alımları ve Ekim Tüketimlerine Göre Güncellenmiş Stok Başlangıç Listesi
+# Eylül, Ekim Mal Alımları, Ekim Tüketimleri ve Ekim Firelerine Göre Güncellenmiş Stok Listesi
 varsayilan_girisler = [
     {"id": "STK-001", "tarih": "2026-09-28", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": max(0.0, 42.8 - 15.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-002", "tarih": "2026-09-28", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": max(0.0, 20.0 - 3.1), "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-003", "tarih": "2026-09-28", "urun": "MUZ", "kategori": "MEYVE", "birim": "Kg", "miktar": 54.5, "kalan": 0.0, "fiyat": 110.0, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-003", "tarih": "2026-09-28", "urun": "MUZ", "kategori": "MEYVE", "birim": "Kg", "miktar": 54.5, "kalan": max(0.0, 54.5 - 54.5), "fiyat": 110.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-004", "tarih": "2026-09-28", "urun": "ELMA", "kategori": "MEYVE", "birim": "Kg", "miktar": 82.0, "kalan": max(0.0, 82.0 - 41.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-005", "tarih": "2026-09-28", "urun": "ERİK", "kategori": "MEYVE", "birim": "Kg", "miktar": 62.0, "kalan": max(0.0, 62.0 - 50.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-006", "tarih": "2026-09-28", "urun": "ŞEFTALİ", "kategori": "MEYVE", "birim": "Kg", "miktar": 50.0, "kalan": max(0.0, 50.0 - 50.0), "fiyat": 90.0, "depo": "Soğuk Hava Deposu +5/+6"},
@@ -53,11 +53,11 @@ varsayilan_girisler = [
     {"id": "STK-008", "tarih": "2026-09-28", "urun": "PATATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 755.0, "kalan": max(0.0, 755.0 - 72.0), "fiyat": 33.0, "depo": "Sebze Deposu"},
     {"id": "STK-009", "tarih": "2026-09-28", "urun": "KABAK", "kategori": "SEBZE", "birim": "Kg", "miktar": 52.0, "kalan": max(0.0, 52.0 - 35.0), "fiyat": 45.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-010", "tarih": "2026-09-28", "urun": "HAVUÇ", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.6, "kalan": max(0.0, 50.6 - 15.0), "fiyat": 35.0, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-011", "tarih": "2026-09-28", "urun": "ISPANAK", "kategori": "SEBZE", "birim": "Kg", "miktar": 127.0, "kalan": max(0.0, 127.0 - 22.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6"},
-    {"id": "STK-012", "tarih": "2026-09-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 57.4, "kalan": max(0.0, 57.4 - 5.0), "fiyat": 55.0, "depo": "Sebze Deposu"},
+    {"id": "STK-011", "tarih": "2026-09-28", "urun": "ISPANAK", "kategori": "SEBZE", "birim": "Kg", "miktar": 127.0, "kalan": max(0.0, 127.0 - 22.0 - 60.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-012", "tarih": "2026-09-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 57.4, "kalan": max(0.0, 57.4 - 5.0 - 52.4), "fiyat": 55.0, "depo": "Sebze Deposu"},
     {"id": "STK-013", "tarih": "2026-09-28", "urun": "ÇARLİ", "kategori": "SEBZE", "birim": "Kg", "miktar": 56.0, "kalan": max(0.0, 56.0 - 19.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-014", "tarih": "2026-09-28", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 66.0, "kalan": max(0.0, 66.0 - 52.0), "fiyat": 50.0, "depo": "Sebze Deposu"},
-    {"id": "STK-015", "tarih": "2026-09-28", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 53.0, "kalan": max(0.0, 53.0 - 13.0), "fiyat": 45.0, "depo": "Sebze Deposu"},
+    {"id": "STK-015", "tarih": "2026-09-28", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 53.0, "kalan": max(0.0, 53.0 - 13.0 - 43.0), "fiyat": 45.0, "depo": "Sebze Deposu"},
     {"id": "STK-016", "tarih": "2026-09-30", "urun": "BALDO PİRİNÇ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 625.0, "kalan": max(0.0, 625.0 - 62.0), "fiyat": 104.40, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-017", "tarih": "2026-09-30", "urun": "KURU FASULYE", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 225.0, "kalan": max(0.0, 225.0 - 30.0), "fiyat": 84.72, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-018", "tarih": "2026-09-30", "urun": "NOHUT", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 200.0, "kalan": max(0.0, 200.0 - 16.0), "fiyat": 68.00, "depo": "Kuru Gıda Deposu"},
@@ -79,7 +79,7 @@ varsayilan_girisler = [
     {"id": "STK-034", "tarih": "2026-09-30", "urun": "YAĞLI SÜT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Lt", "miktar": 108.0, "kalan": 108.0, "fiyat": 49.90, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-035", "tarih": "2026-09-30", "urun": "DOMATES SALÇASI", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 130.5, "kalan": max(0.0, 130.5 - 42.5), "fiyat": 66.44, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-036", "tarih": "2026-09-30", "urun": "BEZELYE KONSERVESİ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 102.0, "kalan": max(0.0, 102.0 - 42.5), "fiyat": 69.89, "depo": "Kuru Gıda Deposu"},
-    {"id": "STK-037", "tarih": "2026-10-01", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 230.0, "kalan": max(0.0, 230.0 - 215.0), "fiyat": 66.20, "depo": "Soğuk Hava Deposu +5/+6"},
+    {"id": "STK-037", "tarih": "2026-10-01", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 230.0, "kalan": max(0.0, 230.0 - 215.0 - 15.0), "fiyat": 66.20, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-038", "tarih": "2026-10-12", "urun": "KUŞBAŞI ET", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 213.8, "kalan": max(0.0, 213.8 - 85.0), "fiyat": 570.00, "depo": "Soğuk Hava Deposu -18"},
     {"id": "STK-039", "tarih": "2026-10-21", "urun": "SIRTSIZ GÖĞÜS", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 60.0, "kalan": max(0.0, 60.0 - 35.0), "fiyat": 118.00, "depo": "Soğuk Hava Deposu -18"},
     {"id": "STK-040", "tarih": "2026-10-28", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.00, "depo": "Sebze Deposu"},
@@ -109,7 +109,7 @@ varsayilan_girisler = [
     {"id": "STK-064", "tarih": "2026-10-28", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6"}
 ]
 
-# Ekim Ayı Tüketim Verileri (Otomatik Log Kaydı Oluşturulması İçin)
+# Ekim Ayı Tüketim Verileri
 ekim_tuketimleri_verileri = [
     ("KIRMIZI LAHANA", 15.0), ("MAYDANOZ", 3.1), ("ELMA", 41.0), ("ERİK", 50.0), 
     ("ŞEFTALİ", 50.0), ("SOĞAN", 29.0), ("PATATES", 72.0), ("KABAK", 35.0), 
@@ -123,6 +123,15 @@ ekim_tuketimleri_verileri = [
     ("SIRTSIZ GÖĞÜS", 35.0), ("DEFNE YAPRAĞI", 0.01), ("TOZ ŞEKER", 10.0), ("YUMURTA 15 Lİ", 20.0), 
     ("AŞURELİK BUĞDAY", 4.0), ("ÇİĞ KÖFTELİK BULGUR", 1.0), ("ERİŞTE MAKARNA", 2.0), 
     ("GALETA UNU", 1.0), ("KIRMIZI TATLI PUL BİBER", 0.01), ("YEŞİL MERCİMEK", 2.0)
+]
+
+# Ekim Ayı Fire Verileri (Yüklediğiniz son tablodan alındı)
+ekim_fire_verileri = [
+    ("MUZ", 54.50),
+    ("ISPANAK", 60.00),
+    ("PATLICAN", 52.40),
+    ("SALATALIK", 43.00),
+    ("TAM YAĞLI YOĞURT", 15.00)
 ]
 
 def verileri_yukle():
@@ -140,44 +149,49 @@ def verileri_kaydet(veri):
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
 def loglari_yukle():
+    # Tüm logları (Tüketim + Fire) eksiksiz oluşturan ortak fonksiyon
+    tum_loglar = []
+    
+    # 1. Tüketimleri Ekle
+    for urun_adi, miktar in ekim_tuketimleri_verileri:
+        bulunan_fiyat = 50.0
+        for g in varsayilan_girisler:
+            if g["urun"] == urun_adi:
+                bulunan_fiyat = g["fiyat"]
+                break
+        tum_loglar.append({
+            "tarih": "2026-10-31",
+            "urun": urun_adi,
+            "tur": "Yemek Üretimi",
+            "miktar": miktar,
+            "tutar": miktar * bulunan_fiyat
+        })
+
+    # 2. Fireleri Ekle
+    for urun_adi, miktar in ekim_fire_verileri:
+        bulunan_fiyat = 50.0
+        for g in varsayilan_girisler:
+            if g["urun"] == urun_adi:
+                bulunan_fiyat = g["fiyat"]
+                break
+        tum_loglar.append({
+            "tarih": "2026-10-31",
+            "urun": urun_adi,
+            "tur": "Fire/Zayiat",
+            "miktar": miktar,
+            "tutar": miktar * bulunan_fiyat
+        })
+        
     if os.path.exists(KULLANIM_LOG_DOSYASI):
         try:
             with open(KULLANIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
+                kayitli = json.load(f)
+                if kayitli:
+                    return kayitli
         except Exception:
-            # Dosya yoksa veya boşsa Ekim tüketimlerini varsayılan log olarak ekle
-            varsayilan_loglar = []
-            for urun_adi, miktar in ekim_tuketimleri_verileri:
-                # Ürünün fiyatını bul
-                bulunan_fiyat = 50.0
-                for g in varsayilan_girisler:
-                    if g["urun"] == urun_adi:
-                        bulunan_fiyat = g["fiyat"]
-                        break
-                varsayilan_loglar.append({
-                    "tarih": "2026-10-31",
-                    "urun": urun_adi,
-                    "tur": "Yemek Üretimi",
-                    "miktar": miktar,
-                    "tutar": miktar * bulunan_fiyat
-                })
-            return varsayilan_loglar
-    else:
-        varsayilan_loglar = []
-        for urun_adi, miktar in ekim_tuketimleri_verileri:
-            bulunan_fiyat = 50.0
-            for g in varsayilan_girisler:
-                if g["urun"] == urun_adi:
-                    bulunan_fiyat = g["fiyat"]
-                    break
-            varsayilan_loglar.append({
-                "tarih": "2026-10-31",
-                "urun": urun_adi,
-                "tur": "Yemek Üretimi",
-                "miktar": miktar,
-                "tutar": miktar * bulunan_fiyat
-            })
-        return varsayilan_loglar
+            pass
+            
+    return tum_loglar
 
 def loglari_kaydet(veri):
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
@@ -189,21 +203,8 @@ if "girisler" not in st.session_state:
 if "kullanim_loglari" not in st.session_state:
     st.session_state.kullanim_loglari = loglari_yukle()
 else:
-    # Eğer loglar boşsa otomatik doldur
     if not st.session_state.kullanim_loglari:
-        for urun_adi, miktar in ekim_tuketimleri_verileri:
-            bulunan_fiyat = 50.0
-            for g in st.session_state.girisler:
-                if g["urun"] == urun_adi:
-                    bulunan_fiyat = g["fiyat"]
-                    break
-            st.session_state.kullanim_loglari.append({
-                "tarih": "2026-10-31",
-                "urun": urun_adi,
-                "tur": "Yemek Üretimi",
-                "miktar": miktar,
-                "tutar": miktar * bulunan_fiyat
-            })
+        st.session_state.kullanim_loglari = loglari_yukle()
         loglari_kaydet(st.session_state.kullanim_loglari)
 
 if "yonetici_aktif" not in st.session_state:
