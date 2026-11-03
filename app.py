@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve Stil Tasarımı (Okunabilir menü renkleri)
+# Kurumsal Sol Menü ve Stil Tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -136,12 +136,28 @@ if "yonetici_aktif" not in st.session_state:
 if "aktif_menu" not in st.session_state:
     st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
 
-# Üst Bilgi ve Başlık
+# Türkçe Tarih Dönüştürücü Fonksiyon
+def bugunun_turkce_tarihi():
+    simdi = datetime.date.today()
+    aylar = {
+        1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 
+        5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos", 
+        9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"
+    }
+    gunler = {
+        0: "Pazartesi", 1: "Salı", 2: "Çarşamba", 3: "Perşembe", 
+        4: "Cuma", 5: "Cumartesi", 6: "Pazar"
+    }
+    gun_adi = gunler.get(simdi.weekday(), "")
+    ay_adi = aylar.get(simdi.month, "")
+    return f"{simdi.day} {ay_adi} {simdi.year}, {gun_adi}"
+
+# Üst Bilgi ve Başlık (Türkçe Tarih ile)
 st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
-st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
+st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-# SOL MENÜ (Okunabilir, net butonlar)
+# SOL MENÜ
 st.sidebar.markdown("### 📋 Ana Menü")
 
 menuler_listesi = [
@@ -155,7 +171,6 @@ menuler_listesi = [
 ]
 
 for m in menuler_listesi:
-    # Seçili olan menü turuncu/mavi (primary), seçilmeyenler gri tonda okunur buton
     btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
     if st.sidebar.button(m, use_container_width=True, type=btn_type):
         st.session_state.aktif_menu = m
@@ -163,7 +178,7 @@ for m in menuler_listesi:
 
 menu = st.session_state.aktif_menu
 
-# Yönetici Girişi ve Yeni Şifre Mekanizması (Ss123321)
+# Yönetici Girişi ve Şifre Mekanizması (Ss123321)
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔐 YÖNETİCİ GİRİŞİ")
 if not st.session_state.yonetici_aktif:
