@@ -492,7 +492,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 verileri_kaydet(st.session_state.girisler)
                 st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
 
-# YENİ: 3. ÜRÜN SİL / DÜZENLE
+# 3. ÜRÜN SİL / DÜZENLE (İstediğiniz uyarı mesajı eklendi)
 elif menu == "Ürün Sil / Düzenle":
     st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
     
@@ -504,22 +504,22 @@ elif menu == "Ürün Sil / Düzenle":
         if not st.session_state.girisler:
             st.info("Sistemde silinecek kayıt bulunmuyor.")
         else:
-            # Seçim için ürün kayıtlarını benzersiz ID ve ürün adıyla listeleyelim
             secenekler = [f"{g['id']} - {g['urun']} (Tarih: {g['tarih']}, Kalan: {g['kalan']} {g['birim']}, Fiyat: {g['fiyat']} TL)" for g in st.session_state.girisler]
             secilen_kayit_str = st.selectbox("Silmek İstediğiniz Kaydı / Faturayı Seçin", secenekler)
             
-            # Seçilen kaydın ID'sini bulalım
             secilen_id = secilen_kayit_str.split(" - ")[0]
-            
             ilgili_oge = next((g for g in st.session_state.girisler if g["id"] == secilen_id), None)
             
             if ilgili_oge:
                 st.warning(f"⚠️ **{ilgili_oge['urun']}** adlı kaydı (ID: {ilgili_oge['id']}, Miktar: {ilgili_oge['miktar']} {ilgili_oge['birim']}, Tarih: {ilgili_oge['tarih']}) silmek üzeresiniz.")
                 
                 if st.button("Seçilen Ürünü / Kaydı Kalıcı Olarak Sil", type="primary"):
+                    silinen_urun_adi = ilgili_oge['urun']
                     st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
                     verileri_kaydet(st.session_state.girisler)
-                    st.success(f"'{ilgili_oge['urun']}' kaydı başarıyla silindi!")
+                    
+                    # İstediğiniz uyarı mesajı
+                    st.success(f"✅ Ürün silinmiştir! ('{silinen_urun_adi}' sistemden kaldırıldı)")
                     st.rerun()
 
 # 4. FİRE / ZAYİAT GİRİŞİ
