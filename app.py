@@ -9,7 +9,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# İstediğiniz #375360 renk koduna sahip özel sol menü ve beyaz yazı tasarımı
+# İstediğiniz #182828 renk koduna sahip özel sol menü ve beyaz yazı tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
