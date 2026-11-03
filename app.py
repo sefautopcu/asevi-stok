@@ -172,7 +172,7 @@ st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
 # SOL MENÜ
-st.sidebar.markdown("### 📋 Ana Menü")
+st.sidebar.markdown('<p style="color: #FFFFFF !important; font-size: 16px; font-weight: bold; margin-bottom: 10px;">📋 Ana Menü</p>', unsafe_allow_html=True)
 
 menuler_listesi = [
     "Kurumsal Dashboard & Özet",
@@ -216,6 +216,10 @@ else:
             st.rerun()
 
 yonetici_modu = st.session_state.yonetici_aktif
+
+# Sol menünün en altına küçük puntolarla imza
+st.sidebar.markdown("---")
+st.sidebar.markdown('<p style="color: #94A3B8 !important; font-size: 11px; text-align: center; margin-top: 10px;">sefautopcu</p>', unsafe_allow_html=True)
 
 
 # Yardımcı Excel Oluşturucu Fonksiyon
@@ -316,7 +320,7 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_uretim_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Yemek Üretimi")
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
 
-    # 5'li Metrik Kartı Tasarımı (İstediğiniz gibi Toplam Stok Değeri eklendi)
+    # 5'li Metrik Kartı Tasarımı
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
@@ -340,7 +344,6 @@ if menu == "Kurumsal Dashboard & Özet":
             kat = g["kategori"]
             kategori_verileri[kat] = kategori_verileri.get(kat, 0.0) + g["kalan"]
         
-        # Etiketlerin uzunluk ve kesilme sorununu önlemek için net format
         formatli_kategori_dict = {f"{k} -> {v:.1f} Kg": v for k, v in kategori_verileri.items()}
         st.bar_chart(formatli_kategori_dict)
 
