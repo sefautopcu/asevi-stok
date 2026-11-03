@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve Stil Tasarımı (Radio butonlarını ve üst üste binmeleri gizleyen özel CSS)
+# Kurumsal Sol Menü ve Stil Tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -147,26 +147,36 @@ if "kullanim_loglari" not in st.session_state:
 if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
 
+# Oturum durumunda aktif menü takibi
+if "aktif_menu" not in st.session_state:
+    st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
+
 # Üst Bilgi ve Başlık
 st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ (Temiz açılır-kapanır akordeon yapı ve kutucuksuz menü elemanları)
-with st.sidebar.expander("📂 Ana Menü", expanded=True):
-    menu = st.radio(
-        "Menü Seçimi",
-        [
-            "Kurumsal Dashboard & Özet",
-            "Güncel Stok Durumu", 
-            "Yeni Mal Alımı / Fatura Ekle", 
-            "Fire / Zayiat Girişi", 
-            "Günlük Yemek Üretimi & Maliyet Raporu",
-            "Kullanım Takibi",
-            "Ürün Birim Fiyatları & Ay Analizi"
-        ],
-        label_visibility="collapsed"
-    )
+# SOL MENÜ (Tamamen temiz, buton tabanlı açılır-kapanır özel akordeon menü)
+st.sidebar.markdown("### 📂 Ana Menü")
+
+menuler_listesi = [
+    "Kurumsal Dashboard & Özet",
+    "Güncel Stok Durumu", 
+    "Yeni Mal Alımı / Fatura Ekle", 
+    "Fire / Zayiat Girişi", 
+    "Günlük Yemek Üretimi & Maliyet Raporu",
+    "Kullanım Takibi",
+    "Ürün Birim Fiyatları & Ay Analizi"
+]
+
+for m in menuler_listesi:
+    # Aktif menü seçiliyken butonu farklı renkte gösterelim
+    btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
+    if st.sidebar.button(m, use_container_width=True, type=btn_type):
+        st.session_state.aktif_menu = m
+        st.rerun()
+
+menu = st.session_state.aktif_menu
 
 # Yönetici Girişi ve Kilit Mekanizması sol menünün en altında
 st.sidebar.markdown("---")
@@ -236,17 +246,20 @@ if menu == "Kurumsal Dashboard & Özet":
         st.bar_chart(aylik_alimlar)
 
     st.markdown("---")
-    st.subheader("🚀 Çalışan Hızlı İşlem Kısayolları")
+    st.subheader("🚀 Hızlı İşlem Kısayolları")
     q1, q2, q3 = st.columns(3)
     with q1:
         if st.button("📦 Stok Durumuna Git", use_container_width=True):
-            st.info("Sol menüden 'Güncel Stok Durumu' seçeneğine tıklayabilirsiniz.")
+            st.session_state.aktif_menu = "Güncel Stok Durumu"
+            st.rerun()
     with q2:
         if st.button("🍲 Yemek Üretimi Yap", use_container_width=True):
-            st.info("Sol menüden 'Günlük Yemek Üretimi & Maliyet Raporu' seçeneğine tıklayabilirsiniz.")
+            st.session_state.aktif_menu = "Günlük Yemek Üretimi & Maliyet Raporu"
+            st.rerun()
     with q3:
         if st.button("📋 Birim Fiyatları İncele", use_container_width=True):
-            st.info("Sol menüden 'Ürün Birim Fiyatları & Ay Analizi' seçeneğine tıklayabilirsiniz.")
+            st.session_state.aktif_menu = "Ürün Birim Fiyatları & Ay Analizi"
+            st.rerun()
 
 
 # 1. GÜNCEL STOK DURUMU
