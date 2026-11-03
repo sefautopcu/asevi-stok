@@ -450,8 +450,9 @@ elif menu == "Güncel Stok Durumu":
         if toplam_kalan <= 10.0:
             kritik_urunler.append((u, toplam_kalan, birim, depo))
 
+    # expanded=False yapılarak kapalı gelmesi sağlandı
     if kritik_urunler:
-        with st.expander("⚠️ DİKKAT: Kritik Seviyedeki Veya Tükenen Ürünler!", expanded=True):
+        with st.expander("⚠️ DİKKAT: Kritik Seviyedeki Veya Tükenen Ürünler!", expanded=False):
             for ku, km, kb, kd in kritik_urunler:
                 st.warning(f"**{ku}** stoğu azalmıştır! Kalan Miktar: **{km} {kb}** ({kd})")
 
