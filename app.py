@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve Stil Tasarımı (Buton renkleri ve okunabilirlik ayarlandı)
+# Kurumsal Sol Menü ve Stil Tasarımı
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -218,6 +218,48 @@ else:
 yonetici_modu = st.session_state.yonetici_aktif
 
 
+# Yardimci Excel Oluşturucu Fonksiyon (Hataları önlemek için)
+def tablo_to_excel_bytes(veri_listesi, baslik_str):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Rapor"
+    ws.views.sheetView[0].showGridLines = True
+    
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
+    regular_font = Font(name="Calibri", size=11)
+    thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
+
+    ws.cell(row=1, column=1, value=baslik_str).font = title_font
+    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.date.today())}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
+
+    if not veri_listesi:
+        excel_buffer = io.BytesIO()
+        wb.save(excel_buffer)
+        return excel_buffer.getvalue()
+
+    headers = list(veri_listesi[0].keys())
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col_idx, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    row_idx = 5
+    for item in veri_listesi:
+        for col_idx, h in enumerate(headers, 1):
+            val = item.get(h, "")
+            c = ws.cell(row=row_idx, column=col_idx, value=val)
+            c.font = regular_font
+            c.border = thin_border
+        row_idx += 1
+
+    excel_buffer = io.BytesIO()
+    wb.save(excel_buffer)
+    return excel_buffer.getvalue()
+
+
 # 0. KURUMSAL DASHBOARD & ÖZET
 if menu == "Kurumsal Dashboard & Özet":
     st.header("📊 Kurumsal Yönetim Dashboard & Genel Bakış")
@@ -287,50 +329,29 @@ elif menu == "Güncel Stok Durumu":
     col_baslik, col_btn_excel, col_btn_pdf = st.columns([2, 1, 1])
     with col_baslik:
         st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
-    
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Stok Durumu"
-    ws.views.sheetView[0].showGridLines = True
-    
-    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
-    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    title_font = Font(name="Calibri", size=14, bold=True, color="1E3A8A")
-    regular_font = Font(name="Calibri", size=11)
-    thin_border = Border(left=Side(style='thin', color='CBD5E0'), right=Side(style='thin', color='CBD5E0'), top=Side(style='thin', color='CBD5E0'), bottom=Side(style='thin', color='CBD5E0'))
-
-    ws.cell(row=1, column=1, value="Aziziye Aşevi - Güncel Stok Raporu").font = title_font
-    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.date.today())}").font = Font(name="Calibri", size=11, italic=True, color="4A5568")
-
-    headers = ["Ürün Adı", "Kategori", "Birim", "Kalan Miktar", "Depo Yeri"]
-    for col_idx, h in enumerate(headers, 1):
-        cell = ws.cell(row=4, column=col_idx, value=h)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
 
     benzersiz_urunler_Excel = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
-    row_idx = 5
+    excel_liste = []
+    pdf_html = f"<html><head><meta charset='utf-8'><title>Stok Raporu</title></head><body style='font-family: Arial;'><h2>Aziziye Aşevi - Güncel Stok Raporu</h2><p>Tarih: {str(datetime.date.today())}</p><hr/><table border='1' cellspacing='0' cellpadding='5'><tr><th>Ürün Adı</th><th>Kategori</th><th>Birim</th><th>Kalan Miktar</th><th>Depo Yeri</th></tr>"
+
     for u in benzersiz_urunler_Excel:
         toplam_kalan_ex = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
         kategori_ex = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
         birim_ex = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
         depo_ex = next((g["depo"] for g in st.session_state.girisler if g["urun"] == u), "Merkez Depo")
         
-        ws.cell(row=row_idx, column=1, value=u)
-        ws.cell(row=row_idx, column=2, value=kategori_ex)
-        ws.cell(row=row_idx, column=3, value=birim_ex)
-        ws.cell(row=row_idx, column=4, value=toplam_kalan_ex)
-        ws.cell(row=row_idx, column=5, value=depo_ex)
-        for col_idx in range(1, 6):
-            c = ws.cell(row=row_idx, column=col_idx)
-            c.font = regular_font
-            c.border = thin_border
-        row_idx += 1
+        excel_liste.append({
+            "Ürün Adı": u,
+            "Kategori": kategori_ex,
+            "Birim": birim_ex,
+            "Kalan Miktar": toplam_kalan_ex,
+            "Depo Yeri": depo_ex
+        })
+        pdf_html += f"<tr><td>{u}</td><td>{kategori_ex}</td><td>{birim_ex}</td><td>{toplam_kalan_ex}</td><td>{depo_ex}</td></tr>"
+    
+    pdf_html += "</table></body></html>"
 
-    excel_buffer = io.BytesIO()
-    wb.save(excel_buffer)
-    excel_data = excel_buffer.getvalue()
+    excel_data = tablo_to_excel_bytes(excel_liste, "Aziziye Aşevi - Güncel Stok Raporu")
 
     with col_btn_excel:
         st.download_button(
@@ -340,17 +361,12 @@ elif menu == "Güncel Stok Durumu":
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-    pdf_metin = "AZIZIYE ASEVI - GUNCEL STOK RAPORU\nTarih: " + str(datetime.date.today()) + "\n----------------------------------------\n"
-    for u in benzersiz_urunler_Excel:
-        tk = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
-        pdf_metin += f"- {u}: {tk}\n"
-
     with col_btn_pdf:
         st.download_button(
             label="🟥 PDF İndir",
-            data=pdf_metin.encode("utf-8"),
-            file_name="asevi_guncel_stok_raporu.txt",
-            mime="text/plain"
+            data=pdf_html.encode("utf-8"),
+            file_name="asevi_guncel_stok_raporu.html", # Tarayıcıda doğrudan düzgün tablo şeklinde açılır PDF alternatifi
+            mime="text/html"
         )
 
     depolar = ["Tümü", "Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"]
@@ -470,10 +486,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_btn_ex, col_btn_pd = st.columns([2, 1, 1])
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi ve Maliyet Hesaplama")
-    with col_btn_ex:
-        st.download_button("🟩 Excel Raporu", data=b"Excel Raporu", file_name="yemek_maliyet_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    with col_btn_pd:
-        st.download_button("🟥 PDF Raporu", data=b"Yemek Maliyet Raporu PDF", file_name="yemek_maliyet_raporu.txt", mime="text/plain")
     
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
@@ -503,7 +515,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         st.subheader("Seçilen Malzemeler")
         toplam_maliyet = 0.0
         islenmis_sepet = []
-        
+        excel_sepet_liste = []
+        pdf_sepet_html = f"<html><head><meta charset='utf-8'><title>Yemek Maliyet Raporu</title></head><body style='font-family: Arial;'><h2>Aziziye Aşevi - Yemek Maliyet Raporu</h2><p>Yemek: {yemek_adi} | Kişi Sayısı: {kisi_sayisi}</p><hr/><table border='1' cellspacing='0' cellpadding='5'><tr><th>Malzeme</th><th>Kategori</th><th>Birim</th><th>Miktar</th><th>Birim Maliyet (₺)</th><th>Toplam Maliyet (₺)</th></tr>"
+
         for item in st.session_state.sepet:
             urun = item["urun"]
             istenen = item["miktar"]
@@ -529,6 +543,15 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     
             toplam_maliyet += maliyet
             islenmis_sepet.append({"Malzeme": urun, "Kategori": kategori, "Birim": birim, "Miktar": istenen, "Birim Maliyet": ilk_fiyat, "Toplam Maliyet": maliyet, "Depo": depo})
+            excel_sepet_liste.append({"Malzeme": urun, "Kategori": kategori, "Birim": birim, "Miktar": istenen, "Birim Maliyet (TL)": round(ilk_fiyat, 2), "Toplam Maliyet (TL)": round(maliyet, 2)})
+            pdf_sepet_html += f"<tr><td>{urun}</td><td>{kategori}</td><td>{birim}</td><td>{istenen}</td><td>{ilk_fiyat:.2f}</td><td>{maliyet:.2f}</td></tr>"
+
+        pdf_sepet_html += f"</table><p><b>Toplam Maliyet:</b> {toplam_maliyet:.2f} TL | <b>Kişi Başı Maliyet:</b> {(toplam_maliyet/kisi_sayisi if kisi_sayisi>0 else 0):.2f} TL</p></body></html>"
+
+        with col_btn_ex:
+            st.download_button("🟩 Excel Raporu", data=tablo_to_excel_bytes(excel_sepet_liste, f"Yemek Maliyet Raporu - {yemek_adi}"), file_name="yemek_maliyet_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        with col_btn_pd:
+            st.download_button("🟥 PDF Raporu", data=pdf_sepet_html.encode("utf-8"), file_name="yemek_maliyet_raporu.html", mime="text/html")
             
         for row in islenmis_sepet:
             st.write(f"• **{row['Malzeme']}** - {row['Miktar']} {row['Birim']} | Birim Fiyat: {row['Birim Maliyet']:.2f} ₺ | Toplam: **{row['Toplam Maliyet']:.2f} ₺**")
@@ -570,16 +593,17 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             loglari_kaydet(st.session_state.kullanim_loglari)
             st.success("Üretim kaydedildi ve stoktan düşüldü!")
             st.session_state.sepet = []
+    else:
+        with col_btn_ex:
+            st.download_button("🟩 Excel Raporu", data=tablo_to_excel_bytes([], "Boş Rapor"), file_name="yemek_maliyet_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        with col_btn_pd:
+            st.download_button("🟥 PDF Raporu", data=b"<html><body>Henuz malzeme eklenmedi.</body></html>", file_name="yemek_maliyet_raporu.html", mime="text/html")
 
 # 5. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
 elif menu == "Kullanım Takibi":
     col_b_k, col_ex_k, col_pd_k = st.columns([2, 1, 1])
     with col_b_k:
         st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
-    with col_ex_k:
-        st.download_button("🟩 Excel İndir", data=b"Kullanim Raporu Excel", file_name="kullanim_takip_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="excel_kullanim")
-    with col_pd_k:
-        st.download_button("🟥 PDF İndir", data=b"Kullanim Takip Raporu PDF", file_name="kullanim_takip_raporu.txt", mime="text/plain", key="pdf_kullanim")
             
     st.markdown("Eylül ve Ekim ayı fiyat değişimleri dahil olmak üzere ürünlerin tüketim miktarlarını, fire oranlarını ve toplam harcanan bütçeyi inceleyin.")
     
@@ -623,6 +647,25 @@ elif menu == "Kullanım Takibi":
     
     genel_toplam_tutar = toplam_kullanim_tutar + toplam_fire_tutar
 
+    tablo_verisi = []
+    pdf_takip_html = f"<html><head><meta charset='utf-8'><title>Kullanım Takip Raporu</title></head><body style='font-family: Arial;'><h2>Aziziye Aşevi - {secilen_urun_takip} Raporu</h2><hr/><table border='1' cellspacing='0' cellpadding='5'><tr><th>Tarih</th><th>İşlem Türü</th><th>Miktar</th><th>Toplam Tutar</th></tr>"
+
+    for l in urun_loglari:
+        tablo_verisi.append({
+            "Tarih": l["tarih"],
+            "İşlem Türü": l["tur"],
+            "Miktar": l["miktar"],
+            "Toplam Tutar (₺)": f"{l['tutar']:.2f} ₺"
+        })
+        pdf_takip_html += f"<tr><td>{l['tarih']}</td><td>{l['tur']}</td><td>{l['miktar']}</td><td>{l['tutar']:.2f} TL</td></tr>"
+    
+    pdf_takip_html += "</table></body></html>"
+
+    with col_ex_k:
+        st.download_button("🟩 Excel İndir", data=tablo_to_excel_bytes(tablo_verisi, f"Kullanım Raporu - {secilen_urun_takip}"), file_name="kullanim_takip_raporu.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="excel_kullanim")
+    with col_pd_k:
+        st.download_button("🟥 PDF İndir", data=pdf_takip_html.encode("utf-8"), file_name="kullanim_takip_raporu.html", mime="text/html", key="pdf_kullanim")
+
     st.markdown("---")
     st.subheader(f"📌 {secilen_urun_takip} - Özet Performans Kartları")
     
@@ -640,14 +683,6 @@ elif menu == "Kullanım Takibi":
     st.subheader("📋 Detaylı İşlem Geçmişi Tablosu")
     
     if urun_loglari:
-        tablo_verisi = []
-        for l in urun_loglari:
-            tablo_verisi.append({
-                "Tarih": l["tarih"],
-                "İşlem Türü": l["tur"],
-                "Miktar": l["miktar"],
-                "Toplam Tutar (₺)": f"{l['tutar']:.2f} ₺"
-            })
         st.dataframe(tablo_verisi, use_container_width=True)
     else:
         st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı. (Yemek üretimi veya fire girişi yapıldıkça bu alan otomatik dolacaktır).")
@@ -657,27 +692,34 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_f, col_ex_f, col_pd_f = st.columns([2, 1, 1])
     with col_b_f:
         st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
-    with col_ex_f:
-        st.download_button("🟩 Excel İndir", data=b"Birim Fiyatlar Excel", file_name="urun_birim_fiyatlari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="key_excel_fiyat")
-    with col_pd_f:
-        st.download_button("🟥 PDF İndir", data=b"Birim Fiyatlar PDF", file_name="urun_birim_fiyatlari.txt", mime="text/plain", key="key_pdf_fiyat")
         
     st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
 
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     fiyat_tablosu_verisi = []
+    pdf_fiyat_html = "<html><head><meta charset='utf-8'><title>Birim Fiyatlar</title></head><body style='font-family: Arial;'><h2>Aziziye Aşevi - Ürün Birim Fiyatları</h2><hr/><table border='1' cellspacing='0' cellpadding='5'><tr><th>Ürün Adı</th><th>Birim Fiyat Eylül</th><th>Birim Fiyat Ekim</th></tr>"
 
     for u in benzersiz_urunler:
         eylul_kayitlari = [g["fiyat"] for g in st.session_state.girisler if g["urun"] == u and g["tarih"].startswith("2026-09")]
-        eylul_fiyat = f"₺{eylul_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if eylul_kayitlari else "-"
+        eylul_fiyat_str = f"₺{eylul_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if eylul_kayitlari else "-"
+        eylul_val = eylul_kayitlari[0] if eylul_kayitlari else 0.0
 
         ekim_kayitlari = [g["fiyat"] for g in st.session_state.girisler if g["urun"] == u and g["tarih"].startswith("2026-10")]
-        ekim_fiyat = f"₺{ekim_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if ekim_kayitlari else "-"
+        ekim_fiyat_str = f"₺{ekim_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if ekim_kayitlari else "-"
+        ekim_val = ekim_kayitlari[0] if ekim_kayitlari else 0.0
 
         fiyat_tablosu_verisi.append({
             "Ürün Adı": u,
-            "Birim Fiyat Eylül": eylul_fiyat,
-            "Birim Fiyat Ekim": ekim_fiyat
+            "Birim Fiyat Eylül": eylul_fiyat_str,
+            "Birim Fiyat Ekim": ekim_fiyat_str
         })
+        pdf_fiyat_html += f"<tr><td>{u}</td><td>{eylul_fiyat_str}</td><td>{ekim_fiyat_str}</td></tr>"
+
+    pdf_fiyat_html += "</table></body></html>"
+
+    with col_ex_f:
+        st.download_button("🟩 Excel İndir", data=tablo_to_excel_bytes(fiyat_tablosu_verisi, "Aziziye Aşevi - Ürün Birim Fiyatları"), file_name="urun_birim_fiyatlari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="key_excel_fiyat")
+    with col_pd_f:
+        st.download_button("🟥 PDF İndir", data=pdf_fiyat_html.encode("utf-8"), file_name="urun_birim_fiyatlari.html", mime="text/html", key="key_pdf_fiyat")
 
     st.dataframe(fiyat_tablosu_verisi, use_container_width=True)
