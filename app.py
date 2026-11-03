@@ -820,6 +820,27 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 })
                 verileri_kaydet(st.session_state.girisler)
                 st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi. (İşlemi Yapan: {islem_yapan_kisi} - Zaman: {tarih_giris})")
+                st.rerun()
+
+    st.markdown("---")
+    st.subheader("📋 Mal Alımı / Fatura Log Kayıtları Arşivi")
+    if st.session_state.girisler:
+        fatura_log_tablosu = []
+        for g in reversed(st.session_state.girisler):
+            fatura_log_tablosu.append({
+                "Kayıt ID": g.get("id", "-"),
+                "Tarih / Saat": g.get("tarih", "-"),
+                "Ürün Adı": g.get("urun", "-"),
+                "Kategori": g.get("kategori", "-"),
+                "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
+                "Birim Fiyat": f"{g.get('fiyat', 0):,.2f} ₺",
+                "Toplam Tutar": f"{(g.get('miktar', 0) * g.get('fiyat', 0)):,.2f} ₺",
+                "Depo Yeri": g.get("depo", "-"),
+                "İşlemi Yapan": g.get("islem_yapan", "admin")
+            })
+        st.dataframe(fatura_log_tablosu, use_container_width=True)
+    else:
+        st.info("Kayıtlı mal alımı faturası bulunmuyor.")
 
 
 # 3. ÜRÜN SİL / DÜZENLE
