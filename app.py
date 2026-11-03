@@ -105,7 +105,7 @@ KALORI_TABLOSU = {
 
 def urun_kalori_hesapla(urun_adi, miktar):
     urun_upper = urun_adi.upper()
-     birim_kalori = 100 # Varsayılan
+    birim_kalori = 100  # Varsayılan
     for k, v in KALORI_TABLOSU.items():
         if k in urun_upper:
             birim_kalori = v
