@@ -6,15 +6,16 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-# Sayfa Yapılandırması (İstediğiniz yeni isimle güncellendi)
+# Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Gönderdiğiniz görseldeki antrasit/koyu gri tonlarında modern sol menü tasarımı
+# Kurumsal Sol Menü ve Okunabilir Tertemiz Yazı Tasarımı (Çakışmaları önleyen özel CSS)
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
     .stSidebar { background-color: #202124 !important; padding-top: 15px; }
-    .stSidebar * { color: #E8EAED !important; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    /* Sol menü genel metinleri beyaz ve net */
+    .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { color: #E8EAED !important; font-size: 14px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     h1, h2, h3 { color: #0F172A; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     </style>
 """, unsafe_allow_html=True)
@@ -112,15 +113,14 @@ st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ: Açılır kapanır Genel İşlemler
+# SOL MENÜ: Çakışmaları önleyen, kurumsal ve okunaklı radio menü yapısı
 st.sidebar.markdown("### 📋 MENÜLER")
 
-with st.sidebar.expander("📂 GENEL İŞLEMLER", expanded=True):
-    menu = st.radio(
-        "Genel İşlemler",
-        ["Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle", "Fire / Zayiat Girişi", "Günlük Yemek Üretimi & Maliyet Raporu"],
-        label_visibility="collapsed"
-    )
+menu = st.sidebar.radio(
+    "Genel İşlemler",
+    ["Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle", "Fire / Zayiat Girişi", "Günlük Yemek Üretimi & Maliyet Raporu"],
+    label_visibility="visible"
+)
 
 # Yönetici Girişi ve Kilit Mekanizması sol menünün en altında
 st.sidebar.markdown("---")
