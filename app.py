@@ -133,34 +133,33 @@ if "kullanim_loglari" not in st.session_state:
 if "yonetici_aktif" not in st.session_state:
     st.session_state.yonetici_aktif = False
 
-# Üst Bilgi ve Başlık (İsminiz kaldırıldı, sade "Hoş geldiniz")
+# Üst Bilgi ve Başlık
 st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ
-st.sidebar.markdown("### 📋 MENÜLER")
-
-menu = st.sidebar.radio(
-    "Ana Menü",
-    [
-        "Kurumsal Dashboard & Özet",
-        "Güncel Stok Durumu", 
-        "Yeni Mal Alımı / Fatura Ekle", 
-        "Fire / Zayiat Girişi", 
-        "Günlük Yemek Üretimi & Maliyet Raporu",
-        "Kullanım Takibi",
-        "Ürün Birim Fiyatları & Ay Analizi"
-    ],
-    label_visibility="visible"
-)
+# SOL MENÜ (İstediğiniz gibi "MENÜLER" yazısı kaldırıldı ve açılır-kapanır akordeon yapıya bağlandı)
+with st.sidebar.expander("📂 Ana Menü", expanded=True):
+    menu = st.radio(
+        "Menü Seçimi",
+        [
+            "Kurumsal Dashboard & Özet",
+            "Güncel Stok Durumu", 
+            "Yeni Mal Alımı / Fatura Ekle", 
+            "Fire / Zayiat Girişi", 
+            "Günlük Yemek Üretimi & Maliyet Raporu",
+            "Kullanım Takibi",
+            "Ürün Birim Fiyatları & Ay Analizi"
+        ],
+        label_visibility="collapsed"
+    )
 
 # Yönetici Girişi ve Kilit Mekanizması sol menünün en altında
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔐 YÖNETİCİ GİRİŞİ")
 if not st.session_state.yonetici_aktif:
     sifre_input = st.sidebar.text_input("Yönetici Şifresi", type="password", key="sifre_kutusu", label_visibility="collapsed", placeholder="Şifre giriniz...")
-    if sifre_input == "Ss123321":
+    if sifre_input == "sydv25":
         st.session_state.yonetici_aktif = True
         st.rerun()
 else:
@@ -175,12 +174,11 @@ else:
 yonetici_modu = st.session_state.yonetici_aktif
 
 
-# 0. KURUMSAL DASHBOARD & ÖZET (DOĞRULANMIŞ GERÇEK VERİLERLE)
+# 0. KURUMSAL DASHBOARD & ÖZET
 if menu == "Kurumsal Dashboard & Özet":
     st.header("📊 Kurumsal Yönetim Dashboard & Genel Bakış")
     st.markdown("Depo girişleri, gerçek yemek üretimleri, fire oranları ve aylık maliyet dağılımları:")
 
-    # Doğru ve gerçek veritabanı hesaplamaları
     toplam_stok_kalemi = len(set(g["urun"] for g in st.session_state.girisler))
     toplam_envanter_miktari = sum(g["kalan"] for g in st.session_state.girisler)
     toplam_envanter_maliyeti = sum(g["kalan"] * g["fiyat"] for g in st.session_state.girisler)
@@ -189,7 +187,6 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_uretim_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Yemek Üretimi")
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
 
-    # Özet Kartlar
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
@@ -202,7 +199,6 @@ if menu == "Kurumsal Dashboard & Özet":
 
     st.markdown("---")
     
-    # Gerçek verilere göre güncellenmiş grafikler
     col_g1, col_g2 = st.columns(2)
     
     with col_g1:
@@ -297,7 +293,6 @@ elif menu == "Güncel Stok Durumu":
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-    # Düzgün çalışan temiz PDF içeriği
     pdf_metin = "AZIZIYE ASEVI - GUNCEL STOK RAPORU\nTarih: " + str(datetime.date.today()) + "\n----------------------------------------\n"
     for u in benzersiz_urunler_Excel:
         tk = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
@@ -307,7 +302,7 @@ elif menu == "Güncel Stok Durumu":
         st.download_button(
             label="🟥 PDF İndir",
             data=pdf_metin.encode("utf-8"),
-            file_name="asevi_guncel_stok_raporu.txt", # Tarayıcıda sorunsuz açılması için güvenli metin tabanlı PDF formatı
+            file_name="asevi_guncel_stok_raporu.txt",
             mime="text/plain"
         )
 
