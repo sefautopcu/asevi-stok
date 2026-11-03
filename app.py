@@ -565,7 +565,6 @@ if menu == "Kurumsal Dashboard & Özet":
 
     st.markdown("---")
     
-    # 1. KART: Referans görseldeki gibi Kategori Dağılımı ve Donut Grafik Kurgusu
     st.markdown("### 🍩 Kategori Bazlı Stok Dağılımı & Analiz")
     col_k1, col_k2 = st.columns([1, 1])
     
@@ -577,7 +576,6 @@ if menu == "Kurumsal Dashboard & Özet":
         
         df_kat = pd.DataFrame(list(kategori_verileri.items()), columns=["Kategori", "Kalan Stok"])
         
-        # Referans görseldeki gibi şık Donut (Halka) Grafik
         fig_donut = px.pie(
             df_kat, 
             names="Kategori", 
@@ -604,7 +602,6 @@ if menu == "Kurumsal Dashboard & Özet":
 
     st.markdown("---")
     
-    # 2. KART: Referans görseldeki gibi Ay Bazlı Alım ve Ciro Karşılaştırması
     st.markdown("### 📊 Aylık Mal Alım & Bütçe Dağılımı")
     col_a1, col_a2 = st.columns([1, 1])
     
@@ -617,7 +614,6 @@ if menu == "Kurumsal Dashboard & Özet":
             "Toplam Alım": [eylul_tutar, ekim_tutar]
         })
         
-        # Referans görseldeki modern yumuşak çubuk grafik
         fig_ay = px.bar(
             df_ay, 
             x="Dönem", 
@@ -1108,10 +1104,16 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 
 # 7. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
 elif menu == "Personel & Çalışma Süresi Takibi":
-    st.header("👥 Personel Giriş/Çıkış, İzin ve Resmi Tatil Yönetimi")
-    st.markdown("Personel bilgilerini yönetin, çalışma sürelerini hafta sonları ve resmi tatiller hariç hesaplayın, yıllık izin girin/iptal edin ve resmi tatilleri düzenleyin.")
+    st.header("👥 Personel Giriş/Çıkış, İzin, Saatlik İzin ve Resmi Tatil Yönetimi")
+    st.markdown("Personel bilgilerini yönetin, günlük ve saatlik izinleri kaydedin, çalışma sürelerini resmi tatiller ve hafta sonları hariç hesaplayıp Excel'e aktarın.")
 
-    tab_p1, tab_p2, tab_p3, tab_p4 = st.tabs(["📋 Personel Listesi & Ekle", "🏖️ Yıllık İzin İşlemleri", "⏱️ Çalışma Süresi Raporları", "🎉 Resmi Tatiller Yönetimi"])
+    tab_p1, tab_p2, tab_p3, tab_p4, tab_p5 = st.tabs([
+        "📋 Personel Listesi & Ekle", 
+        "🏖️ Yıllık İzin İşlemleri", 
+        "⏰ Saatlik İzin İşlemleri", 
+        "⏱️ Çalışma Süresi Raporları", 
+        "🎉 Resmi Tatiller Yönetimi"
+    ])
 
     with tab_p1:
         if yonetici_modu:
@@ -1132,7 +1134,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         "is_baslangic": str(p_giris),
                         "aktif": p_devam,
                         "is_cikis": str(p_cikis) if not p_devam else "-",
-                        "izinler": []
+                        "izinler": [],
+                        "saatlik_izinler": []
                     })
                     personelleri_kaydet(st.session_state.personeller)
                     st.success(f"Başarılı! {p_ad} sisteme eklendi.")
@@ -1141,9 +1144,13 @@ elif menu == "Personel & Çalışma Süresi Takibi":
             st.info("👁️ Gözlemci modundasınız. Personel eklemek için sol menüden yönetici şifresini giriniz.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Personel Listesi")
+        col_pb1, col_pb2 = st.columns([2, 2])
+        with col_pb1:
+            st.subheader("📋 Kayıtlı Personel Listesi")
+
         if st.session_state.personeller:
             p_liste_gosterim = []
+            excel_personel_ozet = []
             for p in st.session_state.personeller:
                 b_tarih = datetime.datetime.strptime(p["is_baslangic"], "%Y-%m-%d").date()
                 if p["aktif"] or p["is_cikis"] == "-":
@@ -1153,6 +1160,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 
                 net_gun, izin_gunu = net_calisma_gunu_hesapla(b_tarih, b_bitis, p.get("izinler", []), st.session_state.resmi_tatiller)
                 
+                toplam_saatlik_izin_adet = len(p.get("saatlik_izinler", []))
+
                 p_liste_gosterim.append({
                     "Kayıt No": p["id"],
                     "Adı Soyadı": p["ad_soyad"],
@@ -1160,9 +1169,26 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     "İşe Başlama": p["is_baslangic"],
                     "İşten Çıkış": p["is_cikis"],
                     "Durum": "Çalışıyor" if p["aktif"] else "Ayrıldı",
-                    "Kullanılan İzin (Gün)": izin_gunu,
+                    "İzin Gün Sayısı": izin_gunu,
+                    "Saatlik İzin Adeti": toplam_saatlik_izin_adet,
                     "Net Çalışma (Gün)": net_gun
                 })
+                excel_personel_ozet.append({
+                    "Kayıt No": p["id"],
+                    "Adı Soyadı": p["ad_soyad"],
+                    "Görevi": p["gorev"],
+                    "İşe Başlama": p["is_baslangic"],
+                    "Durum": "Çalışıyor" if p["aktif"] else "Ayrıldı",
+                    "İzin Gün Sayısı": izin_gunu,
+                    "Saatlik İzin Adeti": toplam_saatlik_izin_adet,
+                    "Net Çalışma Gün": net_gun
+                })
+
+            excel_p_bytes = tablo_to_excel_bytes(excel_personel_ozet, "Personel Özet Listesi")
+            pdf_p_bytes = tablo_to_html_pdf_bytes("Personel Özet Listesi", excel_personel_ozet)
+            with col_pb2:
+                ortak_indirme_alani(excel_p_bytes, pdf_p_bytes, "personel_liste_raporu", "p_liste_indir")
+
             st.dataframe(p_liste_gosterim, use_container_width=True)
             
             if yonetici_modu:
@@ -1244,9 +1270,102 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 st.info("Kayıtlı izin bulunmuyor.")
 
     with tab_p3:
+        st.subheader("⏰ Saatlik İzin Girişi ve Yönetimi")
+        st.markdown("Personelinize ait tarih ve saat aralığı seçerek saatlik izinler tanımlayabilir, bu verileri Excel'e aktarabilirsiniz.")
+        
+        if not st.session_state.personeller:
+            st.warning("Önce personel kaydı yapmalısınız.")
+        else:
+            p_adlar_s = {p["ad_soyad"]: p for p in st.session_state.personeller}
+            secilen_p_saat_adi = st.selectbox("Saatlik İzin Verilecek Personel", list(p_adlar_s.keys()), key="saatlik_p_sec")
+            secilen_p_saat_obj = p_adlar_s[secilen_p_saat_adi]
+
+            col_s_ekle, col_s_sil = st.columns(2)
+
+            with col_s_ekle:
+                if yonetici_modu:
+                    with st.form("saatlik_izin_ekle_form"):
+                        st.markdown("**➕ Yeni Saatlik İzin Ekle**")
+                        s_tarih = st.date_input("İzin Tarihi", datetime.date.today())
+                        
+                        col_saat1, col_saat2 = st.columns(2)
+                        with col_saat1:
+                            s_bas_saat = st.time_input("Başlangıç Saati", datetime.time(9, 0))
+                        with col_saat2:
+                            s_bit_saat = st.time_input("Bitiş Saati", datetime.time(12, 0))
+                            
+                        s_aciklama = st.text_input("Açıklama / Gerekçe", "Örn: Özel İş / Doktor")
+                        
+                        s_ekle_btn = st.form_submit_button("Saatlik İzni Kaydet")
+                        if s_ekle_btn:
+                            if s_bas_saat >= s_bit_saat:
+                                st.error("Başlangıç saati bitiş saatinden büyük veya eşit olamaz!")
+                            else:
+                                yeni_s_id = f"S-IZN-{datetime.datetime.now().strftime('%H%M%S')}"
+                                secilen_p_saat_obj.setdefault("saatlik_izinler", []).append({
+                                    "id": yeni_s_id,
+                                    "tarih": str(s_tarih),
+                                    "baslangic_saat": str(s_bas_saat),
+                                    "bitis_saat": str(s_bit_saat),
+                                    "aciklama": s_aciklama
+                                })
+                                personelleri_kaydet(st.session_state.personeller)
+                                st.success(f"{secilen_p_saat_adi} için saatlik izin başarıyla kaydedildi!")
+                                st.rerun()
+                else:
+                    st.info("👁️ Gözlemci modundasınız. Saatlik izin eklemek için yönetici şifresini giriniz.")
+
+            with col_s_sil:
+                if yonetici_modu:
+                    with st.form("saatlik_izin_sil_form"):
+                        st.markdown("**🗑️ Saatlik İzni İptal Et / Sil**")
+                        mevcut_saatlik = secilen_p_saat_obj.get("saatlik_izinler", [])
+                        if mevcut_saatlik:
+                            s_secenekler = [f"{sz['id']} | Tarih: {sz['tarih']} ({sz['baslangic_saat']} - {sz['bitis_saat']}) - {sz['aciklama']}" for sz in mevcut_saatlik]
+                            secilen_s_iptal = st.selectbox("İptal Edilecek İzni Seçin", s_secenekler)
+                            s_sil_btn = st.form_submit_button("Seçilen Saatlik İzni Sil", type="primary")
+                            
+                            if s_sil_btn:
+                                s_iptal_id = secilen_s_iptal.split(" | ")[0]
+                                secilen_p_saat_obj["saatlik_izinler"] = [sz for sz in mevcut_saatlik if sz["id"] != s_iptal_id]
+                                personelleri_kaydet(st.session_state.personeller)
+                                st.success("Saatlik izin silindi!")
+                                st.rerun()
+                        else:
+                            st.info("Kayıtlı saatlik izin bulunmuyor.")
+                else:
+                    st.info("👁️ Gözlemci modundasınız.")
+
+            st.markdown("---")
+            col_stitle, col_sindir = st.columns([2, 2])
+            with col_stitle:
+                st.markdown(f"**📌 {secilen_p_saat_adi} - Saatlik İzin Geçmişi:**")
+            
+            saatlik_liste_tablo = []
+            for sz in secilen_p_saat_obj.get("saatlik_izinler", []):
+                saatlik_liste_tablo.append({
+                    "Kayıt No": sz["id"],
+                    "Personel": secilen_p_saat_adi,
+                    "Tarih": sz["tarih"],
+                    "Başlangıç Saati": sz["baslangic_saat"],
+                    "Bitiş Saati": sz["bitis_saat"],
+                    "Açıklama": sz["aciklama"]
+                })
+
+            if saatlik_liste_tablo:
+                ex_s_bytes = tablo_to_excel_bytes(saatlik_liste_tablo, f"Saatlik İzin Raporu - {secilen_p_saat_adi}")
+                pdf_s_bytes = tablo_to_html_pdf_bytes(f"Saatlik İzin Raporu - {secilen_p_saat_adi}", saatlik_liste_tablo)
+                with col_sindir:
+                    ortak_indirme_alani(ex_s_bytes, pdf_s_bytes, f"saatlik_izin_{secilen_p_saat_adi}", "saatlik_indir_btn")
+
+                st.dataframe(saatlik_liste_tablo, use_container_width=True)
+            else:
+                st.info("Kayıtlı saatlik izin bulunmuyor.")
+
+    with tab_p4:
         col_b_pr, col_indir_pr = st.columns([2, 2])
         with col_b_pr:
-            st.subheader("⏱️ Personel Çalışma Süresi Özeti")
+            st.subheader("⏱️ Personel Çalışma Süresi Özeti & Excel Dökümü")
             
         rapor_listesi = []
         excel_personel_liste = []
@@ -1259,12 +1378,15 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     b_bitis = datetime.datetime.strptime(p["is_cikis"], "%Y-%m-%d").date()
                 
                 net_gun, izin_gunu = net_calisma_gunu_hesapla(b_tarih, b_bitis, p.get("izinler", []), st.session_state.resmi_tatiller)
+                saatlik_adet = len(p.get("saatlik_izinler", []))
+
                 rapor_listesi.append({
                     "Adı Soyadı": p["ad_soyad"],
                     "Görevi": p["gorev"],
                     "İşe Başlama": p["is_baslangic"],
                     "İşten Çıkış": p["is_cikis"],
-                    "İzin Gün Sayısı": izin_gunu,
+                    "Yıllık İzin (Gün)": izin_gunu,
+                    "Saatlik İzin Adeti": saatlik_adet,
                     "Net Çalışma Süresi (Gün)": net_gun
                 })
                 excel_personel_liste.append({
@@ -1272,7 +1394,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     "Görevi": p["gorev"],
                     "İşe Başlama": p["is_baslangic"],
                     "İşten Çıkış": p["is_cikis"],
-                    "İzin Gün Sayısı": izin_gunu,
+                    "Yıllık İzin (Gün)": izin_gunu,
+                    "Saatlik İzin Adeti": saatlik_adet,
                     "Net Çalışma Süresi (Gün)": net_gun
                 })
 
@@ -1287,7 +1410,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
         else:
             st.info("Personel bulunmuyor.")
 
-    with tab_p4:
+    with tab_p5:
         st.subheader("🎉 Resmi Tatiller Listesi ve Yönetimi")
         st.markdown("Çalışma süreleri hesaplanırken düşülecek resmi tatilleri aşağıdan inceleyebilir, yeni tatil ekleyebilir veya mevcut tatilleri silebilirsiniz.")
 
