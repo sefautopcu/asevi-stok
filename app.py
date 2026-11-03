@@ -492,7 +492,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 verileri_kaydet(st.session_state.girisler)
                 st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
 
-# 3. ÜRÜN SİL / DÜZENLE (İstediğiniz uyarı mesajı eklendi)
+# 3. ÜRÜN SİL / DÜZENLE (St.success ile birebir aynı uyarı formatı)
 elif menu == "Ürün Sil / Düzenle":
     st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
     
@@ -518,8 +518,7 @@ elif menu == "Ürün Sil / Düzenle":
                     st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
                     verileri_kaydet(st.session_state.girisler)
                     
-                    # İstediğiniz uyarı mesajı
-                    st.success(f"✅ Ürün silinmiştir! ('{silinen_urun_adi}' sistemden kaldırıldı)")
+                    st.success(f"Başarılı! {silinen_urun_adi} sistemden silindi.")
                     st.rerun()
 
 # 4. FİRE / ZAYİAT GİRİŞİ
