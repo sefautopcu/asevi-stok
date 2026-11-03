@@ -6,11 +6,13 @@ import streamlit as st
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Gönderdiğiniz Modern Dashboard Referansına Göre Güncellenmiş Glassmorphism & Soft UI Tasarımı (CSS Entegrasyonu)
+# Modern Glassmorphism & Soft UI Tasarımı (CSS Entegrasyonu)
 st.markdown("""
     <style>
     .main { 
@@ -35,7 +37,6 @@ st.markdown("""
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-    /* Yan Menü Butonları - Referans Tasarımdaki Şık Liste Görünümü */
     section[data-testid="stSidebar"] button[kind="secondary"] {
         background-color: transparent !important;
         color: #4B5563 !important;
@@ -68,7 +69,6 @@ st.markdown("""
         font-weight: 600 !important;
         margin: 0 !important;
     }
-    /* Modern Kart Yapıları */
     div.stMetric, div[data-testid="stExpander"], div.stForm {
         background: #FFFFFF !important;
         border: 1px solid #E5E7EB;
@@ -573,22 +573,62 @@ if menu == "Kurumsal Dashboard & Özet":
             kat = g["kategori"]
             kategori_verileri[kat] = kategori_verileri.get(kat, 0.0) + g["kalan"]
         
-        formatli_kategori_dict = {f"{k} -> {v:.1f} Kg": v for k, v in kategori_verileri.items()}
-        st.bar_chart(formatli_kategori_dict)
+        # Profesyonel Plotly Bar Grafiği
+        kat_isimleri = list(kategori_verileri.keys())
+        kat_degerleri = list(kategori_verileri.values())
+        
+        fig_kat = go.Figure(data=[
+            go.Bar(
+                x=kat_isimleri,
+                y=kat_degerleri,
+                marker_color='#111827',
+                text=[f"{v:.1f} Kg" for v in kat_degerleri],
+                textposition='auto',
+                hoovertext=[f"Kategori: {k}<br>Kalan Stok: {v:.1f} Kg" for k, v in kategori_verileri.items()],
+                hoverinfo='text'
+            )
+        ])
+        fig_kat.update_layout(
+            margin=dict(l=20, r=20, t=30, b=20),
+            height=320,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=False, tickangle=-25),
+            yaxis=dict(showgrid=True, gridcolor='#E5E7EB'),
+            font=dict(family='Inter', size=12, color='#374151')
+        )
+        st.plotly_chart(fig_kat, use_container_width=True)
 
     with col_g2:
         st.subheader("📉 Ay Bazlı Gelen Mal Alım Tutarları (TL)")
-        aylik_tutar_dict = {"Eylül 2026": 0.0, "Ekim 2026": 0.0}
-        for g in st.session_state.girisler:
-            tarih_str = g["tarih"]
-            toplam_tutar = g["miktar"] * g["fiyat"]
-            if tarih_str.startswith("2026-09"):
-                aylik_tutar_dict["Eylül 2026"] += toplam_tutar
-            elif tarih_str.startswith("2026-10"):
-                aylik_tutar_dict["Ekim 2026"] += toplam_tutar
+        eylul_tutar = sum(g["miktar"] * g["fiyat"] for g in st.session_state.girisler if g["tarih"].startswith("2026-09"))
+        ekim_tutar = sum(g["miktar"] * g["fiyat"] for g in st.session_state.girisler if g["tarih"].startswith("2026-10"))
         
-        st.bar_chart(aylik_tutar_dict)
-        st.info(f"💡 **Toplam Alım Bütçeleri:** Eylül: **{aylik_tutar_dict['Eylül 2026']:,.2f} TL** | Ekim: **{aylik_tutar_dict['Ekim 2026']:,.2f} TL**")
+        aylar = ["Eylül 2026", "Ekim 2026"]
+        tutarlar = [eylul_tutar, ekim_tutar]
+        
+        fig_ay = go.Figure(data=[
+            go.Bar(
+                x=aylar,
+                y=tutarlar,
+                marker_color='#3B82F6',
+                text=[f"₺{t:,.2f}" for t in tutarlar],
+                textposition='auto',
+                hoovertext=[f"Dönem: {a}<br>Toplam Alım: ₺{t:,.2f}" for a, t in zip(aylar, tutarlar)],
+                hoverinfo='text'
+            )
+        ])
+        fig_ay.update_layout(
+            margin=dict(l=20, r=20, t=30, b=20),
+            height=320,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=True, gridcolor='#E5E7EB'),
+            font=dict(family='Inter', size=12, color='#374151')
+        )
+        st.plotly_chart(fig_ay, use_container_width=True)
+        st.info(f"💡 **Toplam Alım Bütçeleri:** Eylül: **{eylul_tutar:,.2f} TL** | Ekim: **{ekim_tutar:,.2f} TL**")
 
     st.markdown("---")
     st.subheader("🚀 Hızlı İşlem Kısayolları")
