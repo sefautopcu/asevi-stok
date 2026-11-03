@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Kurumsal Sol Menü ve Stil Tasarımı
+# Kurumsal Sol Menü ve Stil Tasarımı (Buton renkleri ve okunabilirlik ayarlandı)
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -21,6 +21,20 @@ st.markdown("""
     /* Daraltma butonundaki metin ve ikon kalıntılarını tamamen gizle */
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
+
+    /* Sol Menü Butonları Tasarımı (Seçilmeyenler net okunur gri/koyu ton) */
+    section[data-testid="stSidebar"] button[kind="secondary"] {
+        background-color: #2D3748 !important;
+        color: #F1F5F9 !important;
+        border: 1px solid #4A5568 !important;
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+    }
+    section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+        background-color: #4A5568 !important;
+        color: #FFFFFF !important;
+        border-color: #718096 !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -644,9 +658,9 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     with col_b_f:
         st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
     with col_ex_f:
-        st.download_button("🟩 Excel İndir", data=b"Birim Fiyatlar Excel", file_name="urun_birim_fiyatlari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="excel_fiyat")
+        st.download_button("🟩 Excel İndir", data=b"Birim Fiyatlar Excel", file_name="urun_birim_fiyatlari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key="key_excel_fiyat")
     with col_pd_f:
-        st.download_button("🟥 PDF İndir", data=b"Birim Fiyatlar PDF", file_name="urun_birim_fiyatlari.txt", mime="text/plain", key="pdf_fiyat")
+        st.download_button("🟥 PDF İndir", data=b"Birim Fiyatlar PDF", file_name="urun_birim_fiyatlari.txt", mime="text/plain", key="key_pdf_fiyat")
         
     st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
 
