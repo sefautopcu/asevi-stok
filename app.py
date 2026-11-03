@@ -1083,11 +1083,11 @@ elif menu == "Kalori Hesaplama Aracı":
 
     benzersiz_urunler_kalori = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     
-    col_k_ sec1, col_k_sec2, col_k_sec3 = st.columns([2, 1, 1])
+    col_k_sec1, col_k_sec2, col_k_sec3 = st.columns([2, 1, 1])
     with col_k_sec1:
         secilen_kalori_urun = st.selectbox("Malzeme Seçin", benzersiz_urunler_kalori, key="kalori_urun_sec")
     with col_k_sec2:
-        kalori_miktar_input = st.number_input("Miktar", min_value=0.1, value=1.0, step=0.5, key="kalori_ miktar_input")
+        kalori_miktar_input = st.number_input("Miktar", min_value=0.1, value=1.0, step=0.5, key="kalori_miktar_input")
     with col_k_sec3:
         kalori_birim_input = st.selectbox("Birim", ["Kg", "Adet", "Lt"], key="kalori_birim_input")
 
