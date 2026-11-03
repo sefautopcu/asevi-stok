@@ -66,7 +66,7 @@ varsayilan_girisler = [
     {"id": "STK-036", "tarih": "2026-09-30", "urun": "BEZELYE KONSERVESİ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 102.0, "kalan": 102.0, "fiyat": 69.89, "depo": "Kuru Gıda Deposu"},
     {"id": "STK-037", "tarih": "2026-10-01", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 230.0, "kalan": 0.0, "fiyat": 66.2, "depo": "Soğuk Hava Deposu +5/+6"},
     {"id": "STK-038", "tarih": "2026-10-12", "urun": "KUŞBAŞI ET", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 213.8, "kalan": 156.8, "fiyat": 570.0, "depo": "Soğuk Hava Deposu -18"},
-    # Eylül ve Ekim Alımları & Fiyat Farkları (Görseldeki liste)
+    # Eylül ve Ekim Alımları & Fiyat Farkları
     {"id": "STK-039", "tarih": "2026-09-15", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 0.0, "fiyat": 50.0, "depo": "Sebze Deposu"},
     {"id": "STK-040", "tarih": "2026-10-15", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 50.0, "fiyat": 105.0, "depo": "Sebze Deposu"},
     {"id": "STK-041", "tarih": "2026-09-15", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.0, "kalan": 0.0, "fiyat": 45.0, "depo": "Sebze Deposu"},
@@ -138,11 +138,11 @@ st.markdown("### 🏛️ AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz, Sefa Ünal** &nbsp;|&nbsp; 📅 {datetime.date.today().strftime('%d %B %Y, %A')}")
 st.markdown("---")
 
-# SOL MENÜ
+# SOL MENÜ (Sadeleştirilmiş ana kategori yapısı)
 st.sidebar.markdown("### 📋 MENÜLER")
 
 menu = st.sidebar.radio(
-    "Genel İşlemler",
+    "Ana Menü",
     [
         "Güncel Stok Durumu", 
         "Yeni Mal Alımı / Fatura Ekle", 
@@ -539,7 +539,7 @@ elif menu == "Kullanım Takibi":
     else:
         st.info("Seçilen kriterlere uygun hareket kaydı bulunamadı. (Yemek üretimi veya fire girişi yapıldıkça bu alan otomatik dolacaktır).")
 
-# 6. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ (YENİ EKLENEN MENÜ)
+# 6. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_f, col_ex_f, col_pd_f = st.columns([2, 1, 1])
     with col_b_f:
@@ -549,17 +549,15 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     with col_pd_f:
         st.download_button("🟥 PDF İndir", data=b"Birim Fiyatlar PDF", file_name="urun_birim_fiyatlari.pdf", mime="application/pdf", key="pdf_fiyat")
         
-    st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri (Domates, Salatalık, Patlıcan vb.) dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
+    st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
 
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     fiyat_tablosu_verisi = []
 
     for u in benzersiz_urunler:
-        # Eylül ayı fiyatını bul (Eylül: 09)
         eylul_kayitlari = [g["fiyat"] for g in st.session_state.girisler if g["urun"] == u and g["tarih"].startswith("2026-09")]
         eylul_fiyat = f"₺{eylul_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if eylul_kayitlari else "-"
 
-        # Ekim ayı fiyatını bul (Ekim: 10)
         ekim_kayitlari = [g["fiyat"] for g in st.session_state.girisler if g["urun"] == u and g["tarih"].startswith("2026-10")]
         ekim_fiyat = f"₺{ekim_kayitlari[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if ekim_kayitlari else "-"
 
