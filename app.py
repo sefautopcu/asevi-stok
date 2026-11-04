@@ -249,7 +249,6 @@ varsayilan_girisler = [
     {"id": "STK-002", "tarih": "2026-09-28 08:35", "fatura_no": "FAT-2026-002", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": max(0.0, 20.0 - 3.1), "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
 ]
 
-# Doğru tutar ve tarihlerle güncellenmiş fire log kayıtları
 varsayilan_loglar = [
     {"tarih": "2026-10-05 10:00", "urun": "ISPANAK", "tur": "Fire/Zayiat", "miktar": 60.0, "tutar": 4200.00, "islem_yapan": "admin"},
     {"tarih": "2026-10-09 10:00", "urun": "PATLICAN", "tur": "Fire/Zayiat", "miktar": 52.4, "tutar": 2882.00, "islem_yapan": "admin"},
@@ -1106,6 +1105,40 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             st.session_state.sepet.pop(silinecek_index)
             st.rerun()
 
+        if st.button("🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"):
+            tarih_simdi = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            for item in st.session_state.sepet:
+                urun = item["urun"]
+                istenen = item["miktar"]
+                kalan_dusulecek = istenen
+                item_tutar = 0.0
+                ilgili_g = [g for g in st.session_state.girisler if g["urun"] == urun and g["kalan"] > 0]
+                for g in ilgili_g:
+                    if kalan_dusulecek <= 0: break
+                    if g["kalan"] >= kalan_dusulecek:
+                        g["kalan"] -= kalan_dusulecek
+                        item_tutar += kalan_dusulecek * g["fiyat"]
+                        kalan_dusulecek = 0
+                    else:
+                        dusulen = g["kalan"]
+                        g["kalan"] = 0
+                        item_tutar += dusulen * g["fiyat"]
+                        kalan_dusulecek -= dusulen
+                
+                st.session_state.kullanim_loglari.append({
+                    "tarih": tarih_simdi,
+                    "urun": urun,
+                    "tur": "Günlük Kullanım",
+                    "miktar": istenen,
+                    "tutar": item_tutar,
+                    "islem_yapan": st.session_state.aktif_kullanici
+                })
+            verileri_kaydet(st.session_state.girisler)
+            loglari_kaydet(st.session_state.kullanim_loglari)
+            st.session_state.sepet = []
+            st.success("Üretim kaydedildi, malzemeler stoktan düşüldü ve Kullanım Takibine eklendi!")
+            st.rerun()
+
         st.markdown("---")
         kisi_basi_maliyet = toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0.0
 
@@ -1625,12 +1658,23 @@ elif menu == "Personel & Çalışma Süresi Takibi":
 elif menu == "Kullanım Takibi":
     col_b_kul, col_indir_kul = st.columns([2, 2])
     with col_b_kul:
-        st.header("📈 Depo Ürün Kullanım Takibi")
+        st.header("📈 Depo Ürün Kullanım ve Fire Takibi")
+    
     loglar = st.session_state.kullanim_loglari
     if loglar:
-        ozel_html_tablo_goster(loglar)
+        kullanim_tablo_verisi = []
+        for l in reversed(loglar):
+            kullanim_tablo_verisi.append({
+                "Tarih / Saat": l.get("tarih", "-"),
+                "Ürün Adı": l.get("urun", "-"),
+                "İşlem Türü": l.get("tur", "Günlük Kullanım"),
+                "Miktar": f"{l.get('miktar', 0)}",
+                "Tutar": f"{l.get('tutar', 0):,.2f} ₺",
+                "İşlemi Yapan": l.get("islem_yapan", "admin")
+            })
+        ozel_html_tablo_goster(kullanim_tablo_verisi)
     else:
-        st.info("Kullanım hareketi bulunmuyor.")
+        st.info("Kullanım veya fire hareketi bulunmuyor.")
 
 # 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
