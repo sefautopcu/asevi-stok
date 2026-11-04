@@ -249,6 +249,15 @@ varsayilan_girisler = [
     {"id": "STK-002", "tarih": "2026-09-28 08:35", "fatura_no": "FAT-2026-002", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": max(0.0, 20.0 - 3.1), "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
 ]
 
+# Görselden aktarılan varsayılan fire log kayıtları
+varsayilan_loglar = [
+    {"tarih": "2026-10-05 10:00", "urun": "ISPANAK", "tur": "Fire/Zayiat", "miktar": 60.0, "tutar": 60.0 * 25.0, "islem_yapan": "admin"},
+    {"tarih": "2026-10-10 10:00", "urun": "PATLICAN", "tur": "Fire/Zayiat", "miktar": 52.4, "tutar": 52.4 * 30.0, "islem_yapan": "admin"},
+    {"tarih": "2026-10-14 10:00", "urun": "MUZ", "tur": "Fire/Zayiat", "miktar": 54.5, "tutar": 54.5 * 40.0, "islem_yapan": "admin"},
+    {"tarih": "2026-10-20 10:00", "urun": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 15.0 * 35.0, "islem_yapan": "admin"},
+    {"tarih": "2026-10-21 10:00", "urun": "SALATALIK", "tur": "Fire/Zayiat", "miktar": 43.0, "tutar": 43.0 * 20.0, "islem_yapan": "admin"}
+]
+
 varsayilan_personeller = [
     {"tc": "11111111111", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
     {"tc": "22222222222", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
@@ -293,7 +302,7 @@ def loglari_yukle():
                     return kayitli_loglar
         except Exception:
             pass
-    return []
+    return varsayilan_loglar
 
 def loglari_kaydet(veri):
     with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
