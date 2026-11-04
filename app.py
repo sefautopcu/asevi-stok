@@ -239,6 +239,15 @@ varsayilan_girisler = [
     {"id": "STK-064", "tarih": "2026-10-28 12:10", "fatura_no": "FAT-2026-064", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"}
 ]
 
+# Varsayılan Personel Listesi (İşe Giriş Tarihleri Eklendi)
+varsayilan_personeller = [
+    {"id": "PER-001", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-01-15", "aktif": True, "izinler": []},
+    {"id": "PER-002", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-02-01", "aktif": True, "izinler": []},
+    {"id": "PER-003", "ad_soyad": "SEDAT UZUN", "gorev": "Aşçı", "baslama": "2026-09-25", "aktif": True, "izinler": []},
+    {"id": "PER-004", "ad_soyad": "BURAK AYAŞTI", "gorev": "Temizlik Personeli", "baslama": "2026-03-10", "aktif": True, "izinler": []},
+    {"id": "PER-005", "ad_soyad": "HÜSEYİN KAYMAK", "gorev": "Aşçı Yardımcısı", "baslama": "2026-04-01", "aktif": True, "izinler": []}
+]
+
 # Varsayılan 2026 Resmi Tatiller
 varsayilan_resmi_tatiller = [
     {"tarih": "2026-01-01", "aciklama": "Yılbaşı"},
@@ -370,10 +379,18 @@ def personelleri_yukle():
     if os.path.exists(PERSONEL_DOSYASI):
         try:
             with open(PERSONEL_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                # Eski kayıtlarda 'baslama' alanı yoksa varsayılan tarih ata
+                for p in data:
+                    if "baslama" not in p or not p["baslama"]:
+                        if p["ad_soyad"] == "SEDAT UZUN":
+                            p["baslama"] = "2026-09-25"
+                        else:
+                            p["baslama"] = "2026-01-01"
+                return data
         except Exception:
-            return []
-    return []
+            return varsayilan_personeller
+    return varsayilan_personeller
 
 def personelleri_kaydet(veri):
     with open(PERSONEL_DOSYASI, "w", encoding="utf-8") as f:
@@ -1573,7 +1590,6 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                             if secilen_item:
                                 for p in st.session_state.personeller:
                                     if p["ad_soyad"] == secilen_item["personel"]:
-                                        # Yıllık izinleri filtreleyerek ilgili indekstekini çıkaralım
                                         yilliklar = [i for i in p["izinler"] if i.get("tur") == "Yıllık İzin"]
                                         digerleri = [i for i in p["izinler"] if i.get("tur") != "Yıllık İzin"]
                                         silinecek_hedef = yilliklar[secilen_item["idx"]]
