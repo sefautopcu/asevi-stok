@@ -238,7 +238,7 @@ varsayilan_loglar = [
     {"tarih": "2026-10-09 10:00", "urun": "PATLICAN", "tur": "Fire/Zayiat", "miktar": 52.4, "tutar": 2882.00, "islem_yapan": "admin"},
     {"tarih": "2026-10-14 10:00", "urun": "MUZ", "tur": "Fire/Zayiat", "miktar": 54.5, "tutar": 5995.00, "islem_yapan": "admin"},
     {"tarih": "2026-10-20 10:00", "urun": "SALATALIK", "tur": "Fire/Zayiat", "miktar": 43.0, "tutar": 1935.00, "islem_yapan": "admin"},
-    {"tarih": "2026-10-21 10:00", "urun": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 993.00, "islem_yapan": "admin"}
+    {"tarih": "2026-10-21 10:00", "tur": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 993.00, "islem_yapan": "admin"}
 ]
 
 varsayilan_personeller = [
@@ -519,6 +519,13 @@ if not st.session_state.oturum_aktif:
                     st.query_params["user"] = "asci"
                     st.success("Aşçı olarak giriş yapıldı!")
                     st.rerun()
+                elif k_adi_inp == "yonetim" and sifre_inp == "Yonetim25":
+                    st.session_state.oturum_aktif = True
+                    st.session_state.aktif_kullanici = "yonetim"
+                    st.query_params["auth"] = "true"
+                    st.query_params["user"] = "yonetim"
+                    st.success("Yönetim (Salt Okunur) olarak giriş yapıldı!")
+                    st.rerun()
                 else:
                     st.error("Hatalı kullanıcı adı veya şifre!")
 
@@ -587,7 +594,7 @@ if sidebar_arama:
 st.sidebar.markdown('<p style="font-size: 12px; font-weight: 600; margin-top: 10px; margin-bottom: 4px; padding-left: 4px; opacity: 0.6;">AĞAÇ MENÜ & SİSTEM</p>', unsafe_allow_html=True)
 
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
-misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
+salt_okunur_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici in ["misafir", "yonetim"])
 
 menu_gruplari = {
     "🏠 Genel Bakış": [
@@ -623,7 +630,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
     grup_aktif_mu = st.session_state.aktif_menu in alt_menuler
     with st.sidebar.expander(grup_adi, expanded=grup_aktif_mu or bool(sidebar_arama)):
         for m in alt_menuler:
-            if m == "Yeni Mal Alımı / Fatura Ekle" and misafir_modu:
+            if m == "Yeni Mal Alımı / Fatura Ekle" and salt_okunur_modu:
                 continue
             btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
             if st.button(m, use_container_width=True, type=btn_type, key=f"menu_btn_{m}"):
@@ -955,8 +962,8 @@ elif menu == "Güncel Stok Durumu":
 
 # 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
-    if misafir_modu:
-        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    if salt_okunur_modu:
+        st.warning("⚠️ Bu sayfaya yalnızca gözlem amaçlı erişebilirsiniz. Salt okunur (Yönetim/Misafir) modda işlem yapamazsınız.")
     else:
         st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
         with st.form("fatura_formu"):
@@ -1014,8 +1021,8 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
 # 3. ÜRÜN SİL / DÜZENLE
 elif menu == "Ürün Sil / Düzenle":
     st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
-    if misafir_modu:
-        st.warning("👀 Misafir modundasınız. Bu ekranda silme işlemi gerçekleştiremezsiniz.")
+    if salt_okunur_modu:
+        st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda silme işlemi gerçekleştiremezsiniz.")
     elif not yonetici_modu:
         st.warning("⚠️ Bu ekrana erişmek için **Admin** hesabıyla giriş yapmalısınız.")
     else:
@@ -1067,8 +1074,8 @@ elif menu == "Ürün Sil / Düzenle":
 # 4. FİRE / ZAYİAT GİRİŞİ
 elif menu == "Fire / Zayiat Girişi":
     st.header("🗑️ Fire / Zayiat Bildirimi")
-    if misafir_modu:
-        st.warning("👀 Misafir modundasınız.")
+    if salt_okunur_modu:
+        st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
     else:
         with st.form("fire_formu"):
             benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
@@ -1156,7 +1163,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     if "sepet" not in st.session_state:
         st.session_state.sepet = []
         
-    if not misafir_modu:
+    if not salt_okunur_modu:
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             secilen_urun = st.selectbox("Malzeme Seç", benzersiz_urunler, key="yemek_urun")
@@ -1176,9 +1183,10 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     st.subheader("Seçilen Malzemeler")
     
     if st.session_state.sepet:
-        if st.button("🔄 Tümünü Sıfırla"):
-            st.session_state.sepet = []
-            st.rerun()
+        if not salt_okunur_modu:
+            if st.button("🔄 Tümünü Sıfırla"):
+                st.session_state.sepet = []
+                st.rerun()
         
         toplam_maliyet = 0.0
         excel_sepet_liste = []
@@ -1206,8 +1214,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             with c_item_mal:
                 st.markdown(f"Maliyet: **{item_maliyeti:,.2f} ₺**")
             with c_item_sil:
-                if st.button("❌", key=f"sil_item_{idx}"):
-                    silinecek_index = idx
+                if not salt_okunur_modu:
+                    if st.button("❌", key=f"sil_item_{idx}"):
+                        silinecek_index = idx
             
             excel_sepet_liste.append({"Malzeme": urun, "Miktar": istenen, "Maliyet (TL)": round(item_maliyeti, 2)})
 
@@ -1215,55 +1224,56 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             st.session_state.sepet.pop(silinecek_index)
             st.rerun()
 
-        if st.button("🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"):
-            tarih_simdi = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            
-            arsiv_malzemeler = []
-            for item in st.session_state.sepet:
-                urun = item["urun"]
-                istenen = item["miktar"]
-                kalan_dusulecek = istenen
-                item_tutar = 0.0
-                ilgili_g = [g for g in st.session_state.girisler if g["urun"] == urun and g["kalan"] > 0]
-                for g in ilgili_g:
-                    if kalan_dusulecek <= 0: break
-                    if g["kalan"] >= kalan_dusulecek:
-                        g["kalan"] -= kalan_dusulecek
-                        item_tutar += kalan_dusulecek * g["fiyat"]
-                        kalan_dusulecek = 0
-                    else:
-                        dusulen = g["kalan"]
-                        g["kalan"] = 0
-                        item_tutar += dusulen * g["fiyat"]
-                        kalan_dusulecek -= dusulen
+        if not salt_okunur_modu:
+            if st.button("🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"):
+                tarih_simdi = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                 
-                arsiv_malzemeler.append({"urun": urun, "miktar": istenen, "tutar": item_tutar})
-                
-                st.session_state.kullanim_loglari.append({
-                    "tarih": f"{uretim_tarih_str} 12:00",
-                    "urun": urun,
-                    "tur": f"Günlük Kullanım ({yemek_adi})",
-                    "miktar": istenen,
-                    "tutar": item_tutar,
+                arsiv_malzemeler = []
+                for item in st.session_state.sepet:
+                    urun = item["urun"]
+                    istenen = item["miktar"]
+                    kalan_dusulecek = istenen
+                    item_tutar = 0.0
+                    ilgili_g = [g for g in st.session_state.girisler if g["urun"] == urun and g["kalan"] > 0]
+                    for g in ilgili_g:
+                        if kalan_dusulecek <= 0: break
+                        if g["kalan"] >= kalan_dusulecek:
+                            g["kalan"] -= kalan_dusulecek
+                            item_tutar += kalan_dusulecek * g["fiyat"]
+                            kalan_dusulecek = 0
+                        else:
+                            dusulen = g["kalan"]
+                            g["kalan"] = 0
+                            item_tutar += dusulen * g["fiyat"]
+                            kalan_dusulecek -= dusulen
+                    
+                    arsiv_malzemeler.append({"urun": urun, "miktar": istenen, "tutar": item_tutar})
+                    
+                    st.session_state.kullanim_loglari.append({
+                        "tarih": f"{uretim_tarih_str} 12:00",
+                        "urun": urun,
+                        "tur": f"Günlük Kullanım ({yemek_adi})",
+                        "miktar": istenen,
+                        "tutar": item_tutar,
+                        "islem_yapan": st.session_state.aktif_kullanici
+                    })
+
+                st.session_state.yemek_uretim_arsivi.append({
+                    "tarih": uretim_tarih_str,
+                    "zaman": tarih_simdi,
+                    "yemek_adi": yemek_adi,
+                    "kisi_sayisi": kisi_sayisi,
+                    "malzemeler": arsiv_malzemeler,
+                    "toplam_maliyet": toplam_maliyet,
                     "islem_yapan": st.session_state.aktif_kullanici
                 })
+                yemek_uretim_arsivini_kaydet(st.session_state.yemek_uretim_arsivi)
 
-            st.session_state.yemek_uretim_arsivi.append({
-                "tarih": uretim_tarih_str,
-                "zaman": tarih_simdi,
-                "yemek_adi": yemek_adi,
-                "kisi_sayisi": kisi_sayisi,
-                "malzemeler": arsiv_malzemeler,
-                "toplam_maliyet": toplam_maliyet,
-                "islem_yapan": st.session_state.aktif_kullanici
-            })
-            yemek_uretim_arsivini_kaydet(st.session_state.yemek_uretim_arsivi)
-
-            verileri_kaydet(st.session_state.girisler)
-            loglari_kaydet(st.session_state.kullanim_loglari)
-            st.session_state.sepet = []
-            st.success(f"{uretim_tarih_str} tarihli üretim başarıyla tamamlandı ve arşive kaydedildi!")
-            st.rerun()
+                verileri_kaydet(st.session_state.girisler)
+                loglari_kaydet(st.session_state.kullanim_loglari)
+                st.session_state.sepet = []
+                st.success(f"{uretim_tarih_str} tarihli üretim başarıyla tamamlandı ve arşive kaydedildi!")
+                st.rerun()
 
         st.markdown("---")
         kisi_basi_maliyet = toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0.0
@@ -1388,8 +1398,8 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
         with col_indir_kisi:
             ortak_indirme_alani(excel_kisi_data, pdf_kisi_data, "ihtiyac_sahipleri_listesi", "ihtiyac_kisi_sayfasi")
 
-        if misafir_modu:
-            st.info("👀 Misafir modundasınız. Bu ekranda yalnızca kayıtlı ihtiyaç sahiplerini gözlemleyebilirsiniz.")
+        if salt_okunur_modu:
+            st.info("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda yalnızca kayıtlı ihtiyaç sahiplerini gözlemleyebilirsiniz.")
         else:
             col_form_ekle, col_form_sil = st.columns(2)
             with col_form_ekle:
@@ -1471,8 +1481,8 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
         with col_indir_dag:
             ortak_indirme_alani(excel_dag_data, pdf_dag_data, "yemek_dagitim_listesi", "dagitim_sayfasi")
 
-        if misafir_modu:
-            st.info("👀 Misafir modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
+        if salt_okunur_modu:
+            st.info("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
         elif not st.session_state.ihtiyac_sahipleri:
             st.warning("Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı yapmalısınız.")
         else:
@@ -1646,8 +1656,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
         with col_indir_p_list:
             ortak_indirme_alani(excel_p_list_data, pdf_p_list_data, "personel_listesi_raporu", "personel_list_sayfasi")
 
-        if misafir_modu:
-            st.info("👀 Misafir modundasınız. Bu ekranda yalnızca personel listesini görüntüleyebilirsiniz.")
+        if salt_okunur_modu:
+            st.info("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda yalnızca personel listesini görüntüleyebilirsiniz.")
         else:
             col_p_ekle, col_p_sil, col_p_durum = st.columns(3)
             with col_p_ekle:
@@ -1735,7 +1745,9 @@ elif menu == "Personel & Çalışma Süresi Takibi":
         with col_indir_yil:
             ortak_indirme_alani(excel_yil_data, pdf_yil_data, "yillik_izinler_raporu", "yillik_izin_sayfasi")
 
-        if not yonetici_modu:
+        if salt_okunur_modu:
+            st.info("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda izin ekleyemez veya silemezsiniz.")
+        elif not yonetici_modu:
             st.warning("⚠️ Yıllık izin işlemleri yalnızca **Admin** tarafından yapılabilir.")
         else:
             col_y_ekle, col_y_sil = st.columns(2)
@@ -1816,7 +1828,9 @@ elif menu == "Personel & Çalışma Süresi Takibi":
         with col_indir_saat:
             ortak_indirme_alani(excel_saat_data, pdf_saat_data, "saatlik_izinler_raporu", "saatlik_izin_sayfasi")
 
-        if not yonetici_modu:
+        if salt_okunur_modu:
+            st.info("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda saatlik izin ekleyemez veya silemezsiniz.")
+        elif not yonetici_modu:
             st.warning("⚠️ Saatlik izin işlemleri yalnızca **Admin** tarafından yapılabilir.")
         else:
             col_s_ekle, col_s_sil = st.columns(2)
@@ -1903,7 +1917,9 @@ elif menu == "Personel & Çalışma Süresi Takibi":
         with col_indir_sag:
             ortak_indirme_alani(excel_sag_data, pdf_sag_data, "saglik_raporlari_raporu", "saglik_raporu_sayfasi")
 
-        if not yonetici_modu:
+        if salt_okunur_modu:
+            st.info("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda sağlık raporu ekleyemez veya silemezsiniz.")
+        elif not yonetici_modu:
             st.warning("⚠️ Sağlık raporu işlemleri yalnızca **Admin** tarafından yapılabilir.")
         else:
             col_r_ekle, col_r_sil = st.columns(2)
