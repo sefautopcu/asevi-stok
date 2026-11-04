@@ -1526,22 +1526,25 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.info("Silinecek personel bulunmuyor.")
 
             with col_p_durum:
-                # Form dışına çıkarılarak butonların sorunsuz çalışması sağlandı
-                st.markdown("**🔄 Durum Güncelle**")
-                if st.session_state.personeller:
-                    p_secenekler = [f"{p.get('tc', '---')} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
-                    secilen_p_str = st.selectbox("Personel Seç", p_secenekler, key="secilen_p_durum_box")
-                    yeni_durum = st.radio("Durum", ["Aktif Çalışıyor", "Pasif / Ayrıldı"], horizontal=True, key="yeni_durum_radio")
-                    if st.button("Durumu Güncelle", use_container_width=True, key="btn_durum_guncelle"):
-                        p_tc_secilen = secilen_p_str.split(" - ")[0]
-                        for p in st.session_state.personeller:
-                            if p.get('tc') == p_tc_secilen:
-                                p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
-                        personelleri_kaydet(st.session_state.personeller)
-                        st.success("Durum başarıyla güncellendi!")
-                        st.rerun()
-                else:
-                    st.info("Kayıt yok.")
+                # Durum Güncelleme Formu (Düzeltildi ve Aktif hale getirildi)
+                with st.form("durum_guncelle_form"):
+                    st.markdown("**🔄 Durum Güncelle**")
+                    if st.session_state.personeller:
+                        p_secenekler = [f"{p.get('tc', '---')} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
+                        secilen_p_str = st.selectbox("Personel Seç", p_secenekler, key="secilen_p_durum_box")
+                        yeni_durum = st.radio("Durum", ["Aktif Çalışıyor", "Pasif / Ayrıldı"], horizontal=True, key="yeni_durum_radio")
+                        durum_guncelle_btn = st.form_submit_button("Durumu Güncelle", use_container_width=True)
+                        
+                        if durum_guncelle_btn:
+                            p_tc_secilen = secilen_p_str.split(" - ")[0]
+                            for p in st.session_state.personeller:
+                                if p.get('tc') == p_tc_secilen:
+                                    p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
+                            personelleri_kaydet(st.session_state.personeller)
+                            st.success("Durum başarıyla güncellendi!")
+                            st.rerun()
+                    else:
+                        st.info("Kayıt yok.")
 
         st.markdown("---")
         st.subheader("📋 Kayıtlı Personel Kadrosu Tablosu")
