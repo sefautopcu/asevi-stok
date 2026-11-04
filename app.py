@@ -1047,7 +1047,12 @@ elif menu == "Fire / Zayiat Girişi":
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
-        st.header("🍲 Günlük Yemek Üretimi ve Maliyet")
+        st.header("🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Takibi")
+    
+    # Takvim / Tarih Filtresi eklendi
+    secilen_tarih_filtresi = st.date_input("📅 Sorgulanacak / Takip Edilecek Tarihi Seçin", value=datetime.date.today())
+    secilen_tarih_str = secilen_tarih_filtresi.strftime("%Y-%m-%d")
+
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
@@ -1137,7 +1142,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 st.session_state.kullanim_loglari.append({
                     "tarih": tarih_simdi,
                     "urun": urun,
-                    "tur": "Günlük Kullanım",
+                    "tur": f"Günlük Kullanım ({yemek_adi})",
                     "miktar": istenen,
                     "tutar": item_tutar,
                     "islem_yapan": st.session_state.aktif_kullanici
@@ -1163,6 +1168,25 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             ortak_indirme_alani(excel_sepet_data, pdf_data, "yemek_maliyet_raporu", "yemek_sayfasi")
     else:
         st.info("Henüz sepete malzeme eklenmedi.")
+
+    # Seçilen Tarihteki Yemek ve Malzeme Kullanım Sorgulama Alanı
+    st.markdown("---")
+    st.subheader(f"🔍 {secilen_tarih_str} Tarihli Yemek ve Malzeme Kullanım Dökümü")
+    secilen_tarih_loglari = [l for l in st.session_state.kullanim_loglari if l.get("tarih", "").startswith(secilen_tarih_str)]
+    if secilen_tarih_loglari:
+        tarih_tablo_verisi = []
+        for tl in secilen_tarih_loglari:
+            tarih_tablo_verisi.append({
+                "Saat / Tarih": tl.get("tarih", "-"),
+                "İşlem / Yemek Türü": tl.get("tur", "-"),
+                "Malzeme / Ürün": tl.get("urun", "-"),
+                "Kullanılan Miktar": f"{tl.get('miktar', 0)}",
+                "Tutar": f"{tl.get('tutar', 0):,.2f} ₺",
+                "İşlemi Yapan": tl.get("islem_yapan", "-")
+            })
+        ozel_html_tablo_goster(tarih_tablo_verisi)
+    else:
+        st.info(f"Seçilen {secilen_tarih_str} tarihinde herhangi bir yemek veya malzeme kullanım kaydı bulunmuyor.")
 
 # 6. KALORİ HESAPLAMA ARACI
 elif menu == "Kalori Hesaplama Aracı":
@@ -1526,7 +1550,6 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.info("Silinecek personel bulunmuyor.")
 
             with col_p_durum:
-                # Durum Güncelleme Formu (Düzeltildi: Ada göre eşleşme sağlanarak pasife geçmeme sorunu giderildi)
                 with st.form("durum_guncelle_form"):
                     st.markdown("**🔄 Durum Güncelle**")
                     if st.session_state.personeller:
