@@ -969,7 +969,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "Depo Yeri": g.get("depo", "-"),
                     "İşlemi Yapan": g.get("islem_yapan", "admin")
                 })
-            st.dataframe(fatura_log_tablosu, use_container_width=True)
+            st.table(fatura_log_tablosu)
         else:
             st.info("Kayıtlı mal alımı faturası bulunmuyor.")
 
@@ -1036,7 +1036,7 @@ elif menu == "Ürün Sil / Düzenle":
             "Silme Nedeni": sl["neden"],
             "İşlemi Yapan": sl.get("islem_yapan", "admin")
         } for sl in silinen_loglar]
-        st.dataframe(silinen_tablo_verisi, use_container_width=True)
+        st.table(silinen_tablo_verisi)
     else:
         st.info("Sistemden henüz silinmiş bir ürün kaydı bulunmuyor.")
 
@@ -1112,7 +1112,7 @@ elif menu == "Fire / Zayiat Girişi":
             "Maddi Zarar (₺)": f"{fl['tutar']:.2f} ₺",
             "İşlemi Yapan": fl.get("islem_yapan", "admin")
         } for fl in fire_loglari]
-        st.dataframe(fire_tablo_verisi, use_container_width=True)
+        st.table(fire_tablo_verisi)
     else:
         st.info("Sistemde kayıtlı henüz bir fire veya zayiat bulunmuyor.")
 
@@ -1317,7 +1317,7 @@ elif menu == "Kalori Hesaplama Aracı":
         with col_indir_kal:
             ortak_indirme_alani(excel_kalori_data, pdf_kalori_data, "kalori_hesaplama_raporu", "kalori_sayfasi")
 
-        st.dataframe(kalori_tablo_verisi, use_container_width=True)
+        st.table(kalori_tablo_verisi)
 
         kisi_basi_kalori_sonuc = toplam_tarif_kalorisi / kalori_kisi_sayisi if kalori_kisi_sayisi > 0 else 0
 
@@ -1414,7 +1414,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                     "Eklenme Zamanı": k.get("eklenme_tarihi", "-"),
                     "İşlemi Yapan": k.get("islem_yapan", "admin")
                 })
-            st.dataframe(kisi_liste_gosterim, use_container_width=True)
+            st.table(kisi_liste_gosterim)
         else:
             st.info("Sistemde kayıtlı ihtiyaç sahibi bulunmuyor.")
 
@@ -1587,7 +1587,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı",
                     "Kayıtlı İzin/Rapor": len(p.get("izinler", []))
                 })
-            st.dataframe(p_gosterim, use_container_width=True)
+            st.table(p_gosterim)
         else:
             st.info("Henüz kayıtlı personel bulunmuyor.")
 
@@ -1673,7 +1673,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     })
         
         if yillik_tablo_listesi:
-            st.dataframe(yillik_tablo_listesi, use_container_width=True)
+            st.table(yillik_tablo_listesi)
             exc_y = tablo_to_excel_bytes(yillik_tablo_listesi, "Yıllık İzinler Raporu")
             pdf_y = tablo_to_html_pdf_bytes("Yıllık İzinler Raporu", yillik_tablo_listesi)
             ortak_indirme_alani(exc_y, pdf_y, "yillik_izinler_raporu", "yillik_izin_indzir")
@@ -1775,7 +1775,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     })
         
         if saatlik_tablo_listesi:
-            st.dataframe(saatlik_tablo_listesi, use_container_width=True)
+            st.table(saatlik_tablo_listesi)
             exc_s = tablo_to_excel_bytes(saatlik_tablo_listesi, "Saatlik İzinler Raporu")
             pdf_s = tablo_to_html_pdf_bytes("Saatlik İzinler Raporu", saatlik_tablo_listesi)
             ortak_indirme_alani(exc_s, pdf_s, "saatlik_izinler_raporu", "saatlik_izin_indzir")
@@ -1874,7 +1874,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     })
         
         if saglik_tablo_listesi:
-            st.dataframe(saglik_tablo_listesi, use_container_width=True)
+            st.table(saglik_tablo_listesi)
             exc_r = tablo_to_excel_bytes(saglik_tablo_listesi, "Sağlık Raporları Raporu")
             pdf_r = tablo_to_html_pdf_bytes("Sağlık Raporları Raporu", saglik_tablo_listesi)
             ortak_indirme_alani(exc_r, pdf_r, "saglik_raporlari_raporu", "saglik_rapor_indzir")
@@ -1928,7 +1928,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                 "Süre (Saat/Detay)": iz.get("saat", iz.get("kurum", "-")),
                                 "Açıklama / Teşhis": iz.get("teshis", iz.get("detay", "-"))
                             })
-                        st.dataframe(detay_tablo, use_container_width=True)
+                        st.table(detay_tablo)
                     else:
                         st.info("Bu personel için kayıtlı izin veya rapor bulunmuyor.")
 
@@ -1985,7 +1985,7 @@ elif menu == "Kullanım Takibi":
         with col_indir_kul:
             ortak_indirme_alani(kul_excel_data, kul_pdf_data, "kullanim_takip_raporu", "kullanim_sayfasi")
 
-        st.dataframe(k_tablo_verisi, use_container_width=True)
+        st.table(k_tablo_verisi)
     else:
         empty_excel_kul = tablo_to_excel_bytes([], "Boş Rapor")
         empty_pdf_kul = tablo_to_html_pdf_bytes("Boş Rapor", [])
@@ -2033,7 +2033,7 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
             ortak_indirme_alani(fiyat_excel_data, fiyat_pdf_data, "urun_birim_fiyatlari_raporu", "fiyat_sayfasi")
 
         st.subheader("📋 Envanter Birim Fiyat Tablosu")
-        st.dataframe(fiyat_tablo, use_container_width=True)
+        st.table(fiyat_tablo)
 
         st.markdown("---")
         st.subheader("📊 En Envanter Birim Fiyata Sahip İlk 10 Ürün")
