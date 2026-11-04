@@ -1448,9 +1448,37 @@ elif menu == "Personel & Çalışma Süresi Takibi":
     ])
 
     with p_tab1:
+        col_b_p_list, col_indir_p_list = st.columns([2, 2])
+        with col_b_p_list:
+            st.subheader("👨‍💼 Personel Kadrosu Listesi")
+
         if st.session_state.personel_silme_mesaji:
             st.success(st.session_state.personel_silme_mesaji)
             st.session_state.personel_silme_mesaji = ""
+
+        bugun_tarihi = datetime.date.today()
+        p_gosterim = []
+        for p in st.session_state.personeller:
+            bas_tarih_str = p.get("baslama", "2026-01-01")
+            try:
+                bas_dt = datetime.datetime.strptime(bas_tarih_str, "%Y-%m-%d").date()
+            except:
+                bas_dt = datetime.date(2026, 1, 1)
+            net_calisilan, _, _, _ = net_calisma_gunu_hesapla(bas_dt, bugun_tarihi, p.get("izinler", []), st.session_state.resmi_tatiller)
+            p_gosterim.append({
+                "T.C. No": p.get("tc", "-"),
+                "Adı Soyadı": p["ad_soyad"],
+                "Görevi": p["gorev"],
+                "İşe Başlama": bas_tarih_str,
+                "Çalışma Günü Sayacı": f"{net_calisilan} Gün",
+                "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı"
+            })
+
+        excel_p_list_data = tablo_to_excel_bytes(p_gosterim, "Aziziye Aşevi - Personel Listesi")
+        pdf_p_list_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Personel Listesi", p_gosterim)
+
+        with col_indir_p_list:
+            ortak_indirme_alani(excel_p_list_data, pdf_p_list_data, "personel_listesi_raporu", "personel_list_sayfasi")
 
         if misafir_modu:
             st.info("👀 Misafir modundasınız. Bu ekranda yalnızca personel listesini görüntüleyebilirsiniz.")
@@ -1498,51 +1526,47 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.info("Silinecek personel bulunmuyor.")
 
             with col_p_durum:
-                with st.form("personel_durum_form"):
-                    st.markdown("**🔄 Durum Güncelle**")
-                    if st.session_state.personeller:
-                        p_secenekler = [f"{p.get('tc', '---')} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
-                        secilen_p_str = st.selectbox("Personel Seç", p_secenekler)
-                        yeni_durum = st.radio("Durum", ["Aktif Çalışıyor", "Pasif / Ayrıldı"], horizontal=True)
-                        p_durum_btn = st.form_submit_button("Durumu Güncelle")
-                        
-                        if p_durum_btn:
-                            p_tc_secilen = secilen_p_str.split(" - ")[0]
-                            for p in st.session_state.personeller:
-                                if p.get('tc') == p_tc_secilen:
-                                    p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
-                            personelleri_kaydet(st.session_state.personeller)
-                            st.success("Durum güncellendi!")
-                            st.rerun()
-                    else:
-                        st.info("Kayıt yok.")
+                # Form dışına çıkarılarak butonların sorunsuz çalışması sağlandı
+                st.markdown("**🔄 Durum Güncelle**")
+                if st.session_state.personeller:
+                    p_secenekler = [f"{p.get('tc', '---')} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
+                    secilen_p_str = st.selectbox("Personel Seç", p_secenekler, key="secilen_p_durum_box")
+                    yeni_durum = st.radio("Durum", ["Aktif Çalışıyor", "Pasif / Ayrıldı"], horizontal=True, key="yeni_durum_radio")
+                    if st.button("Durumu Güncelle", use_container_width=True, key="btn_durum_guncelle"):
+                        p_tc_secilen = secilen_p_str.split(" - ")[0]
+                        for p in st.session_state.personeller:
+                            if p.get('tc') == p_tc_secilen:
+                                p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
+                        personelleri_kaydet(st.session_state.personeller)
+                        st.success("Durum başarıyla güncellendi!")
+                        st.rerun()
+                else:
+                    st.info("Kayıt yok.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Personel Kadrosu")
-        if st.session_state.personeller:
-            bugun_tarihi = datetime.date.today()
-            p_gosterim = []
-            for p in st.session_state.personeller:
-                bas_tarih_str = p.get("baslama", "2026-01-01")
-                try:
-                    bas_dt = datetime.datetime.strptime(bas_tarih_str, "%Y-%m-%d").date()
-                except:
-                    bas_dt = datetime.date(2026, 1, 1)
-                net_calisilan, _, _, _ = net_calisma_gunu_hesapla(bas_dt, bugun_tarihi, p.get("izinler", []), st.session_state.resmi_tatiller)
-                p_gosterim.append({
-                    "T.C. No": p.get("tc", "-"),
-                    "Adı Soyadı": p["ad_soyad"],
-                    "Görevi": p["gorev"],
-                    "İşe Başlama": bas_tarih_str,
-                    "Çalışma Günü Sayacı": f"{net_calisilan} Gün",
-                    "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı"
-                })
+        st.subheader("📋 Kayıtlı Personel Kadrosu Tablosu")
+        if p_gosterim:
             ozel_html_tablo_goster(p_gosterim)
         else:
             st.info("Kayıtlı personel bulunmuyor.")
 
     with p_tab2:
-        st.subheader("🏖️ Yıllık İzin Yönetimi (Ekle & Sil)")
+        col_b_yil, col_indir_yil = st.columns([2, 2])
+        with col_b_yil:
+            st.subheader("🏖️ Yıllık İzin Yönetimi (Ekle & Sil)")
+
+        yillik_tablo_listesi = []
+        for p in st.session_state.personeller:
+            for iz in p.get("izinler", []):
+                if iz.get("tur") == "Yıllık İzin":
+                    yillik_tablo_listesi.append({"Personel": p["ad_soyad"], "İzin Türü": "Yıllık İzin", "Başlangıç": iz.get("baslangic", "-"), "Bitiş": iz.get("bitis", "-")})
+
+        excel_yil_data = tablo_to_excel_bytes(yillik_tablo_listesi, "Aziziye Aşevi - Yıllık İzinler")
+        pdf_yil_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Yıllık İzinler", yillik_tablo_listesi)
+
+        with col_indir_yil:
+            ortak_indirme_alani(excel_yil_data, pdf_yil_data, "yillik_izinler_raporu", "yillik_izin_sayfasi")
+
         if not yonetici_modu:
             st.warning("⚠️ Yıllık izin işlemleri yalnızca **Admin** tarafından yapılabilir.")
         else:
@@ -1601,19 +1625,29 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.info("Silinebilecek yıllık izin kaydı bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Tüm Yıllık İzinler")
-        yillik_tablo_listesi = []
-        for p in st.session_state.personeller:
-            for iz in p.get("izinler", []):
-                if iz.get("tur") == "Yıllık İzin":
-                    yillik_tablo_listesi.append({"Personel": p["ad_soyad"], "İzin Türü": "Yıllık İzin", "Başlangıç": iz.get("baslangic", "-"), "Bitiş": iz.get("bitis", "-")})
+        st.subheader("📋 Kayıtlı Tüm Yıllık İzinler Tablosu")
         if yillik_tablo_listesi:
             ozel_html_tablo_goster(yillik_tablo_listesi)
         else:
             st.info("Kayıtlı yıllık izin bulunmuyor.")
 
     with p_tab3:
-        st.subheader("⏰ Saatlik İzin Yönetimi (Ekle & Sil)")
+        col_b_saat, col_indir_saat = st.columns([2, 2])
+        with col_b_saat:
+            st.subheader("⏰ Saatlik İzin Yönetimi (Ekle & Sil)")
+
+        saatlik_tablo_listesi = []
+        for p in st.session_state.personeller:
+            for iz in p.get("izinler", []):
+                if iz.get("tur") == "Saatlik İzin":
+                    saatlik_tablo_listesi.append({"Personel": p["ad_soyad"], "İzin Türü": "Saatlik İzin", "Tarih": iz.get("baslangic", "-"), "Süre (Saat)": iz.get("saat", 0), "Detay": iz.get("detay", "-")})
+
+        excel_saat_data = tablo_to_excel_bytes(saatlik_tablo_listesi, "Aziziye Aşevi - Saatlik İzinler")
+        pdf_saat_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Saatlik İzinler", saatlik_tablo_listesi)
+
+        with col_indir_saat:
+            ortak_indirme_alani(excel_saat_data, pdf_saat_data, "saatlik_izinler_raporu", "saatlik_izin_sayfasi")
+
         if not yonetici_modu:
             st.warning("⚠️ Saatlik izin işlemleri yalnızca **Admin** tarafından yapılabilir.")
         else:
@@ -1678,19 +1712,29 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.info("Silinebilecek saatlik izin yok.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Tüm Saatlik İzinler")
-        saatlik_tablo_listesi = []
-        for p in st.session_state.personeller:
-            for iz in p.get("izinler", []):
-                if iz.get("tur") == "Saatlik İzin":
-                    saatlik_tablo_listesi.append({"Personel": p["ad_soyad"], "İzin Türü": "Saatlik İzin", "Tarih": iz.get("baslangic", "-"), "Süre (Saat)": iz.get("saat", 0), "Detay": iz.get("detay", "-")})
+        st.subheader("📋 Kayıtlı Tüm Saatlik İzinler Tablosu")
         if saatlik_tablo_listesi:
             ozel_html_tablo_goster(saatlik_tablo_listesi)
         else:
             st.info("Kayıtlı saatlik izin bulunmuyor.")
 
     with p_tab4:
-        st.subheader("🏥 Sağlık Raporu Yönetimi (Ekle & Sil)")
+        col_b_sag, col_indir_sag = st.columns([2, 2])
+        with col_b_sag:
+            st.subheader("🏥 Sağlık Raporu Yönetimi (Ekle & Sil)")
+
+        saglik_tablo_listesi = []
+        for p in st.session_state.personeller:
+            for iz in p.get("izinler", []):
+                if iz.get("tur") == "Sağlık Raporu":
+                    saglik_tablo_listesi.append({"Personel": p["ad_soyad"], "İzin Türü": "Sağlık Raporu", "Kurum": iz.get("kurum", "-"), "Başlangıç": iz.get("baslangic", "-"), "Bitiş": iz.get("bitis", "-"), "Teşhis": iz.get("teshis", "-")})
+
+        excel_sag_data = tablo_to_excel_bytes(saglik_tablo_listesi, "Aziziye Aşevi - Sağlık Raporları")
+        pdf_sag_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Sağlık Raporları", saglik_tablo_listesi)
+
+        with col_indir_sag:
+            ortak_indirme_alani(excel_sag_data, pdf_sag_data, "saglik_raporlari_raporu", "saglik_raporu_sayfasi")
+
         if not yonetici_modu:
             st.warning("⚠️ Sağlık raporu işlemleri yalnızca **Admin** tarafından yapılabilir.")
         else:
@@ -1752,19 +1796,17 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.info("Silinebilecek sağlık raporu yok.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Tüm Sağlık Raporları")
-        saglik_tablo_listesi = []
-        for p in st.session_state.personeller:
-            for iz in p.get("izinler", []):
-                if iz.get("tur") == "Sağlık Raporu":
-                    saglik_tablo_listesi.append({"Personel": p["ad_soyad"], "İzin Türü": "Sağlık Raporu", "Kurum": iz.get("kurum", "-"), "Başlangıç": iz.get("baslangic", "-"), "Bitiş": iz.get("bitis", "-"), "Teşhis": iz.get("teshis", "-")})
+        st.subheader("📋 Kayıtlı Tüm Sağlık Raporları Tablosu")
         if saglik_tablo_listesi:
             ozel_html_tablo_goster(saglik_tablo_listesi)
         else:
             st.info("Kayıtlı sağlık raporu bulunmuyor.")
 
     with p_tab5:
-        st.subheader("📊 Personel Net Çalışma Süresi Raporu")
+        col_b_net, col_indir_net = st.columns([2, 2])
+        with col_b_net:
+            st.subheader("📊 Personel Net Çalışma Süresi Raporu")
+
         if not st.session_state.personeller:
             st.info("Kayıtlı personel bulunmuyor.")
         else:
@@ -1785,6 +1827,24 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     with m_p2: st.metric("Yıllık İzin", f"{toplam_izin} Gün")
                     with m_p3: st.metric("Sağlık Raporu", f"{saglik_raporu_gun} Gün")
                     with m_p4: st.metric("Saatlik İzin", f"{saatlik_izin_saat} Saat")
+
+                    net_rapor_liste = [{
+                        "Personel": secilen_rapor_p,
+                        "Dönem": f"{donem_bas} / {donem_bit}",
+                        "Net Çalışılan Gün": f"{net_gun} Gün",
+                        "Yıllık İzin": f"{toplam_izin} Gün",
+                        "Sağlık Raporu": f"{saglik_raporu_gun} Gün",
+                        "Saatlik İzin": f"{saatlik_izin_saat} Saat"
+                    }]
+
+                    excel_net_data = tablo_to_excel_bytes(net_rapor_liste, f"Net Çalışma Raporu - {secilen_rapor_p}")
+                    pdf_net_data = tablo_to_html_pdf_bytes(f"Net Çalışma Raporu - {secilen_rapor_p}", net_rapor_liste)
+
+                    with col_indir_net:
+                        ortak_indirme_alani(excel_net_data, pdf_net_data, f"net_calisma_raporu_{secilen_rapor_p}", "net_calisma_sayfasi")
+
+                    st.markdown("---")
+                    ozel_html_tablo_goster(net_rapor_liste)
 
 # 9. KULLANIM TAKİBİ
 elif menu == "Kullanım Takibi":
