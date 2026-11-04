@@ -239,13 +239,13 @@ varsayilan_girisler = [
     {"id": "STK-064", "tarih": "2026-10-28 12:10", "fatura_no": "FAT-2026-064", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"}
 ]
 
-# Varsayılan Personel Listesi (İstediğin Tarihlerle)
+# Varsayılan Personel Listesi (T.C. No Alanı Eklenmiş Olarak)
 varsayilan_personeller = [
-    {"id": "PER-001", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
-    {"id": "PER-002", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
-    {"id": "PER-003", "ad_soyad": "SEDAT UZUN", "gorev": "Aşçı", "baslama": "2026-09-25", "aktif": True, "izinler": []},
-    {"id": "PER-004", "ad_soyad": "BURAK AYAŞTI", "gorev": "Temizlik Personeli", "baslama": "2026-09-25", "aktif": True, "izinler": []},
-    {"id": "PER-005", "ad_soyad": "HÜSEYİN KAYMAK", "gorev": "Aşçı Yardımcısı", "baslama": "2026-10-26", "aktif": True, "izinler": []}
+    {"tc": "11111111111", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
+    {"tc": "22222222222", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
+    {"tc": "33333333333", "ad_soyad": "SEDAT UZUN", "gorev": "Aşçı", "baslama": "2026-09-25", "aktif": True, "izinler": []},
+    {"tc": "44444444444", "ad_soyad": "BURAK AYAŞTI", "gorev": "Temizlik Personeli", "baslama": "2026-09-25", "aktif": True, "izinler": []},
+    {"tc": "55555555555", "ad_soyad": "HÜSEYİN KAYMAK", "gorev": "Aşçı Yardımcısı", "baslama": "2026-10-26", "aktif": True, "izinler": []}
 ]
 
 # Varsayılan 2026 Resmi Tatiller
@@ -380,7 +380,10 @@ def personelleri_yukle():
         try:
             with open(PERSONEL_DOSYASI, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                for p in data:
+                for i, p in enumerate(data):
+                    # Eski kayıtlarda tc alanı yoksa ID'den ya da sıradan türetelim
+                    if "tc" not in p:
+                        p["tc"] = f"100000000{i+1}"
                     ad = p.get("ad_soyad", "")
                     if "baslama" not in p or not p["baslama"] or p["baslama"] == "-":
                         if "MUHAMMED İLKER ÇELİK" in ad or "EMİRHAN DÖNMEZ" in ad:
@@ -1491,6 +1494,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
             with col_p_ekle:
                 with st.form("personel_ekle_form"):
                     st.markdown("**➕ Yeni Personel Ekle**")
+                    p_tc = st.text_input("T.C. No").strip()
                     p_ad = st.text_input("Personel Adı Soyadı").strip().upper()
                     p_gorev = st.text_input("Görevi (Örn: Aşçı)")
                     p_bas = st.date_input("İşe Başlama Tarihi", value=datetime.date.today())
@@ -1498,7 +1502,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     
                     if p_submit and p_ad:
                         st.session_state.personeller.append({
-                            "id": f"PRS-{len(st.session_state.personeller)+1:03d}",
+                            "tc": p_tc if p_tc else "00000000000",
                             "ad_soyad": p_ad,
                             "gorev": p_gorev if p_gorev else "Personel",
                             "baslama": str(p_bas),
@@ -1513,16 +1517,16 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 with st.form("personel_sil_form"):
                     st.markdown("**🗑️ Personeli Sil**")
                     if st.session_state.personeller:
-                        p_sil_secenekleri = [f"{p['id']} - {p['ad_soyad']}" for p in st.session_state.personeller]
+                        p_sil_secenekleri = [f"{p.get('tc', '---')} - {p['ad_soyad']}" for p in st.session_state.personeller]
                         secilen_sil_p = st.selectbox("Silinecek Personel", p_sil_secenekleri)
                         p_sil_btn = st.form_submit_button("Personeli Kadrodan Sil", type="primary")
                         
                         if p_sil_btn:
-                            sil_id = secilen_sil_p.split(" - ")[0]
-                            silinen_obj = next((p for p in st.session_state.personeller if p["id"] == sil_id), None)
+                            sil_tc = secilen_sil_p.split(" - ")[0]
+                            silinen_obj = next((p for p in st.session_state.personeller if p.get('tc') == sil_tc), None)
                             silinen_ad = silinen_obj["ad_soyad"] if silinen_obj else ""
                             
-                            st.session_state.personeller = [p for p in st.session_state.personeller if p["id"] != sil_id]
+                            st.session_state.personeller = [p for p in st.session_state.personeller if p.get('tc') != sil_tc]
                             personelleri_kaydet(st.session_state.personeller)
                             st.session_state.personel_silme_mesaji = f"Başarılı! {silinen_ad} kadrodan silindi."
                             st.rerun()
@@ -1533,15 +1537,15 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 with st.form("personel_durum_form"):
                     st.markdown("**🔄 Durum Güncelle**")
                     if st.session_state.personeller:
-                        p_secenekler = [f"{p['id']} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
+                        p_secenekler = [f"{p.get('tc', '---')} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
                         secilen_p_str = st.selectbox("Personel Seç", p_secenekler)
                         yeni_durum = st.radio("Durum", ["Aktif Çalışıyor", "Pasif / Ayrıldı"], horizontal=True)
                         p_durum_btn = st.form_submit_button("Durumu Güncelle")
                         
                         if p_durum_btn:
-                            p_id = secilen_p_str.split(" - ")[0]
+                            p_tc_secilen = secilen_p_str.split(" - ")[0]
                             for p in st.session_state.personeller:
-                                if p["id"] == p_id:
+                                if p.get('tc') == p_tc_secilen:
                                     p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
                             personelleri_kaydet(st.session_state.personeller)
                             st.success("Durum güncellendi!")
@@ -1561,11 +1565,10 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 except:
                     bas_dt = datetime.date(2026, 1, 1)
                 
-                # İşe giriş tarihinden bugüne kadar net çalışma günü hesabı (Hafta sonları hariç)
                 net_calisilan, _, _, _ = net_calisma_gunu_hesapla(bas_dt, bugun_tarihi, p.get("izinler", []), st.session_state.resmi_tatiller)
                 
                 p_gosterim.append({
-                    "ID": p["id"],
+                    "T.C. No": p.get("tc", "-"),
                     "Adı Soyadı": p["ad_soyad"],
                     "Görevi": p["gorev"],
                     "İşe Başlama": bas_tarih_str,
