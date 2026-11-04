@@ -462,6 +462,62 @@ def bugunun_turkce_tarihi():
     gunler = {0: "Pazartesi", 1: "Salı", 2: "Çarşamba", 3: "Perşembe", 4: "Cuma", 5: "Cumartesi", 6: "Pazar"}
     return f"{simdi.day} {aylar.get(simdi.month, '')} {simdi.year}, {gunler.get(simdi.weekday(), '')}"
 
+
+# =========================================================================
+# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI
+# =========================================================================
+if not st.session_state.oturum_aktif:
+    st.markdown("<div style='text-align: center; margin-top: 40px;'></div>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([1, 1.2, 1])
+    with c2:
+        st.markdown("""
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2>🍲 AZİZİYE AŞEVİ</h2>
+                <p style="opacity: 0.7; font-size: 14px;">Yönetim ve Takip Sistemi</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("merkezi_giris_formu"):
+            st.markdown("**Kullanıcı Adı**")
+            k_adi_inp = st.text_input("Kullanıcı Adı", placeholder="Kullanıcı adı giriniz...", label_visibility="collapsed").strip().lower()
+            st.markdown("**Şifre**")
+            sifre_inp = st.text_input("Şifre", type="password", placeholder="Şifre giriniz...", label_visibility="collapsed")
+            
+            giris_tikla = st.form_submit_button("Giriş Yap", use_container_width=True)
+            
+            aktif_yonetici_sifresi = yonetici_sifresi_yukle()
+            if giris_tikla:
+                if k_adi_inp == "admin" and sifre_inp == aktif_yonetici_sifresi:
+                    st.session_state.oturum_aktif = True
+                    st.session_state.aktif_kullanici = "admin"
+                    st.query_params["auth"] = "true"
+                    st.query_params["user"] = "admin"
+                    st.success("Admin olarak giriş yapıldı!")
+                    st.rerun()
+                elif k_adi_inp == "asci" and sifre_inp == "sydv25":
+                    st.session_state.oturum_aktif = True
+                    st.session_state.aktif_kullanici = "asci"
+                    st.query_params["auth"] = "true"
+                    st.query_params["user"] = "asci"
+                    st.success("Aşçı olarak giriş yapıldı!")
+                    st.rerun()
+                else:
+                    st.error("Hatalı kullanıcı adı veya şifre!")
+
+        st.markdown("<div style='text-align: center; margin: 15px 0; opacity: 0.6;'>veya</div>", unsafe_allow_html=True)
+        
+        if st.button("👁️ Misafir Girişi İçin Tıklayın (Gözlemci)", use_container_width=True, type="secondary"):
+            st.session_state.oturum_aktif = True
+            st.session_state.aktif_kullanici = "misafir"
+            st.query_params["auth"] = "true"
+            st.query_params["user"] = "misafir"
+            st.rerun()
+
+    st.stop()  # Giriş yapılmadıysa ana sayfayı göstermeyi durdur
+
+# =========================================================================
+# ANA UYGULAMA İÇERİĞİ (Giriş Yapıldıktan Sonra Görünür)
+# =========================================================================
 st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
@@ -550,57 +606,27 @@ st.sidebar.markdown(f"""
 
 aktif_yonetici_sifresi = yonetici_sifresi_yukle()
 
-if not st.session_state.oturum_aktif:
-    with st.sidebar.form("giris_formu"):
-        kullanici_adi_input = st.text_input("Kullanıcı Adı", placeholder="Kullanıcı adı giriniz...").strip().lower()
-        sifre_input = st.text_input("Şifre", type="password", placeholder="Şifre giriniz...")
-        giris_butonu = st.form_submit_button("Giriş Yap", use_container_width=True)
-        if giris_butonu:
-            if kullanici_adi_input == "admin" and sifre_input == aktif_yonetici_sifresi:
-                st.session_state.oturum_aktif = True
-                st.session_state.aktif_kullanici = "admin"
-                st.query_params["auth"] = "true"
-                st.query_params["user"] = "admin"
-                st.success("Admin olarak giriş yapıldı!")
-                st.rerun()
-            elif kullanici_adi_input == "asci" and sifre_input == "sydv25":
-                st.session_state.oturum_aktif = True
-                st.session_state.aktif_kullanici = "asci"
-                st.query_params["auth"] = "true"
-                st.query_params["user"] = "asci"
-                st.success("Aşçı olarak giriş yapıldı!")
-                st.rerun()
-            elif kullanici_adi_input == "misafir" and sifre_input == "Erzurum25":
-                st.session_state.oturum_aktif = True
-                st.session_state.aktif_kullanici = "misafir"
-                st.query_params["auth"] = "true"
-                st.query_params["user"] = "misafir"
-                st.success("Misafir olarak giriş yapıldı!")
-                st.rerun()
-            else:
-                st.error("Hatalı kullanıcı adı veya şifre!")
-else:
-    if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"):
-        st.session_state.oturum_aktif = False
-        st.session_state.aktif_kullanici = "misafir"
-        st.query_params.clear()
-        st.rerun()
+if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"):
+    st.session_state.oturum_aktif = False
+    st.session_state.aktif_kullanici = "misafir"
+    st.query_params.clear()
+    st.rerun()
 
-    if st.session_state.aktif_kullanici == "admin":
-        with st.sidebar.expander("➡️ Admin Şifresini Değiştir"):
-            with st.form("sifre_degistir_form"):
-                eski_sifre = st.text_input("Mevcut Şifre", type="password")
-                yeni_sifre_1 = st.text_input("Yeni Şifre", type="password")
-                yeni_sifre_2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
-                sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
-                if sifre_guncelle_btn:
-                    if eski_sifre != aktif_yonetici_sifresi:
-                        st.error("Mevcut şifre hatalı!")
-                    elif not yeni_sifre_1 or yeni_sifre_1 != yeni_sifre_2:
-                        st.error("Yeni şifreler uyuşmuyor!")
-                    else:
-                        yonetici_sifresi_kaydet(yeni_sifre_1)
-                        st.success("Admin şifresi başarıyla değiştirildi!")
+if st.session_state.aktif_kullanici == "admin":
+    with st.sidebar.expander("➡️ Admin Şifresini Değiştir"):
+        with st.form("sifre_degistir_form"):
+            eski_sifre = st.text_input("Mevcut Şifre", type="password")
+            yeni_sifre_1 = st.text_input("Yeni Şifre", type="password")
+            yeni_sifre_2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
+            sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
+            if sifre_guncelle_btn:
+                if eski_sifre != aktif_yonetici_sifresi:
+                    st.error("Mevcut şifre hatalı!")
+                elif not yeni_sifre_1 or yeni_sifre_1 != yeni_sifre_2:
+                    st.error("Yeni şifreler uyuşmuyor!")
+                else:
+                    yonetici_sifresi_kaydet(yeni_sifre_1)
+                    st.success("Admin şifresi başarıyla değiştirildi!")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="font-size: 11px; text-align: center; opacity: 0.5;">sefautopcu</p>', unsafe_allow_html=True)
@@ -1049,7 +1075,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Takibi")
     
-    # Takvim / Tarih Filtresi eklendi
     secilen_tarih_filtresi = st.date_input("📅 Sorgulanacak / Takip Edilecek Tarihi Seçin", value=datetime.date.today())
     secilen_tarih_str = secilen_tarih_filtresi.strftime("%Y-%m-%d")
 
@@ -1169,7 +1194,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     else:
         st.info("Henüz sepete malzeme eklenmedi.")
 
-    # Seçilen Tarihteki Yemek ve Malzeme Kullanım Sorgulama Alanı
     st.markdown("---")
     st.subheader(f"🔍 {secilen_tarih_str} Tarihli Yemek ve Malzeme Kullanım Dökümü")
     secilen_tarih_loglari = [l for l in st.session_state.kullanim_loglari if l.get("tarih", "").startswith(secilen_tarih_str)]
