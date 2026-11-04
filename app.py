@@ -239,7 +239,7 @@ varsayilan_girisler = [
     {"id": "STK-064", "tarih": "2026-10-28 12:10", "fatura_no": "FAT-2026-064", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"}
 ]
 
-# Varsayılan Personel Listesi (İstediğin Tarihlerle Güncellendi)
+# Varsayılan Personel Listesi (İstediğin Tarihlerle)
 varsayilan_personeller = [
     {"id": "PER-001", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
     {"id": "PER-002", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
@@ -449,6 +449,9 @@ if "resmi_tatiller" not in st.session_state:
 
 if "kalori_sepeti" not in st.session_state:
     st.session_state.kalori_sepeti = []
+
+if "personel_silme_mesaji" not in st.session_state:
+    st.session_state.personel_silme_mesaji = ""
 
 # --- OTURUM KALICILIĞI ---
 query_params = st.query_params
@@ -1477,15 +1480,19 @@ elif menu == "Personel & Çalışma Süresi Takibi":
     ])
 
     with p_tab1:
+        if st.session_state.personel_silme_mesaji:
+            st.success(st.session_state.personel_silme_mesaji)
+            st.session_state.personel_silme_mesaji = ""
+
         if misafir_modu:
             st.info("👀 Misafir modundasınız. Bu ekranda yalnızca personel listesini görüntüleyebilirsiniz.")
         else:
-            col_p_ekle, col_p_durum = st.columns(2)
+            col_p_ekle, col_p_sil, col_p_durum = st.columns(3)
             with col_p_ekle:
                 with st.form("personel_ekle_form"):
                     st.markdown("**➕ Yeni Personel Ekle**")
                     p_ad = st.text_input("Personel Adı Soyadı").strip().upper()
-                    p_gorev = st.text_input("Görevi (Örn: Aşçı / Depo Sorumlusu)")
+                    p_gorev = st.text_input("Görevi (Örn: Aşçı)")
                     p_bas = st.date_input("İşe Başlama Tarihi", value=datetime.date.today())
                     p_submit = st.form_submit_button("Personeli Kaydet")
                     
@@ -1502,13 +1509,33 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.success(f"Başarılı! {p_ad} kadroya eklendi.")
                         st.rerun()
 
+            with col_p_sil:
+                with st.form("personel_sil_form"):
+                    st.markdown("**🗑️ Personeli Sil**")
+                    if st.session_state.personeller:
+                        p_sil_secenekleri = [f"{p['id']} - {p['ad_soyad']}" for p in st.session_state.personeller]
+                        secilen_sil_p = st.selectbox("Silinecek Personel", p_sil_secenekleri)
+                        p_sil_btn = st.form_submit_button("Personeli Kadrodan Sil", type="primary")
+                        
+                        if p_sil_btn:
+                            sil_id = secilen_sil_p.split(" - ")[0]
+                            silinen_obj = next((p for p in st.session_state.personeller if p["id"] == sil_id), None)
+                            silinen_ad = silinen_obj["ad_soyad"] if silinen_obj else ""
+                            
+                            st.session_state.personeller = [p for p in st.session_state.personeller if p["id"] != sil_id]
+                            personelleri_kaydet(st.session_state.personeller)
+                            st.session_state.personel_silme_mesaji = f"Başarılı! {silinen_ad} kadrodan silindi."
+                            st.rerun()
+                    else:
+                        st.info("Silinecek personel bulunmuyor.")
+
             with col_p_durum:
                 with st.form("personel_durum_form"):
-                    st.markdown("**🔄 Personel Durum Güncelle (Aktif/Pasif)**")
+                    st.markdown("**🔄 Durum Güncelle**")
                     if st.session_state.personeller:
-                        p_secenekler = [f"{p['id']} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Ayrıldı'})" for p in st.session_state.personeller]
+                        p_secenekler = [f"{p['id']} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
                         secilen_p_str = st.selectbox("Personel Seç", p_secenekler)
-                        yeni_durum = st.radio("Durum Seç", ["Aktif Çalışıyor", "İşten Ayrıldı / Pasif"], horizontal=True)
+                        yeni_durum = st.radio("Durum", ["Aktif Çalışıyor", "Pasif / Ayrıldı"], horizontal=True)
                         p_durum_btn = st.form_submit_button("Durumu Güncelle")
                         
                         if p_durum_btn:
@@ -1517,10 +1544,10 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                 if p["id"] == p_id:
                                     p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
                             personelleri_kaydet(st.session_state.personeller)
-                            st.success("Personel durumu güncellendi!")
+                            st.success("Durum güncellendi!")
                             st.rerun()
                     else:
-                        st.info("Kayıtlı personel bulunmuyor.")
+                        st.info("Kayıt yok.")
 
         st.markdown("---")
         st.subheader("📋 Kayıtlı Personel Kadrosu ve Çalışma Süresi Sayacı")
@@ -1872,7 +1899,6 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 with m_p4:
                     st.metric("Saatlik İzin", f"{saatlik_izin_saat} Saat")
 
-                # Personele ait izin ve rapor geçmişi dökümü
                 st.markdown("### 📋 Personele Ait İzin ve Rapor Geçmişi Detayı")
                 personel_izinleri = ilgili_personel_obj.get("izinler", [])
                 if personel_izinleri:
