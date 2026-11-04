@@ -17,7 +17,7 @@ st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲"
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "Koyu Tema (Dark)"
 
-# Dinamik Tema CSS Entegrasyonu (İstediğiniz özel font stilleri başüslere ve metinlere işlendi)
+# Dinamik Tema CSS Entegrasyonu (İstediğiniz özel font stilleri ve kart yapıları)
 if st.session_state.tema_secimi == "Koyu Tema (Dark)":
     st.markdown("""
         <style>
@@ -710,7 +710,7 @@ def ortak_indirme_alani(excel_veri, pdf_veri, dosya_adi_koku, unique_key):
             )
 
 
-# 0. KURUMSAL DASHBOARD & ÖZET
+# 0. KURUMSAL DASHBOARD & ÖZET (Görseldeki 4'lü Kart Düzenine Uyarlanmıştır)
 if menu == "Kurumsal Dashboard & Özet":
     st.markdown("""
         <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 24px 30px; border-radius: 16px; color: white; margin-bottom: 25px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
@@ -732,19 +732,84 @@ if menu == "Kurumsal Dashboard & Özet":
     loglar = st.session_state.kullanim_loglari
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
     toplam_fire_tutar = sum(l["tutar"] for l in loglar if l["tur"] == "Fire/Zayiat")
+    toplam_personel_sayisi = len(st.session_state.personeller)
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Toplam Ürün Çeşidi", f"{toplam_stok_kalemi} Çeşit")
-    with c2:
-        st.metric("Toplam Fire / Zayiat", f"{toplam_fire_mik:,.1f} Kg", delta=f"📉 {toplam_fire_tutar:,.2f} ₺", delta_color="inverse")
-    with c3:
-        st.metric("Toplam Stok Değeri", f"{toplam_envanter_maliyeti:,.2f} ₺")
+    # Görseldeki 2x2 Modern Kart Düzeni
+    is_dark = (st.session_state.tema_secimi == "Koyu Tema (Dark)")
+    card_bg = "#1E293B" if is_dark else "#FFFFFF"
+    card_border = "#334155" if is_dark else "#E5E7EB"
+    text_color = "#F8FAFC" if is_dark else "#111827"
+    subtext_color = "#94A3B8" if is_dark else "#4B5563"
+
+    # Satır 1: Toplam Ürün Çeşidi ve Toplam Fire/Zayiat
+    row1_c1, row1_c2 = st.columns(2)
+    with row1_c1:
+        st.markdown(f"""
+            <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 20px 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 16px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Ürün Çeşidi</div>
+                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 8px;">{toplam_stok_kalemi} Çeşit</div>
+                    </div>
+                    <div style="background: rgba(56, 189, 248, 0.15); padding: 12px; border-radius: 12px; color: #38BDF8; font-size: 20px;">
+                        📦
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with row1_c2:
+        st.markdown(f"""
+            <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 20px 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 16px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Fire / Zayiat</div>
+                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 8px;">{toplam_fire_mik:,.1f} Kg</div>
+                        <div style="color: #EF4444; font-size: 12px; font-weight: 600; margin-top: 4px;">Maddi Zarar: {toplam_fire_tutar:,.2f} ₺</div>
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.15); padding: 12px; border-radius: 12px; color: #EF4444; font-size: 20px;">
+                        📉
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # Satır 2: Toplam Stok Değeri ve Çalışan Personel Sayısı
+    row2_c1, row2_c2 = st.columns(2)
+    with row2_c1:
+        st.markdown(f"""
+            <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 20px 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 16px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Stok Değeri</div>
+                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 8px;">{toplam_envanter_maliyeti:,.2f} ₺</div>
+                    </div>
+                    <div style="background: rgba(52, 211, 153, 0.15); padding: 12px; border-radius: 12px; color: #34D399; font-size: 20px;">
+                        💰
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with row2_c2:
+        st.markdown(f"""
+            <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 20px 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 16px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Çalışan Personel Sayısı</div>
+                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 8px;">{toplam_personel_sayisi} Kişi</div>
+                    </div>
+                    <div style="background: rgba(167, 139, 250, 0.15); padding: 12px; border-radius: 12px; color: #A78BFA; font-size: 20px;">
+                        👥
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
-    st.markdown("""
-        <div style="padding: 24px; border-radius: 16px; border: 1px solid #334155; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+    st.markdown(f"""
+        <div style="background: {card_bg}; padding: 24px; border-radius: 16px; border: 1px solid {card_border}; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             <div style="color: #38BDF8; font-weight: 600; font-size: 15px; margin-bottom: 15px; display: flex; align-items: center;">
                 <span style="font-size: 18px; margin-right: 8px;">┃</span> Kategori Bazlı Stok Dağılımı & Envanter Analizi
             </div>
@@ -773,7 +838,7 @@ if menu == "Kurumsal Dashboard & Özet":
             height=280,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter', size=12, color='#F8FAFC'),
+            font=dict(family='Inter', size=12, color=text_color),
             showlegend=False
         )
         st.plotly_chart(fig_donut, use_container_width=True)
@@ -782,7 +847,7 @@ if menu == "Kurumsal Dashboard & Özet":
         st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
         toplam_stok_miktari_genel = sum(kategori_verileri.values())
         st.markdown(f"""
-            <div style="font-size: 14px; line-height: 1.6;">
+            <div style="font-size: 14px; line-height: 1.6; color: {text_color};">
                 <p style="margin-bottom: 10px;">Depomuzda an itibariyle toplam <strong style="color: #38BDF8;">{toplam_stok_miktari_genel:,.1f} birim</strong> ürün aktif olarak bulunmaktadır.</p>
                 <p style="margin-bottom: 15px;">Envanterin büyük bir kısmı <strong style="color: #34D399;">Kuru Gıda</strong> ve <strong style="color: #FBBF24;">Sebze</strong> depolarında güvenle muhafaza edilmektedir.</p>
             </div>
@@ -1950,7 +2015,7 @@ elif menu == "Kullanım Takibi":
     with m3:
         st.metric("Fire / Zayiat Miktarı", f"{toplam_fire_mik:.1f}")
     with m4:
-        st.metric("Toplam Harcama / Maliyet", f"{genel_toplog_tutar if 'genel_toplog_tutar' in locals() else genel_toplam_tutar:.2f} ₺")
+        st.metric("Toplam Harcama / Maliyet", f"{genel_toplam_tutar:.2f} ₺")
 
     st.markdown("---")
     st.subheader("📋 Detaylı İşlem Geçmişi Tablosu")
