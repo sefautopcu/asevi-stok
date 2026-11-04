@@ -1192,7 +1192,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     st.header("👥 İhtiyaç Sahibi ve Yemek Dağıtım Takibi")
     st.markdown("Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun, yönetin ve yemek dağıtımlarını takip edin.")
 
-    tab1, tab2, tab3 = st.tabs(["📋 İhtiyaç Sahibi Listesi, Ekle ve Sil", "🍲 Yemek Dağıtım Girişi", "📊 Dağıtım Raporları (Günlük/Aylık/Yıllık)"])
+    tab1, tab2, tab3 = st.tabs(["📋 İhtiyaç Sahibi Listesi, Ekle ve Sil", "🍲 Yemek Dağıtım Girişi", "📊 Dağıtım Sayacı & Raporları"])
 
     with tab1:
         if st.session_state.kisi_silme_mesaji:
@@ -1338,20 +1338,85 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             st.info("Kayıtlı yemek dağıtımı bulunmuyor.")
 
     with tab3:
-        st.subheader("📊 Kim Ne Kadar Süredir Yemek Almış?")
-        kisi_secenekleri_rapor = ["Tüm İhtiyaç Sahipleri (Genel Rapor)"] + [k["ad_soyad"] for k in st.session_state.ihtiyac_sahipleri]
-        secilen_rapor_kisi = st.selectbox("Raporlanacak Kişiyi Seçin", kisi_secenekleri_rapor, key="rapor_kisi_sec")
-        dagitimlar = st.session_state.dagitim_loglari
-        if secilen_rapor_kisi != "Tüm İhtiyaç Sahipleri (Genel Rapor)":
-            dagitimlar = [d for d in dagitimlar if d["kisi"] == secilen_rapor_kisi]
+        col_b_sayac, col_indir_sayac = st.columns([2, 2])
+        with col_b_sayac:
+            st.subheader("📊 Kişi Bazlı Günlük, Haftalık ve Aylık Sayaç Raporu")
         
-        toplam_porsiyon_alınan = sum(d["porsiyon"] for d in dagitimlar)
-        toplam_alis_sefer_sayisi = len(dagitimlar)
-        m1, m2 = st.columns(2)
-        with m1:
-            st.metric("Toplam Alınan Öğün / Sefer Sayısı", f"{toplam_alis_sefer_sayisi} Kez")
-        with m2:
-            st.metric("Toplam Dağıtılan Porsiyon", f"{toplam_porsiyon_alınan} Porsiyon")
+        simdi_dt = datetime.datetime.now()
+        bugun_str = simdi_dt.strftime("%Y-%m-%d")
+        
+        # Son 7 gün ve bu ay filtreleri için tarih sınırları
+        yedi_gun_once = (simdi_dt - datetime.timedelta(days=7)).date()
+        bu_yil_ay = simdi_dt.strftime("%Y-%m")
+
+        sayac_tablosu = []
+        excel_sayac_liste = []
+
+        for k in st.session_state.ihtiyac_sahipleri:
+            kisi_adi = k["ad_soyad"]
+            k_loglari = [d for d in st.session_state.dagitim_loglari if d.get("kisi") == kisi_adi]
+
+            gunluk_sefer = 0
+            gunluk_porsiyon = 0
+            haftalik_sefer = 0
+            haftalik_porsiyon = 0
+            aylik_sefer = 0
+            aylik_porsiyon = 0
+
+            for d in k_loglari:
+                tarih_saat_str = d.get("tarih", "")
+                pors = int(d.get("porsiyon", 1))
+                if not tarih_saat_str:
+                    continue
+                try:
+                    d_tarih = datetime.datetime.strptime(tarih_saat_str.split()[0], "%Y-%m-%d").date()
+                except:
+                    continue
+
+                # Günlük kontrol
+                if tarih_saat_str.startswith(bugun_str):
+                    gunluk_sefer += 1
+                    gunluk_porsiyon += pors
+
+                # Haftalık kontrol (Son 7 gün)
+                if yedi_gun_once <= d_tarih <= simdi_dt.date():
+                    haftalik_sefer += 1
+                    haftalik_porsiyon += pors
+
+                # Aylık kontrol (Bu ay)
+                if tarih_saat_str.startswith(bu_yil_ay):
+                    aylik_sefer += 1
+                    aylik_porsiyon += pors
+
+            sayac_tablosu.append({
+                "T.C. / Hane No": k.get("tc_hane", "-"),
+                "İhtiyaç Sahibi": kisi_adi,
+                "Günlük Alım (Kez / Porsiyon)": f"{gun_sefer if 'gun_sefer' in locals() else gunluk_sefer} Kez / {gunluk_porsiyon} Pors.",
+                "Haftalık Alım (Kez / Porsiyon)": f"{haftalik_sefer} Kez / {haftalik_porsiyon} Pors.",
+                "Aylık Alım (Kez / Porsiyon)": f"{aylik_sefer} Kez / {aylik_porsiyon} Pors."
+            })
+
+            excel_sayac_liste.append({
+                "T.C. / Hane No": k.get("tc_hane", "-"),
+                "İhtiyaç Sahibi": kisi_adi,
+                "Günlük Kez": gunluk_sefer,
+                "Günlük Porsiyon": gunluk_porsiyon,
+                "Haftalık Kez": haftalik_sefer,
+                "Haftalık Porsiyon": haftalik_porsiyon,
+                "Aylık Kez": aylik_sefer,
+                "Aylık Porsiyon": aylik_porsiyon
+            })
+
+        excel_sayac_data = tablo_to_excel_bytes(excel_sayac_liste, "Aziziye Aşevi - Kişi Bazlı Yemek Dağıtım Sayaç Raporu")
+        pdf_sayac_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Kişi Bazlı Yemek Dağıtım Sayaç Raporu", excel_sayac_liste)
+
+        with col_indir_sayac:
+            ortak_indirme_alani(excel_sayac_data, pdf_sayac_data, "kisi_bazli_yemek_sayac_raporu", "sayac_sayfasi")
+
+        if sayac_tablosu:
+            ozel_html_tablo_goster(sayac_tablosu)
+        else:
+            st.info("Listelenecek ihtiyaç sahibi veya dağıtım verisi bulunmuyor.")
 
 # 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
 elif menu == "Personel & Çalışma Süresi Takibi":
