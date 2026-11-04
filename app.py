@@ -399,6 +399,8 @@ if "kalori_sepeti" not in st.session_state:
     st.session_state.kalori_sepeti = []
 if "personel_silme_mesaji" not in st.session_state:
     st.session_state.personel_silme_mesaji = ""
+if "dagitim_silme_mesaji" not in st.session_state:
+    st.session_state.dagitim_silme_mesaji = ""
 
 query_params = st.query_params
 if "oturum_aktif" not in st.session_state:
@@ -1136,7 +1138,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             verileri_kaydet(st.session_state.girisler)
             loglari_kaydet(st.session_state.kullanim_loglari)
             st.session_state.sepet = []
-            st.success("Üretim kaydedildi, malzemeler stoktan düşüldü ve Kullanım Takibine eklendi!")
+            st.success("Eklendi")
             st.rerun()
 
         st.markdown("---")
@@ -1260,31 +1262,73 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             st.info("Sistemde kayıtlı ihtiyaç sahibi bulunmuyor.")
 
     with tab2:
-        st.subheader("🍲 Günlük Yemek Dağıtım Kaydı")
+        if st.session_state.dagitim_silme_mesaji:
+            st.success(st.session_state.dagitim_silme_mesaji)
+            st.session_state.dagitim_silme_mesaji = ""
+
+        st.subheader("🍲 Günlük Yemek Dağıtım Girişi ve Yönetimi")
         if misafir_modu:
             st.info("👀 Misafir modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
         elif not st.session_state.ihtiyac_sahipleri:
             st.warning("Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı yapmalısınız.")
         else:
-            with st.form("dagitim_formu"):
-                d_tarih_saat = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                kisi_secenekleri = [k["ad_soyad"] for k in st.session_state.ihtiyac_sahipleri]
-                secilen_kisi = st.selectbox("Yemek Alan Kişi / Hane", kisi_secenekleri)
-                menu_adi = st.text_input("Verilen Menü / Yemek Adı", "Ispanak Yemeği ve Pilav")
-                porsiyon_mik = st.number_input("Verilen Porsiyon / Sefer Tası Miktarı", min_value=1, value=1)
-                
-                dagitim_ekle_btn = st.form_submit_button("Dağıtımı Kaydet")
-                if dagitim_ekle_btn:
-                    st.session_state.dagitim_loglari.append({
-                        "tarih": d_tarih_saat,
-                        "kisi": secilen_kisi,
-                        "menu": menu_adi,
-                        "porsiyon": porsiyon_mik,
-                        "islem_yapan": st.session_state.aktif_kullanici
-                    })
-                    dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
-                    st.success("Başarılı! Yemek dağıtımı kaydedildi.")
-                    st.rerun()
+            col_d_ekle, col_d_sil = st.columns(2)
+            with col_d_ekle:
+                with st.form("dagitim_formu"):
+                    st.markdown("**➕ Yeni Yemek Dağıtımı Ekle**")
+                    d_tarih_saat = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    kisi_secenekleri = [k["ad_soyad"] for k in st.session_state.ihtiyac_sahipleri]
+                    secilen_kisi = st.selectbox("Yemek Alan Kişi / Hane", kisi_secenekleri)
+                    menu_adi = st.text_input("Verilen Menü / Yemek Adı", "Ispanak Yemeği ve Pilav")
+                    porsiyon_mik = st.number_input("Verilen Porsiyon / Sefer Tası Miktarı", min_value=1, value=1)
+                    
+                    dagitim_ekle_btn = st.form_submit_button("Dağıtımı Kaydet")
+                    if dagitim_ekle_btn:
+                        st.session_state.dagitim_loglari.append({
+                            "id": f"DAG-{len(st.session_state.dagitim_loglari)+1:03d}",
+                            "tarih": d_tarih_saat,
+                            "kisi": secilen_kisi,
+                            "menu": menu_adi,
+                            "porsiyon": porsiyon_mik,
+                            "islem_yapan": st.session_state.aktif_kullanici
+                        })
+                        dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
+                        st.success("Eklendi")
+                        st.rerun()
+
+            with col_d_sil:
+                with st.form("dagitim_sil_form"):
+                    st.markdown("**🗑️ Yemek Dağıtım Kaydını Sil**")
+                    if st.session_state.dagitim_loglari:
+                        dagitim_secenekleri = [f"DAG-{idx:03d} - {d['kisi']} | Menü: {d['menu']} ({d['tarih']})" for idx, d in enumerate(st.session_state.dagitim_loglari)]
+                        secilen_sil_dag = st.selectbox("Silinecek Dağıtım Kaydını Seçin", dagitim_secenekleri)
+                        dag_sil_btn = st.form_submit_button("Seçilen Dağıtımı Sil", type="primary")
+                        
+                        if dag_sil_btn:
+                            secilen_idx = int(secilen_sil_dag.split(" - ")[0].replace("DAG-", ""))
+                            silinen_dagitim = st.session_state.dagitim_loglari.pop(secilen_idx)
+                            dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
+                            st.session_state.dagitim_silme_mesaji = f"Başarılı! {silinen_dagitim['kisi']} için yapılan dağıtım kaydı silindi."
+                            st.rerun()
+                    else:
+                        st.info("Silinebilecek yemek dağıtım kaydı bulunmuyor.")
+
+        st.markdown("---")
+        st.subheader("📋 Kayıtlı Yemek Dağıtımları Listesi")
+        if st.session_state.dagitim_loglari:
+            dagitim_gosterim_listesi = []
+            for idx, d in enumerate(st.session_state.dagitim_loglari):
+                dagitim_gosterim_listesi.append({
+                    "Kayıt No": f"DAG-{idx:03d}",
+                    "Tarih / Saat": d.get("tarih", "-"),
+                    "Kişi / Hane": d.get("kisi", "-"),
+                    "Menü": d.get("menu", "-"),
+                    "Porsiyon": d.get("porsiyon", 1),
+                    "İşlemi Yapan": d.get("islem_yapan", "admin")
+                })
+            ozel_html_tablo_goster(dagitim_gosterim_listesi)
+        else:
+            st.info("Kayıtlı yemek dağıtımı bulunmuyor.")
 
     with tab3:
         st.subheader("📊 Kim Ne Kadar Süredir Yemek Almış?")
