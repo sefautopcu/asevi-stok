@@ -952,8 +952,9 @@ elif menu == "Güncel Stok Durumu":
         birim_ex = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
         depo_ex = next((g["depo"] for g in st.session_state.girisler if g["urun"] == u), "Merkez Depo")
         islem_yapan_ex = next((g.get("islem_yapan", "admin") for g in st.session_state.girisler if g["urun"] == u), "admin")
+        en_son_tarih_ex = max((g.get("tarih", "-") for g in st.session_state.girisler if g["urun"] == u), default="-")
         
-        excel_liste.append({"Ürün Adı": u, "Kategori": kategori_ex, "Birim": birim_ex, "Kalan Miktar": toplam_kalan_ex, "Depo Yeri": depo_ex, "Son İşlemi Yapan": islem_yapan_ex})
+        excel_liste.append({"Ürün Adı": u, "Kategori": kategori_ex, "Birim": birim_ex, "Kalan Miktar": toplam_kalan_ex, "Depo Yeri": depo_ex, "Eklenme/Güncelleme Tarihi": en_son_tarih_ex, "Son İşlemi Yapan": islem_yapan_ex})
 
     excel_data = tablo_to_excel_bytes(excel_liste, "Aziziye Aşevi - Güncel Stok Raporu")
     pdf_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Güncel Stok Raporu", excel_liste)
@@ -974,9 +975,10 @@ elif menu == "Güncel Stok Durumu":
         birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
         depo = next((g["depo"] for g in st.session_state.girisler if g["urun"] == u), "Merkez Depo")
         islem_yapan = next((g.get("islem_yapan", "admin") for g in st.session_state.girisler if g["urun"] == u), "admin")
+        en_son_tarih = max((g.get("tarih", "-") for g in st.session_state.girisler if g["urun"] == u), default="-")
         
         if secilen_depo == "Tümü" or depo == secilen_depo:
-            stok_tablosu.append({"Ürün Adı": u, "Kategori": kategori, "Birim": birim, "Kalan Miktar": toplam_kalan, "Depo Yeri": depo, "İşlemi Yapan": islem_yapan})
+            stok_tablosu.append({"Ürün Adı": u, "Kategori": kategori, "Birim": birim, "Kalan Miktar": toplam_kalan, "Depo Yeri": depo, "Eklenme Tarihi": en_son_tarih, "İşlemi Yapan": islem_yapan})
             
         if toplam_kalan <= 10.0:
             kritik_urunler.append((u, toplam_kalan, birim, depo))
@@ -988,7 +990,7 @@ elif menu == "Güncel Stok Durumu":
 
     st.markdown("### Envanter Listesi")
     for row in stok_tablosu:
-        st.write(f"• **{row['Ürün Adı']}** | Kategori: {row['Kategori']} | Kalan: **{row['Kalan Miktar']} {row['Birim']}** | Depo: {row['Depo Yeri']} | *(Ekleyen: {row['İşlemi Yapan']})*")
+        st.write(f"• **{row['Ürün Adı']}** | Kategori: {row['Kategori']} | Kalan: **{row['Kalan Miktar']} {row['Birim']}** | Depo: {row['Depo Yeri']} | Eklenme Tarihi: **{row['Eklenme Tarihi']}** | *(Ekleyen: {row['İşlemi Yapan']})*")
 
 
 # 2. YENİ MAL ALIMI / FATURA EKLE
@@ -1026,7 +1028,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "islem_yapan": islem_yapan_kisi
                 })
                 verileri_kaydet(st.session_state.girisler)
-                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi. (Fatura No: {fatura_no_degeri} - İşlemi Yapan: {islem_yapan_kisi})")
+                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi. (Eklenme Tarihi: {tarih_giris} - Fatura No: {fatura_no_degeri})")
                 st.rerun()
 
         st.markdown("---")
@@ -1036,7 +1038,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             for g in reversed(st.session_state.girisler):
                 fatura_log_tablosu.append({
                     "Kayıt ID": g.get("id", "-"),
-                    "Tarih / Saat": g.get("tarih", "-"),
+                    "Eklenme Tarihi / Saati": g.get("tarih", "-"),
                     "Fatura No": g.get("fatura_no", "BELİRTİLMEMİŞ"),
                     "Ürün Adı": g.get("urun", "-"),
                     "Kategori": g.get("kategori", "-"),
@@ -1070,7 +1072,7 @@ elif menu == "Ürün Sil / Düzenle":
             st.info("Sistemde silinecek kayıt bulunmuyor.")
         else:
             with st.form("urun_silme_formu"):
-                secenekler = [f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')}, Kalan: {g['kalan']} {g['birim']}, Ekleyen: {g.get('islem_yapan', 'admin')})" for g in st.session_state.girisler]
+                secenekler = [f"{g['id']} - {g['urun']} (Eklenme: {g.get('tarih', '-')}, Kalan: {g['kalan']} {g['birim']})" for g in st.session_state.girisler]
                 secilen_kayit_str = st.selectbox("Silmek İstediğiniz Kaydı / Faturayı Seçin", secenekler)
                 silme_nedeni_input = st.text_input("Silme Nedeni / Gerekçesi", "Örn: Yanlış giriş / Mükerrer kayıt")
                 sil_onay_btn = st.form_submit_button("Seçilen Ürünü / Kaydı Kalıcı Olarak Sil", type="primary")
