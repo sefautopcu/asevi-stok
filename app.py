@@ -239,13 +239,13 @@ varsayilan_girisler = [
     {"id": "STK-064", "tarih": "2026-10-28 12:10", "fatura_no": "FAT-2026-064", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"}
 ]
 
-# Varsayılan Personel Listesi (İşe Giriş Tarihleri Eklendi)
+# Varsayılan Personel Listesi (İstediğin İşe Giriş Tarihleriyle Güncellendi)
 varsayilan_personeller = [
-    {"id": "PER-001", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-01-15", "aktif": True, "izinler": []},
-    {"id": "PER-002", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-02-01", "aktif": True, "izinler": []},
+    {"id": "PER-001", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
+    {"id": "PER-002", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
     {"id": "PER-003", "ad_soyad": "SEDAT UZUN", "gorev": "Aşçı", "baslama": "2026-09-25", "aktif": True, "izinler": []},
-    {"id": "PER-004", "ad_soyad": "BURAK AYAŞTI", "gorev": "Temizlik Personeli", "baslama": "2026-03-10", "aktif": True, "izinler": []},
-    {"id": "PER-005", "ad_soyad": "HÜSEYİN KAYMAK", "gorev": "Aşçı Yardımcısı", "baslama": "2026-04-01", "aktif": True, "izinler": []}
+    {"id": "PER-004", "ad_soyad": "BURAK AYAŞTI", "gorev": "Temizlik Personeli", "baslama": "2026-09-25", "aktif": True, "izinler": []},
+    {"id": "PER-005", "ad_soyad": "HÜSEYİN KAYMAK", "gorev": "Aşçı Yardımcısı", "baslama": "2026-10-26", "aktif": True, "izinler": []}
 ]
 
 # Varsayılan 2026 Resmi Tatiller
@@ -380,11 +380,16 @@ def personelleri_yukle():
         try:
             with open(PERSONEL_DOSYASI, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # Eski kayıtlarda 'baslama' alanı yoksa varsayılan tarih ata
+                # Eksik baslama tarihlerini güncelle
                 for p in data:
-                    if "baslama" not in p or not p["baslama"]:
-                        if p["ad_soyad"] == "SEDAT UZUN":
+                    ad = p.get("ad_soyad", "")
+                    if "baslama" not in p or not p["baslama"] or p["baslama"] == "-":
+                        if "MUHAMMED İLKER ÇELİK" in ad or "EMİRHAN DÖNMEZ" in ad:
+                            p["baslama"] = "2026-10-12"
+                        elif "SEDAT UZUN" in ad or "BURAK AYAŞTI" in ad:
                             p["baslama"] = "2026-09-25"
+                        elif "HÜSEYİN KAYMAK" in ad:
+                            p["baslama"] = "2026-10-26"
                         else:
                             p["baslama"] = "2026-01-01"
                 return data
@@ -1482,7 +1487,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     st.markdown("**➕ Yeni Personel Ekle**")
                     p_ad = st.text_input("Personel Adı Soyadı").strip().upper()
                     p_gorev = st.text_input("Görevi (Örn: Aşçı / Depo Sorumlusu)")
-                    p_bas = st.date_input("İşe Başlama Tarihi", value=datetime.date(2026, 1, 1))
+                    p_bas = st.date_input("İşe Başlama Tarihi", value=datetime.date.today())
                     p_submit = st.form_submit_button("Personeli Kaydet")
                     
                     if p_submit and p_ad:
@@ -1519,16 +1524,29 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.info("Kayıtlı personel bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Personel Kadrosu")
+        st.subheader("📋 Kayıtlı Personel Kadrosu ve Çalışma Süresi Sayacı")
         if st.session_state.personeller:
-            p_gosterim = [{
-                "ID": p["id"],
-                "Adı Soyadı": p["ad_soyad"],
-                "Görevi": p["gorev"],
-                "İşe Başlama": p.get("baslama", "-"),
-                "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı",
-                "Kayıtlı İzin/Rapor": len(p.get("izinler", []))
-            } for p in st.session_state.personeller]
+            bugun_tarihi = datetime.date.today()
+            p_gosterim = []
+            for p in st.session_state.personeller:
+                bas_tarih_str = p.get("baslama", "2026-01-01")
+                try:
+                    bas_dt = datetime.datetime.strptime(bas_tarih_str, "%Y-%m-%d").date()
+                except:
+                    bas_dt = datetime.date(2026, 1, 1)
+                
+                # İşe giriş tarihinden bugüne kadar net çalışma günü hesabı (Hafta sonları hariç)
+                net_calisilan, _, _, _ = net_calisma_gunu_hesapla(bas_dt, bugun_tarihi, p.get("izinler", []), st.session_state.resmi_tatiller)
+                
+                p_gosterim.append({
+                    "ID": p["id"],
+                    "Adı Soyadı": p["ad_soyad"],
+                    "Görevi": p["gorev"],
+                    "İşe Başlama": bas_tarih_str,
+                    "Çalışma Günü Sayacı": f"{net_calisilan} Gün",
+                    "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı",
+                    "Kayıtlı İzin/Rapor": len(p.get("izinler", []))
+                })
             st.dataframe(p_gosterim, use_container_width=True)
         else:
             st.info("Henüz kayıtlı personel bulunmuyor.")
