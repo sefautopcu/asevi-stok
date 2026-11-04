@@ -239,7 +239,7 @@ varsayilan_girisler = [
     {"id": "STK-064", "tarih": "2026-10-28 12:10", "fatura_no": "FAT-2026-064", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"}
 ]
 
-# Varsayılan Personel Listesi (İstediğin İşe Giriş Tarihleriyle Güncellendi)
+# Varsayılan Personel Listesi (İstediğin Tarihlerle Güncellendi)
 varsayilan_personeller = [
     {"id": "PER-001", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
     {"id": "PER-002", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
@@ -380,7 +380,6 @@ def personelleri_yukle():
         try:
             with open(PERSONEL_DOSYASI, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # Eksik baslama tarihlerini güncelle
                 for p in data:
                     ad = p.get("ad_soyad", "")
                     if "baslama" not in p or not p["baslama"] or p["baslama"] == "-":
@@ -391,7 +390,7 @@ def personelleri_yukle():
                         elif "HÜSEYİN KAYMAK" in ad:
                             p["baslama"] = "2026-10-26"
                         else:
-                            p["baslama"] = "2026-01-01"
+                            p["baslama"] = str(datetime.date.today())
                 return data
         except Exception:
             return varsayilan_personeller
