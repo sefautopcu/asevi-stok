@@ -451,34 +451,48 @@ if "kisi_silme_mesaji" not in st.session_state:
 
 def net_calisma_gunu_hesapla(baslangic_tarihi, bitis_tarihi, izin_listesi, tatil_listesi):
     if baslangic_tarihi > bitis_tarihi:
-        return 0, 0
+        return 0, 0, 0, 0, 0
     
     tatil_tarihleri = {datetime.datetime.strptime(t["tarih"], "%Y-%m-%d").date() for t in tatil_listesi}
     
-    izin_tarihleri = set()
+    tam_gun_izin_tarihleri = set()
+    saglik_raporu_gun_sayisi = 0
+    saatlik_izin_toplam_saat = 0.0
+
     for izin in izin_listesi:
+        tur = izin.get("tur", "Yıllık İzin")
         i_bas = datetime.datetime.strptime(izin["baslangic"], "%Y-%m-%d").date()
         i_bit = datetime.datetime.strptime(izin["bitis"], "%Y-%m-%d").date()
-        curr = i_bas
-        while curr <= i_bit:
-            izin_tarihleri.add(curr)
-            curr += datetime.timedelta(days=1)
+
+        if tur == "Saatlik İzin":
+            saatlik_izin_toplam_saat += float(izin.get("saat", 2.0))
+        elif tur == "Sağlık Raporu":
+            curr = i_bas
+            while curr <= i_bit:
+                if curr.weekday() < 5 and curr not in tatil_tarihleri:
+                    saglik_raporu_gun_sayisi += 1
+                curr += datetime.timedelta(days=1)
+        else: # Yıllık / Ücretsiz İzin
+            curr = i_bas
+            while curr <= i_bit:
+                tam_gun_izin_tarihleri.add(curr)
+                curr += datetime.timedelta(days=1)
 
     net_gun = 0
-    toplam_izin_gunu = len(izin_tarihleri)
+    toplam_izin_gunu = len(tam_gun_izin_tarihleri)
     
     curr = baslangic_tarihi
     while curr <= bitis_tarihi:
         hafta_sonu = curr.weekday() >= 5
         resmi_tatil = curr in tatil_tarihleri
-        izinli = curr in izin_tarihleri
+        izinli = curr in tam_gun_izin_tarihleri
 
         if not hafta_sonu and not resmi_tatil and not izinli:
             net_gun += 1
             
         curr += datetime.timedelta(days=1)
         
-    return net_gun, toplam_izin_gunu
+    return net_gun, toplam_izin_gunu, saglik_raporu_gun_sayisi, saatlik_izin_toplam_saat
 
 def bugunun_turkce_tarihi():
     simdi = datetime.date.today()
@@ -1431,9 +1445,9 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 # 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
 elif menu == "Personel & Çalışma Süresi Takibi":
     st.header("👥 Personel ve Çalışma Süresi Takibi")
-    st.markdown("Aşevi personelini kaydedin, izinlerini yönetin, resmi tatilleri düzenleyin ve net çalışma günlerini otomatik hesaplayın.")
+    st.markdown("Aşevi personelini kaydedin, yıllık/saatlik izinleri ve sağlık raporlarını yönetin, resmi tatilleri düzenleyin ve net çalışma günlerini otomatik hesaplayın.")
 
-    p_tab1, p_tab2, p_tab3 = st.tabs(["👨‍💼 Personel Listesi & Yönetimi", "🏖️ İzin ve Tatil Tanımlamaları", "📊 Net Çalışma Süresi Raporu"])
+    p_tab1, p_tab2, p_tab3 = st.tabs(["👨‍💼 Personel Listesi & Yönetimi", "🏖️ İzin, Rapor ve Tatil Tanımlamaları", "📊 Net Çalışma Süresi Raporu"])
 
     with p_tab1:
         if misafir_modu:
@@ -1488,31 +1502,40 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 "ID": p["id"],
                 "Adı Soyadı": p["ad_soyad"],
                 "Görevi": p["gorev"],
-                "İşe Başlama": p["baslama"],
+                "İşe Başlama": p.get("baslama", "-"),
                 "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı",
-                "İzin Sayısı": len(p.get("izinler", []))
+                "İzin/Rapor Sayısı": len(p.get("izinler", []))
             } for p in st.session_state.personeller]
             st.dataframe(p_gosterim, use_container_width=True)
         else:
             st.info("Henüz kayıtlı personel bulunmuyor.")
 
     with p_tab2:
-        st.subheader("🏖️ Personel İzin Girişi ve Resmi Tatil Tanımları")
+        st.subheader("🏖️ İzin, Sağlık Raporu, Saatlik İzin ve Resmi Tatil Girişleri")
         col_izin, col_tatil = st.columns(2)
         
         with col_izin:
             if misafir_modu:
-                st.info("Misafir modunda izin eklenemez.")
+                st.info("Misafir modunda izin/rapor eklenemez.")
             elif not st.session_state.personeller:
                 st.warning("Önce personel eklemelisiniz.")
             else:
                 with st.form("izin_ekle_form"):
-                    st.markdown("**➕ Personele İzin Ekle**")
+                    st.markdown("**➕ İzin / Sağlık Raporu Ekle**")
                     p_izin_secenekleri = [p["ad_soyad"] for p in st.session_state.personeller if p.get("aktif", True)]
                     secilen_izin_p = st.selectbox("Personel Seçin", p_izin_secenekleri)
-                    i_baslangic = st.date_input("İzin Başlangıç Tarihi")
-                    i_bitis = st.date_input("İzin Bitiş Tarihi")
-                    i_submit = st.form_submit_button("İzni Kaydet")
+                    izin_turu = st.selectbox("İzin / Rapor Türü", ["Yıllık İzin", "Sağlık Raporu", "Saatlik İzin"])
+                    
+                    if izin_turu == "Saatlik İzin":
+                        i_baslangic = st.date_input("İzin Tarihi", key="saatlik_tarih")
+                        i_bitis = i_baslangic
+                        saat_miktari = st.number_input("Kaç Saat İzin?", min_value=0.5, max_value=8.0, value=2.0, step=0.5)
+                    else:
+                        i_baslangic = st.date_input("Başlangıç Tarihi", key="tam_bas")
+                        i_bitis = st.date_input("Bitiş Tarihi", key="tam_bit")
+                        saat_miktari = 0.0
+
+                    i_submit = st.form_submit_button("Kayıt Ekle")
                     
                     if i_submit:
                         if i_baslangic > i_bitis:
@@ -1523,11 +1546,13 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                     if "izinler" not in p:
                                         p["izinler"] = []
                                     p["izinler"].append({
+                                        "tur": izin_turu,
                                         "baslangic": str(i_baslangic),
-                                        "bitis": str(i_bitis)
+                                        "bitis": str(i_bitis),
+                                        "saat": saat_miktari
                                     })
                             personelleri_kaydet(st.session_state.personeller)
-                            st.success(f"{secilen_izin_p} için izin başarıyla kaydedildi!")
+                            st.success(f"{secilen_izin_p} için {izin_turu} başarıyla kaydedildi!")
                             st.rerun()
 
         with col_tatil:
@@ -1554,7 +1579,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
     with p_tab3:
         col_b_prs, col_indir_prs = st.columns([2, 2])
         with col_b_prs:
-            st.subheader("📊 Personel Net Çalışma Süresi ve Gün Hesaplayıcı")
+            st.subheader("📊 Personel Net Çalışma Süresi ve Rapor Hesaplayıcı")
 
         if not st.session_state.personeller:
             st.info("Hesaplama yapabilmek için kayıtlı personel bulunmuyor.")
@@ -1570,20 +1595,30 @@ elif menu == "Personel & Çalışma Süresi Takibi":
 
             ilgili_personel_obj = next((p for p in st.session_state.personeller if p["ad_soyad"] == secilen_rapor_p), None)
             if ilgili_personel_obj:
-                net_gun, toplam_izin = net_calisma_gunu_hesapla(donem_bas, donem_bit, ilgili_personel_obj.get("izinler", []), st.session_state.resmi_tatiller)
+                net_gun, toplam_izin, saglik_raporu_gun, saatlik_izin_saat = net_calisma_gunu_hesapla(donem_bas, donem_bit, ilgili_personel_obj.get("izinler", []), st.session_state.resmi_tatiller)
                 
                 st.markdown("---")
-                m_p1, m_p2, m_p3 = st.columns(3)
+                m_p1, m_p2, m_p3, m_p4 = st.columns(4)
                 with m_p1:
                     st.metric("Net Çalışılan Gün", f"{net_gun} Gün")
                 with m_p2:
-                    st.metric("Toplam İzin Günü", f"{toplam_izin} Gün")
+                    st.metric("Yıllık İzin Günü", f"{toplam_izin} Gün")
                 with m_p3:
-                    toplam_takvim_gunu = (donem_bit - donem_bas).days + 1
-                    st.metric("Toplam Takvim Günü", f"{toplam_takvim_gunu} Gün")
+                    st.metric("Sağlık Raporu", f"{saglik_raporu_gun} Gün")
+                with m_p4:
+                    st.metric("Saatlik İzin", f"{saatlik_izin_saat} Saat")
 
-                prs_excel_data = tablo_to_excel_bytes([{"Personel": secilen_rapor_p, "Başlangıç": str(donem_bas), "Bitiş": str(donem_bit), "Net Çalışma Günü": net_gun, "İzin Günü": toplam_izin}], f"Personel Raporu - {secilen_rapor_p}")
-                prs_pdf_data = tablo_to_html_pdf_bytes(f"Personel Çalışma Raporu - {secilen_rapor_p}", [{"Personel": secilen_rapor_p, "Başlangıç": str(donem_bas), "Bitiş": str(donem_bit), "Net Çalışma Günü": net_gun, "İzin Günü": toplam_izin}])
+                rapor_veri = [{
+                    "Personel": secilen_rapor_p,
+                    "Başlangıç": str(donem_bas),
+                    "Bitiş": str(donem_bit),
+                    "Net Çalışma Günü": net_gun,
+                    "Yıllık İzin Günü": toplam_izin,
+                    "Sağlık Raporu (Gün)": saglik_raporu_gun,
+                    "Saatlik İzin (Saat)": saatlik_izin_saat
+                }]
+                prs_excel_data = tablo_to_excel_bytes(rapor_veri, f"Personel Raporu - {secilen_rapor_p}")
+                prs_pdf_data = tablo_to_html_pdf_bytes(f"Personel Çalışma Raporu - {secilen_rapor_p}", rapor_veri)
 
                 with col_indir_prs:
                     ortak_indirme_alani(prs_excel_data, prs_pdf_data, "personel_calisma_raporu", "prs_sayfasi")
@@ -1647,7 +1682,6 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
         fiyat_tablo = []
         excel_fiyat_liste = []
 
-        # Benzersiz ürünlerin güncel fiyatlarını topla
         urun_fiyat_sozlugu = {}
         for g in st.session_state.girisler:
             urun_fiyat_sozlugu[g["urun"]] = {"fiyat": g["fiyat"], "kategori": g.get("kategori", "-"), "birim": g.get("birim", "Kg"), "depo": g.get("depo", "-")}
@@ -1680,7 +1714,6 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
         st.markdown("---")
         st.subheader("📊 En Yüksek Birim Fiyata Sahip İlk 10 Ürün")
         
-        # Grafik için veriyi hazırla
         sirali_fiyatlar = sorted(excel_fiyat_liste, key=lambda x: x["Birim Fiyat (TL)"], reverse=True)[:10]
         df_fiyat = pd.DataFrame(sirali_fiyatlar)
         
