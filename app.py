@@ -17,7 +17,7 @@ st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲"
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "Koyu Tema (Dark)"
 
-# Dinamik Tema CSS Entegrasyonu (İstediğiniz özel font stilleri ve kart yapıları)
+# Dinamik Tema CSS Entegrasyonu (İstediğiniz özel font stilleri ve kare kart yapıları)
 if st.session_state.tema_secimi == "Koyu Tema (Dark)":
     st.markdown("""
         <style>
@@ -710,22 +710,8 @@ def ortak_indirme_alani(excel_veri, pdf_veri, dosya_adi_koku, unique_key):
             )
 
 
-# 0. KURUMSAL DASHBOARD & ÖZET (Görseldeki 4'lü Kart Düzenine Uyarlanmıştır)
+# 0. KURUMSAL DASHBOARD & ÖZET (Kare Kart Tasarımı)
 if menu == "Kurumsal Dashboard & Özet":
-    st.markdown("""
-        <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 24px 30px; border-radius: 16px; color: white; margin-bottom: 25px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2 style="color: white !important; margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 2px;">2026 YILI BAŞARI & ÖZET GRAFİĞİ</h2>
-                    <p style="color: #94A3B8 !important; margin: 5px 0 0 0; font-size: 14px;">Aziziye Sosyal Yardımlaşma ve Dayanışma Vakfı Aşevi Operasyon Paneli</p>
-                </div>
-                <div style="background: rgba(255, 255, 255, 0.1); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #38BDF8;">
-                    harikasite.web.tr
-                </div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
     toplam_stok_kalemi = len(set(g["urun"] for g in st.session_state.girisler))
     toplam_envanter_maliyeti = sum(g["kalan"] * g["fiyat"] for g in st.session_state.girisler)
 
@@ -734,127 +720,93 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_fire_tutar = sum(l["tutar"] for l in loglar if l["tur"] == "Fire/Zayiat")
     toplam_personel_sayisi = len(st.session_state.personeller)
 
-    # Görseldeki 2x2 Modern Kart Düzeni
     is_dark = (st.session_state.tema_secimi == "Koyu Tema (Dark)")
     card_bg = "#1E293B" if is_dark else "#FFFFFF"
     card_border = "#334155" if is_dark else "#E5E7EB"
     text_color = "#F8FAFC" if is_dark else "#111827"
     subtext_color = "#94A3B8" if is_dark else "#4B5563"
 
-    # Satır 1: Toplam Ürün Çeşidi ve Toplam Fire/Zayiat
+    # Kare Kartlar için Sabit Yükseklik ve Flex Düzeni CSS Stili
+    kare_kart_style = f"""
+        background: {card_bg}; 
+        border: 1px solid {card_border}; 
+        padding: 24px; 
+        border-radius: 16px; 
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+        margin-bottom: 20px; 
+        height: 180px; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-between;
+    """
+
+    # Satır 1: Toplam Ürün Çeşidi ve Toplam Fire/Zayiat (Kare Kartlar)
     row1_c1, row1_c2 = st.columns(2)
     with row1_c1:
         st.markdown(f"""
-            <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 20px 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 16px; position: relative;">
+            <div style="{kare_kart_style}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Ürün Çeşidi</div>
-                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 8px;">{toplam_stok_kalemi} Çeşit</div>
+                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 10px;">{toplam_stok_kalemi} Çeşit</div>
                     </div>
                     <div style="background: rgba(56, 189, 248, 0.15); padding: 12px; border-radius: 12px; color: #38BDF8; font-size: 20px;">
                         📦
                     </div>
                 </div>
+                <div style="color: {subtext_color}; font-size: 12px;">Aktif Depo Çeşitliliği</div>
             </div>
         """, unsafe_allow_html=True)
 
     with row1_c2:
         st.markdown(f"""
-            <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 20px 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 16px; position: relative;">
+            <div style="{kare_kart_style}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Fire / Zayiat</div>
-                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 8px;">{toplam_fire_mik:,.1f} Kg</div>
-                        <div style="color: #EF4444; font-size: 12px; font-weight: 600; margin-top: 4px;">Maddi Zarar: {toplam_fire_tutar:,.2f} ₺</div>
+                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 10px;">{toplam_fire_mik:,.1f} Kg</div>
                     </div>
                     <div style="background: rgba(239, 68, 68, 0.15); padding: 12px; border-radius: 12px; color: #EF4444; font-size: 20px;">
                         📉
                     </div>
                 </div>
+                <div style="color: #EF4444; font-size: 12px; font-weight: 600;">Maddi Zarar: {toplam_fire_tutar:,.2f} ₺</div>
             </div>
         """, unsafe_allow_html=True)
 
-    # Satır 2: Toplam Stok Değeri ve Çalışan Personel Sayısı
+    # Satır 2: Toplam Stok Değeri ve Çalışan Personel Sayısı (Kare Kartlar)
     row2_c1, row2_c2 = st.columns(2)
     with row2_c1:
         st.markdown(f"""
-            <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 20px 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 16px; position: relative;">
+            <div style="{kare_kart_style}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Stok Değeri</div>
-                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 8px;">{toplam_envanter_maliyeti:,.2f} ₺</div>
+                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 10px;">{toplam_envanter_maliyeti:,.2f} ₺</div>
                     </div>
                     <div style="background: rgba(52, 211, 153, 0.15); padding: 12px; border-radius: 12px; color: #34D399; font-size: 20px;">
                         💰
                     </div>
                 </div>
+                <div style="color: {subtext_color}; font-size: 12px;">Güncel Envanter Maliyeti</div>
             </div>
         """, unsafe_allow_html=True)
 
     with row2_c2:
         st.markdown(f"""
-            <div style="background: {card_bg}; border: 1px solid {card_border}; padding: 20px 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 16px; position: relative;">
+            <div style="{kare_kart_style}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Çalışan Personel Sayısı</div>
-                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 8px;">{toplam_personel_sayisi} Kişi</div>
+                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 10px;">{toplam_personel_sayisi} Kişi</div>
                     </div>
                     <div style="background: rgba(167, 139, 250, 0.15); padding: 12px; border-radius: 12px; color: #A78BFA; font-size: 20px;">
                         👥
                     </div>
                 </div>
+                <div style="color: {subtext_color}; font-size: 12px;">Aktif Kadro Durumu</div>
             </div>
         """, unsafe_allow_html=True)
-
-    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-
-    st.markdown(f"""
-        <div style="background: {card_bg}; padding: 24px; border-radius: 16px; border: 1px solid {card_border}; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-            <div style="color: #38BDF8; font-weight: 600; font-size: 15px; margin-bottom: 15px; display: flex; align-items: center;">
-                <span style="font-size: 18px; margin-right: 8px;">┃</span> Kategori Bazlı Stok Dağılımı & Envanter Analizi
-            </div>
-    """, unsafe_allow_html=True)
-
-    col_k1, col_k2 = st.columns([1.2, 1])
-    
-    with col_k1:
-        kategori_verileri = {}
-        for g in st.session_state.girisler:
-            kat = g["kategori"]
-            kategori_verileri[kat] = kategori_verileri.get(kat, 0.0) + g["kalan"]
-        
-        df_kat = pd.DataFrame(list(kategori_verileri.items()), columns=["Kategori", "Kalan Stok"])
-        
-        fig_donut = px.pie(
-            df_kat, 
-            names="Kategori", 
-            values="Kalan Stok", 
-            hole=0.65,
-            color_discrete_sequence=['#38BDF8', '#34D399', '#FBBF24', '#F87171', '#A78BFA', '#F472B6', '#818CF8']
-        )
-        fig_donut.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#1E293B', width=2)))
-        fig_donut.update_layout(
-            margin=dict(l=10, r=10, t=10, b=10),
-            height=280,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='Inter', size=12, color=text_color),
-            showlegend=False
-        )
-        st.plotly_chart(fig_donut, use_container_width=True)
-
-    with col_k2:
-        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-        toplam_stok_miktari_genel = sum(kategori_verileri.values())
-        st.markdown(f"""
-            <div style="font-size: 14px; line-height: 1.6; color: {text_color};">
-                <p style="margin-bottom: 10px;">Depomuzda an itibariyle toplam <strong style="color: #38BDF8;">{toplam_stok_miktari_genel:,.1f} birim</strong> ürün aktif olarak bulunmaktadır.</p>
-                <p style="margin-bottom: 15px;">Envanterin büyük bir kısmı <strong style="color: #34D399;">Kuru Gıda</strong> ve <strong style="color: #FBBF24;">Sebze</strong> depolarında güvenle muhafaza edilmektedir.</p>
-            </div>
-        """, unsafe_allow_html=True)
-        st.metric("Toplam Aktif Stok Hacmi", f"{toplam_stok_miktari_genel:,.1f} Birim")
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.subheader("🚀 Hızlı İşlem Kısayolları")
