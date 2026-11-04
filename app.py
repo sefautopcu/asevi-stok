@@ -187,6 +187,7 @@ SIFRE_DOSYASI = "asevi_yonetici_sifre.json"
 TATIL_DOSYASI = "asevi_resmi_tatiller.json"
 SILINENS_DOSYASI = "asevi_silinen_urunler_loglari.json"
 YEMEK_URETIM_ARSIV_DOSYASI = "asevi_yemek_uretim_arsivi.json"
+KULLANICI_YETKI_DOSYASI = "asevi_kullanici_yetkileri.json"
 
 def ozel_html_tablo_goster(veri_listesi):
     if not veri_listesi:
@@ -258,6 +259,25 @@ varsayilan_resmi_tatiller = [
     {"tarih": "2026-08-30", "aciklama": "Zafer Bayramı"},
     {"tarih": "2026-10-29", "aciklama": "Cumhuriyet Bayramı"}
 ]
+
+varsayilan_kullanicilar = {
+    "admin": {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": []},
+    "asci": {"sifre": "sydv25", "tip": "personel", "yasakli_menuler": []},
+    "yonetim": {"sifre": "Yonetim25", "tip": "personel", "yasakli_menuler": []}
+}
+
+def kullanıcıları_yukle():
+    if os.path.exists(KULLANICI_YETKI_DOSYASI):
+        try:
+            with open(KULLANICI_YETKI_DOSYASI, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return varsayilan_kullanicilar
+    return varsayilan_kullanicilar
+
+def kullanıcıları_kaydet(veri):
+    with open(KULLANICI_YETKI_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(veri, f, ensure_ascii=False, indent=4)
 
 def verileri_yukle():
     if os.path.exists(VERI_DOSYASI):
@@ -365,19 +385,6 @@ def yemek_uretim_arsivini_kaydet(veri):
     with open(YEMEK_URETIM_ARSIV_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
-def yonetici_sifresi_yukle():
-    if os.path.exists(SIFRE_DOSYASI):
-        try:
-            with open(SIFRE_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f).get("sifre", "Ss123321")
-        except Exception:
-            return "Ss123321"
-    return "Ss123321"
-
-def yonetici_sifresi_kaydet(yeni_sifre):
-    with open(SIFRE_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump({"sifre": yeni_sifre}, f, ensure_ascii=False, indent=4)
-
 if "girisler" not in st.session_state:
     st.session_state.girisler = verileri_yukle()
 if "kullanim_loglari" not in st.session_state:
@@ -400,11 +407,13 @@ if "personel_silme_mesaji" not in st.session_state:
     st.session_state.personel_silme_mesaji = ""
 if "dagitim_silme_mesaji" not in st.session_state:
     st.session_state.dagitim_silme_mesaji = ""
+if "kullanicilar" not in st.session_state:
+    st.session_state.kullanicilar = kullanıcıları_yukle()
 
 query_params = st.query_params
 
 if "oturum_aktif" not in st.session_state:
-    if "auth" in query_params and query_params["auth"] == "true" and "user" in query_params:
+    if "auth" in query_params and query_params["auth"] == "true" && "user" in query_params:
         st.session_state.oturum_aktif = True
         st.session_state.aktif_kullanici = query_params["user"]
     else:
@@ -422,7 +431,8 @@ gecerli_menuler = [
     "Kalori Hesaplama Aracı",
     "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
     "Personel & Çalışma Süresi Takibi",
-    "Kullanım Takibi"
+    "Kullanım Takibi",
+    "Kullanıcı Ayarları"
 ]
 
 if "aktif_menu" not in st.session_state:
@@ -503,28 +513,14 @@ if not st.session_state.oturum_aktif:
             
             giris_tikla = st.form_submit_button("Giriş Yap", use_container_width=True)
             
-            aktif_yonetici_sifresi = yonetici_sifresi_yukle()
             if giris_tikla:
-                if k_adi_inp == "admin" and sifre_inp == aktif_yonetici_sifresi:
+                kullanici_db = st.session_state.kullanicilar
+                if k_adi_inp in kullanici_db and kullanici_db[k_adi_inp]["sifre"] == sifre_inp:
                     st.session_state.oturum_aktif = True
-                    st.session_state.aktif_kullanici = "admin"
+                    st.session_state.aktif_kullanici = k_adi_inp
                     st.query_params["auth"] = "true"
-                    st.query_params["user"] = "admin"
-                    st.success("Admin olarak giriş yapıldı!")
-                    st.rerun()
-                elif k_adi_inp == "asci" and sifre_inp == "sydv25":
-                    st.session_state.oturum_aktif = True
-                    st.session_state.aktif_kullanici = "asci"
-                    st.query_params["auth"] = "true"
-                    st.query_params["user"] = "asci"
-                    st.success("Aşçı olarak giriş yapıldı!")
-                    st.rerun()
-                elif k_adi_inp == "yonetim" and sifre_inp == "Yonetim25":
-                    st.session_state.oturum_aktif = True
-                    st.session_state.aktif_kullanici = "yonetim"
-                    st.query_params["auth"] = "true"
-                    st.query_params["user"] = "yonetim"
-                    st.success("Yönetim olarak giriş yapıldı!")
+                    st.query_params["user"] = k_adi_inp
+                    st.success(f"{k_adi_inp.upper()} olarak giriş yapıldı!")
                     st.rerun()
                 else:
                     st.error("Hatalı kullanıcı adı veya şifre!")
@@ -598,6 +594,10 @@ misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kull
 yonetim_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "yonetim")
 salt_okunur_modu = misafir_modu or yonetim_modu
 
+# Aktif kullanıcının yasaklı menülerini alalım
+aktif_k_bilgi = st.session_state.kullanicilar.get(st.session_state.aktif_kullanici, {})
+yasakli_menuler_listesi = aktif_k_bilgi.get("yasakli_menuler", [])
+
 menu_gruplari = {
     "🏠 Genel Bakış": [
         "Kurumsal Dashboard & Özet"
@@ -622,11 +622,17 @@ menu_gruplari = {
     ]
 }
 
+if yonetici_modu:
+    menu_gruplari["⚙️ Sistem Ayarları"] = ["Kullanıcı Ayarları"]
+
 filtrelenmis_gruplar = {}
 for grup_adi, alt_menuler in menu_gruplari.items():
     uygun_menuler = []
     for m in alt_menuler:
         if misafir_modu and m in ["Güncel Stok Durumu", "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", "İhtiyaç Sahibi & Yemek Dağıtım Takibi", "Personel & Çalışma Süresi Takibi", "Kullanım Takibi"]:
+            continue
+        # Admin tarafından yasaklanmış menüleri gizle
+        if not yonetici_modu and m in yasakli_menuler_listesi:
             continue
         if not sidebar_arama or sidebar_arama in m.lower() or sidebar_arama in grup_adi.lower() or otomatik_yonlendirilen_menu == m:
             uygun_menuler.append(m)
@@ -669,29 +675,11 @@ st.sidebar.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-aktif_yonetici_sifresi = yonetici_sifresi_yukle()
-
 if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"):
     st.session_state.oturum_aktif = False
     st.session_state.aktif_kullanici = "misafir"
     st.query_params.clear()
     st.rerun()
-
-if st.session_state.aktif_kullanici == "admin":
-    with st.sidebar.expander("➡️ Admin Şifresini Değiştir"):
-        with st.form("sifre_degistir_form"):
-            eski_sifre = st.text_input("Mevcut Şifre", type="password")
-            yeni_sifre_1 = st.text_input("Yeni Şifre", type="password")
-            yeni_sifre_2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
-            sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
-            if sifre_guncelle_btn:
-                if eski_sifre != aktif_yonetici_sifresi:
-                    st.error("Mevcut şifre hatalı!")
-                elif not yeni_sifre_1 or yeni_sifre_1 != yeni_sifre_2:
-                    st.error("Yeni şifreler uyuşmuyor!")
-                else:
-                    yonetici_sifresi_kaydet(yeni_sifre_1)
-                    st.success("Admin şifresi başarıyla değiştirildi!")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="font-size: 11px; text-align: center; opacity: 0.5;">sefautopcu</p>', unsafe_allow_html=True)
@@ -802,6 +790,11 @@ def ortak_indirme_alani(excel_veri, pdf_veri, dosya_adi_koku, unique_key):
 
 
 menu = st.session_state.aktif_menu
+
+# Yasaklı menü kontrolü (Eğer admin değilse ve menü yasaklanmışsa anasayfaya yönlendir)
+if not yonetici_modu and menu in yasakli_menuler_listesi:
+    st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    st.stop()
 
 # 0. KURUMSAL DASHBOARD & ÖZET
 if menu == "Kurumsal Dashboard & Özet":
@@ -2140,3 +2133,117 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
         else:
             fiyat_tablo = [{"Ürün": g["urun"], "Fiyat": g["fiyat"], "Birim": g["birim"]} for g in st.session_state.girisler]
         ozel_html_tablo_goster(fiyat_tablo)
+
+# 11. KULLANICI AYARLARI (SADECE ADMİN)
+elif menu == "Kullanıcı Ayarları":
+    if not yonetici_modu:
+        st.warning("⚠️ Bu sayfaya yalnızca **Admin** erişebilir.")
+    else:
+        st.header("⚙️ Kullanıcı Ayarları ve Sayfa Yetki Yönetimi")
+        st.markdown("Sistemdeki kullanıcıları yönetebilir, yeni kullanıcı ekleyebilir, şifrelerini değiştirebilir ve istiyorsanız belirli sayfalara erişim kısıtlamaları (yetki) verebilirsiniz.")
+
+        k_tab1, k_tab2, k_tab3 = st.tabs(["👤 Kullanıcı Ekle / Sil", "🔑 Şifre Değiştir", "🛡️ Sayfa Yetki Yönetimi (Aç/Kapat)"])
+
+        with k_tab1:
+            col_k_ekle, col_k_sil = st.columns(2)
+            with col_k_ekle:
+                with st.form("yeni_kullanici_ekle_form"):
+                    st.markdown("**➕ Yeni Kullanıcı Ekle**")
+                    y_k_adi = st.text_input("Kullanıcı Adı (Örn: depo_sorumlusu)").strip().lower()
+                    y_sifre = st.text_input("Şifre", type="password")
+                    y_tip = st.selectbox("Kullanıcı Tipi", ["personel", "admin"])
+                    y_kaydet_btn = st.form_submit_button("Kullanıcıyı Kaydet")
+
+                    if y_kaydet_btn and y_k_adi and y_sifre:
+                        if y_k_adi in st.session_state.kullanicilar:
+                            st.error("Bu kullanıcı adı zaten sistemde mevcut!")
+                        else:
+                            st.session_state.kullanicilar[y_k_adi] = {
+                                "sifre": y_sifre,
+                                "tip": y_tip,
+                                "yasakli_menuler": []
+                            }
+                            kullanıcıları_kaydet(st.session_state.kullanicilar)
+                            st.success(f"Başarılı! '{y_k_adi}' kullanıcısı oluşturuldu.")
+                            st.rerun()
+
+            with col_k_sil:
+                with st.form("kullanici_sil_form"):
+                    st.markdown("**🗑️ Kullanıcı Sil**")
+                    silinebilir_kullanicilar = [k for k in st.session_state.kullanicilar.keys() if k != "admin"]
+                    if silinebilir_kullanicilar:
+                        secilen_sil_k = st.selectbox("Silinecek Kullanıcıyı Seçin", silinebilir_kullanicilar)
+                        k_sil_btn = st.form_submit_button("Kullanıcıyı Sil", type="primary")
+
+                        if k_sil_btn:
+                            del st.session_state.kullanicilar[secilen_sil_k]
+                            kullanıcıları_kaydet(st.session_state.kullanicilar)
+                            st.success(f"Başarılı! '{secilen_sil_k}' silindi.")
+                            st.rerun()
+                    else:
+                        st.info("Silinebilecek başka kullanıcı bulunmuyor (Admin silinemez).")
+
+            st.markdown("---")
+            st.subheader("📋 Mevcut Kullanıcılar Listesi")
+            kullanici_tablo_listesi = []
+            for k_ad, k_vals in st.session_state.kullanicilar.items():
+                kullanici_tablo_listesi.append({
+                    "Kullanıcı Adı": k_ad,
+                    "Kullanıcı Tipi": k_vals.get("tip", "personel"),
+                    "Yasaklı Menü Sayısı": len(k_vals.get("yasakli_menuler", []))
+                })
+            ozel_html_tablo_goster(kullanici_tablo_listesi)
+
+        with k_tab2:
+            with st.form("admin_sifre_guncelle_form"):
+                st.markdown("**🔑 Kullanıcı Şifresi Değiştir / Güncelle**")
+                tum_k_isimleri = list(st.session_state.kullanicilar.keys())
+                secilen_k_duzenle = st.selectbox("Şifresi Değiştirilecek Kullanıcı", tum_k_isimleri)
+                yeni_sifre_1 = st.text_input("Yeni Şifre", type="password")
+                yeni_sifre_2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
+                sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
+
+                if sifre_guncelle_btn:
+                    if not yeni_sifre_1 or yeni_sifre_1 != yeni_sifre_2:
+                        st.error("Yeni şifreler uyuşmuyor!")
+                    else:
+                        st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = yeni_sifre_1
+                        if secilen_k_duzenle == "admin":
+                            yonetici_sifresi_kaydet(yeni_sifre_1)
+                        kullanıcıları_kaydet(st.session_state.kullanicilar)
+                        st.success(f"'{secilen_k_duzenle}' kullanıcısının şifresi başarıyla güncellendi!")
+
+        with k_tab3:
+            st.markdown("**🛡️ Sayfa Yetki Yönetimi (İstediğiniz sayfayı kullanıcıya kapatın veya açın)**")
+            yetki_verilecek_k = st.selectbox("Yetkileri Düzenlenecek Kullanıcı", [k for k in st.session_state.kullanicilar.keys() if k != "admin"])
+            
+            if yetki_verilecek_k:
+                mevcut_yasaklar = st.session_state.kullanicilar[yetki_verilecek_k].get("yasakli_menuler", [])
+                
+                st.markdown(f"**'{yetki_verilecek_k}'** kullanıcısının erişmesini **istemediğiniz** (kapalı olmasını istediğiniz) sayfaları seçin:")
+                
+                tum_yonetilebilir_menuler = [
+                    "Kurumsal Dashboard & Özet",
+                    "Güncel Stok Durumu", 
+                    "Yeni Mal Alımı / Fatura Ekle", 
+                    "Ürün Sil / Düzenle", 
+                    "Fire / Zayiat Girişi",
+                    "Ürün Birim Fiyatları & Ay Analizi",
+                    "Günlük Yemek Üretimi & Maliyet Raporu",
+                    "Kalori Hesaplama Aracı",
+                    "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
+                    "Personel & Çalışma Süresi Takibi",
+                    "Kullanım Takibi"
+                ]
+
+                secilen_yasaklar = []
+                for m_item in tum_yonetilebilir_menuler:
+                    varsayilan_durum = m_item in mevcut_yasaklar
+                    if st.checkbox(f"Kapat / Gizle: {m_item}", value=varsayilan_durum, key=f"yasak_{yetki_verilecek_k}_{m_item}"):
+                        secilen_yasaklar.append(m_item)
+
+                if st.button("Yetki Ayarlarını Kaydet", type="primary"):
+                    st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = secilen_yasaklar
+                    kullanıcıları_kaydet(st.session_state.kullanicilar)
+                    st.success(f"'{yetki_verilecek_k}' kullanıcısının sayfa yetkileri başarıyla güncellendi!")
+                    st.rerun()
