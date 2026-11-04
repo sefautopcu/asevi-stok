@@ -8,21 +8,9 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-import uuid
 
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
-
-# Oturumda Ziyaretçi / Aktif Kullanıcı Sayacı Takibi
-if "ziyaretci_id" not in st.session_state:
-    st.session_state.ziyaretci_id = str(uuid.uuid4())
-
-if "aktif_ziyaretciler" not in st.session_state:
-    st.session_state.aktif_ziyaretciler = set()
-
-# Aktif kullanıcı listesine bu oturumu ekle ve zaman damgasi tut
-st.session_state.aktif_ziyaretciler.add(st.session_state.ziyaretci_id)
-anlik_kullanici_sayisi = len(st.session_state.aktif_ziyaretciler)
 
 # Oturumda Tema Durumu Kontrolü
 if "tema_secimi" not in st.session_state:
@@ -465,8 +453,7 @@ def bugunun_turkce_tarihi():
     return f"{simdi.day} {aylar.get(simdi.month, '')} {simdi.year}, {gunler.get(simdi.weekday(), '')}"
 
 st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI")
-# Üst bilgi alanına anlık aktif ziyaretçi sayacını ekledik
-st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()} &nbsp;|&nbsp; 🟢 **Anlık Aktif Ziyaretçi:** `{anlik_kullanici_sayisi} Kişi`")
+st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
 # ----------------- MODERN AĞAÇ (TREE) MENÜ YAPISI -----------------
