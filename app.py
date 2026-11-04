@@ -16,7 +16,7 @@ st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲"
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "Koyu Tema (Dark)"
 
-# Dinamik Tema CSS Entegrasyonu (Görseldeki Modern Sidebar Tasarımı İle Uyumlu)
+# Dinamik Tema CSS Entegrasyonu
 if st.session_state.tema_secimi == "Koyu Tema (Dark)":
     st.markdown("""
         <style>
@@ -252,11 +252,19 @@ varsayilan_girisler = [
 varsayilan_personeller = [
     {"tc": "11111111111", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
     {"tc": "22222222222", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
+    {"tc": "33333333333", "ad_soyad": "SEDAT UZUN", "gorev": "Aşçı", "baslama": "2026-09-25", "aktif": True, "izinler": []},
+    {"tc": "44444444444", "ad_soyad": "BURAK AYAŞTI", "gorev": "Temizlik Personeli", "baslama": "2026-09-25", "aktif": True, "izinler": []},
+    {"tc": "55555555555", "ad_soyad": "HÜSEYİN KAYMAK", "gorev": "Aşçı Yardımcısı", "baslama": "2026-10-26", "aktif": True, "izinler": []}
 ]
 
 varsayilan_resmi_tatiller = [
     {"tarih": "2026-01-01", "aciklama": "Yılbaşı"},
     {"tarih": "2026-04-23", "aciklama": "Ulusal Egemenlik ve Çocuk Bayramı"},
+    {"tarih": "2026-05-01", "aciklama": "Emek ve Dayanışma Günü"},
+    {"tarih": "2026-05-19", "aciklama": "Atatürk'ü Anma, Gençlik ve Spor Bayramı"},
+    {"tarih": "2026-07-15", "aciklama": "Demokrasi ve Millî Birlik Günü"},
+    {"tarih": "2026-08-30", "aciklama": "Zafer Bayramı"},
+    {"tarih": "2026-10-29", "aciklama": "Cumhuriyet Bayramı"}
 ]
 
 def verileri_yukle():
@@ -459,15 +467,12 @@ st.sidebar.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Arama Çubuğu (Görseldeki arama alanının işlevsel entegrasyonu)
 sidebar_arama = st.sidebar.text_input("🔍 Menüde Ara...", placeholder="Örn: Stok, Fatura...", label_visibility="collapsed")
-
 st.sidebar.markdown('<p style="font-size: 12px; font-weight: 600; margin-top: 10px; margin-bottom: 4px; padding-left: 4px; opacity: 0.6;">AĞAÇ MENÜ & SİSTEM</p>', unsafe_allow_html=True)
 
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
 misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
 
-# Ağaç Menü Yapısı (Kategorize Edilmiş Expandable Gruplar)
 menu_gruplari = {
     "🏠 Genel Bakış": [
         "Kurumsal Dashboard & Özet"
@@ -492,20 +497,16 @@ menu_gruplari = {
     ]
 }
 
-# Menü elemanlarını arama çubuğuna göre filtreleme
 filtrelenmis_gruplar = {}
 for grup_adi, alt_menuler in menu_gruplari.items():
     uygun_menuler = [m for m in alt_menuler if not sidebar_arama or sidebar_arama.lower() in m.lower() or sidebar_arama.lower() in grup_adi.lower()]
     if uygun_menuler:
         filtrelenmis_gruplar[grup_adi] = uygun_menuler
 
-# Ağaç menü elemanlarını render etme
 for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
-    # Eğer aktif menü bu gruptaysa expander'ı açık tut
     grup_aktif_mu = st.session_state.aktif_menu in alt_menuler
     with st.sidebar.expander(grup_adi, expanded=grup_aktif_mu):
         for m in alt_menuler:
-            # Yeni Mal Alımı / Fatura Ekle yalnızca yetkililer için görünür
             if m == "Yeni Mal Alımı / Fatura Ekle" and misafir_modu:
                 continue
             btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
@@ -514,8 +515,6 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
                 st.rerun()
 
 st.sidebar.markdown("---")
-
-# Tema Seçimi Alanı
 st.sidebar.markdown('<p style="font-size: 13px; font-weight: 600; margin-bottom: 6px; padding-left: 2px;">🎨 Arayüz Teması</p>', unsafe_allow_html=True)
 yeni_tema = st.sidebar.selectbox("Tema Seçin", ["Koyu Tema (Dark)", "Açık Tema (Light)"], index=0 if st.session_state.tema_secimi=="Koyu Tema (Dark)" else 1, label_visibility="collapsed")
 if yeni_tema != st.session_state.tema_secimi:
@@ -523,8 +522,6 @@ if yeni_tema != st.session_state.tema_secimi:
     st.rerun()
 
 st.sidebar.markdown("---")
-
-# Görselin alt kısmındaki kullanıcı profili kartı stili
 kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session_state.oturum_aktif else "MİSAFİR"
 st.sidebar.markdown(f"""
     <div style="background: rgba(125, 125, 125, 0.08); padding: 10px 12px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -541,7 +538,6 @@ st.sidebar.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# ----------------- GİRİŞ / OTURUM YÖNETİMİ -----------------
 aktif_yonetici_sifresi = yonetici_sifresi_yukle()
 
 if not st.session_state.oturum_aktif:
@@ -1051,7 +1047,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             urun = item["urun"]
             istenen = item["miktar"]
             ilgili = [g for g in st.session_state.girisler if g["urun"] == urun and g["kalan"] > 0]
-            maliyet = sum(g["kalan"] * g["fiyat"] for g in ilgili) # Basitleştirilmiş maliyet hesabı
+            maliyet = sum(g["kalan"] * g["fiyat"] for g in ilgili)
             toplam_maliyet += maliyet
             excel_sepet_liste.append({"Malzeme": urun, "Miktar": istenen, "Toplam Maliyet (TL)": round(maliyet, 2)})
 
@@ -1087,18 +1083,259 @@ elif menu == "Kalori Hesaplama Aracı":
 # 7. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ
 elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     st.header("👥 İhtiyaç Sahibi ve Yemek Dağıtım Takibi")
-    tab1, tab2, tab3 = st.tabs(["📋 İhtiyaç Sahibi Listesi", "🍲 Yemek Dağıtım Girişi", "📊 Raporlar"])
+    st.markdown("Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun, yönetin ve yemek dağıtımlarını takip edin.")
+
+    tab1, tab2, tab3 = st.tabs(["📋 İhtiyaç Sahibi Listesi, Ekle ve Sil", "🍲 Yemek Dağıtım Girişi", "📊 Dağıtım Raporları (Günlük/Aylık/Yıllık)"])
+
     with tab1:
-        st.write("Kayıtlı İhtiyaç Sahipleri:", len(st.session_state.ihtiyac_sahipleri))
+        if st.session_state.kisi_silme_mesaji:
+            st.success(st.session_state.kisi_silme_mesaji)
+            st.session_state.kisi_silme_mesaji = ""
+
+        if misafir_modu:
+            st.info("👀 Misafir modundasınız. Bu ekranda yalnızca kayıtlı ihtiyaç sahiplerini gözlemleyebilirsiniz.")
+        else:
+            col_form_ekle, col_form_sil = st.columns(2)
+            with col_form_ekle:
+                with st.form("ihtiyac_sahibi_formu"):
+                    st.markdown("**➕ Yeni İhtiyaç Sahibi / Hane Ekle**")
+                    yeni_tc_hane = st.text_input("T.C. Kimlik No / Hane No").strip()
+                    yeni_ad = st.text_input("Adı Soyadı / Hane Unvanı").strip().upper()
+                    yeni_tel = st.text_input("Telefon Numarası")
+                    yeni_adres = st.text_input("Açık Adres")
+                    yeni_birey = st.number_input("Aile / Hane Birey Sayısı", min_value=1, value=1)
+                    
+                    kaydet_btn = st.form_submit_button("İhtiyaç Sahibini Kaydet")
+                    if kaydet_btn and yeni_ad:
+                        islem_tarihi_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                        islem_yapan_kisi = st.session_state.aktif_kullanici
+                        st.session_state.ihtiyac_sahipleri.append({
+                            "id": f"IHT-{len(st.session_state.ihtiyac_sahipleri)+1:03d}",
+                            "tc_hane": yeni_tc_hane,
+                            "ad_soyad": yeni_ad,
+                            "telefon": yeni_tel,
+                            "adres": yeni_adres,
+                            "birey_sayisi": yeni_birey,
+                            "eklenme_tarihi": islem_tarihi_str,
+                            "islem_yapan": islem_yapan_kisi
+                        })
+                        ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                        st.success(f"Başarılı! {yeni_ad} sisteme kaydedildi.")
+                        st.rerun()
+
+            with col_form_sil:
+                with st.form("ihtiyac_sahibi_sil_formu"):
+                    st.markdown("**🗑️ Kayıtlı İhtiyaç Sahibini Sil**")
+                    if st.session_state.ihtiyac_sahipleri:
+                        kisi_secenekleri_sil = [f"{k['id']} - {k['ad_soyad']} (T.C./Hane: {k.get('tc_hane', '-')})" for k in st.session_state.ihtiyac_sahipleri]
+                        secilen_silinecek = st.selectbox("Silinecek Kişiyi / Haneyi Seçin", kisi_secenekleri_sil)
+                        sil_btn = st.form_submit_button("Seçilen Kişiyi Sistemden Sil", type="primary")
+                        
+                        if sil_btn:
+                            silinecek_id = secilen_silinecek.split(" - ")[0]
+                            silinen_kisi_obj = next((k for k in st.session_state.ihtiyac_sahipleri if k["id"] == silinecek_id), None)
+                            silinen_isim = silinen_kisi_obj["ad_soyad"] if silinen_kisi_obj else ""
+                            st.session_state.ihtiyac_sahipleri = [k for k in st.session_state.ihtiyac_sahipleri if k["id"] != silinecek_id]
+                            ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                            st.session_state.kisi_silme_mesaji = f"Başarılı! {silinen_isim} sistemden silindi."
+                            st.rerun()
+                    else:
+                        st.info("Silinecek kayıt bulunmuyor.")
+
+        st.markdown("---")
+        st.subheader("📋 Kayıtlı İhtiyaç Sahipleri Listesi")
+        if st.session_state.ihtiyac_sahipleri:
+            kisi_liste_gosterim = []
+            for k in st.session_state.ihtiyac_sahipleri:
+                kisi_liste_gosterim.append({
+                    "Kayıt No": k["id"],
+                    "T.C. Kimlik No / Hane No": k.get("tc_hane", ""),
+                    "Adı Soyadı": k["ad_soyad"],
+                    "Telefon": k["telefon"],
+                    "Adres": k["adres"],
+                    "Birey Sayısı": k["birey_sayisi"],
+                    "Eklenme Zamanı": k.get("eklenme_tarihi", "-"),
+                    "İşlemi Yapan": k.get("islem_yapan", "admin")
+                })
+            ozel_html_tablo_goster(kisi_liste_gosterim)
+        else:
+            st.info("Sistemde kayıtlı ihtiyaç sahibi bulunmuyor.")
+
     with tab2:
-        st.write("Dağıtım kayıt ekranı aktif.")
+        st.subheader("🍲 Günlük Yemek Dağıtım Kaydı")
+        if misafir_modu:
+            st.info("👀 Misafir modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
+        elif not st.session_state.ihtiyac_sahipleri:
+            st.warning("Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı yapmalısınız.")
+        else:
+            with st.form("dagitim_formu"):
+                d_tarih_saat = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                kisi_secenekleri = [k["ad_soyad"] for k in st.session_state.ihtiyac_sahipleri]
+                secilen_kisi = st.selectbox("Yemek Alan Kişi / Hane", kisi_secenekleri)
+                menu_adi = st.text_input("Verilen Menü / Yemek Adı", "Ispanak Yemeği ve Pilav")
+                porsiyon_mik = st.number_input("Verilen Porsiyon / Sefer Tası Miktarı", min_value=1, value=1)
+                
+                dagitim_ekle_btn = st.form_submit_button("Dağıtımı Kaydet")
+                if dagitim_ekle_btn:
+                    st.session_state.dagitim_loglari.append({
+                        "tarih": d_tarih_saat,
+                        "kisi": secilen_kisi,
+                        "menu": menu_adi,
+                        "porsiyon": porsiyon_mik,
+                        "islem_yapan": st.session_state.aktif_kullanici
+                    })
+                    dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
+                    st.success("Başarılı! Yemek dağıtımı kaydedildi.")
+                    st.rerun()
+
     with tab3:
-        st.write("Dağıtım raporları burada yer alır.")
+        st.subheader("📊 Kim Ne Kadar Süredir Yemek Almış?")
+        kisi_secenekleri_rapor = ["Tüm İhtiyaç Sahipleri (Genel Rapor)"] + [k["ad_soyad"] for k in st.session_state.ihtiyac_sahipleri]
+        secilen_rapor_kisi = st.selectbox("Raporlanacak Kişiyi Seçin", kisi_secenekleri_rapor, key="rapor_kisi_sec")
+        dagitimlar = st.session_state.dagitim_loglari
+        if secilen_rapor_kisi != "Tüm İhtiyaç Sahipleri (Genel Rapor)":
+            dagitimlar = [d for d in dagitimlar if d["kisi"] == secilen_rapor_kisi]
+        
+        toplam_porsiyon_alınan = sum(d["porsiyon"] for d in dagitimlar)
+        toplam_alis_sefer_sayisi = len(dagitimlar)
+        m1, m2 = st.columns(2)
+        with m1:
+            st.metric("Toplam Alınan Öğün / Sefer Sayısı", f"{toplam_alis_sefer_sayisi} Kez")
+        with m2:
+            st.metric("Toplam Dağıtılan Porsiyon", f"{toplam_porsiyon_alınan} Porsiyon")
 
 # 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
 elif menu == "Personel & Çalışma Süresi Takibi":
     st.header("👥 Personel ve Çalışma Süresi Takibi")
-    st.write("Kayıtlı personel sayısı:", len(st.session_state.personeller))
+    st.markdown("Personel yönetimi, yıllık izinler, saatlik izinler, sağlık raporları ve resmi tatilleri bu ekrandan yönetebilirsiniz.")
+
+    p_tab1, p_tab2, p_tab3, p_tab4, p_tab5 = st.tabs([
+        "👨‍💼 Personel Listesi", 
+        "🏖️ Yıllık İzinler", 
+        "⏰ Saatlik İzinler", 
+        "🏥 Sağlık Raporları", 
+        "📊 Net Çalışma Raporu"
+    ])
+
+    with p_tab1:
+        if st.session_state.personel_silme_mesaji:
+            st.success(st.session_state.personel_silme_mesaji)
+            st.session_state.personel_silme_mesaji = ""
+
+        if misafir_modu:
+            st.info("👀 Misafir modundasınız. Bu ekranda yalnızca personel listesini görüntüleyebilirsiniz.")
+        else:
+            col_p_ekle, col_p_sil, col_p_durum = st.columns(3)
+            with col_p_ekle:
+                with st.form("personel_ekle_form"):
+                    st.markdown("**➕ Yeni Personel Ekle**")
+                    p_tc = st.text_input("T.C. No").strip()
+                    p_ad = st.text_input("Personel Adı Soyadı").strip().upper()
+                    p_gorev = st.text_input("Görevi (Örn: Aşçı)")
+                    p_bas = st.date_input("İşe Başlama Tarihi", value=datetime.date.today())
+                    p_submit = st.form_submit_button("Personeli Kaydet")
+                    
+                    if p_submit and p_ad:
+                        st.session_state.personeller.append({
+                            "tc": p_tc if p_tc else "00000000000",
+                            "ad_soyad": p_ad,
+                            "gorev": p_gorev if p_gorev else "Personel",
+                            "baslama": str(p_bas),
+                            "aktif": True,
+                            "izinler": []
+                        })
+                        personelleri_kaydet(st.session_state.personeller)
+                        st.success(f"Başarılı! {p_ad} kadroya eklendi.")
+                        st.rerun()
+
+            with col_p_sil:
+                with st.form("personel_sil_form"):
+                    st.markdown("**🗑️ Personeli Sil**")
+                    if st.session_state.personeller:
+                        p_sil_secenekleri = [f"{p.get('tc', '---')} - {p['ad_soyad']}" for p in st.session_state.personeller]
+                        secilen_sil_p = st.selectbox("Silinecek Personel", p_sil_secenekleri)
+                        p_sil_btn = st.form_submit_button("Personeli Kadrodan Sil", type="primary")
+                        
+                        if p_sil_btn:
+                            sil_tc = secilen_sil_p.split(" - ")[0]
+                            silinen_obj = next((p for p in st.session_state.personeller if p.get('tc') == sil_tc), None)
+                            silinen_ad = silinen_obj["ad_soyad"] if silinen_obj else ""
+                            st.session_state.personeller = [p for p in st.session_state.personeller if p.get('tc') != sil_tc]
+                            personelleri_kaydet(st.session_state.personeller)
+                            st.session_state.personel_silme_mesaji = f"Başarılı! {silinen_ad} kadrodan silindi."
+                            st.rerun()
+                    else:
+                        st.info("Silinecek personel bulunmuyor.")
+
+            with col_p_durum:
+                with st.form("personel_durum_form"):
+                    st.markdown("**🔄 Durum Güncelle**")
+                    if st.session_state.personeller:
+                        p_secenekler = [f"{p.get('tc', '---')} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
+                        secilen_p_str = st.selectbox("Personel Seç", p_secenekler)
+                        yeni_durum = st.radio("Durum", ["Aktif Çalışıyor", "Pasif / Ayrıldı"], horizontal=True)
+                        p_durum_btn = st.form_submit_button("Durumu Güncelle")
+                        
+                        if p_durum_btn:
+                            p_tc_secilen = secilen_p_str.split(" - ")[0]
+                            for p in st.session_state.personeller:
+                                if p.get('tc') == p_tc_secilen:
+                                    p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
+                            personelleri_kaydet(st.session_state.personeller)
+                            st.success("Durum güncellendi!")
+                            st.rerun()
+                    else:
+                        st.info("Kayıt yok.")
+
+        st.markdown("---")
+        st.subheader("📋 Kayıtlı Personel Kadrosu")
+        if st.session_state.personeller:
+            bugun_tarihi = datetime.date.today()
+            p_gosterim = []
+            for p in st.session_state.personeller:
+                bas_tarih_str = p.get("baslama", "2026-01-01")
+                try:
+                    bas_dt = datetime.datetime.strptime(bas_tarih_str, "%Y-%m-%d").date()
+                except:
+                    bas_dt = datetime.date(2026, 1, 1)
+                net_calisilan, _, _, _ = net_calisma_gunu_hesapla(bas_dt, bugun_tarihi, p.get("izinler", []), st.session_state.resmi_tatiller)
+                p_gosterim.append({
+                    "T.C. No": p.get("tc", "-"),
+                    "Adı Soyadı": p["ad_soyad"],
+                    "Görevi": p["gorev"],
+                    "İşe Başlama": bas_tarih_str,
+                    "Çalışma Günü Sayacı": f"{net_calisilan} Gün",
+                    "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı"
+                })
+            ozel_html_tablo_goster(p_gosterim)
+        else:
+            st.info("Kayıtlı personel bulunmuyor.")
+
+    with p_tab2:
+        st.subheader("🏖️ Yıllık İzinler")
+        st.info("Yıllık izin işlemleri aktif.")
+
+    with p_tab3:
+        st.subheader("⏰ Saatlik İzinler")
+        st.info("Saatlik izin işlemleri aktif.")
+
+    with p_tab4:
+        st.subheader("🏥 Sağlık Raporları")
+        st.info("Sağlık raporu işlemleri aktif.")
+
+    with p_tab5:
+        st.subheader("📊 Net Çalışma Raporu")
+        if st.session_state.personeller:
+            p_isimleri = [p["ad_soyad"] for p in st.session_state.personeller]
+            secilen_rapor_p = st.selectbox("Personel Seçin", p_isimleri, key="prs_rapor_sec")
+            ilgili_personel_obj = next((p for p in st.session_state.personeller if p["ad_soyad"] == secilen_rapor_p), None)
+            if ilgili_personel_obj:
+                net_gun, toplam_izin, saglik_raporu_gun, saatlik_izin_saat = net_calisma_gunu_hesapla(datetime.date(2026, 10, 1), datetime.date.today(), ilgili_personel_obj.get("izinler", []), st.session_state.resmi_tatiller)
+                m1, m2, m3, m4 = st.columns(4)
+                with m1: st.metric("Net Çalışılan Gün", f"{net_gun} Gün")
+                with m2: st.metric("Yıllık İzin", f"{toplam_izin} Gün")
+                with m3: st.metric("Sağlık Raporu", f"{saglik_raporu_gun} Gün")
+                with m4: st.metric("Saatlik İzin", f"{saatlik_izin_saat} Saat")
 
 # 9. KULLANIM TAKİBİ
 elif menu == "Kullanım Takibi":
