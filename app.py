@@ -1195,9 +1195,32 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     tab1, tab2, tab3 = st.tabs(["📋 İhtiyaç Sahibi Listesi, Ekle ve Sil", "🍲 Yemek Dağıtım Girişi", "📊 Dağıtım Sayacı & Raporları"])
 
     with tab1:
+        col_b_kisi, col_indir_kisi = st.columns([2, 2])
+        with col_b_kisi:
+            st.subheader("📋 İhtiyaç Sahibi Listesi ve Yönetimi")
+
         if st.session_state.kisi_silme_mesaji:
             st.success(st.session_state.kisi_silme_mesaji)
             st.session_state.kisi_silme_mesaji = ""
+
+        kisi_liste_gosterim = []
+        for k in st.session_state.ihtiyac_sahipleri:
+            kisi_liste_gosterim.append({
+                "Kayıt No": k["id"],
+                "T.C. Kimlik No / Hane No": k.get("tc_hane", ""),
+                "Adı Soyadı": k["ad_soyad"],
+                "Telefon": k["telefon"],
+                "Adres": k["adres"],
+                "Birey Sayısı": k["birey_sayisi"],
+                "Eklenme Zamanı": k.get("eklenme_tarihi", "-"),
+                "İşlemi Yapan": k.get("islem_yapan", "admin")
+            })
+
+        excel_kisi_data = tablo_to_excel_bytes(kisi_liste_gosterim, "Aziziye Aşevi - İhtiyaç Sahipleri Listesi")
+        pdf_kisi_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - İhtiyaç Sahipleri Listesi", kisi_liste_gosterim)
+
+        with col_indir_kisi:
+            ortak_indirme_alani(excel_kisi_data, pdf_kisi_data, "ihtiyac_sahipleri_listesi", "ihtiyac_kisi_sayfasi")
 
         if misafir_modu:
             st.info("👀 Misafir modundasınız. Bu ekranda yalnızca kayıtlı ihtiyaç sahiplerini gözlemleyebilirsiniz.")
@@ -1250,30 +1273,38 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                         st.info("Silinecek kayıt bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı İhtiyaç Sahipleri Listesi")
-        if st.session_state.ihtiyac_sahipleri:
-            kisi_liste_gosterim = []
-            for k in st.session_state.ihtiyac_sahipleri:
-                kisi_liste_gosterim.append({
-                    "Kayıt No": k["id"],
-                    "T.C. Kimlik No / Hane No": k.get("tc_hane", ""),
-                    "Adı Soyadı": k["ad_soyad"],
-                    "Telefon": k["telefon"],
-                    "Adres": k["adres"],
-                    "Birey Sayısı": k["birey_sayisi"],
-                    "Eklenme Zamanı": k.get("eklenme_tarihi", "-"),
-                    "İşlemi Yapan": k.get("islem_yapan", "admin")
-                })
+        st.subheader("📋 Kayıtlı İhtiyaç Sahipleri Tablosu")
+        if kisi_liste_gosterim:
             ozel_html_tablo_goster(kisi_liste_gosterim)
         else:
             st.info("Sistemde kayıtlı ihtiyaç sahibi bulunmuyor.")
 
     with tab2:
+        col_b_dag, col_indir_dag = st.columns([2, 2])
+        with col_b_dag:
+            st.subheader("🍲 Günlük Yemek Dağıtım Girişi ve Yönetimi")
+
         if st.session_state.dagitim_silme_mesaji:
             st.success(st.session_state.dagitim_silme_mesaji)
             st.session_state.dagitim_silme_mesaji = ""
 
-        st.subheader("🍲 Günlük Yemek Dağıtım Girişi ve Yönetimi")
+        dagitim_gosterim_listesi = []
+        for idx, d in enumerate(st.session_state.dagitim_loglari):
+            dagitim_gosterim_listesi.append({
+                "Kayıt No": f"DAG-{idx:03d}",
+                "Tarih / Saat": d.get("tarih", "-"),
+                "Kişi / Hane": d.get("kisi", "-"),
+                "Menü": d.get("menu", "-"),
+                "Porsiyon": d.get("porsiyon", 1),
+                "İşlemi Yapan": d.get("islem_yapan", "admin")
+            })
+
+        excel_dag_data = tablo_to_excel_bytes(dagitim_gosterim_listesi, "Aziziye Aşevi - Yemek Dağıtım Listesi")
+        pdf_dag_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Yemek Dağıtım Listesi", dagitim_gosterim_listesi)
+
+        with col_indir_dag:
+            ortak_indirme_alani(excel_dag_data, pdf_dag_data, "yemek_dagitim_listesi", "dagitim_sayfasi")
+
         if misafir_modu:
             st.info("👀 Misafir modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
         elif not st.session_state.ihtiyac_sahipleri:
@@ -1321,18 +1352,8 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                         st.info("Silinebilecek yemek dağıtım kaydı bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Yemek Dağıtımları Listesi")
-        if st.session_state.dagitim_loglari:
-            dagitim_gosterim_listesi = []
-            for idx, d in enumerate(st.session_state.dagitim_loglari):
-                dagitim_gosterim_listesi.append({
-                    "Kayıt No": f"DAG-{idx:03d}",
-                    "Tarih / Saat": d.get("tarih", "-"),
-                    "Kişi / Hane": d.get("kisi", "-"),
-                    "Menü": d.get("menu", "-"),
-                    "Porsiyon": d.get("porsiyon", 1),
-                    "İşlemi Yapan": d.get("islem_yapan", "admin")
-                })
+        st.subheader("📋 Kayıtlı Yemek Dağıtımları Tablosu")
+        if dagitim_gosterim_listesi:
             ozel_html_tablo_goster(dagitim_gosterim_listesi)
         else:
             st.info("Kayıtlı yemek dağıtımı bulunmuyor.")
@@ -1344,8 +1365,6 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
         
         simdi_dt = datetime.datetime.now()
         bugun_str = simdi_dt.strftime("%Y-%m-%d")
-        
-        # Son 7 gün ve bu ay filtreleri için tarih sınırları
         yedi_gun_once = (simdi_dt - datetime.timedelta(days=7)).date()
         bu_yil_ay = simdi_dt.strftime("%Y-%m")
 
@@ -1373,17 +1392,14 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 except:
                     continue
 
-                # Günlük kontrol
                 if tarih_saat_str.startswith(bugun_str):
                     gunluk_sefer += 1
                     gunluk_porsiyon += pors
 
-                # Haftalık kontrol (Son 7 gün)
                 if yedi_gun_once <= d_tarih <= simdi_dt.date():
                     haftalik_sefer += 1
                     haftalik_porsiyon += pors
 
-                # Aylık kontrol (Bu ay)
                 if tarih_saat_str.startswith(bu_yil_ay):
                     aylik_sefer += 1
                     aylik_porsiyon += pors
@@ -1391,7 +1407,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             sayac_tablosu.append({
                 "T.C. / Hane No": k.get("tc_hane", "-"),
                 "İhtiyaç Sahibi": kisi_adi,
-                "Günlük Alım (Kez / Porsiyon)": f"{gun_sefer if 'gun_sefer' in locals() else gunluk_sefer} Kez / {gunluk_porsiyon} Pors.",
+                "Günlük Alım (Kez / Porsiyon)": f"{gunluk_sefer} Kez / {gunluk_porsiyon} Pors.",
                 "Haftalık Alım (Kez / Porsiyon)": f"{haftalik_sefer} Kez / {haftalik_porsiyon} Pors.",
                 "Aylık Alım (Kez / Porsiyon)": f"{aylik_sefer} Kez / {aylik_porsiyon} Pors."
             })
