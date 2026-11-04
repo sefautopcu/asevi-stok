@@ -75,6 +75,35 @@ if st.session_state.tema_secimi == "Koyu Tema (Dark)":
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
             color: #F8FAFC !important;
         }
+        /* Özel HTML Tablo Stilleri (Dark) */
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            background-color: #1E293B;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        .custom-table th {
+            background-color: #0F172A;
+            color: #38BDF8;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid #334155;
+        }
+        .custom-table td {
+            padding: 12px 16px;
+            color: #F8FAFC;
+            font-size: 13px;
+            border-bottom: 1px solid #334155;
+        }
+        .custom-table tr:hover {
+            background-color: #273548;
+        }
         </style>
     """, unsafe_allow_html=True)
 else:
@@ -135,6 +164,36 @@ else:
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
             color: #111827 !important;
         }
+        /* Özel HTML Tablo Stilleri (Light) */
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            background-color: #FFFFFF;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .custom-table th {
+            background-color: #F3F4F6;
+            color: #111827;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .custom-table td {
+            padding: 12px 16px;
+            color: #374151;
+            font-size: 13px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .custom-table tr:hover {
+            background-color: #F9FAFB;
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -146,6 +205,24 @@ PERSONEL_DOSYASI = "asevi_personel_veritabani.json"
 SIFRE_DOSYASI = "asevi_yonetici_sifre.json"
 TATIL_DOSYASI = "asevi_resmi_tatiller.json"
 SILINENS_DOSYASI = "asevi_silinen_urunler_loglari.json"
+
+# Güvenli HTML Tablo Oluşturucu Fonksiyon
+def ozel_html_tablo_goster(veri_listesi):
+    if not veri_listesi:
+        st.info("Gösterilecek kayıt bulunmuyor.")
+        return
+    headers = list(veri_listesi[0].keys())
+    html = "<table class='custom-table'><thead><tr>"
+    for h in headers:
+        html += f"<th>{h}</th>"
+    html += "</tr></thead><tbody>"
+    for row in veri_listesi:
+        html += "<tr>"
+        for h in headers:
+            html += f"<td>{row.get(h, '')}</td>"
+        html += "</tr>"
+    html += "</tbody></table>"
+    st.markdown(html, unsafe_allow_html=True)
 
 # Kalori Sözlüğü
 KALORI_TABLOSU = {
@@ -969,7 +1046,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "Depo Yeri": g.get("depo", "-"),
                     "İşlemi Yapan": g.get("islem_yapan", "admin")
                 })
-            st.table(fatura_log_tablosu)
+            ozel_html_tablo_goster(fatura_log_tablosu)
         else:
             st.info("Kayıtlı mal alımı faturası bulunmuyor.")
 
@@ -1036,7 +1113,7 @@ elif menu == "Ürün Sil / Düzenle":
             "Silme Nedeni": sl["neden"],
             "İşlemi Yapan": sl.get("islem_yapan", "admin")
         } for sl in silinen_loglar]
-        st.table(silinen_tablo_verisi)
+        ozel_html_tablo_goster(silinen_tablo_verisi)
     else:
         st.info("Sistemden henüz silinmiş bir ürün kaydı bulunmuyor.")
 
@@ -1112,7 +1189,7 @@ elif menu == "Fire / Zayiat Girişi":
             "Maddi Zarar (₺)": f"{fl['tutar']:.2f} ₺",
             "İşlemi Yapan": fl.get("islem_yapan", "admin")
         } for fl in fire_loglari]
-        st.table(fire_tablo_verisi)
+        ozel_html_tablo_goster(fire_tablo_verisi)
     else:
         st.info("Sistemde kayıtlı henüz bir fire veya zayiat bulunmuyor.")
 
@@ -1317,7 +1394,7 @@ elif menu == "Kalori Hesaplama Aracı":
         with col_indir_kal:
             ortak_indirme_alani(excel_kalori_data, pdf_kalori_data, "kalori_hesaplama_raporu", "kalori_sayfasi")
 
-        st.table(kalori_tablo_verisi)
+        ozel_html_tablo_goster(kalori_tablo_verisi)
 
         kisi_basi_kalori_sonuc = toplam_tarif_kalorisi / kalori_kisi_sayisi if kalori_kisi_sayisi > 0 else 0
 
@@ -1414,7 +1491,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                     "Eklenme Zamanı": k.get("eklenme_tarihi", "-"),
                     "İşlemi Yapan": k.get("islem_yapan", "admin")
                 })
-            st.table(kisi_liste_gosterim)
+            ozel_html_tablo_goster(kisi_liste_gosterim)
         else:
             st.info("Sistemde kayıtlı ihtiyaç sahibi bulunmuyor.")
 
@@ -1587,7 +1664,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı",
                     "Kayıtlı İzin/Rapor": len(p.get("izinler", []))
                 })
-            st.table(p_gosterim)
+            ozel_html_tablo_goster(p_gosterim)
         else:
             st.info("Henüz kayıtlı personel bulunmuyor.")
 
@@ -1673,7 +1750,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     })
         
         if yillik_tablo_listesi:
-            st.table(yillik_tablo_listesi)
+            ozel_html_tablo_goster(yillik_tablo_listesi)
             exc_y = tablo_to_excel_bytes(yillik_tablo_listesi, "Yıllık İzinler Raporu")
             pdf_y = tablo_to_html_pdf_bytes("Yıllık İzinler Raporu", yillik_tablo_listesi)
             ortak_indirme_alani(exc_y, pdf_y, "yillik_izinler_raporu", "yillik_izin_indzir")
@@ -1775,7 +1852,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     })
         
         if saatlik_tablo_listesi:
-            st.table(saatlik_tablo_listesi)
+            ozel_html_tablo_goster(saatlik_tablo_listesi)
             exc_s = tablo_to_excel_bytes(saatlik_tablo_listesi, "Saatlik İzinler Raporu")
             pdf_s = tablo_to_html_pdf_bytes("Saatlik İzinler Raporu", saatlik_tablo_listesi)
             ortak_indirme_alani(exc_s, pdf_s, "saatlik_izinler_raporu", "saatlik_izin_indzir")
@@ -1874,7 +1951,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     })
         
         if saglik_tablo_listesi:
-            st.table(saglik_tablo_listesi)
+            ozel_html_tablo_goster(saglik_tablo_listesi)
             exc_r = tablo_to_excel_bytes(saglik_tablo_listesi, "Sağlık Raporları Raporu")
             pdf_r = tablo_to_html_pdf_bytes("Sağlık Raporları Raporu", saglik_tablo_listesi)
             ortak_indirme_alani(exc_r, pdf_r, "saglik_raporlari_raporu", "saglik_rapor_indzir")
@@ -1928,7 +2005,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                 "Süre (Saat/Detay)": iz.get("saat", iz.get("kurum", "-")),
                                 "Açıklama / Teşhis": iz.get("teshis", iz.get("detay", "-"))
                             })
-                        st.table(detay_tablo)
+                        ozel_html_tablo_goster(detay_tablo)
                     else:
                         st.info("Bu personel için kayıtlı izin veya rapor bulunmuyor.")
 
@@ -1985,7 +2062,7 @@ elif menu == "Kullanım Takibi":
         with col_indir_kul:
             ortak_indirme_alani(kul_excel_data, kul_pdf_data, "kullanim_takip_raporu", "kullanim_sayfasi")
 
-        st.table(k_tablo_verisi)
+        ozel_html_tablo_goster(k_tablo_verisi)
     else:
         empty_excel_kul = tablo_to_excel_bytes([], "Boş Rapor")
         empty_pdf_kul = tablo_to_html_pdf_bytes("Boş Rapor", [])
@@ -2033,7 +2110,7 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
             ortak_indirme_alani(fiyat_excel_data, fiyat_pdf_data, "urun_birim_fiyatlari_raporu", "fiyat_sayfasi")
 
         st.subheader("📋 Envanter Birim Fiyat Tablosu")
-        st.table(fiyat_tablo)
+        ozel_html_tablo_goster(fiyat_tablo)
 
         st.markdown("---")
         st.subheader("📊 En Envanter Birim Fiyata Sahip İlk 10 Ürün")
