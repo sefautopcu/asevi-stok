@@ -528,7 +528,7 @@ st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-# ----------------- MODERN AĞAÇ (TREE) MENÜ YAPISI -----------------
+# ----------------- AKILLI GENİŞLETİLMİŞ AĞAÇ (TREE) MENÜ YAPISI -----------------
 st.sidebar.markdown("""
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-left: 4px;">
         <div style="background: #3B82F6; color: white; padding: 6px 10px; border-radius: 8px; font-weight: bold; font-size: 14px;">AZ</div>
@@ -539,7 +539,40 @@ st.sidebar.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-sidebar_arama = st.sidebar.text_input("🔍 Menüde Ara...", placeholder="Örn: Stok, Fatura...", label_visibility="collapsed")
+sidebar_arama = st.sidebar.text_input("🔍 Menüde Ara...", placeholder="Ürün, Fatura, Personel, T.C....", label_visibility="collapsed").strip().lower()
+
+# GENİŞLETİLMİŞ AKILLI EŞLEŞTİRME KONTROLÜ
+otomatik_yonlendirilen_menu = None
+if sidebar_arama:
+    # 1. Ürün adı veya Fatura no araması -> Güncel Stok veya Fatura Ekle sayfasına yönlendir
+     urun_veya_fatura_bulundu = any(
+         sidebar_arama in g.get("urun", "").lower() or sidebar_arama in g.get("fatura_no", "").lower() 
+         for g in st.session_state.girisler
+     )
+    if urun_veya_fatura_bulundu:
+        otomatik_yonlendirilen_menu = "Güncel Stok Durumu"
+
+    # 2. Personel adı araması -> Personel & Çalışma Süresi Takibi
+     personel_bulundu = any(
+         sidebar_arama in p.get("ad_soyad", "").lower() or sidebar_arama in p.get("tc", "")
+         for p in st.session_state.personeller
+     )
+    if personel_bulundu:
+        otomatik_yonlendirilen_menu = "Personel & Çalışma Süresi Takibi"
+
+    # 3. İhtiyaç sahibi veya T.C. / hane araması -> İhtiyaç Sahibi & Yemek Dağıtım Takibi
+     ihtiyac_sahibi_bulundu = any(
+         sidebar_arama in i.get("ad_soyad", "").lower() or sidebar_arama in i.get("tc_hane", "")
+         for i in st.session_state.ihtiyac_sahipleri
+     )
+    if ihtiyac_sahibi_bulundu:
+        otomatik_yonlendirilen_menu = "İhtiyaç Sahibi & Yemek Dağıtım Takibi"
+
+    # Eğer akıllı aramada eşleşme bulunduysa aktif menüyü otomatik güncelle
+    if otomatik_yonlendirilen_menu:
+        st.session_state.aktif_menu = otomatik_yonlendirilen_menu
+        st.query_params["menu"] = otomatik_yonlendirilen_menu
+
 st.sidebar.markdown('<p style="font-size: 12px; font-weight: 600; margin-top: 10px; margin-bottom: 4px; padding-left: 4px; opacity: 0.6;">AĞAÇ MENÜ & SİSTEM</p>', unsafe_allow_html=True)
 
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
@@ -571,13 +604,13 @@ menu_gruplari = {
 
 filtrelenmis_gruplar = {}
 for grup_adi, alt_menuler in menu_gruplari.items():
-    uygun_menuler = [m for m in alt_menuler if not sidebar_arama or sidebar_arama.lower() in m.lower() or sidebar_arama.lower() in grup_adi.lower()]
+    uygun_menuler = [m for m in alt_menuler if not sidebar_arama or sidebar_arama in m.lower() or sidebar_arama in grup_adi.lower() or otomatik_yonlendirilen_menu == m]
     if uygun_menuler:
         filtrelenmis_gruplar[grup_adi] = uygun_menuler
 
 for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
     grup_aktif_mu = st.session_state.aktif_menu in alt_menuler
-    with st.sidebar.expander(grup_adi, expanded=grup_aktif_mu):
+    with st.sidebar.expander(grup_adi, expanded=grup_aktif_mu or bool(sidebar_arama)):
         for m in alt_menuler:
             if m == "Yeni Mal Alımı / Fatura Ekle" and misafir_modu:
                 continue
@@ -1032,10 +1065,8 @@ elif menu == "Fire / Zayiat Girişi":
             ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_gercek_urun and g["kalan"] > 0]
             toplam_stok = sum(g["kalan"] for g in ilgili_girisler)
             
-            # En son eklenen faturadaki birim fiyatı bulma
             en_son_fiyat = 0.0
             if ilgili_girisler:
-                # Tarih ve id sıralamasına göre en güncel kaydı seçme
                 en_son_kayit = max(ilgili_girisler, key=lambda x: x.get("tarih", ""))
                 en_son_fiyat = en_son_kayit.get("fiyat", 0.0)
 
@@ -1046,7 +1077,6 @@ elif menu == "Fire / Zayiat Girişi":
             if submitted_fire and fire_miktari > 0:
                 kalan_dusulecek = fire_miktari
                 
-                # Stoktan FIFO (veya genel kalan düşme) mantığıyla miktarı düşüyoruz
                 for g in ilgili_girisler:
                     if kalan_dusulecek <= 0: break
                     if g["kalan"] >= kalan_dusulecek:
@@ -1057,7 +1087,6 @@ elif menu == "Fire / Zayiat Girişi":
                         g["kalan"] = 0
                         kalan_dusulecek -= dusulen
 
-                # Zarar hesabı en son faturadaki birim fiyat üzerinden yapılıyor
                 toplam_zarar = fire_miktari * en_son_fiyat
 
                 verileri_kaydet(st.session_state.girisler)
