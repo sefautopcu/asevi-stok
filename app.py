@@ -239,7 +239,7 @@ varsayilan_girisler = [
     {"id": "STK-064", "tarih": "2026-10-28 12:10", "fatura_no": "FAT-2026-064", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"}
 ]
 
-# Varsayılan Personel Listesi (T.C. No Alanı Eklenmiş Olarak)
+# Varsayılan Personel Listesi
 varsayilan_personeller = [
     {"tc": "11111111111", "ad_soyad": "MUHAMMED İLKER ÇELİK", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
     {"tc": "22222222222", "ad_soyad": "EMİRHAN DÖNMEZ", "gorev": "Şoför", "baslama": "2026-10-12", "aktif": True, "izinler": []},
@@ -1148,6 +1148,13 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 
     if st.session_state.sepet:
         st.subheader("Seçilen Malzemeler")
+        
+        # Sıfırla Butonu Eklendi
+        if st.button("🔄 Sıfırla (Seçilenleri Temizle)", type="secondary"):
+            st.session_state.sepet = []
+            st.success("Seçilen ürünler sıfırlandı!")
+            st.rerun()
+
         toplam_maliyet = 0.0
         islenmis_sepet = []
         excel_sepet_liste = []
@@ -1884,7 +1891,6 @@ elif menu == "Personel & Çalışma Süresi Takibi":
             with c_kol2:
                 donem_bit = st.date_input("Dönem Bitiş Tarihi", value=datetime.date(2026, 10, 31), key="d_bit")
 
-            # Tarih kontrolü eklendi (Hata engelleme)
             if donem_bas > donem_bit:
                 st.error("⚠️ Dönem Başlangıç Tarihi, Dönem Bitiş Tarihinden büyük olamaz! Lütfen tarihleri kontrol edin.")
             else:
