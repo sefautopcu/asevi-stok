@@ -467,7 +467,7 @@ def bugunun_turkce_tarihi():
 # GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI
 # =========================================================================
 if not st.session_state.oturum_aktif:
-    st.markdown("<div style='text-align: center; margin-top: 40px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-top: 30px;'></div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
         st.markdown("""
@@ -504,7 +504,7 @@ if not st.session_state.oturum_aktif:
                 else:
                     st.error("Hatalı kullanıcı adı veya şifre!")
 
-        st.markdown("<div style='text-align: center; margin: 15px 0; opacity: 0.6;'>veya</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align: center; margin: 12px 0; opacity: 0.6;'>veya</div>", unsafe_allow_html=True)
         
         if st.button("👁️ Misafir Girişi İçin Tıklayın (Gözlemci)", use_container_width=True, type="secondary"):
             st.session_state.oturum_aktif = True
@@ -512,6 +512,11 @@ if not st.session_state.oturum_aktif:
             st.query_params["auth"] = "true"
             st.query_params["user"] = "misafir"
             st.rerun()
+
+        # İLETİŞİM LOGOSU / BUTONU EKLENDİ
+        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+        if st.button("✉️ İletişim / Destek", use_container_width=True, type="secondary"):
+            st.info("📩 İletişim için **sefaunaltopcu@gmail.com** mail adresi ile iletişime geçebilirsiniz.")
 
     st.stop()  # Giriş yapılmadıysa ana sayfayı göstermeyi durdur
 
