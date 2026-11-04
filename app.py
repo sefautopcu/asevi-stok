@@ -238,7 +238,7 @@ varsayilan_loglar = [
     {"tarih": "2026-10-09 10:00", "urun": "PATLICAN", "tur": "Fire/Zayiat", "miktar": 52.4, "tutar": 2882.00, "islem_yapan": "admin"},
     {"tarih": "2026-10-14 10:00", "urun": "MUZ", "tur": "Fire/Zayiat", "miktar": 54.5, "tutar": 5995.00, "islem_yapan": "admin"},
     {"tarih": "2026-10-20 10:00", "urun": "SALATALIK", "tur": "Fire/Zayiat", "miktar": 43.0, "tutar": 1935.00, "islem_yapan": "admin"},
-    {"tarih": "2026-10-21 10:00", "urun": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 993.00, "islem_yapan": "admin"}
+    {"tarih": "2026-10-21 10:00", "tur": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 993.00, "islem_yapan": "admin"}
 ]
 
 varsayilan_personeller = [
@@ -1136,8 +1136,15 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Takibi")
     
-    secilen_tarih_filtresi = st.date_input("📅 Sorgulanacak / Takip Edilecek Tarihi Seçin", value=datetime.date.today())
-    secilen_tarih_str = secilen_tarih_filtresi.strftime("%Y-%m-%d")
+    col_tarih_mod, col_tarih_sec = st.columns([1, 2])
+    with col_tarih_mod:
+        zaman_modu = st.radio("Görünüm Modu", ["Tarihe Göre Seç", "Tüm Zamanlar"], horizontal=True)
+    with col_tarih_sec:
+        if zaman_modu == "Tarihe Göre Seç":
+            secilen_tarih_filtresi = st.date_input("📅 Sorgulanacak Tarihi Seçin", value=datetime.date.today())
+            secilen_tarih_str = secilen_tarih_filtresi.strftime("%Y-%m-%d")
+        else:
+            secilen_tarih_str = "TÜMÜ"
 
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
@@ -1209,7 +1216,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             tarih_simdi = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
             islem_tarihi_sadece_gun = datetime.date.today().strftime("%Y-%m-%d")
             
-            # Üretim arşivi için detaylı liste oluştur
             arsiv_malzemeler = []
             for item in st.session_state.sepet:
                 urun = item["urun"]
@@ -1240,7 +1246,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     "islem_yapan": st.session_state.aktif_kullanici
                 })
 
-            # Yemek Üretim Arşivine Kaydet
             st.session_state.yemek_uretim_arsivi.append({
                 "tarih": islem_tarihi_sadece_gun,
                 "zaman": tarih_simdi,
@@ -1275,9 +1280,12 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         st.info("Henüz sepete malzeme eklenmedi.")
 
     st.markdown("---")
-    st.subheader(f"📅 Seçilen Tarihteki ({secilen_tarih_str}) Yemek Üretim ve Maliyet Arşivi")
-    
-    secilen_gun_uretimleri = [u for u in st.session_state.yemek_uretim_arsivi if u.get("tarih") == secilen_tarih_str]
+    if secilen_tarih_str == "TÜMÜ":
+        st.subheader("📚 Tüm Zamanların Yemek Üretim ve Maliyet Arşivi")
+        secilen_gun_uretimleri = st.session_state.yemek_uretim_arsivi
+    else:
+        st.subheader(f"📅 Seçilen Tarihteki ({secilen_tarih_str}) Yemek Üretim ve Maliyet Arşivi")
+        secilen_gun_uretimleri = [u for u in st.session_state.yemek_uretim_arsivi if u.get("tarih") == secilen_tarih_str]
     
     if secilen_gun_uretimleri:
         arsiv_tablo_verisi = []
@@ -1285,6 +1293,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         for u_kayit in secilen_gun_uretimleri:
             for m in u_kayit.get("malzemeler", []):
                 arsiv_tablo_verisi.append({
+                    "Tarih": u_kayit.get("tarih", "-"),
                     "Kayıt Zamanı": u_kayit.get("zaman", "-"),
                     "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                     "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
@@ -1294,6 +1303,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     "İşlemi Yapan": u_kayit.get("islem_yapan", "-")
                 })
                 excel_arsiv_listesi.append({
+                    "Tarih": u_kayit.get("tarih", "-"),
                     "Kayıt Zamanı": u_kayit.get("zaman", "-"),
                     "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                     "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
@@ -1305,17 +1315,20 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         
         ozel_html_tablo_goster(arsiv_tablo_verisi)
         
-        excel_arsiv_data = tablo_to_excel_bytes(excel_arsiv_listesi, f"Aziziye Aşevi - {secilen_tarih_str} Yemek Uretim Raporu")
-        pdf_arsiv_data = tablo_to_html_pdf_bytes(f"Aziziye Aşevi - {secilen_tarih_str} Yemek Uretim Raporu", excel_arsiv_listesi)
+        rapor_adi_etiketi = "tum_zamanlar_yemek_uretim_raporu" if secilen_tarih_str == "TÜMÜ" else f"yemek_uretim_raporu_{secilen_tarih_str}"
+        baslik_etiketi = "Aziziye Aşevi - Tüm Zamanlar Yemek Üretim Raporu" if secilen_tarih_str == "TÜMÜ" else f"Aziziye Aşevi - {secilen_tarih_str} Yemek Üretim Raporu"
+        
+        excel_arsiv_data = tablo_to_excel_bytes(excel_arsiv_listesi, baslik_etiketi)
+        pdf_arsiv_data = tablo_to_html_pdf_bytes(baslik_etiketi, excel_arsiv_listesi)
         
         st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
         col_sec_arsiv, col_btn_arsiv = st.columns([2, 2])
         with col_sec_arsiv:
-            st.markdown(f"**{secilen_tarih_str} Tarihli Raporu İndir**")
+            st.markdown(f"**Arşiv Raporunu İndir ({secilen_tarih_str})**")
         with col_btn_arsiv:
-            ortak_indirme_alani(excel_arsiv_data, pdf_arsiv_data, f"yemek_uretim_raporu_{secilen_tarih_str}", f"arsiv_{secilen_tarih_str}")
+            ortak_indirme_alani(excel_arsiv_data, pdf_arsiv_data, rapor_adi_etiketi, f"arsiv_{secilen_tarih_str}")
     else:
-        st.info(f"Seçilen {secilen_tarih_str} tarihinde kayıtlı yemek üretim ve maliyet arşivi bulunmuyor.")
+        st.info(f"Seçilen kriterde kayıtlı yemek üretim ve maliyet arşivi bulunmuyor.")
 
 # 6. KALORİ HESAPLAMA ARACI
 elif menu == "Kalori Hesaplama Aracı":
