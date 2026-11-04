@@ -13,72 +13,122 @@ import pandas as pd
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
 
-# Modern Glassmorphism & Soft UI Tasarımı (CSS Entegrasyonu)
-st.markdown("""
-    <style>
-    .main { 
-        background-color: #FAFAFB !important; 
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-    .stSidebar { 
-        background-color: #F4F5F7 !important; 
-        padding-top: 10px; 
-        border-right: 1px solid #E5E7EB;
-    }
-    .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-        color: #374151 !important; 
-        font-size: 13.5px; 
-        font-family: 'Inter', sans-serif; 
-    }
-    h1, h2, h3 { 
-        color: #111827; 
-        font-family: 'Inter', sans-serif; 
-        letter-spacing: -0.025em;
-    }
-    button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
-    section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
+# Oturumda Tema Durumu Kontrolü
+if "tema_secimi" not in st.session_state:
+    st.session_state.tema_secimi = "Koyu Tema (Dark)"
 
-    section[data-testid="stSidebar"] button[kind="secondary"] {
-        background-color: transparent !important;
-        color: #4B5563 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        text-align: left !important;
-        font-weight: 400 !important;
-        padding: 6px 10px !important;
-        box-shadow: none !important;
-        transition: all 0.2s ease;
-    }
-    section[data-testid="stSidebar"] button[kind="secondary"]:hover {
-        background-color: #EFEFF1 !important;
-        color: #111827 !important;
-    }
-    section[data-testid="stSidebar"] button[kind="primary"] {
-        background-color: #E5E7EB !important;
-        color: #111827 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stExpander"] summary {
-        display: flex !important;
-        align-items: center !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stExpander"] summary p {
-        font-size: 13px !important;
-        font-weight: 600 !important;
-        margin: 0 !important;
-    }
-    div.stMetric, div[data-testid="stExpander"], div.stForm {
-        background: #FFFFFF !important;
-        border: 1px solid #E5E7EB;
-        padding: 16px 20px;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Dinamik Tema CSS Entegrasyonu (Açık / Koyu Mod)
+if st.session_state.tema_secimi == "Koyu Tema (Dark)":
+    st.markdown("""
+        <style>
+        .main { 
+            background-color: #0F172A !important; 
+            color: #F8FAFC !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .stSidebar { 
+            background-color: #1E293B !important; 
+            padding-top: 10px; 
+            border-right: 1px solid #334155;
+        }
+        .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
+            color: #94A3B8 !important; 
+            font-size: 13.5px; 
+        }
+        h1, h2, h3 { 
+            color: #F8FAFC !important; 
+            font-family: 'Inter', sans-serif; 
+            letter-spacing: -0.025em;
+        }
+        button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
+        section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
+
+        section[data-testid="stSidebar"] button[kind="secondary"] {
+            background-color: transparent !important;
+            color: #CBD5E1 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            text-align: left !important;
+            font-weight: 400 !important;
+            padding: 6px 10px !important;
+            transition: all 0.2s ease;
+        }
+        section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+            background-color: #334155 !important;
+            color: #FFFFFF !important;
+        }
+        section[data-testid="stSidebar"] button[kind="primary"] {
+            background-color: #334155 !important;
+            color: #38BDF8 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+        }
+        div.stMetric, div[data-testid="stExpander"], div.stForm {
+            background: #1E293B !important;
+            border: 1px solid #334155;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            color: #F8FAFC !important;
+        }
+        p, span, label, div { color: #E2E8F0; }
+        </style>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <style>
+        .main { 
+            background-color: #FAFAFB !important; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .stSidebar { 
+            background-color: #F4F5F7 !important; 
+            padding-top: 10px; 
+            border-right: 1px solid #E5E7EB;
+        }
+        .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
+            color: #374151 !important; 
+            font-size: 13.5px; 
+        }
+        h1, h2, h3 { 
+            color: #111827; 
+            font-family: 'Inter', sans-serif; 
+            letter-spacing: -0.025em;
+        }
+        button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
+        section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
+
+        section[data-testid="stSidebar"] button[kind="secondary"] {
+            background-color: transparent !important;
+            color: #4B5563 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            text-align: left !important;
+            font-weight: 400 !important;
+            padding: 6px 10px !important;
+            transition: all 0.2s ease;
+        }
+        section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+            background-color: #EFEFF1 !important;
+            color: #111827 !important;
+        }
+        section[data-testid="stSidebar"] button[kind="primary"] {
+            background-color: #E5E7EB !important;
+            color: #111827 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+        }
+        div.stMetric, div[data-testid="stExpander"], div.stForm {
+            background: #FFFFFF !important;
+            border: 1px solid #E5E7EB;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
@@ -89,7 +139,7 @@ SIFRE_DOSYASI = "asevi_yonetici_sifre.json"
 TATIL_DOSYASI = "asevi_resmi_tatiller.json"
 SILINENS_DOSYASI = "asevi_silinen_urunler_loglari.json"
 
-# Kalori Sözlüğü (100 birim/gram/ml başına ortalama kalori değerleri)
+# Kalori Sözlüğü
 KALORI_TABLOSU = {
     "PİRİNÇ": 130, "BALDO PİRİNÇ": 130, "KURU FASULYE": 340, "NOHUT": 360,
     "KIRMIZI MERCİMEK": 350, "YEŞİL MERCİMEK": 350, "BULGUR": 340, "PİLAVLIK BULGUR": 340,
@@ -105,7 +155,7 @@ KALORI_TABLOSU = {
 
 def urun_kalori_hesapla(urun_adi, miktar, birim):
     urun_upper = urun_adi.upper()
-    birim_kalori = 100  # Varsayılan
+    birim_kalori = 100
     for k, v in KALORI_TABLOSU.items():
         if k in urun_upper:
             birim_kalori = v
@@ -201,7 +251,6 @@ varsayilan_resmi_tatiller = [
     {"tarih": "2026-10-29", "aciklama": "Cumhuriyet Bayramı"}
 ]
 
-# Ekim Ayı Tüketim Verileri
 ekim_tuketimleri_verileri = [
     ("KIRMIZI LAHANA", 15.0), ("MAYDANOZ", 3.1), ("ELMA", 41.0), ("ERİK", 50.0), 
     ("ŞEFTALİ", 50.0), ("SOĞAN", 29.0), ("PATATES", 72.0), ("KABAK", 35.0), 
@@ -429,6 +478,14 @@ st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
+# --- SOL MENÜ & TEMA SEÇİCİ ---
+st.sidebar.markdown('<p style="color: #111827 !important; font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Arayüz Teması</p>', unsafe_allow_html=True)
+yeni_tema = st.sidebar.selectbox("Tema Seçin", ["Koyu Tema (Dark)", "Açık Tema (Light)"], index=0 if st.session_state.tema_secimi=="Koyu Tema (Dark)" else 1, label_visibility="collapsed")
+if yeni_tema != st.session_state.tema_secimi:
+    st.session_state.tema_secimi = yeni_tema
+    st.rerun()
+
+st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="color: #111827 !important; font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Ana Menü</p>', unsafe_allow_html=True)
 
 menuler_listesi = [
@@ -875,7 +932,6 @@ elif menu == "Ürün Sil / Düzenle":
                         islem_tarihi_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                         islem_yapan_kisi = st.session_state.aktif_kullanici
 
-                        # Silinenler arşivine ekle
                         st.session_state.silinen_urun_loglari.append({
                             "tarih": islem_tarihi_str,
                             "urun": silinen_urun_adi,
@@ -886,7 +942,6 @@ elif menu == "Ürün Sil / Düzenle":
                         })
                         silinen_urun_loglarini_kaydet(st.session_state.silinen_urun_loglari)
 
-                        # Stoktan kaldır
                         st.session_state.girisler = [g for g in st.session_state.girisler if g["id"] != secilen_id]
                         verileri_kaydet(st.session_state.girisler)
                         
@@ -986,7 +1041,7 @@ elif menu == "Fire / Zayiat Girişi":
         st.info("Sistemde kayıtlı henüz bir fire veya zayiat bulunmuyor.")
 
 
-# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU (STOKTAN DÜŞMELİ)
+# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
@@ -1105,7 +1160,7 @@ elif menu == "Kalori Hesaplama Aracı":
     with col_b_kal:
         st.header("🔥 Bağımsız Kalori ve Besin Değeri Hesaplama Aracı")
     
-    st.markdown("Bu ekranda herhangi bir yemek tarifi için **birden fazla malzeme seçebilir**, gramajlarını girerek toplam kaloriyi ve **1 porsiyon ortalama kaloriyi** hesaplayabilirsiniz. Bu işlem depodaki gerçek stoklarınızı etkilemez, yalnızca saf hesaplama yapar.")
+    st.markdown("Bu ekranda herhangi bir yemek tarifi için **birden fazla malzeme seçebilir**, gramajlarını girerek toplam kaloriyi ve **1 porsiyon ortalama kaloriyi** hesaplayabilirsiniz.")
 
     col_tarif_adi, col_kisi_giris = st.columns(2)
     with col_tarif_adi:
@@ -1539,8 +1594,6 @@ elif menu == "Personel & Çalışma Süresi Takibi":
 
         with tab_p3:
             st.subheader("⏰ Saatlik İzin Girişi ve Yönetimi")
-            st.markdown("Personelinize ait tarih ve saat aralığı seçerek saatlik izinler tanımlayabilir, bu verileri Excel'e aktarabilirsiniz.")
-            
             if not st.session_state.personeller:
                 st.warning("Önce personel kaydı yapmalısınız.")
             else:
@@ -1630,8 +1683,6 @@ elif menu == "Personel & Çalışma Süresi Takibi":
 
         with tab_p4:
             st.subheader("🩺 Sağlık Raporu Girişi ve Takibi")
-            st.markdown("Personelin aldığı sağlık raporlarını kaç gün sürdüğü, hangi kurumdan ve hangi teşhisle alındığı bilgileriyle kaydedin, Excel'e aktarın.")
-
             if not st.session_state.personeller:
                 st.warning("Önce personel kaydı yapmalısınız.")
             else:
@@ -1766,8 +1817,6 @@ elif menu == "Personel & Çalışma Süresi Takibi":
 
         with tab_p6:
             st.subheader("🎉 Resmi Tatiller Listesi ve Yönetimi")
-            st.markdown("Çalışma süreleri hesaplanırken düşülecek resmi tatilleri aşağıdan inceleyebilir, yeni tatil ekleyebilir veya mevcut tatilleri silebilirsiniz.")
-
             col_tatil_ekle, col_tatil_sil = st.columns(2)
             
             with col_tatil_ekle:
@@ -1812,14 +1861,12 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 st.info("Kayıtlı resmi tatil bulunmuyor.")
 
 
-# 9. KULLANIM TAKİBİ (DASHBOARD & ANALİZ)
+# 9. KULLANIM TAKİBİ
 elif menu == "Kullanım Takibi":
     col_b_k, col_indir_alan = st.columns([2, 2])
     with col_b_k:
         st.header("📊 Ürün Bazlı Kullanım, Fire ve Maliyet Takibi")
             
-    st.markdown("Eylül ve Ekim ayı fiyat değişimleri dahil olmak üzere ürünlerin tüketim miktarlarını, fire oranlarını ve toplam harcanan bütçeyi inceleyin.")
-    
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     secenek_listesi = ["Tüm Ürünler (Genel Özet)"] + benzersiz_urunler
     
@@ -1895,8 +1942,6 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     with col_b_f:
         st.header("📋 Ürünlerin Eylül ve Ekim Ayı Birim Fiyat Tablosu")
         
-    st.markdown("Gönderdiğiniz resmi listedeki Eylül ve Ekim ayı alım fiyatı değişimleri dahil olmak üzere tüm ürünlerin aylık birim fiyatları:")
-
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     fiyat_tablosu_verisi = []
 
