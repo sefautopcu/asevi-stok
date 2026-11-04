@@ -162,70 +162,70 @@ def urun_kalori_hesapla(urun_adi, miktar, birim):
 
 # Stok Başlangıç Listesi
 varsayilan_girisler = [
-    {"id": "STK-001", "tarih": "2026-09-28 08:30", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": max(0.0, 42.8 - 15.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-002", "tarih": "2026-09-28 08:35", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": max(0.0, 20.0 - 3.1), "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-003", "tarih": "2026-09-28 09:00", "urun": "MUZ", "kategori": "MEYVE", "birim": "Kg", "miktar": 54.5, "kalan": 0.0, "fiyat": 110.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-004", "tarih": "2026-09-28 09:10", "urun": "ELMA", "kategori": "MEYVE", "birim": "Kg", "miktar": 82.0, "kalan": max(0.0, 82.0 - 41.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-005", "tarih": "2026-09-28 09:15", "urun": "ERİK", "kategori": "MEYVE", "birim": "Kg", "miktar": 62.0, "kalan": max(0.0, 62.0 - 50.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-006", "tarih": "2026-09-28 09:20", "urun": "ŞEFTALİ", "kategori": "MEYVE", "birim": "Kg", "miktar": 50.0, "kalan": 0.0, "fiyat": 90.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-007", "tarih": "2026-09-28 09:30", "urun": "SOĞAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 400.0, "kalan": max(0.0, 400.0 - 29.0), "fiyat": 35.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
-    {"id": "STK-008", "tarih": "2026-09-28 09:40", "urun": "PATATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 755.0, "kalan": max(0.0, 755.0 - 72.0), "fiyat": 33.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
-    {"id": "STK-009", "tarih": "2026-09-28 10:00", "urun": "KABAK", "kategori": "SEBZE", "birim": "Kg", "miktar": 52.0, "kalan": max(0.0, 52.0 - 35.0), "fiyat": 45.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-010", "tarih": "2026-09-28 10:10", "urun": "HAVUÇ", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.6, "kalan": max(0.0, 50.6 - 15.0), "fiyat": 35.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-011", "tarih": "2026-09-28 10:20", "urun": "ISPANAK", "kategori": "SEBZE", "birim": "Kg", "miktar": 127.0, "kalan": max(0.0, 127.0 - 22.0 - 60.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-012", "tarih": "2026-09-28 10:30", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 57.4, "kalan": max(0.0, 57.4 - 5.0 - 52.4), "fiyat": 55.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
-    {"id": "STK-013", "tarih": "2026-09-28 10:40", "urun": "ÇARLİ", "kategori": "SEBZE", "birim": "Kg", "miktar": 56.0, "kalan": max(0.0, 56.0 - 19.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-014", "tarih": "2026-09-28 10:50", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 66.0, "kalan": max(0.0, 66.0 - 52.0), "fiyat": 50.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
-    {"id": "STK-015", "tarih": "2026-09-28 11:00", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 53.0, "kalan": max(0.0, 53.0 - 13.0 - 43.0), "fiyat": 45.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
-    {"id": "STK-016", "tarih": "2026-09-30 08:30", "urun": "BALDO PİRİNÇ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 625.0, "kalan": max(0.0, 625.0 - 62.0), "fiyat": 104.40, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-017", "tarih": "2026-09-30 08:40", "urun": "KURU FASULYE", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 225.0, "kalan": max(0.0, 225.0 - 30.0), "fiyat": 84.72, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-018", "tarih": "2026-09-30 08:50", "urun": "NOHUT", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 200.0, "kalan": max(0.0, 200.0 - 16.0), "fiyat": 68.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-019", "tarih": "2026-09-30 09:00", "urun": "ARPA ŞEHRİYE", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 40.0, "kalan": max(0.0, 40.0 - 6.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-020", "tarih": "2026-09-30 09:10", "urun": "BURGU MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 30.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-021", "tarih": "2026-09-30 09:20", "urun": "İNCE UZUN MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 27.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-022", "tarih": "2026-09-30 09:30", "urun": "KIRMIZI MERCİMEK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 75.0, "kalan": max(0.0, 75.0 - 11.0), "fiyat": 94.04, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-023", "tarih": "2026-09-30 09:40", "urun": "PİLAVLIK BULGUR", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 475.0, "kalan": max(0.0, 475.0 - 65.0), "fiyat": 39.40, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-024", "tarih": "2026-09-30 09:50", "urun": "TEL ŞEHRİYE", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 40.0, "kalan": max(0.0, 40.0 - 4.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-025", "tarih": "2026-09-30 10:00", "urun": "TUZ", "kategori": "BAHARAT", "birim": "Adet", "miktar": 60.0, "kalan": max(0.0, 60.0 - 2.65), "fiyat": 11.39, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-026", "tarih": "2026-09-30 10:10", "urun": "TEREYAĞI", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 60.0, "kalan": max(0.0, 60.0 - 29.4), "fiyat": 464.31, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-027", "tarih": "2026-09-30 10:20", "urun": "TENEKE AYÇİÇEK YAĞI", "kategori": "YAĞ", "birim": "Kg", "miktar": 378.0, "kalan": max(0.0, 378.0 - 15.0), "fiyat": 94.72, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-028", "tarih": "2026-09-30 10:30", "urun": "BUĞDAY NİŞASTA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 165.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-029", "tarih": "2026-09-30 10:40", "urun": "İRMİK", "kategori": "KURU GIDA", "birim": "Adet", "miktar": 160.0, "kalan": max(0.0, 160.0 - 10.0), "fiyat": 19.31, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-030", "tarih": "2026-09-30 10:50", "urun": "TOZ KARABİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 10.0, "kalan": max(0.0, 10.0 - 0.32), "fiyat": 790.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-031", "tarih": "2026-09-30 11:00", "urun": "KIRMIZI TATLI TOZ BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 10.0, "kalan": max(0.0, 10.0 - 0.54), "fiyat": 335.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-032", "tarih": "2026-09-30 11:10", "urun": "KURU NANE", "kategori": "BAHARAT", "birim": "Kg", "miktar": 6.0, "kalan": max(0.0, 6.0 - 0.25), "fiyat": 279.50, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-033", "tarih": "2026-09-30 11:20", "urun": "UN", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 6.0), "fiyat": 35.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-034", "tarih": "2026-09-30 11:30", "urun": "YAĞLI SÜT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Lt", "miktar": 108.0, "kalan": 108.0, "fiyat": 49.90, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-035", "tarih": "2026-09-30 11:40", "urun": "DOMATES SALÇASI", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 130.5, "kalan": max(0.0, 130.5 - 42.5), "fiyat": 66.44, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-036", "tarih": "2026-09-30 11:50", "urun": "BEZELYE KONSERVESİ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 102.0, "kalan": max(0.0, 102.0 - 42.5), "fiyat": 69.89, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-037", "tarih": "2026-10-01 08:30", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 230.0, "kalan": max(0.0, 230.0 - 215.0 - 15.0), "fiyat": 66.20, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-038", "tarih": "2026-10-12 09:00", "urun": "KUŞBAŞI ET", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 213.8, "kalan": max(0.0, 213.8 - 85.0), "fiyat": 570.00, "depo": "Soğuk Hava Deposu -18", "islem_yapan": "admin"},
-    {"id": "STK-039", "tarih": "2026-10-21 10:00", "urun": "SIRTSIZ GÖĞÜS", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 60.0, "kalan": max(0.0, 60.0 - 35.0), "fiyat": 118.00, "depo": "Soğuk Hava Deposu -18", "islem_yapan": "admin"},
-    {"id": "STK-040", "tarih": "2026-10-28 08:30", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.00, "depo": "Sebze Deposu", "islem_yapan": "admin"},
-    {"id": "STK-041", "tarih": "2026-10-28 08:35", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 20.0, "fiyat": 105.00, "depo": "Sebze Deposu", "islem_yapan": "admin"},
-    {"id": "STK-042", "tarih": "2026-10-28 08:40", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 61.00, "depo": "Sebze Deposu", "islem_yapan": "admin"},
-    {"id": "STK-043", "tarih": "2026-10-28 08:45", "urun": "KIRMIZI TATLI TOZ BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 40.0, "kalan": 40.0, "fiyat": 335.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-044", "tarih": "2026-10-28 08:50", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 100.0, "kalan": 100.0, "fiyat": 66.20, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
-    {"id": "STK-045", "tarih": "2026-10-28 09:00", "urun": "DEFNE YAPRAĞI", "kategori": "BAHARAT", "birim": "Kg", "miktar": 8.0, "kalan": max(0.0, 8.0 - 0.01), "fiyat": 519.80, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-046", "tarih": "2026-10-28 09:10", "urun": "REYHAN", "kategori": "BAHARAT", "birim": "Kg", "miktar": 5.0, "kalan": 5.0, "fiyat": 1485.15, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-047", "tarih": "2026-10-28 09:20", "urun": "TOZ ŞEKER", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 10.0), "fiyat": 260.25, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-048", "tarih": "2026-10-28 09:30", "urun": "YUMURTA 15 Lİ", "kategori": "KURU GIDA", "birim": "Adet", "miktar": 180.0, "kalan": max(0.0, 180.0 - 20.0), "fiyat": 11.16, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-049", "tarih": "2026-10-28 09:40", "urun": "KAYISI", "kategori": "MEYVE", "birim": "Kg", "miktar": 30.0, "kalan": 30.0, "fiyat": 960.39, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-050", "tarih": "2026-10-28 09:50", "urun": "SEBZELİ TOZ BULYON", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 196.04, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-051", "tarih": "2026-10-28 10:00", "urun": "AŞURELİK BUĞDAY", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 4.0), "fiyat": 34.50, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-052", "tarih": "2026-10-28 10:10", "urun": "ÇİĞ KÖFTELİK BULGUR", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 24.0, "kalan": max(0.0, 24.0 - 1.0), "fiyat": 43.50, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-053", "tarih": "2026-10-28 10:20", "urun": "ERİŞTE MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 25.0, "kalan": max(0.0, 25.0 - 2.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-054", "tarih": "2026-10-28 10:30", "urun": "GALETA UNU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 9.0, "kalan": max(0.0, 9.0 - 1.0), "fiyat": 92.88, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-055", "tarih": "2026-10-28 10:40", "urun": "HİNDİSTAN CEVİZİ (YAĞSIZ)", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 279.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-056", "tarih": "2026-10-28 10:50", "urun": "KIRMIZI TATLI PUL BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 40.0, "kalan": max(0.0, 40.0 - 0.01), "fiyat": 46.44, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-057", "tarih": "2026-10-28 11:00", "urun": "KİMYON TOZ", "kategori": "BAHARAT", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 299.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-058", "tarih": "2026-10-28 11:10", "urun": "YEŞİL MERCİMEK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 108.0, "kalan": max(0.0, 108.0 - 2.0), "fiyat": 80.50, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-059", "tarih": "2026-10-28 11:20", "urun": "ZERDEÇAL", "kategori": "BAHARAT", "birim": "Kg", "miktar": 3.0, "kalan": 3.0, "fiyat": 349.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-060", "tarih": "2026-10-28 11:30", "urun": "TAVUK SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-061", "tarih": "2026-10-28 11:40", "urun": "SARIMSAK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 4.0, "kalan": 4.0, "fiyat": 270.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-062", "tarih": "2026-10-28 11:50", "urun": "KEKİK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 1039.60, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-063", "tarih": "2026-10-28 12:00", "urun": "ET SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
-    {"id": "STK-064", "tarih": "2026-10-28 12:10", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"}
+    {"id": "STK-001", "tarih": "2026-09-28 08:30", "fatura_no": "FAT-2026-001", "urun": "KIRMIZI LAHANA", "kategori": "SEBZE", "birim": "Kg", "miktar": 42.8, "kalan": max(0.0, 42.8 - 15.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-002", "tarih": "2026-09-28 08:35", "fatura_no": "FAT-2026-002", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": max(0.0, 20.0 - 3.1), "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-003", "tarih": "2026-09-28 09:00", "fatura_no": "FAT-2026-003", "urun": "MUZ", "kategori": "MEYVE", "birim": "Kg", "miktar": 54.5, "kalan": 0.0, "fiyat": 110.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-004", "tarih": "2026-09-28 09:10", "fatura_no": "FAT-2026-004", "urun": "ELMA", "kategori": "MEYVE", "birim": "Kg", "miktar": 82.0, "kalan": max(0.0, 82.0 - 41.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-005", "tarih": "2026-09-28 09:15", "fatura_no": "FAT-2026-005", "urun": "ERİK", "kategori": "MEYVE", "birim": "Kg", "miktar": 62.0, "kalan": max(0.0, 62.0 - 50.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-006", "tarih": "2026-09-28 09:20", "fatura_no": "FAT-2026-006", "urun": "ŞEFTALİ", "kategori": "MEYVE", "birim": "Kg", "miktar": 50.0, "kalan": 0.0, "fiyat": 90.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-007", "tarih": "2026-09-28 09:30", "fatura_no": "FAT-2026-007", "urun": "SOĞAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 400.0, "kalan": max(0.0, 400.0 - 29.0), "fiyat": 35.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
+    {"id": "STK-008", "tarih": "2026-09-28 09:40", "fatura_no": "FAT-2026-008", "urun": "PATATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 755.0, "kalan": max(0.0, 755.0 - 72.0), "fiyat": 33.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
+    {"id": "STK-009", "tarih": "2026-09-28 10:00", "fatura_no": "FAT-2026-009", "urun": "KABAK", "kategori": "SEBZE", "birim": "Kg", "miktar": 52.0, "kalan": max(0.0, 52.0 - 35.0), "fiyat": 45.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-010", "tarih": "2026-09-28 10:10", "fatura_no": "FAT-2026-010", "urun": "HAVUÇ", "kategori": "SEBZE", "birim": "Kg", "miktar": 50.6, "kalan": max(0.0, 50.6 - 15.0), "fiyat": 35.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-011", "tarih": "2026-09-28 10:20", "fatura_no": "FAT-2026-011", "urun": "ISPANAK", "kategori": "SEBZE", "birim": "Kg", "miktar": 127.0, "kalan": max(0.0, 127.0 - 22.0 - 60.0), "fiyat": 70.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-012", "tarih": "2026-09-28 10:30", "fatura_no": "FAT-2026-012", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 57.4, "kalan": max(0.0, 57.4 - 5.0 - 52.4), "fiyat": 55.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
+    {"id": "STK-013", "tarih": "2026-09-28 10:40", "fatura_no": "FAT-2026-013", "urun": "ÇARLİ", "kategori": "SEBZE", "birim": "Kg", "miktar": 56.0, "kalan": max(0.0, 56.0 - 19.0), "fiyat": 50.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-014", "tarih": "2026-09-28 10:50", "fatura_no": "FAT-2026-014", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 66.0, "kalan": max(0.0, 66.0 - 52.0), "fiyat": 50.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
+    {"id": "STK-015", "tarih": "2026-09-28 11:00", "fatura_no": "FAT-2026-015", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 53.0, "kalan": max(0.0, 53.0 - 13.0 - 43.0), "fiyat": 45.0, "depo": "Sebze Deposu", "islem_yapan": "admin"},
+    {"id": "STK-016", "tarih": "2026-09-30 08:30", "fatura_no": "FAT-2026-016", "urun": "BALDO PİRİNÇ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 625.0, "kalan": max(0.0, 625.0 - 62.0), "fiyat": 104.40, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-017", "tarih": "2026-09-30 08:40", "fatura_no": "FAT-2026-017", "urun": "KURU FASULYE", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 225.0, "kalan": max(0.0, 225.0 - 30.0), "fiyat": 84.72, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-018", "tarih": "2026-09-30 08:50", "fatura_no": "FAT-2026-018", "urun": "NOHUT", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 200.0, "kalan": max(0.0, 200.0 - 16.0), "fiyat": 68.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-019", "tarih": "2026-09-30 09:00", "fatura_no": "FAT-2026-019", "urun": "ARPA ŞEHRİYE", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 40.0, "kalan": max(0.0, 40.0 - 6.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-020", "tarih": "2026-09-30 09:10", "fatura_no": "FAT-2026-020", "urun": "BURGU MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 30.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-021", "tarih": "2026-09-30 09:20", "fatura_no": "FAT-2026-021", "urun": "İNCE UZUN MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 27.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-022", "tarih": "2026-09-30 09:30", "fatura_no": "FAT-2026-022", "urun": "KIRMIZI MERCİMEK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 75.0, "kalan": max(0.0, 75.0 - 11.0), "fiyat": 94.04, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-023", "tarih": "2026-09-30 09:40", "fatura_no": "FAT-2026-023", "urun": "PİLAVLIK BULGUR", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 475.0, "kalan": max(0.0, 475.0 - 65.0), "fiyat": 39.40, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-024", "tarih": "2026-09-30 09:50", "fatura_no": "FAT-2026-024", "urun": "TEL ŞEHRİYE", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 40.0, "kalan": max(0.0, 40.0 - 4.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-025", "tarih": "2026-09-30 10:00", "fatura_no": "FAT-2026-025", "urun": "TUZ", "kategori": "BAHARAT", "birim": "Adet", "miktar": 60.0, "kalan": max(0.0, 60.0 - 2.65), "fiyat": 11.39, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-026", "tarih": "2026-09-30 10:10", "fatura_no": "FAT-2026-026", "urun": "TEREYAĞI", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 60.0, "kalan": max(0.0, 60.0 - 29.4), "fiyat": 464.31, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-027", "tarih": "2026-09-30 10:20", "fatura_no": "FAT-2026-027", "urun": "TENEKE AYÇİÇEK YAĞI", "kategori": "YAĞ", "birim": "Kg", "miktar": 378.0, "kalan": max(0.0, 378.0 - 15.0), "fiyat": 94.72, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-028", "tarih": "2026-09-30 10:30", "fatura_no": "FAT-2026-028", "urun": "BUĞDAY NİŞASTA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 165.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-029", "tarih": "2026-09-30 10:40", "fatura_no": "FAT-2026-029", "urun": "İRMİK", "kategori": "KURU GIDA", "birim": "Adet", "miktar": 160.0, "kalan": max(0.0, 160.0 - 10.0), "fiyat": 19.31, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-030", "tarih": "2026-09-30 10:50", "fatura_no": "FAT-2026-030", "urun": "TOZ KARABİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 10.0, "kalan": max(0.0, 10.0 - 0.32), "fiyat": 790.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-031", "tarih": "2026-09-30 11:00", "fatura_no": "FAT-2026-031", "urun": "KIRMIZI TATLI TOZ BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 10.0, "kalan": max(0.0, 10.0 - 0.54), "fiyat": 335.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-032", "tarih": "2026-09-30 11:10", "fatura_no": "FAT-2026-032", "urun": "KURU NANE", "kategori": "BAHARAT", "birim": "Kg", "miktar": 6.0, "kalan": max(0.0, 6.0 - 0.25), "fiyat": 279.50, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-033", "tarih": "2026-09-30 11:20", "fatura_no": "FAT-2026-033", "urun": "UN", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 6.0), "fiyat": 35.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-034", "tarih": "2026-09-30 11:30", "fatura_no": "FAT-2026-034", "urun": "YAĞLI SÜT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Lt", "miktar": 108.0, "kalan": 108.0, "fiyat": 49.90, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-035", "tarih": "2026-09-30 11:40", "fatura_no": "FAT-2026-035", "urun": "DOMATES SALÇASI", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 130.5, "kalan": max(0.0, 130.5 - 42.5), "fiyat": 66.44, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-036", "tarih": "2026-09-30 11:50", "fatura_no": "FAT-2026-036", "urun": "BEZELYE KONSERVESİ", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 102.0, "kalan": max(0.0, 102.0 - 42.5), "fiyat": 69.89, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-037", "tarih": "2026-10-01 08:30", "fatura_no": "FAT-2026-037", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 230.0, "kalan": max(0.0, 230.0 - 215.0 - 15.0), "fiyat": 66.20, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-038", "tarih": "2026-10-12 09:00", "fatura_no": "FAT-2026-038", "urun": "KUŞBAŞI ET", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 213.8, "kalan": max(0.0, 213.8 - 85.0), "fiyat": 570.00, "depo": "Soğuk Hava Deposu -18", "islem_yapan": "admin"},
+    {"id": "STK-039", "tarih": "2026-10-21 10:00", "fatura_no": "FAT-2026-039", "urun": "SIRTSIZ GÖĞÜS", "kategori": "KASAP / ŞARKÜTERİ", "birim": "Kg", "miktar": 60.0, "kalan": max(0.0, 60.0 - 35.0), "fiyat": 118.00, "depo": "Soğuk Hava Deposu -18", "islem_yapan": "admin"},
+    {"id": "STK-040", "tarih": "2026-10-28 08:30", "fatura_no": "FAT-2026-040", "urun": "PATLICAN", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 80.00, "depo": "Sebze Deposu", "islem_yapan": "admin"},
+    {"id": "STK-041", "tarih": "2026-10-28 08:35", "fatura_no": "FAT-2026-041", "urun": "DOMATES", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": 20.0, "fiyat": 105.00, "depo": "Sebze Deposu", "islem_yapan": "admin"},
+    {"id": "STK-042", "tarih": "2026-10-28 08:40", "fatura_no": "FAT-2026-042", "urun": "SALATALIK", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 61.00, "depo": "Sebze Deposu", "islem_yapan": "admin"},
+    {"id": "STK-043", "tarih": "2026-10-28 08:45", "fatura_no": "FAT-2026-043", "urun": "KIRMIZI TATLI TOZ BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 40.0, "kalan": 40.0, "fiyat": 335.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-044", "tarih": "2026-10-28 08:50", "fatura_no": "FAT-2026-044", "urun": "TAM YAĞLI YOĞURT", "kategori": "SÜT/SÜT ÜRÜNLERİ", "birim": "Kg", "miktar": 100.0, "kalan": 100.0, "fiyat": 66.20, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
+    {"id": "STK-045", "tarih": "2026-10-28 09:00", "fatura_no": "FAT-2026-045", "urun": "DEFNE YAPRAĞI", "kategori": "BAHARAT", "birim": "Kg", "miktar": 8.0, "kalan": max(0.0, 8.0 - 0.01), "fiyat": 519.80, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-046", "tarih": "2026-10-28 09:10", "fatura_no": "FAT-2026-046", "urun": "REYHAN", "kategori": "BAHARAT", "birim": "Kg", "miktar": 5.0, "kalan": 5.0, "fiyat": 1485.15, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-047", "tarih": "2026-10-28 09:20", "fatura_no": "FAT-2026-047", "urun": "TOZ ŞEKER", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 10.0), "fiyat": 260.25, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-048", "tarih": "2026-10-28 09:30", "fatura_no": "FAT-2026-048", "urun": "YUMURTA 15 Lİ", "kategori": "KURU GIDA", "birim": "Adet", "miktar": 180.0, "kalan": max(0.0, 180.0 - 20.0), "fiyat": 11.16, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-049", "tarih": "2026-10-28 09:40", "fatura_no": "FAT-2026-049", "urun": "KAYISI", "kategori": "MEYVE", "birim": "Kg", "miktar": 30.0, "kalan": 30.0, "fiyat": 960.39, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-050", "tarih": "2026-10-28 09:50", "fatura_no": "FAT-2026-050", "urun": "SEBZELİ TOZ BULYON", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 196.04, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-051", "tarih": "2026-10-28 10:00", "fatura_no": "FAT-2026-051", "urun": "AŞURELİK BUĞDAY", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 100.0, "kalan": max(0.0, 100.0 - 4.0), "fiyat": 34.50, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-052", "tarih": "2026-10-28 10:10", "fatura_no": "FAT-2026-052", "urun": "ÇİĞ KÖFTELİK BULGUR", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 24.0, "kalan": max(0.0, 24.0 - 1.0), "fiyat": 43.50, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-053", "tarih": "2026-10-28 10:20", "fatura_no": "FAT-2026-053", "urun": "ERİŞTE MAKARNA", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 25.0, "kalan": max(0.0, 25.0 - 2.0), "fiyat": 43.98, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-054", "tarih": "2026-10-28 10:30", "fatura_no": "FAT-2026-054", "urun": "GALETA UNU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 9.0, "kalan": max(0.0, 9.0 - 1.0), "fiyat": 92.88, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-055", "tarih": "2026-10-28 10:40", "fatura_no": "FAT-2026-055", "urun": "HİNDİSTAN CEVİZİ (YAĞSIZ)", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 8.0, "kalan": 8.0, "fiyat": 279.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-056", "tarih": "2026-10-28 10:50", "fatura_no": "FAT-2026-056", "urun": "KIRMIZI TATLI PUL BİBER", "kategori": "BAHARAT", "birim": "Kg", "miktar": 40.0, "kalan": max(0.0, 40.0 - 0.01), "fiyat": 46.44, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-057", "tarih": "2026-10-28 11:00", "fatura_no": "FAT-2026-057", "urun": "KİMYON TOZ", "kategori": "BAHARAT", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 299.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-058", "tarih": "2026-10-28 11:10", "fatura_no": "FAT-2026-058", "urun": "YEŞİL MERCİMEK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 108.0, "kalan": max(0.0, 108.0 - 2.0), "fiyat": 80.50, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-059", "tarih": "2026-10-28 11:20", "fatura_no": "FAT-2026-059", "urun": "ZERDEÇAL", "kategori": "BAHARAT", "birim": "Kg", "miktar": 3.0, "kalan": 3.0, "fiyat": 349.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-060", "tarih": "2026-10-28 11:30", "fatura_no": "FAT-2026-060", "urun": "TAVUK SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-061", "tarih": "2026-10-28 11:40", "fatura_no": "FAT-2026-061", "urun": "SARIMSAK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 4.0, "kalan": 4.0, "fiyat": 270.00, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-062", "tarih": "2026-10-28 11:50", "fatura_no": "FAT-2026-062", "urun": "KEKİK", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 2.0, "kalan": 2.0, "fiyat": 1039.60, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-063", "tarih": "2026-10-28 12:00", "fatura_no": "FAT-2026-063", "urun": "ET SUYU", "kategori": "KURU GIDA", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 980.20, "depo": "Kuru Gıda Deposu", "islem_yapan": "admin"},
+    {"id": "STK-064", "tarih": "2026-10-28 12:10", "fatura_no": "FAT-2026-064", "urun": "KAPYA BİBER", "kategori": "SEBZE", "birim": "Kg", "miktar": 10.0, "kalan": 10.0, "fiyat": 137.00, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"}
 ]
 
 # Varsayılan 2026 Resmi Tatiller
@@ -271,7 +271,12 @@ def verileri_yukle():
     if os.path.exists(VERI_DOSYASI):
         try:
             with open(VERI_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                # Eski kayıtlarda fatura_no yoksa ekleyelim
+                for item in data:
+                    if "fatura_no" not in item:
+                        item["fatura_no"] = "BELİRTİLMEMİŞ"
+                return data
         except Exception:
             return varsayilan_girisler
     return varsayilan_girisler
@@ -850,6 +855,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
     else:
         with st.form("fatura_formu"):
             tarih_giris = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            fatura_no_input = st.text_input("Fatura No / Belge No (Örn: FAT-2026-105)").strip().upper()
             urun = st.text_input("Ürün Adı (Örn: DOMATES - Büyük Harfle)").strip().upper()
             kategori = st.selectbox("Kategori", ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"])
             birim = st.selectbox("Birim", ["Kg", "Adet", "Lt"])
@@ -860,9 +866,11 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             submitted = st.form_submit_button("Depoya Yeni Ürün / Fatura Ekle")
             if submitted and urun:
                 islem_yapan_kisi = st.session_state.aktif_kullanici
+                fatura_no_degeri = fatura_no_input if fatura_no_input else "BELİRTİLMEMİŞ"
                 st.session_state.girisler.append({
                     "id": f"FAT-{len(st.session_state.girisler)+1:03d}",
                     "tarih": tarih_giris,
+                    "fatura_no": fatura_no_degeri,
                     "urun": urun,
                     "kategori": kategori,
                     "birim": birim,
@@ -873,7 +881,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "islem_yapan": islem_yapan_kisi
                 })
                 verileri_kaydet(st.session_state.girisler)
-                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi. (İşlemi Yapan: {islem_yapan_kisi} - Zaman: {tarih_giris})")
+                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi. (Fatura No: {fatura_no_degeri} - İşlemi Yapan: {islem_yapan_kisi})")
                 st.rerun()
 
     st.markdown("---")
@@ -884,6 +892,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             fatura_log_tablosu.append({
                 "Kayıt ID": g.get("id", "-"),
                 "Tarih / Saat": g.get("tarih", "-"),
+                "Fatura No": g.get("fatura_no", "BELİRTİLMEMİŞ"),
                 "Ürün Adı": g.get("urun", "-"),
                 "Kategori": g.get("kategori", "-"),
                 "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
@@ -916,7 +925,7 @@ elif menu == "Ürün Sil / Düzenle":
             st.info("Sistemde silinecek kayıt bulunmuyor.")
         else:
             with st.form("urun_silme_formu"):
-                secenekler = [f"{g['id']} - {g['urun']} (Eklenme: {g.get('tarih', '-')}, Kalan: {g['kalan']} {g['birim']}, Ekleyen: {g.get('islem_yapan', 'admin')})" for g in st.session_state.girisler]
+                secenekler = [f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')}, Kalan: {g['kalan']} {g['birim']}, Ekleyen: {g.get('islem_yapan', 'admin')})" for g in st.session_state.girisler]
                 secilen_kayit_str = st.selectbox("Silmek İstediğiniz Kaydı / Faturayı Seçin", secenekler)
                 silme_nedeni_input = st.text_input("Silme Nedeni / Gerekçesi", "Örn: Yanlış giriş / Mükerrer kayıt")
                 sil_onay_btn = st.form_submit_button("Seçilen Ürünü / Kaydı Kalıcı Olarak Sil", type="primary")
@@ -933,6 +942,7 @@ elif menu == "Ürün Sil / Düzenle":
                             "tarih": islem_tarihi_str,
                             "urun": silinen_urun_adi,
                             "kayit_id": ilgili_oge['id'],
+                            "fatura_no": ilgili_oge.get('fatura_no', '-'),
                             "detay": f"Miktar: {ilgili_oge['miktar']} {ilgili_oge['birim']}, Fiyat: {ilgili_oge['fiyat']} ₺",
                             "neden": silme_nedeni_input if silme_nedeni_input else "Belirtilmedi",
                             "islem_yapan": islem_yapan_kisi
@@ -952,6 +962,7 @@ elif menu == "Ürün Sil / Düzenle":
         silinen_tablo_verisi = [{
             "Silinme Tarihi": sl["tarih"],
             "Kayıt ID": sl.get("kayit_id", "-"),
+            "Fatura No": sl.get("fatura_no", "-"),
             "Ürün Adı": sl["urun"],
             "Detaylar": sl.get("detay", "-"),
             "Silme Nedeni": sl["neden"],
