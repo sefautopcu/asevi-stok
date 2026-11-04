@@ -1149,8 +1149,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     if st.session_state.sepet:
         st.subheader("Seçilen Malzemeler")
         
-        # Sıfırla Butonu Eklendi
-        if st.button("🔄 Sıfırla (Seçilenleri Temizle)", type="secondary"):
+        # Tamamını Sıfırlama Butonu
+        if st.button("🔄 Sıfırla (Tümünü Temizle)", type="secondary"):
             st.session_state.sepet = []
             st.success("Seçilen ürünler sıfırlandı!")
             st.rerun()
@@ -1159,7 +1159,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         islenmis_sepet = []
         excel_sepet_liste = []
 
-        for item in st.session_state.sepet:
+        for idx, item in enumerate(st.session_state.sepet):
             urun = item["urun"]
             istenen = item["miktar"]
             ilgili = [g for g in st.session_state.girisler if g["urun"] == urun and g["kalan"] > 0]
@@ -1189,8 +1189,15 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         with col_indir_alan:
             ortak_indirme_alani(excel_sepet_data, pdf_data, "yemek_maliyet_raporu", "yemek_sayfasi")
             
-        for row in islenmis_sepet:
-            st.write(f"• **{row['Malzeme']}** - {row['Miktar']} {row['Birim']} | Birim Fiyat: {row['Birim Maliyet']:.2f} ₺ | Toplam: **{row['Toplam Maliyet']:.2f} ₺**")
+        # Tek tek ürün çıkarma özelliği eklendi
+        for idx, row in enumerate(islenmis_sepet):
+            c_satir_metin, c_satir_btn = st.columns([5, 1])
+            with c_satir_metin:
+                st.write(f"• **{row['Malzeme']}** - {row['Miktar']} {row['Birim']} | Birim Fiyat: {row['Birim Maliyet']:.2f} ₺ | Toplam: **{row['Toplam Maliyet']:.2f} ₺**")
+            with c_satir_btn:
+                if st.button("❌ Kaldır", key=f"kaldir_urun_{idx}"):
+                    st.session_state.sepet.pop(idx)
+                    st.rerun()
         
         kisi_basi = toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0
         st.metric("Toplam Yemek Maliyeti", f"{toplam_maliyet:.2f} TL")
