@@ -238,7 +238,7 @@ varsayilan_loglar = [
     {"tarih": "2026-10-09 10:00", "urun": "PATLICAN", "tur": "Fire/Zayiat", "miktar": 52.4, "tutar": 2882.00, "islem_yapan": "admin"},
     {"tarih": "2026-10-14 10:00", "urun": "MUZ", "tur": "Fire/Zayiat", "miktar": 54.5, "tutar": 5995.00, "islem_yapan": "admin"},
     {"tarih": "2026-10-20 10:00", "urun": "SALATALIK", "tur": "Fire/Zayiat", "miktar": 43.0, "tutar": 1935.00, "islem_yapan": "admin"},
-    {"tarih": "2026-10-21 10:00", "tur": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 993.00, "islem_yapan": "admin"}
+    {"tarih": "2026-10-21 10:00", "urun": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 993.00, "islem_yapan": "admin"}
 ]
 
 varsayilan_personeller = [
@@ -1148,6 +1148,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
     yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
     kisi_sayisi = st.number_input("Yararlanan Kişi Sayısı", min_value=1, value=200)
+    uretim_tarihi_input = st.date_input("📅 Yemeğin Yapıldığı Tarih (Geçmiş / Bugün)", value=datetime.date.today())
+    uretim_tarih_str = uretim_tarihi_input.strftime("%Y-%m-%d")
+
     benzersiz_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
     
     if "sepet" not in st.session_state:
@@ -1214,7 +1217,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
         if st.button("🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"):
             tarih_simdi = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            islem_tarihi_sadece_gun = datetime.date.today().strftime("%Y-%m-%d")
             
             arsiv_malzemeler = []
             for item in st.session_state.sepet:
@@ -1238,7 +1240,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 arsiv_malzemeler.append({"urun": urun, "miktar": istenen, "tutar": item_tutar})
                 
                 st.session_state.kullanim_loglari.append({
-                    "tarih": tarih_simdi,
+                    "tarih": f"{uretim_tarih_str} 12:00",
                     "urun": urun,
                     "tur": f"Günlük Kullanım ({yemek_adi})",
                     "miktar": istenen,
@@ -1247,7 +1249,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 })
 
             st.session_state.yemek_uretim_arsivi.append({
-                "tarih": islem_tarihi_sadece_gun,
+                "tarih": uretim_tarih_str,
                 "zaman": tarih_simdi,
                 "yemek_adi": yemek_adi,
                 "kisi_sayisi": kisi_sayisi,
@@ -1260,7 +1262,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             verileri_kaydet(st.session_state.girisler)
             loglari_kaydet(st.session_state.kullanim_loglari)
             st.session_state.sepet = []
-            st.success("Üretim başarıyla tamamlandı ve arşive kaydedildi!")
+            st.success(f"{uretim_tarih_str} tarihli üretim başarıyla tamamlandı ve arşive kaydedildi!")
             st.rerun()
 
         st.markdown("---")
@@ -1294,7 +1296,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             for m in u_kayit.get("malzemeler", []):
                 arsiv_tablo_verisi.append({
                     "Tarih": u_kayit.get("tarih", "-"),
-                    "Kayıt Zamanı": u_kayit.get("zaman", "-"),
                     "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                     "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                     "Kullanılan Malzeme": m.get("urun", "-"),
@@ -1304,7 +1305,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 })
                 excel_arsiv_listesi.append({
                     "Tarih": u_kayit.get("tarih", "-"),
-                    "Kayıt Zamanı": u_kayit.get("zaman", "-"),
                     "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                     "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                     "Kullanılan Malzeme": m.get("urun", "-"),
