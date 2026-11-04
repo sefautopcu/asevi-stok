@@ -1948,8 +1948,8 @@ elif menu == "Kullanım Takibi":
         st.header("📈 Depo Ürün Kullanım ve Fire Takibi")
     
     loglar = st.session_state.kullanim_loglari
+    kullanim_tablo_verisi = []
     if loglar:
-        kullanim_tablo_verisi = []
         for l in reversed(loglar):
             kullanim_tablo_verisi.append({
                 "Tarih / Saat": l.get("tarih", "-"),
@@ -1959,6 +1959,14 @@ elif menu == "Kullanım Takibi":
                 "Tutar": f"{l.get('tutar', 0):,.2f} ₺",
                 "İşlemi Yapan": l.get("islem_yapan", "admin")
             })
+
+    excel_kul_data = tablo_to_excel_bytes(kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu")
+    pdf_kul_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Kullanım ve Fire Takibi Raporu", kullanim_tablo_verisi)
+
+    with col_indir_kul:
+        ortak_indirme_alani(excel_kul_data, pdf_kul_data, "kullanim_ve_fire_takibi", "kullanim_sayfasi")
+
+    if kullanim_tablo_verisi:
         ozel_html_tablo_goster(kullanim_tablo_verisi)
     else:
         st.info("Kullanım veya fire hareketi bulunmuyor.")
