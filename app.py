@@ -395,7 +395,6 @@ if "oturum_aktif" not in st.session_state:
         st.session_state.oturum_aktif = False
         st.session_state.aktif_kullanici = "misafir"
 
-# Sayfa yenilendiğinde (F5) URL'den aktif menüyü koruma mekanizması
 gecerli_menuler = [
     "Kurumsal Dashboard & Özet",
     "Güncel Stok Durumu", 
@@ -516,12 +515,11 @@ if not st.session_state.oturum_aktif:
             st.query_params["user"] = "misafir"
             st.rerun()
 
-        # İLETİŞİM LOGOSU / BUTONU
         st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
         if st.button("✉️ İletişim / Destek", use_container_width=True, type="secondary"):
             st.info("📩 İletişim için **sefaunaltopcu@gmail.com** mail adresi ile iletişime geçebilirsiniz.")
 
-    st.stop()  # Giriş yapılmadıysa ana sayfayı göstermeyi durdur
+    st.stop()
 
 # =========================================================================
 # ANA UYGULAMA İÇERİĞİ (Giriş Yapıldıktan Sonra Görünür)
@@ -586,7 +584,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
             btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
             if st.button(m, use_container_width=True, type=btn_type, key=f"menu_btn_{m}"):
                 st.session_state.aktif_menu = m
-                st.query_params["menu"] = m  # URL parametresine işleyerek F5'te kalmasını sağla
+                st.query_params["menu"] = m
                 st.rerun()
 
 st.sidebar.markdown("---")
@@ -1033,24 +1031,35 @@ elif menu == "Fire / Zayiat Girişi":
             secilen_gercek_urun = st.selectbox("Fire Düşülecek Ürünü Seçin", benzersiz_urunler)
             ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == secilen_gercek_urun and g["kalan"] > 0]
             toplam_stok = sum(g["kalan"] for g in ilgili_girisler)
-            st.info(f"Mevcut Stok: {toplam_stok}")
+            
+            # En son eklenen faturadaki birim fiyatı bulma
+            en_son_fiyat = 0.0
+            if ilgili_girisler:
+                # Tarih ve id sıralamasına göre en güncel kaydı seçme
+                en_son_kayit = max(ilgili_girisler, key=lambda x: x.get("tarih", ""))
+                en_son_fiyat = en_son_kayit.get("fiyat", 0.0)
+
+            st.info(f"Mevcut Stok: {toplam_stok} | Güncel (En Son Fatura) Birim Fiyat: {en_son_fiyat:,.2f} ₺")
             fire_miktari = st.number_input("Fire Miktarı", min_value=0.0, max_value=float(toplam_stok) if toplam_stok>0 else 1.0, step=0.1)
             
             submitted_fire = st.form_submit_button("Fireyi Düş ve Kaydet")
             if submitted_fire and fire_miktari > 0:
                 kalan_dusulecek = fire_miktari
-                toplam_zarar = 0.0
+                
+                # Stoktan FIFO (veya genel kalan düşme) mantığıyla miktarı düşüyoruz
                 for g in ilgili_girisler:
                     if kalan_dusulecek <= 0: break
                     if g["kalan"] >= kalan_dusulecek:
                         g["kalan"] -= kalan_dusulecek
-                        toplam_zarar += kalan_dusulecek * g["fiyat"]
                         kalan_dusulecek = 0
                     else:
                         dusulen = g["kalan"]
                         g["kalan"] = 0
-                        toplam_zarar += dusulen * g["fiyat"]
                         kalan_dusulecek -= dusulen
+
+                # Zarar hesabı en son faturadaki birim fiyat üzerinden yapılıyor
+                toplam_zarar = fire_miktari * en_son_fiyat
+
                 verileri_kaydet(st.session_state.girisler)
                 st.session_state.kullanim_loglari.append({
                     "tarih": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -1061,7 +1070,7 @@ elif menu == "Fire / Zayiat Girişi":
                     "islem_yapan": st.session_state.aktif_kullanici
                 })
                 loglari_kaydet(st.session_state.kullanim_loglari)
-                st.success("Fire başarıyla düşüldü.")
+                st.success(f"Fire başarıyla düşüldü. En son fatura fiyatı ({en_son_fiyat:,.2f} ₺) üzerinden toplam zarar: {toplam_zarar:,.2f} ₺")
                 st.rerun()
 
     st.markdown("---")
