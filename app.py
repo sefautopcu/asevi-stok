@@ -413,7 +413,7 @@ if "kullanicilar" not in st.session_state:
 query_params = st.query_params
 
 if "oturum_aktif" not in st.session_state:
-    if "auth" in query_params and query_params["auth"] == "true" && "user" in query_params:
+    if "auth" in query_params and query_params["auth"] == "true" and "user" in query_params:
         st.session_state.oturum_aktif = True
         st.session_state.aktif_kullanici = query_params["user"]
     else:
