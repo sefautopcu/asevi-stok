@@ -186,6 +186,7 @@ PERSONEL_DOSYASI = "asevi_personel_veritabani.json"
 SIFRE_DOSYASI = "asevi_yonetici_sifre.json"
 TATIL_DOSYASI = "asevi_resmi_tatiller.json"
 SILINENS_DOSYASI = "asevi_silinen_urunler_loglari.json"
+YEMEK_URETIM_ARSIV_DOSYASI = "asevi_yemek_uretim_arsivi.json"
 
 def ozel_html_tablo_goster(veri_listesi):
     if not veri_listesi:
@@ -351,6 +352,19 @@ def resmi_tatilleri_yukle():
             return varsayilan_resmi_tatiller
     return varsayilan_resmi_tatiller
 
+def yemek_uretim_arsivini_yukle():
+    if os.path.exists(YEMEK_URETIM_ARSIV_DOSYASI):
+        try:
+            with open(YEMEK_URETIM_ARSIV_DOSYASI, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def yemek_uretim_arsivini_kaydet(veri):
+    with open(YEMEK_URETIM_ARSIV_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(veri, f, ensure_ascii=False, indent=4)
+
 def yonetici_sifresi_yukle():
     if os.path.exists(SIFRE_DOSYASI):
         try:
@@ -378,6 +392,8 @@ if "personeller" not in st.session_state:
     st.session_state.personeller = personelleri_yukle()
 if "resmi_tatiller" not in st.session_state:
     st.session_state.resmi_tatiller = resmi_tatilleri_yukle()
+if "yemek_uretim_arsivi" not in st.session_state:
+    st.session_state.yemek_uretim_arsivi = yemek_uretim_arsivini_yukle()
 if "kalori_sepeti" not in st.session_state:
     st.session_state.kalori_sepeti = []
 if "personel_silme_mesaji" not in st.session_state:
@@ -1191,6 +1207,10 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
         if st.button("🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"):
             tarih_simdi = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            islem_tarihi_sadece_gun = datetime.date.today().strftime("%Y-%m-%d")
+            
+            # Üretim arşivi için detaylı liste oluştur
+            arsiv_malzemeler = []
             for item in st.session_state.sepet:
                 urun = item["urun"]
                 istenen = item["miktar"]
@@ -1209,6 +1229,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         item_tutar += dusulen * g["fiyat"]
                         kalan_dusulecek -= dusulen
                 
+                arsiv_malzemeler.append({"urun": urun, "miktar": istenen, "tutar": item_tutar})
+                
                 st.session_state.kullanim_loglari.append({
                     "tarih": tarih_simdi,
                     "urun": urun,
@@ -1217,10 +1239,23 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     "tutar": item_tutar,
                     "islem_yapan": st.session_state.aktif_kullanici
                 })
+
+            # Yemek Üretim Arşivine Kaydet
+            st.session_state.yemek_uretim_arsivi.append({
+                "tarih": islem_tarihi_sadece_gun,
+                "zaman": tarih_simdi,
+                "yemek_adi": yemek_adi,
+                "kisi_sayisi": kisi_sayisi,
+                "malzemeler": arsiv_malzemeler,
+                "toplam_maliyet": toplam_maliyet,
+                "islem_yapan": st.session_state.aktif_kullanici
+            })
+            yemek_uretim_arsivini_kaydet(st.session_state.yemek_uretim_arsivi)
+
             verileri_kaydet(st.session_state.girisler)
             loglari_kaydet(st.session_state.kullanim_loglari)
             st.session_state.sepet = []
-            st.success("Eklendi")
+            st.success("Üretim başarıyla tamamlandı ve arşive kaydedildi!")
             st.rerun()
 
         st.markdown("---")
@@ -1240,22 +1275,47 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         st.info("Henüz sepete malzeme eklenmedi.")
 
     st.markdown("---")
-    st.subheader(f"🔍 {secilen_tarih_str} Tarihli Yemek ve Malzeme Kullanım Dökümü")
-    secilen_tarih_loglari = [l for l in st.session_state.kullanim_loglari if l.get("tarih", "").startswith(secilen_tarih_str)]
-    if secilen_tarih_loglari:
-        tarih_tablo_verisi = []
-        for tl in secilen_tarih_loglari:
-            tarih_tablo_verisi.append({
-                "Saat / Tarih": tl.get("tarih", "-"),
-                "İşlem / Yemek Türü": tl.get("tur", "-"),
-                "Malzeme / Ürün": tl.get("urun", "-"),
-                "Kullanılan Miktar": f"{tl.get('miktar', 0)}",
-                "Tutar": f"{tl.get('tutar', 0):,.2f} ₺",
-                "İşlemi Yapan": tl.get("islem_yapan", "-")
-            })
-        ozel_html_tablo_goster(tarih_tablo_verisi)
+    st.subheader(f"📅 Seçilen Tarihteki ({secilen_tarih_str}) Yemek Üretim ve Maliyet Arşivi")
+    
+    secilen_gun_uretimleri = [u for u in st.session_state.yemek_uretim_arsivi if u.get("tarih") == secilen_tarih_str]
+    
+    if secilen_gun_uretimleri:
+        arsiv_tablo_verisi = []
+        excel_arsiv_listesi = []
+        for u_kayit in secilen_gun_uretimleri:
+            for m in u_kayit.get("malzemeler", []):
+                arsiv_tablo_verisi.append({
+                    "Kayıt Zamanı": u_kayit.get("zaman", "-"),
+                    "Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                    "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
+                    "Kullanılan Malzeme": m.get("urun", "-"),
+                    "Miktar": m.get("miktar", 0),
+                    "Maliyet": f"{m.get('tutar', 0):,.2f} ₺",
+                    "İşlemi Yapan": u_kayit.get("islem_yapan", "-")
+                })
+                excel_arsiv_listesi.append({
+                    "Kayıt Zamanı": u_kayit.get("zaman", "-"),
+                    "Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                    "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
+                    "Kullanılan Malzeme": m.get("urun", "-"),
+                    "Miktar": m.get("miktar", 0),
+                    "Maliyet (TL)": round(m.get("tutar", 0), 2),
+                    "İşlemi Yapan": u_kayit.get("islem_yapan", "-")
+                })
+        
+        ozel_html_tablo_goster(arsiv_tablo_verisi)
+        
+        excel_arsiv_data = tablo_to_excel_bytes(excel_arsiv_listesi, f"Aziziye Aşevi - {secilen_tarih_str} Yemek Uretim Raporu")
+        pdf_arsiv_data = tablo_to_html_pdf_bytes(f"Aziziye Aşevi - {secilen_tarih_str} Yemek Uretim Raporu", excel_arsiv_listesi)
+        
+        st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+        col_sec_arsiv, col_btn_arsiv = st.columns([2, 2])
+        with col_sec_arsiv:
+            st.markdown(f"**{secilen_tarih_str} Tarihli Raporu İndir**")
+        with col_btn_arsiv:
+            ortak_indirme_alani(excel_arsiv_data, pdf_arsiv_data, f"yemek_uretim_raporu_{secilen_tarih_str}", f"arsiv_{secilen_tarih_str}")
     else:
-        st.info(f"Seçilen {secilen_tarih_str} tarihinde herhangi bir yemek veya malzeme kullanım kaydı bulunmuyor.")
+        st.info(f"Seçilen {secilen_tarih_str} tarihinde kayıtlı yemek üretim ve maliyet arşivi bulunmuyor.")
 
 # 6. KALORİ HESAPLAMA ARACI
 elif menu == "Kalori Hesaplama Aracı":
