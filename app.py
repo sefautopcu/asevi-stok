@@ -853,7 +853,15 @@ elif menu == "Güncel Stok Durumu":
         en_son_tarih = max((g.get("tarih", "-") for g in st.session_state.girisler if g["urun"] == u), default="-")
         
         if secilen_depo == "Tümü" or depo == secilen_depo:
-            stok_tablosu.append({"Ürün Adı": u, "Kategori": kategori, "Birim": birim, "Kalan Miktar": toplam_kalan, "Depo Yeri": depo, "Eklenme Tarihi": en_son_tarih, "İşlemi Yapan": islem_yapan})
+            stok_tablosu.append({
+                "Ürün Adı": u, 
+                "Kategori": kategori, 
+                "Birim": birim, 
+                "Kalan Miktar": toplam_kalan, 
+                "Depo Yeri": depo, 
+                "Eklenme Tarihi": en_son_tarih, 
+                "İşlemi Yapan": islem_yapan
+            })
         if toplam_kalan <= 10.0:
             kritik_urunler.append((u, toplam_kalan, birim, depo))
 
@@ -863,8 +871,7 @@ elif menu == "Güncel Stok Durumu":
                 st.warning(f"**{ku}** stoğu azalmıştır! Kalan Miktar: **{km} {kb}** ({kd})")
 
     st.markdown("### Envanter Listesi")
-    for row in stok_tablosu:
-        st.write(f"• **{row['Ürün Adı']}** | Kategori: {row['Kategori']} | Kalan: **{row['Kalan Miktar']} {row['Birim']}** | Depo: {row['Depo Yeri']} | Eklenme Tarihi: **{row['Eklenme Tarihi']}** | *(Ekleyen: {row['İşlemi Yapan']})*")
+    ozel_html_tablo_goster(stok_tablosu)
 
 # 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
