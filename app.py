@@ -1030,32 +1030,73 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             stok_max = sum(g["kalan"] for g in ilgili_girisler)
             kullanilacak_miktar = st.number_input(f"Miktar (Stok: {stok_max})", min_value=0.0, max_value=float(stok_max) if stok_max>0 else 0.1, step=0.1, key="yemek_miktar")
         with col3:
-            if st.button("Sepete Ekle"):
+            st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+            if st.button("Sepete Ekle", use_container_width=True):
                 if kullanilacak_miktar > 0 and kullanilacak_miktar <= stok_max:
                     st.session_state.sepet.append({"urun": secilen_urun, "miktar": kullanilacak_miktar})
                     st.success("Eklendi!")
+                    st.rerun()
 
+    st.markdown("---")
+    st.subheader("Seçilen Malzemeler")
+    
     if st.session_state.sepet:
-        st.subheader("Seçilen Malzemeler")
-        if st.button("🔄 Sıfırla"):
+        if st.button("🔄 Tümünü Sıfırla"):
             st.session_state.sepet = []
             st.rerun()
         
         toplam_maliyet = 0.0
         excel_sepet_liste = []
+        
+        # Her malzemeyi listele ve yanına silme (çarpı) butonu koy
+        silinecek_index = None
         for idx, item in enumerate(st.session_state.sepet):
             urun = item["urun"]
             istenen = item["miktar"]
-            ilgili = [g for g in st.session_state.girisler if g["urun"] == urun and g["kalan"] > 0]
-            maliyet = sum(g["kalan"] * g["fiyat"] for g in ilgili)
-            toplam_maliyet += maliyet
-            excel_sepet_liste.append({"Malzeme": urun, "Miktar": istenen, "Toplam Maliyet (TL)": round(maliyet, 2)})
+            
+            # Bu ürünün ortalama birim fiyatını veya kalan girişlerden maliyetini hesapla
+            ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == urun]
+            ortalama_fiyat = 0.0
+            if ilgili_girisler:
+                toplam_fiyat_degeri = sum(g["fiyat"] * g["miktar"] for g in ilgili_girisler)
+                toplam_miktar_degeri = sum(g["miktar"] for g in ilgili_girisler)
+                ortalama_fiyat = toplam_fiyat_degeri / toplam_miktar_degeri if toplam_miktar_degeri > 0 else 0.0
+            
+            item_maliyeti = istenen * ortalama_fiyat
+            toplam_maliyet += item_maliyeti
+            
+            c_item_ad, c_item_mik, c_item_mal, c_item_sil = st.columns([3, 2, 2, 1])
+            with c_item_ad:
+                st.markdown(f"• **{urun}**")
+            with c_item_mik:
+                st.markdown(f"Miktar: {istenen}")
+            with c_item_mal:
+                st.markdown(f"Maliyet: **{item_maliyeti:,.2f} ₺**")
+            with c_item_sil:
+                if st.button("❌", key=f"sil_item_{idx}"):
+                    silinecek_index = idx
+            
+            excel_sepet_liste.append({"Malzeme": urun, "Miktar": istenen, "Maliyet (TL)": round(item_maliyeti, 2)})
+
+        if silinecek_index is not None:
+            st.session_state.sepet.pop(silinecek_index)
+            st.rerun()
+
+        st.markdown("---")
+        kisi_basi_maliyet = toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0.0
+
+        m1, m2 = st.columns(2)
+        with m1:
+            st.metric("Toplam Maliyet", f"{toplam_maliyet:,.2f} ₺")
+        with m2:
+            st.metric("Kişi Başı Maliyet", f"{kisi_basi_maliyet:,.2f} ₺")
 
         pdf_data = tablo_to_html_pdf_bytes(f"Yemek Maliyet Raporu - {yemek_adi}", excel_sepet_liste)
         excel_sepet_data = tablo_to_excel_bytes(excel_sepet_liste, f"Yemek Maliyet Raporu - {yemek_adi}")
         with col_indir_alan:
             ortak_indirme_alani(excel_sepet_data, pdf_data, "yemek_maliyet_raporu", "yemek_sayfasi")
-        st.metric("Toplam Maliyet", f"{toplam_maliyet:.2f} TL")
+    else:
+        st.info("Henüz sepete malzeme eklenmedi.")
 
 # 6. KALORİ HESAPLAMA ARACI
 elif menu == "Kalori Hesaplama Aracı":
