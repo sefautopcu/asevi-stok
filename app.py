@@ -249,13 +249,13 @@ varsayilan_girisler = [
     {"id": "STK-002", "tarih": "2026-09-28 08:35", "fatura_no": "FAT-2026-002", "urun": "MAYDANOZ", "kategori": "SEBZE", "birim": "Kg", "miktar": 20.0, "kalan": max(0.0, 20.0 - 3.1), "fiyat": 25.0, "depo": "Soğuk Hava Deposu +5/+6", "islem_yapan": "admin"},
 ]
 
-# Görselden aktarılan güncel ve doğru tutarlı fire log kayıtları
+# Doğru tutar ve tarihlerle güncellenmiş fire log kayıtları
 varsayilan_loglar = [
-    {"tarih": "2026-10-05", "urun": "ISPANAK", "tur": "Fire/Zayiat", "miktar": 60.0, "tutar": 4200.00, "islem_yapan": "admin"},
-    {"tarih": "2026-10-09", "urun": "PATLICAN", "tur": "Fire/Zayiat", "miktar": 52.4, "tutar": 2882.00, "islem_yapan": "admin"},
-    {"tarih": "2026-10-14", "urun": "MUZ", "tur": "Fire/Zayiat", "miktar": 54.5, "tutar": 5995.00, "islem_yapan": "admin"},
-    {"tarih": "2026-10-20", "urun": "SALATALIK", "tur": "Fire/Zayiat", "miktar": 43.0, "tutar": 1935.00, "islem_yapan": "admin"},
-    {"tarih": "2026-10-21", "urun": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 993.00, "islem_yapan": "admin"}
+    {"tarih": "2026-10-05 10:00", "urun": "ISPANAK", "tur": "Fire/Zayiat", "miktar": 60.0, "tutar": 4200.00, "islem_yapan": "admin"},
+    {"tarih": "2026-10-09 10:00", "urun": "PATLICAN", "tur": "Fire/Zayiat", "miktar": 52.4, "tutar": 2882.00, "islem_yapan": "admin"},
+    {"tarih": "2026-10-14 10:00", "urun": "MUZ", "tur": "Fire/Zayiat", "miktar": 54.5, "tutar": 5995.00, "islem_yapan": "admin"},
+    {"tarih": "2026-10-20 10:00", "urun": "SALATALIK", "tur": "Fire/Zayiat", "miktar": 43.0, "tutar": 1935.00, "islem_yapan": "admin"},
+    {"tarih": "2026-10-21 10:00", "urun": "TAM YAĞLI YOĞURT", "tur": "Fire/Zayiat", "miktar": 15.0, "tutar": 993.00, "islem_yapan": "admin"}
 ]
 
 varsayilan_personeller = [
@@ -1017,6 +1017,23 @@ elif menu == "Fire / Zayiat Girişi":
                 loglari_kaydet(st.session_state.kullanim_loglari)
                 st.success("Fire başarıyla düşüldü.")
                 st.rerun()
+
+    st.markdown("---")
+    st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
+    fire_loglari = [l for l in st.session_state.kullanim_loglari if l.get("tur") == "Fire/Zayiat"]
+    if fire_loglari:
+        fire_tablo_verisi = []
+        for f_log in reversed(fire_loglari):
+            fire_tablo_verisi.append({
+                "Tarih / Saat": f_log.get("tarih", "-"),
+                "Ürün Adı": f_log.get("urun", "-"),
+                "Fire Miktarı": f"{f_log.get('miktar', 0)} Kg",
+                "Toplam Tutar": f"{f_log.get('tutar', 0):,.2f} ₺",
+                "İşlemi Yapan": f_log.get("islem_yapan", "admin")
+            })
+        ozel_html_tablo_goster(fire_tablo_verisi)
+    else:
+        st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
 
 # 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
