@@ -5,7 +5,6 @@ import io
 import streamlit as st
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -719,7 +718,6 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_fire_mik = sum(l["miktar"] for l in loglar if l["tur"] == "Fire/Zayiat")
     toplam_fire_tutar = sum(l["tutar"] for l in loglar if l["tur"] == "Fire/Zayiat")
     
-    # GÜNCELLENEN KISIM: Yalnızca aktif çalışan personellerin sayısı alınıyor
     aktif_calisan_personel_sayisi = sum(1 for p in st.session_state.personeller if p.get("aktif", True))
 
     is_dark = (st.session_state.tema_secimi == "Koyu Tema (Dark)")
@@ -728,7 +726,6 @@ if menu == "Kurumsal Dashboard & Özet":
     text_color = "#F8FAFC" if is_dark else "#111827"
     subtext_color = "#94A3B8" if is_dark else "#4B5563"
 
-    # Kare Kartlar için Sabit Yükseklik ve Flex Düzeni CSS Stili
     kare_kart_style = f"""
         background: {card_bg}; 
         border: 1px solid {card_border}; 
@@ -742,7 +739,6 @@ if menu == "Kurumsal Dashboard & Özet":
         justify-content: space-between;
     """
 
-    # Satır 1: Toplam Ürün Çeşidi ve Toplam Fire/Zayiat (Kare Kartlar)
     row1_c1, row1_c2 = st.columns(2)
     with row1_c1:
         st.markdown(f"""
@@ -776,7 +772,6 @@ if menu == "Kurumsal Dashboard & Özet":
             </div>
         """, unsafe_allow_html=True)
 
-    # Satır 2: Toplam Stok Değeri ve Çalışan Personel Sayısı (Kare Kartlar)
     row2_c1, row2_c2 = st.columns(2)
     with row2_c1:
         st.markdown(f"""
@@ -1431,3 +1426,271 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             st.metric("Toplam Alınan Öğün / Sefer Sayısı", f"{toplam_alis_sefer_sayisi} Kez")
         with m2:
             st.metric("Toplam Dağıtılan Porsiyon", f"{toplam_porsiyon_alınan} Porsiyon")
+
+
+# 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
+elif menu == "Personel & Çalışma Süresi Takibi":
+    st.header("👥 Personel ve Çalışma Süresi Takibi")
+    st.markdown("Aşevi personelini kaydedin, izinlerini yönetin, resmi tatilleri düzenleyin ve net çalışma günlerini otomatik hesaplayın.")
+
+    p_tab1, p_tab2, p_tab3 = st.tabs(["👨‍💼 Personel Listesi & Yönetimi", "🏖️ İzin ve Tatil Tanımlamaları", "📊 Net Çalışma Süresi Raporu"])
+
+    with p_tab1:
+        if misafir_modu:
+            st.info("👀 Misafir modundasınız. Bu ekranda yalnızca personel listesini görüntüleyebilirsiniz.")
+        else:
+            col_p_ekle, col_p_durum = st.columns(2)
+            with col_p_ekle:
+                with st.form("personel_ekle_form"):
+                    st.markdown("**➕ Yeni Personel Ekle**")
+                    p_ad = st.text_input("Personel Adı Soyadı").strip().upper()
+                    p_gorev = st.text_input("Görevi (Örn: Aşçı / Depo Sorumlusu)")
+                    p_bas = st.date_input("İşe Başlama Tarihi", value=datetime.date(2026, 1, 1))
+                    p_submit = st.form_submit_button("Personeli Kaydet")
+                    
+                    if p_submit and p_ad:
+                        st.session_state.personeller.append({
+                            "id": f"PRS-{len(st.session_state.personeller)+1:03d}",
+                            "ad_soyad": p_ad,
+                            "gorev": p_gorev if p_gorev else "Personel",
+                            "baslama": str(p_bas),
+                            "aktif": True,
+                            "izinler": []
+                        })
+                        personelleri_kaydet(st.session_state.personeller)
+                        st.success(f"Başarılı! {p_ad} kadroya eklendi.")
+                        st.rerun()
+
+            with col_p_durum:
+                with st.form("personel_durum_form"):
+                    st.markdown("**🔄 Personel Durum Güncelle (Aktif/Pasif)**")
+                    if st.session_state.personeller:
+                        p_secenekler = [f"{p['id']} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Ayrıldı'})" for p in st.session_state.personeller]
+                        secilen_p_str = st.selectbox("Personel Seç", p_secenekler)
+                        yeni_durum = st.radio("Durum Seç", ["Aktif Çalışıyor", "İşten Ayrıldı / Pasif"], horizontal=True)
+                        p_durum_btn = st.form_submit_button("Durumu Güncelle")
+                        
+                        if p_durum_btn:
+                            p_id = secilen_p_str.split(" - ")[0]
+                            for p in st.session_state.personeller:
+                                if p["id"] == p_id:
+                                    p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
+                            personelleri_kaydet(st.session_state.personeller)
+                            st.success("Personel durumu güncellendi!")
+                            st.rerun()
+                    else:
+                        st.info("Kayıtlı personel bulunmuyor.")
+
+        st.markdown("---")
+        st.subheader("📋 Kayıtlı Personel Kadrosu")
+        if st.session_state.personeller:
+            p_gosterim = [{
+                "ID": p["id"],
+                "Adı Soyadı": p["ad_soyad"],
+                "Görevi": p["gorev"],
+                "İşe Başlama": p["baslama"],
+                "Durum": "Aktif Çalışıyor" if p.get("aktif", True) else "Pasif / Ayrıldı",
+                "İzin Sayısı": len(p.get("izinler", []))
+            } for p in st.session_state.personeller]
+            st.dataframe(p_gosterim, use_container_width=True)
+        else:
+            st.info("Henüz kayıtlı personel bulunmuyor.")
+
+    with p_tab2:
+        st.subheader("🏖️ Personel İzin Girişi ve Resmi Tatil Tanımları")
+        col_izin, col_tatil = st.columns(2)
+        
+        with col_izin:
+            if misafir_modu:
+                st.info("Misafir modunda izin eklenemez.")
+            elif not st.session_state.personeller:
+                st.warning("Önce personel eklemelisiniz.")
+            else:
+                with st.form("izin_ekle_form"):
+                    st.markdown("**➕ Personele İzin Ekle**")
+                    p_izin_secenekleri = [p["ad_soyad"] for p in st.session_state.personeller if p.get("aktif", True)]
+                    secilen_izin_p = st.selectbox("Personel Seçin", p_izin_secenekleri)
+                    i_baslangic = st.date_input("İzin Başlangıç Tarihi")
+                    i_bitis = st.date_input("İzin Bitiş Tarihi")
+                    i_submit = st.form_submit_button("İzni Kaydet")
+                    
+                    if i_submit:
+                        if i_baslangic > i_bitis:
+                            st.error("Başlangıç tarihi bitiş tarihinden sonra olamaz!")
+                        else:
+                            for p in st.session_state.personeller:
+                                if p["ad_soyad"] == secilen_izin_p:
+                                    if "izinler" not in p:
+                                        p["izinler"] = []
+                                    p["izinler"].append({
+                                        "baslangic": str(i_baslangic),
+                                        "bitis": str(i_bitis)
+                                    })
+                            personelleri_kaydet(st.session_state.personeller)
+                            st.success(f"{secilen_izin_p} için izin başarıyla kaydedildi!")
+                            st.rerun()
+
+        with col_tatil:
+            with st.form("tatil_ekle_form"):
+                st.markdown("**📅 Resmi Tatil Tanımla**")
+                t_tarih = st.date_input("Tatil Tarihi")
+                t_aciklama = st.text_input("Tatil Adı / Açıklama", "Örn: Resmi Tatil")
+                t_submit = st.form_submit_button("Tatil Ekle")
+                
+                if t_submit:
+                    st.session_state.resmi_tatiller.append({
+                        "tarih": str(t_tarih),
+                        "aciklama": t_aciklama
+                    })
+                    resmi_tatilleri_kaydet(st.session_state.resmi_tatiller)
+                    st.success("Resmi tatil eklendi!")
+                    st.rerun()
+
+        st.markdown("---")
+        st.subheader("📋 Tanımlı Resmi Tatiller Listesi")
+        if st.session_state.resmi_tatiller:
+            st.dataframe(st.session_state.resmi_tatiller, use_container_width=True)
+
+    with p_tab3:
+        col_b_prs, col_indir_prs = st.columns([2, 2])
+        with col_b_prs:
+            st.subheader("📊 Personel Net Çalışma Süresi ve Gün Hesaplayıcı")
+
+        if not st.session_state.personeller:
+            st.info("Hesaplama yapabilmek için kayıtlı personel bulunmuyor.")
+        else:
+            p_isimleri = [p["ad_soyad"] for p in st.session_state.personeller]
+            secilen_rapor_p = st.selectbox("Personel Seçin", p_isimleri, key="prs_rapor_sec")
+            
+            c_kol1, c_kol2 = st.columns(2)
+            with c_kol1:
+                donem_bas = st.date_input("Dönem Başlangıç Tarihi", value=datetime.date(2026, 10, 1))
+            with c_kol2:
+                donem_bit = st.date_input("Dönem Bitiş Tarihi", value=datetime.date(2026, 10, 31))
+
+            ilgili_personel_obj = next((p for p in st.session_state.personeller if p["ad_soyad"] == secilen_rapor_p), None)
+            if ilgili_personel_obj:
+                net_gun, toplam_izin = net_calisma_gunu_hesapla(donem_bas, donem_bit, ilgili_personel_obj.get("izinler", []), st.session_state.resmi_tatiller)
+                
+                st.markdown("---")
+                m_p1, m_p2, m_p3 = st.columns(3)
+                with m_p1:
+                    st.metric("Net Çalışılan Gün", f"{net_gun} Gün")
+                with m_p2:
+                    st.metric("Toplam İzin Günü", f"{toplam_izin} Gün")
+                with m_p3:
+                    toplam_takvim_gunu = (donem_bit - donem_bas).days + 1
+                    st.metric("Toplam Takvim Günü", f"{toplam_takvim_gunu} Gün")
+
+                prs_excel_data = tablo_to_excel_bytes([{"Personel": secilen_rapor_p, "Başlangıç": str(donem_bas), "Bitiş": str(donem_bit), "Net Çalışma Günü": net_gun, "İzin Günü": toplam_izin}], f"Personel Raporu - {secilen_rapor_p}")
+                prs_pdf_data = tablo_to_html_pdf_bytes(f"Personel Çalışma Raporu - {secilen_rapor_p}", [{"Personel": secilen_rapor_p, "Başlangıç": str(donem_bas), "Bitiş": str(donem_bit), "Net Çalışma Günü": net_gun, "İzin Günü": toplam_izin}])
+
+                with col_indir_prs:
+                    ortak_indirme_alani(prs_excel_data, prs_pdf_data, "personel_calisma_raporu", "prs_sayfasi")
+
+
+# 9. KULLANIM TAKİBİ
+elif menu == "Kullanım Takibi":
+    col_b_kul, col_indir_kul = st.columns([2, 2])
+    with col_b_kul:
+        st.header("📈 Depo Ürün Kullanım ve Tüketim Takibi")
+
+    st.markdown("Bu ekranda aşevinde gerçekleştirilen yemek üretimi ve fire/zayiat amaçlı tüm malzeme çıkışlarını ve tüketim geçmişini inceleyebilirsiniz.")
+
+    loglar = st.session_state.kullanim_loglari
+    if loglar:
+        k_tablo_verisi = []
+        excel_kullanim_liste = []
+
+        for l in reversed(loglar):
+            k_tablo_verisi.append({
+                "Tarih / Saat": l.get("tarih", "-"),
+                "Ürün Adı": l.get("urun", "-"),
+                "İşlem Türü": l.get("tur", "-"),
+                "Miktar": f"{l.get('miktar', 0):,.2f}",
+                "Toplam Tutar": f"{l.get('tutar', 0):,.2f} ₺",
+                "İşlemi Yapan": l.get("islem_yapan", "admin")
+            })
+            excel_kullanim_liste.append({
+                "Tarih / Saat": l.get("tarih", "-"),
+                "Ürün Adı": l.get("urun", "-"),
+                "İşlem Türü": l.get("tur", "-"),
+                "Miktar": round(l.get("miktar", 0), 2),
+                "Tutar (TL)": round(l.get("tutar", 0), 2),
+                "İşlemi Yapan": l.get("islem_yapan", "admin")
+            })
+
+        kul_excel_data = tablo_to_excel_bytes(excel_kullanim_liste, "Aziziye Aşevi - Kullanım ve Tüketim Raporu")
+        kul_pdf_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Kullanım ve Tüketim Raporu", excel_kullanim_liste)
+
+        with col_indir_kul:
+            ortak_indirme_alani(kul_excel_data, kul_pdf_data, "kullanim_takip_raporu", "kullanim_sayfasi")
+
+        st.dataframe(k_tablo_verisi, use_container_width=True)
+    else:
+        empty_excel_kul = tablo_to_excel_bytes([], "Boş Rapor")
+        empty_pdf_kul = tablo_to_html_pdf_bytes("Boş Rapor", [])
+        with col_indir_kul:
+            ortak_indirme_alani(empty_excel_kul, empty_pdf_kul, "bos_kullanim_raporu", "kullanim_bos_sayfasi")
+        st.info("Sistemde henüz kayıtlı bir kullanım veya tüketim hareketi bulunmuyor.")
+
+
+# 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
+elif menu == "Ürün Birim Fiyatları & Ay Analizi":
+    col_b_fiy, col_indir_fiy = st.columns([2, 2])
+    with col_b_fiy:
+        st.header("💰 Ürün Birim Fiyatları ve Aylık Maliyet Analizi")
+
+    st.markdown("Depodaki ürünlerin güncel birim fiyatlarını inceleyebilir ve ürün bazlı maliyet analizlerini görselleştirebilirsiniz.")
+
+    if st.session_state.girisler:
+        fiyat_tablo = []
+        excel_fiyat_liste = []
+
+        # Benzersiz ürünlerin güncel fiyatlarını topla
+        urun_fiyat_sozlugu = {}
+        for g in st.session_state.girisler:
+            urun_fiyat_sozlugu[g["urun"]] = {"fiyat": g["fiyat"], "kategori": g.get("kategori", "-"), "birim": g.get("birim", "Kg"), "depo": g.get("depo", "-")}
+
+        for u_adi, u_bilgi in sorted(urun_fiyat_sozlugu.items()):
+            fiyat_tablo.append({
+                "Ürün Adı": u_adi,
+                "Kategori": u_bilgi["kategori"],
+                "Birim": u_bilgi["birim"],
+                "Birim Fiyat": f"{u_bilgi['fiyat']:,.2f} ₺",
+                "Depo": u_bilgi["depo"]
+            })
+            excel_fiyat_liste.append({
+                "Ürün Adı": u_adi,
+                "Kategori": u_bilgi["kategori"],
+                "Birim": u_bilgi["birim"],
+                "Birim Fiyat (TL)": round(u_bilgi["fiyat"], 2),
+                "Depo": u_bilgi["depo"]
+            })
+
+        fiyat_excel_data = tablo_to_excel_bytes(excel_fiyat_liste, "Aziziye Aşevi - Ürün Birim Fiyatları Listesi")
+        fiyat_pdf_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Ürün Birim Fiyatları Listesi", excel_fiyat_liste)
+
+        with col_indir_fiy:
+            ortak_indirme_alani(fiyat_excel_data, fiyat_pdf_data, "urun_birim_fiyatlari_raporu", "fiyat_sayfasi")
+
+        st.subheader("📋 Envanter Birim Fiyat Tablosu")
+        st.dataframe(fiyat_tablo, use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("📊 En Yüksek Birim Fiyata Sahip İlk 10 Ürün")
+        
+        # Grafik için veriyi hazırla
+        sirali_fiyatlar = sorted(excel_fiyat_liste, key=lambda x: x["Birim Fiyat (TL)"], reverse=True)[:10]
+        df_fiyat = pd.DataFrame(sirali_fiyatlar)
+        
+        if not df_fiyat.empty:
+            fig = px.bar(df_fiyat, x="Ürün Adı", y="Birim Fiyat (TL)", color="Birim Fiyat (TL)", text="Birim Fiyat (TL)", title="Birim Fiyata Göre Ürün Sıralaması")
+            fig.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        empty_excel_f = tablo_to_excel_bytes([], "Boş Rapor")
+        empty_pdf_f = tablo_to_html_pdf_bytes("Boş Rapor", [])
+        with col_indir_fiy:
+            ortak_indirme_alani(empty_excel_f, empty_pdf_f, "bos_fiyat_raporu", "fiyat_bos_sayfasi")
+        st.info("Görüntülenecek ürün birim fiyatı bulunmuyor.")
