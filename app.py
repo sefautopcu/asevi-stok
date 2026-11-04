@@ -16,7 +16,7 @@ st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲"
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "Koyu Tema (Dark)"
 
-# Dinamik Tema CSS Entegrasyonu
+# Dinamik Tema CSS Entegrasyonu (Buton renkleri ve okunabilirlik düzeltildi)
 if st.session_state.tema_secimi == "Koyu Tema (Dark)":
     st.markdown("""
         <style>
@@ -46,27 +46,21 @@ if st.session_state.tema_secimi == "Koyu Tema (Dark)":
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-        section[data-testid="stSidebar"] button[kind="secondary"] {
-            background-color: transparent !important;
-            color: #9CA3AF !important;
-            border: none !important;
+        /* Tüm Butonlar İçin Koyu Tema Renk Düzeltmesi */
+        div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"] {
+            background-color: #1E293B !important;
+            color: #F8FAFC !important;
+            border: 1px solid #334155 !important;
             border-radius: 8px !important;
-            text-align: left !important;
-            font-weight: 400 !important;
-            padding: 6px 10px !important;
+            font-weight: 500 !important;
             transition: all 0.2s ease;
         }
-        section[data-testid="stSidebar"] button[kind="secondary"]:hover {
-            background-color: #1F2937 !important;
-            color: #FFFFFF !important;
-        }
-        section[data-testid="stSidebar"] button[kind="primary"] {
-            background-color: #1F2937 !important;
+        div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover {
+            background-color: #334155 !important;
             color: #38BDF8 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            font-weight: 600 !important;
+            border-color: #38BDF8 !important;
         }
+
         div.stMetric, div[data-testid="stExpander"], div.stForm {
             background: #1E293B !important;
             border: 1px solid #334155;
@@ -134,26 +128,16 @@ else:
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-        section[data-testid="stSidebar"] button[kind="secondary"] {
-            background-color: transparent !important;
-            color: #4B5563 !important;
-            border: none !important;
+        div.stButton > button {
+            background-color: #FFFFFF !important;
+            color: #111827 !important;
+            border: 1px solid #E5E7EB !important;
             border-radius: 8px !important;
-            text-align: left !important;
-            font-weight: 400 !important;
-            padding: 6px 10px !important;
-            transition: all 0.2s ease;
+            font-weight: 500 !important;
         }
-        section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+        div.stButton > button:hover {
             background-color: #F3F4F6 !important;
-            color: #111827 !important;
-        }
-        section[data-testid="stSidebar"] button[kind="primary"] {
-            background-color: #E5E7EB !important;
-            color: #111827 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            font-weight: 600 !important;
+            border-color: #D1D5DB !important;
         }
         div.stMetric, div[data-testid="stExpander"], div.stForm {
             background: #FFFFFF !important;
@@ -513,7 +497,7 @@ if not st.session_state.oturum_aktif:
             st.query_params["user"] = "misafir"
             st.rerun()
 
-        # İLETİŞİM LOGOSU / BUTONU EKLENDİ
+        # İLETİŞİM LOGOSU / BUTONU
         st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
         if st.button("✉️ İletişim / Destek", use_container_width=True, type="secondary"):
             st.info("📩 İletişim için **sefaunaltopcu@gmail.com** mail adresi ile iletişime geçebilirsiniz.")
