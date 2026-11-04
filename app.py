@@ -17,11 +17,11 @@ st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲"
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "Koyu Tema (Dark)"
 
-# Dinamik Tema CSS Entegrasyonu (Açık / Koyu Mod)
+# Dinamik Tema CSS Entegrasyonu (Metin renkleri ve arka planlar tamamen senkronize edildi)
 if st.session_state.tema_secimi == "Koyu Tema (Dark)":
     st.markdown("""
         <style>
-        .main { 
+        .main, .stApp { 
             background-color: #0F172A !important; 
             color: #F8FAFC !important;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -35,10 +35,8 @@ if st.session_state.tema_secimi == "Koyu Tema (Dark)":
             color: #94A3B8 !important; 
             font-size: 13.5px; 
         }
-        h1, h2, h3 { 
+        h1, h2, h3, h4, h5, h6, p, span, label, div, .stMarkdown { 
             color: #F8FAFC !important; 
-            font-family: 'Inter', sans-serif; 
-            letter-spacing: -0.025em;
         }
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
@@ -72,14 +70,14 @@ if st.session_state.tema_secimi == "Koyu Tema (Dark)":
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
             color: #F8FAFC !important;
         }
-        p, span, label, div { color: #E2E8F0; }
         </style>
     """, unsafe_allow_html=True)
 else:
     st.markdown("""
         <style>
-        .main { 
+        .main, .stApp { 
             background-color: #FAFAFB !important; 
+            color: #111827 !important;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         .stSidebar { 
@@ -91,10 +89,8 @@ else:
             color: #374151 !important; 
             font-size: 13.5px; 
         }
-        h1, h2, h3 { 
-            color: #111827; 
-            font-family: 'Inter', sans-serif; 
-            letter-spacing: -0.025em;
+        h1, h2, h3, h4, h5, h6, p, span, label, div, .stMarkdown { 
+            color: #111827 !important; 
         }
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
@@ -126,6 +122,7 @@ else:
             padding: 16px 20px;
             border-radius: 16px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            color: #111827 !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -417,7 +414,7 @@ if "resmi_tatiller" not in st.session_state:
 if "kalori_sepeti" not in st.session_state:
     st.session_state.kalori_sepeti = []
 
-# --- OTURUM KALICILIĞI (URL Query Params ile F5 Yenilemelerinde Kaybolmama) ---
+# --- OTURUM KALICILIĞI ---
 query_params = st.query_params
 
 if "oturum_aktif" not in st.session_state:
@@ -479,14 +476,14 @@ st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
 # --- SOL MENÜ & TEMA SEÇİCİ ---
-st.sidebar.markdown('<p style="color: #111827 !important; font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Arayüz Teması</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Arayüz Teması</p>', unsafe_allow_html=True)
 yeni_tema = st.sidebar.selectbox("Tema Seçin", ["Koyu Tema (Dark)", "Açık Tema (Light)"], index=0 if st.session_state.tema_secimi=="Koyu Tema (Dark)" else 1, label_visibility="collapsed")
 if yeni_tema != st.session_state.tema_secimi:
     st.session_state.tema_secimi = yeni_tema
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="color: #111827 !important; font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Ana Menü</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Ana Menü</p>', unsafe_allow_html=True)
 
 menuler_listesi = [
     "Kurumsal Dashboard & Özet",
@@ -582,7 +579,7 @@ asci_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici 
 misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="color: #6B7280 !important; font-size: 11px; text-align: center; margin-top: 10px;">sefautopcu</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 11px; text-align: center; margin-top: 10px;">sefautopcu</p>', unsafe_allow_html=True)
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -698,8 +695,8 @@ if menu == "Kurumsal Dashboard & Özet":
         <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 24px 30px; border-radius: 16px; color: white; margin-bottom: 25px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h2 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">2026 YILI BAŞARI & ÖZET GRAFİĞİ</h2>
-                    <p style="color: #94A3B8; margin: 5px 0 0 0; font-size: 14px;">Aziziye Sosyal Yardımlaşma ve Dayanışma Vakfı Aşevi Operasyon Paneli</p>
+                    <h2 style="color: white !important; margin: 0; font-size: 24px; font-weight: 700;">2026 YILI BAŞARI & ÖZET GRAFİĞİ</h2>
+                    <p style="color: #94A3B8 !important; margin: 5px 0 0 0; font-size: 14px;">Aziziye Sosyal Yardımlaşma ve Dayanışma Vakfı Aşevi Operasyon Paneli</p>
                 </div>
                 <div style="background: rgba(255, 255, 255, 0.1); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #38BDF8;">
                     harikasite.web.tr
@@ -726,7 +723,7 @@ if menu == "Kurumsal Dashboard & Özet":
     st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
     st.markdown("""
-        <div style="background: #1E293B; padding: 24px; border-radius: 16px; border: 1px solid #334155; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <div style="padding: 24px; border-radius: 16px; border: 1px solid #334155; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             <div style="color: #38BDF8; font-weight: 600; font-size: 15px; margin-bottom: 15px; display: flex; align-items: center;">
                 <span style="font-size: 18px; margin-right: 8px;">┃</span> Kategori Bazlı Stok Dağılımı & Envanter Analizi
             </div>
@@ -764,7 +761,7 @@ if menu == "Kurumsal Dashboard & Özet":
         st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
         toplam_stok_miktari_genel = sum(kategori_verileri.values())
         st.markdown(f"""
-            <div style="color: #F8FAFC; font-size: 14px; line-height: 1.6;">
+            <div style="font-size: 14px; line-height: 1.6;">
                 <p style="margin-bottom: 10px;">Depomuzda an itibariyle toplam <strong style="color: #38BDF8;">{toplam_stok_miktari_genel:,.1f} birim</strong> ürün aktif olarak bulunmaktadır.</p>
                 <p style="margin-bottom: 15px;">Envanterin büyük bir kısmı <strong style="color: #34D399;">Kuru Gıda</strong> ve <strong style="color: #FBBF24;">Sebze</strong> depolarında güvenle muhafaza edilmektedir.</p>
             </div>
