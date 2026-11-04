@@ -1048,13 +1048,11 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         toplam_maliyet = 0.0
         excel_sepet_liste = []
         
-        # Her malzemeyi listele ve yanına silme (çarpı) butonu koy
         silinecek_index = None
         for idx, item in enumerate(st.session_state.sepet):
             urun = item["urun"]
             istenen = item["miktar"]
             
-            # Bu ürünün ortalama birim fiyatını veya kalan girişlerden maliyetini hesapla
             ilgili_girisler = [g for g in st.session_state.girisler if g["urun"] == urun]
             ortalama_fiyat = 0.0
             if ilgili_girisler:
