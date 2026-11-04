@@ -17,7 +17,7 @@ st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲"
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "Koyu Tema (Dark)"
 
-# Dinamik Tema CSS Entegrasyonu (Metin renkleri ve arka planlar tamamen senkronize edildi)
+# Dinamik Tema CSS Entegrasyonu (İstediğiniz özel font stilleri başüslere ve metinlere işlendi)
 if st.session_state.tema_secimi == "Koyu Tema (Dark)":
     st.markdown("""
         <style>
@@ -35,7 +35,13 @@ if st.session_state.tema_secimi == "Koyu Tema (Dark)":
             color: #94A3B8 !important; 
             font-size: 13.5px; 
         }
-        h1, h2, h3, h4, h5, h6, p, span, label, div, .stMarkdown { 
+        h1, h2, h3, h4, h5, h6 { 
+            color: #F8FAFC !important; 
+            font-size: 22px !important;
+            font-weight: 600 !important;
+            letter-spacing: 2px !important;
+        }
+        p, span, label, div, .stMarkdown { 
             color: #F8FAFC !important; 
         }
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
@@ -89,7 +95,13 @@ else:
             color: #374151 !important; 
             font-size: 13.5px; 
         }
-        h1, h2, h3, h4, h5, h6, p, span, label, div, .stMarkdown { 
+        h1, h2, h3, h4, h5, h6 { 
+            color: #111827 !important; 
+            font-size: 22px !important;
+            font-weight: 600 !important;
+            letter-spacing: 2px !important;
+        }
+        p, span, label, div, .stMarkdown { 
             color: #111827 !important; 
         }
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
@@ -489,7 +501,6 @@ if yeni_tema != st.session_state.tema_secimi:
 st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Ana Menü</p>', unsafe_allow_html=True)
 
-# Oturum durumuna göre menülerin listesi dinamik ayarlanır (Misafir modunda "Yeni Mal Alımı / Fatura Ekle" gizlenir)
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
 asci_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "asci")
 misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
@@ -705,7 +716,7 @@ if menu == "Kurumsal Dashboard & Özet":
         <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 24px 30px; border-radius: 16px; color: white; margin-bottom: 25px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h2 style="color: white !important; margin: 0; font-size: 24px; font-weight: 700;">2026 YILI BAŞARI & ÖZET GRAFİĞİ</h2>
+                    <h2 style="color: white !important; margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 2px;">2026 YILI BAŞARI & ÖZET GRAFİĞİ</h2>
                     <p style="color: #94A3B8 !important; margin: 5px 0 0 0; font-size: 14px;">Aziziye Sosyal Yardımlaşma ve Dayanışma Vakfı Aşevi Operasyon Paneli</p>
                 </div>
                 <div style="background: rgba(255, 255, 255, 0.1); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #38BDF8;">
@@ -851,7 +862,7 @@ elif menu == "Güncel Stok Durumu":
         st.write(f"• **{row['Ürün Adı']}** | Kategori: {row['Kategori']} | Kalan: **{row['Kalan Miktar']} {row['Birim']}** | Depo: {row['Depo Yeri']} | *(Ekleyen: {row['İşlemi Yapan']})*")
 
 
-# 2. YENİ MAL ALIMI / FATURA EKLE (Yalnızca yetkili kullanıcılar görebilir)
+# 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -1939,7 +1950,7 @@ elif menu == "Kullanım Takibi":
     with m3:
         st.metric("Fire / Zayiat Miktarı", f"{toplam_fire_mik:.1f}")
     with m4:
-        st.metric("Toplam Harcama / Maliyet", f"{genel_toplam_tutar:.2f} ₺")
+        st.metric("Toplam Harcama / Maliyet", f"{genel_toplog_tutar if 'genel_toplog_tutar' in locals() else genel_toplam_tutar:.2f} ₺")
 
     st.markdown("---")
     st.subheader("📋 Detaylı İşlem Geçmişi Tablosu")
