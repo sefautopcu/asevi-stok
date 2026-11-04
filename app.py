@@ -541,34 +541,29 @@ st.sidebar.markdown("""
 
 sidebar_arama = st.sidebar.text_input("🔍 Menüde Ara...", placeholder="Ürün, Fatura, Personel, T.C....", label_visibility="collapsed").strip().lower()
 
-# GENİŞLETİLMİŞ AKILLI EŞLEŞTİRME KONTROLÜ
 otomatik_yonlendirilen_menu = None
 if sidebar_arama:
-    # 1. Ürün adı veya Fatura no araması -> Güncel Stok veya Fatura Ekle sayfasına yönlendir
-     urun_veya_fatura_bulundu = any(
-         sidebar_arama in g.get("urun", "").lower() or sidebar_arama in g.get("fatura_no", "").lower() 
-         for g in st.session_state.girisler
-     )
+    urun_veya_fatura_bulundu = any(
+        sidebar_arama in g.get("urun", "").lower() or sidebar_arama in g.get("fatura_no", "").lower() 
+        for g in st.session_state.girisler
+    )
     if urun_veya_fatura_bulundu:
         otomatik_yonlendirilen_menu = "Güncel Stok Durumu"
 
-    # 2. Personel adı araması -> Personel & Çalışma Süresi Takibi
-     personel_bulundu = any(
-         sidebar_arama in p.get("ad_soyad", "").lower() or sidebar_arama in p.get("tc", "")
-         for p in st.session_state.personeller
-     )
+    personel_bulundu = any(
+        sidebar_arama in p.get("ad_soyad", "").lower() or sidebar_arama in p.get("tc", "")
+        for p in st.session_state.personeller
+    )
     if personel_bulundu:
         otomatik_yonlendirilen_menu = "Personel & Çalışma Süresi Takibi"
 
-    # 3. İhtiyaç sahibi veya T.C. / hane araması -> İhtiyaç Sahibi & Yemek Dağıtım Takibi
-     ihtiyac_sahibi_bulundu = any(
-         sidebar_arama in i.get("ad_soyad", "").lower() or sidebar_arama in i.get("tc_hane", "")
-         for i in st.session_state.ihtiyac_sahipleri
-     )
+    ihtiyac_sahibi_bulundu = any(
+        sidebar_arama in i.get("ad_soyad", "").lower() or sidebar_arama in i.get("tc_hane", "")
+        for i in st.session_state.ihtiyac_sahipleri
+    )
     if ihtiyac_sahibi_bulundu:
         otomatik_yonlendirilen_menu = "İhtiyaç Sahibi & Yemek Dağıtım Takibi"
 
-    # Eğer akıllı aramada eşleşme bulunduysa aktif menüyü otomatik güncelle
     if otomatik_yonlendirilen_menu:
         st.session_state.aktif_menu = otomatik_yonlendirilen_menu
         st.query_params["menu"] = otomatik_yonlendirilen_menu
