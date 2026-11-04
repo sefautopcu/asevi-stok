@@ -272,7 +272,6 @@ def verileri_yukle():
         try:
             with open(VERI_DOSYASI, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # Eski kayıtlarda fatura_no yoksa ekleyelim
                 for item in data:
                     if "fatura_no" not in item:
                         item["fatura_no"] = "BELİRTİLMEMİŞ"
@@ -490,10 +489,20 @@ if yeni_tema != st.session_state.tema_secimi:
 st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="font-size: 14px; font-weight: 600; margin-bottom: 8px; padding-left: 5px;">Ana Menü</p>', unsafe_allow_html=True)
 
+# Oturum durumuna göre menülerin listesi dinamik ayarlanır (Misafir modunda "Yeni Mal Alımı / Fatura Ekle" gizlenir)
+yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
+asci_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "asci")
+misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
+
 menuler_listesi = [
     "Kurumsal Dashboard & Özet",
     "Güncel Stok Durumu", 
-    "Yeni Mal Alımı / Fatura Ekle", 
+]
+
+if not misafir_modu:
+    menuler_listesi.append("Yeni Mal Alımı / Fatura Ekle")
+
+menuler_listesi.extend([
     "Ürün Sil / Düzenle", 
     "Fire / Zayiat Girişi", 
     "Günlük Yemek Üretimi & Maliyet Raporu",
@@ -502,7 +511,7 @@ menuler_listesi = [
     "Personel & Çalışma Süresi Takibi",
     "Kullanım Takibi",
     "Ürün Birim Fiyatları & Ay Analizi"
-]
+])
 
 for m in menuler_listesi:
     btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
@@ -578,10 +587,6 @@ else:
                     else:
                         yonetici_sifresi_kaydet(yeni_sifre_1)
                         st.success("Admin şifresi başarıyla değiştirildi!")
-
-yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
-asci_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "asci")
-misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="font-size: 11px; text-align: center; margin-top: 10px;">sefautopcu</p>', unsafe_allow_html=True)
@@ -846,13 +851,13 @@ elif menu == "Güncel Stok Durumu":
         st.write(f"• **{row['Ürün Adı']}** | Kategori: {row['Kategori']} | Kalan: **{row['Kalan Miktar']} {row['Birim']}** | Depo: {row['Depo Yeri']} | *(Ekleyen: {row['İşlemi Yapan']})*")
 
 
-# 2. YENİ MAL ALIMI / FATURA EKLE
+# 2. YENİ MAL ALIMI / FATURA EKLE (Yalnızca yetkili kullanıcılar görebilir)
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
-    st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
-    
     if misafir_modu:
-        st.warning("👀 Misafir modundasınız. Bu ekranda yalnızca gözlem yapabilirsiniz, yeni ürün ekleyemezsiniz.")
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
+        st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
+        
         with st.form("fatura_formu"):
             tarih_giris = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
             fatura_no_input = st.text_input("Fatura No / Belge No (Örn: FAT-2026-105)").strip().upper()
@@ -884,26 +889,26 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi. (Fatura No: {fatura_no_degeri} - İşlemi Yapan: {islem_yapan_kisi})")
                 st.rerun()
 
-    st.markdown("---")
-    st.subheader("📋 Mal Alımı / Fatura Log Kayıtları Arşivi")
-    if st.session_state.girisler:
-        fatura_log_tablosu = []
-        for g in reversed(st.session_state.girisler):
-            fatura_log_tablosu.append({
-                "Kayıt ID": g.get("id", "-"),
-                "Tarih / Saat": g.get("tarih", "-"),
-                "Fatura No": g.get("fatura_no", "BELİRTİLMEMİŞ"),
-                "Ürün Adı": g.get("urun", "-"),
-                "Kategori": g.get("kategori", "-"),
-                "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
-                "Birim Fiyat": f"{g.get('fiyat', 0):,.2f} ₺",
-                "Toplam Tutar": f"{(g.get('miktar', 0) * g.get('fiyat', 0)):,.2f} ₺",
-                "Depo Yeri": g.get("depo", "-"),
-                "İşlemi Yapan": g.get("islem_yapan", "admin")
-            })
-        st.dataframe(fatura_log_tablosu, use_container_width=True)
-    else:
-        st.info("Kayıtlı mal alımı faturası bulunmuyor.")
+        st.markdown("---")
+        st.subheader("📋 Mal Alımı / Fatura Log Kayıtları Arşivi")
+        if st.session_state.girisler:
+            fatura_log_tablosu = []
+            for g in reversed(st.session_state.girisler):
+                fatura_log_tablosu.append({
+                    "Kayıt ID": g.get("id", "-"),
+                    "Tarih / Saat": g.get("tarih", "-"),
+                    "Fatura No": g.get("fatura_no", "BELİRTİLMEMİŞ"),
+                    "Ürün Adı": g.get("urun", "-"),
+                    "Kategori": g.get("kategori", "-"),
+                    "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
+                    "Birim Fiyat": f"{g.get('fiyat', 0):,.2f} ₺",
+                    "Toplam Tutar": f"{(g.get('miktar', 0) * g.get('fiyat', 0)):,.2f} ₺",
+                    "Depo Yeri": g.get("depo", "-"),
+                    "İşlemi Yapan": g.get("islem_yapan", "admin")
+                })
+            st.dataframe(fatura_log_tablosu, use_container_width=True)
+        else:
+            st.info("Kayıtlı mal alımı faturası bulunmuyor.")
 
 
 # 3. ÜRÜN SİL / DÜZENLE
@@ -1966,6 +1971,6 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     excel_data = tablo_to_excel_bytes(fiyat_tablosu_verisi, "Aziziye Aşevi - Ürün Birim Fiyatları")
 
     with col_indir_alan:
-        ortak_indirme_alani(excel_data, pdf_data, "urun_birim_fiyatlari", "fiyat_sayfasi")
+        ortak_indirme_alani(excel_data, pdf_data, "urun_birim_fiyatları", "fiyat_sayfasi")
 
     st.dataframe(fiyat_tablosu_verisi, use_container_width=True)
