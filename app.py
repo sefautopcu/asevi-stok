@@ -1526,19 +1526,19 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.info("Silinecek personel bulunmuyor.")
 
             with col_p_durum:
-                # Durum Güncelleme Formu (Düzeltildi ve Aktif hale getirildi)
+                # Durum Güncelleme Formu (Düzeltildi: Ada göre eşleşme sağlanarak pasife geçmeme sorunu giderildi)
                 with st.form("durum_guncelle_form"):
                     st.markdown("**🔄 Durum Güncelle**")
                     if st.session_state.personeller:
-                        p_secenekler = [f"{p.get('tc', '---')} - {p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
+                        p_secenekler = [f"{p['ad_soyad']} ({'Aktif' if p.get('aktif', True) else 'Pasif'})" for p in st.session_state.personeller]
                         secilen_p_str = st.selectbox("Personel Seç", p_secenekler, key="secilen_p_durum_box")
                         yeni_durum = st.radio("Durum", ["Aktif Çalışıyor", "Pasif / Ayrıldı"], horizontal=True, key="yeni_durum_radio")
                         durum_guncelle_btn = st.form_submit_button("Durumu Güncelle", use_container_width=True)
                         
                         if durum_guncelle_btn:
-                            p_tc_secilen = secilen_p_str.split(" - ")[0]
+                            secilen_isim = secilen_p_str.split(" (")[0]
                             for p in st.session_state.personeller:
-                                if p.get('tc') == p_tc_secilen:
+                                if p['ad_soyad'] == secilen_isim:
                                     p["aktif"] = (yeni_durum == "Aktif Çalışıyor")
                             personelleri_kaydet(st.session_state.personeller)
                             st.success("Durum başarıyla güncellendi!")
