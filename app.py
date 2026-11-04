@@ -16,7 +16,7 @@ st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲"
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "Koyu Tema (Dark)"
 
-# Dinamik Tema CSS Entegrasyonu (Buton renkleri ve okunabilirlik düzeltildi)
+# Dinamik Tema CSS Entegrasyonu
 if st.session_state.tema_secimi == "Koyu Tema (Dark)":
     st.markdown("""
         <style>
@@ -46,8 +46,7 @@ if st.session_state.tema_secimi == "Koyu Tema (Dark)":
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-        /* Tüm Butonlar İçin Koyu Tema Renk Düzeltmesi */
-        div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"] {
+        div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
             background-color: #1E293B !important;
             color: #F8FAFC !important;
             border: 1px solid #334155 !important;
@@ -55,7 +54,7 @@ if st.session_state.tema_secimi == "Koyu Tema (Dark)":
             font-weight: 500 !important;
             transition: all 0.2s ease;
         }
-        div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover {
+        div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
             background-color: #334155 !important;
             color: #38BDF8 !important;
             border-color: #38BDF8 !important;
@@ -128,14 +127,14 @@ else:
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-        div.stButton > button {
+        div.stButton > button, div.stFormSubmitButton > button {
             background-color: #FFFFFF !important;
             color: #111827 !important;
             border: 1px solid #E5E7EB !important;
             border-radius: 8px !important;
             font-weight: 500 !important;
         }
-        div.stButton > button:hover {
+        div.stButton > button:hover, div.stFormSubmitButton > button:hover {
             background-color: #F3F4F6 !important;
             border-color: #D1D5DB !important;
         }
@@ -387,6 +386,7 @@ if "dagitim_silme_mesaji" not in st.session_state:
     st.session_state.dagitim_silme_mesaji = ""
 
 query_params = st.query_params
+
 if "oturum_aktif" not in st.session_state:
     if "auth" in query_params and query_params["auth"] == "true" and "user" in query_params:
         st.session_state.oturum_aktif = True
@@ -395,8 +395,27 @@ if "oturum_aktif" not in st.session_state:
         st.session_state.oturum_aktif = False
         st.session_state.aktif_kullanici = "misafir"
 
+# Sayfa yenilendiğinde (F5) URL'den aktif menüyü koruma mekanizması
+gecerli_menuler = [
+    "Kurumsal Dashboard & Özet",
+    "Güncel Stok Durumu", 
+    "Yeni Mal Alımı / Fatura Ekle", 
+    "Ürün Sil / Düzenle", 
+    "Fire / Zayiat Girişi",
+    "Ürün Birim Fiyatları & Ay Analizi",
+    "Günlük Yemek Üretimi & Maliyet Raporu",
+    "Kalori Hesaplama Aracı",
+    "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
+    "Personel & Çalışma Süresi Takibi",
+    "Kullanım Takibi"
+]
+
 if "aktif_menu" not in st.session_state:
-    st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
+    if "menu" in query_params and query_params["menu"] in gecerli_menuler:
+        st.session_state.aktif_menu = query_params["menu"]
+    else:
+        st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
+
 if "silme_mesaji" not in st.session_state:
     st.session_state.silme_mesaji = ""
 if "kisi_silme_mesaji" not in st.session_state:
@@ -567,6 +586,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
             btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
             if st.button(m, use_container_width=True, type=btn_type, key=f"menu_btn_{m}"):
                 st.session_state.aktif_menu = m
+                st.query_params["menu"] = m  # URL parametresine işleyerek F5'te kalmasını sağla
                 st.rerun()
 
 st.sidebar.markdown("---")
@@ -820,14 +840,17 @@ if menu == "Kurumsal Dashboard & Özet":
     with q1:
         if st.button("📦 Stok Durumuna Git", use_container_width=True):
             st.session_state.aktif_menu = "Güncel Stok Durumu"
+            st.query_params["menu"] = "Güncel Stok Durumu"
             st.rerun()
     with q2:
         if st.button("🍲 Yemek Üretimi Yap", use_container_width=True):
             st.session_state.aktif_menu = "Günlük Yemek Üretimi & Maliyet Raporu"
+            st.query_params["menu"] = "Günlük Yemek Üretimi & Maliyet Raporu"
             st.rerun()
     with q3:
         if st.button("🔥 Kalori Hesaplama Aracı", use_container_width=True):
             st.session_state.aktif_menu = "Kalori Hesaplama Aracı"
+            st.query_params["menu"] = "Kalori Hesaplama Aracı"
             st.rerun()
 
 # 1. GÜNCEL STOK DURUMU
