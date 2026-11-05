@@ -48,7 +48,7 @@ def metni_coz(sifreli_metin):
 if "tema_secimi" not in st.session_state:
   st.session_state.tema_secimi = "BoardUI Dark (Pro)"
 
-# BoardUI Pro Tasarım Dili & CSS Entegrasyonu (Dark Tema Takvim ve Seçim Kutusu Metin Düzeltmeli Kesin Çözüm)
+# BoardUI Pro Tasarım Dili & CSS Entegrasyonu (Kesin Çözüm: Dark/Light Menü ve Takvim Metin Renkleri)
 if st.session_state.tema_secimi == "BoardUI Dark (Pro)":
   st.markdown(
       """
@@ -78,7 +78,7 @@ if st.session_state.tema_secimi == "BoardUI Dark (Pro)":
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-    /* KESİN ÇÖZÜM: DARK TEMA BASEWEB AÇILIR MENÜ, LİSTE VE TAKVİM KONTRAST DÜZELTMESİ */
+    /* KESİN ÇÖZÜM: DARK TEMA İÇİN BASEWEB SELECTBOX, LİSTBOX, POPOVER VE TAKVİM TÜM METİNLERİ */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
         background-color: #161d2d !important;
         color: #ffffff !important;
@@ -86,21 +86,20 @@ if st.session_state.tema_secimi == "BoardUI Dark (Pro)":
         box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
         border-radius: 10px !important;
     }
-    li[role="option"] {
+    li[role="option"], li[role="option"] div, li[role="option"] span {
         background-color: #161d2d !important;
         color: #ffffff !important;
     }
-    li[role="option"] div, li[role="option"] span, 
-    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span,
-    div[data-baseweb="calendar"] button {
+    li[role="option"]:hover, li[role="option"]:hover div, li[role="option"]:hover span {
+        background-color: #25334a !important;
         color: #ffffff !important;
     }
-    li[role="option"]:hover {
-        background-color: #222b3b !important;
+    /* Takvim içi tüm yazılar ve rakamlar */
+    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span, div[data-baseweb="calendar"] button {
         color: #ffffff !important;
     }
     div[data-baseweb="calendar"] button:hover {
-        background-color: #222b3b !important;
+        background-color: #25334a !important;
     }
     input, div[data-baseweb="select"] > div {
         background-color: #111622 !important;
@@ -199,15 +198,15 @@ else:
         box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
         border-radius: 10px !important;
     }
-    li[role="option"] {
+    li[role="option"], li[role="option"] div, li[role="option"] span {
         background-color: #ffffff !important;
-        color: #0f172a !important;
-    }
-    li[role="option"] div, li[role="option"] span, div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span {
         color: #0f172a !important;
     }
     li[role="option"]:hover {
         background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span {
         color: #0f172a !important;
     }
     input, div[data-baseweb="select"] > div {
@@ -3593,3 +3592,26 @@ elif menu == "Kullanıcı Ayarları":
             "Kalori Hesaplama Aracı",
             "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
             "Personel & Çalışma Süresi Takibi",
+            "Kullanım Takibi",
+        ]
+
+        secilen_yasaklar = []
+        for m_item in tum_yonetilebilir_menuler:
+          varsayilan_durum = m_item in mevcur_yasaklar
+          if st.checkbox(
+              f"Kapat / Gizle: {m_item}",
+              value=varsayilan_durum,
+              key=f"yasak_{yetki_verilecek_k}_{m_item}",
+          ):
+            secilen_yasaklar.append(m_item)
+
+        if st.button("Yetki Ayarlarını Kaydet", type="primary"):
+          st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = (
+              secilen_yasaklar
+          )
+          kullanıcıları_kaydet(st.session_state.kullanicilar)
+          st.success(
+              f"'{yetki_verilecek_k}' kullanıcısının sayfa yetkileri başarıyla"
+              " güncellendi!"
+          )
+          st.rerun()
