@@ -45,7 +45,7 @@ def metni_coz(sifreli_metin):
     return str(sifreli_metin)
 
 
-# TEK VE SAF SİYAH TEMA (Liquid Glass Navigasyon Stili)
+# TEK VE SAF SİYAH TEMA (Liquid Glass Navigasyon Stili & Logo Entegrasyonu)
 st.markdown(
     """
     <style>
@@ -60,7 +60,7 @@ st.markdown(
     /* Yan Menü Arka Planı ve Çerçevesiz Tasarım */
     .stSidebar { 
         background-color: #000000 !important; 
-        padding-top: 15px; 
+        padding-top: 10px; 
         border-right: 1px solid #121212 !important;
     }
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
@@ -855,23 +855,39 @@ st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (Saf Siyah Pro)")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-# ----------------- SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ (Liquid Glass) -----------------
+# ----------------- SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ (Logo + Liquid Glass) -----------------
 kullanici_adi_goruntule = (
     st.session_state.aktif_kullanici.upper()
     if st.session_state.oturum_aktif
     else "MİSAFİR"
 )
 
+# Yan Menünün En Üstüne Kurumsal Logo / Simgesi Eklendi
+st.sidebar.markdown(
+    """
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 12px;">
+        <div style="background: rgba(255,255,255,0.08); color: #ffffff; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(12px);">
+            🍲
+        </div>
+        <div>
+            <div style="font-weight: 700; font-size: 15px; color: #ffffff; letter-spacing: -0.02em;">AZİZİYE AŞEVİ</div>
+            <div style="font-size: 11px; color: #9ca3af; font-weight: 500;">Yönetim & Takip Sistemi</div>
+        </div>
+    </div>
+""",
+    unsafe_allow_html=True,
+)
+
 st.sidebar.markdown(
     f"""
-    <div style="background: transparent; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="background: rgba(255,255,255,0.08); color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 1px solid rgba(255,255,255,0.1);">
+    <div style="background: transparent; padding: 6px 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="background: rgba(255,255,255,0.06); color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; border: 1px solid rgba(255,255,255,0.08);">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
-                <div style="font-weight: 600; font-size: 14px; color: #ffffff;">{kullanici_adi_goruntule}</div>
-                <div style="font-size: 11.5px; color: #9ca3af;">Aziziye Workspace</div>
+                <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">{kullanici_adi_goruntule}</div>
+                <div style="font-size: 11px; color: #9ca3af;">Aktif Oturum</div>
             </div>
         </div>
     </div>
