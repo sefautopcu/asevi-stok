@@ -73,7 +73,7 @@ st.markdown(
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        margin-bottom: 4px;
+        margin-bottom: -10px;
     }
     
     section[data-testid="stSidebar"] div.stButton > button {
