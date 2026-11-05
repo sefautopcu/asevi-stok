@@ -36,7 +36,7 @@ def metni_coz(sifreli_metin):
     except Exception:
         return str(sifreli_metin)
 
-# Tek ve Kusursuz CollectUI Dark Tasarım Dili & CSS Entegrasyonu (Sadeleştirilmiş Sidebar)
+# Tek ve Kusursuz CollectUI Dark Tasarım Dili & CSS Entegrasyonu
 st.markdown("""
     <style>
     .main, .stApp { 
@@ -513,7 +513,7 @@ if not st.session_state.oturum_aktif:
         st.markdown("""
             <div style="text-align: center; margin-bottom: 24px;">
                 <h2 style="font-weight: 700; letter-spacing: -0.05em; color: #ffffff;">🍲 AZİZİYE AŞEVİ</h2>
-                <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">CollectUI Sadeleştirilmiş Dark Sistem</p>
+                <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">sefautopcu Pro Sistem</p>
             </div>
         """, unsafe_allow_html=True)
         
@@ -555,11 +555,11 @@ if not st.session_state.oturum_aktif:
 # =========================================================================
 # ANA UYGULAMA İÇERİĞİ
 # =========================================================================
-st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (CollectUI Sadeleştirilmiş Pro)")
+st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (sefautopcu Pro)")
 st.markdown(f"<span style='color: #94a3b8;'>**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}</span>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ----------------- SADELEŞTİRİLMİŞ SIDEBAR & AĞAÇ MENÜ -----------------
+# ----------------- DERİNLEŞTİRİLMİŞ AKILLI ARAMA & SIDEBAR -----------------
 kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session_state.oturum_aktif else "MİSAFİR"
 
 st.sidebar.markdown(f"""
@@ -576,29 +576,34 @@ st.sidebar.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-sidebar_arama = st.sidebar.text_input("🔍 Hızlı Menü Ara", placeholder="Menü veya öğe ara...", label_visibility="collapsed").strip().lower()
+sidebar_arama = st.sidebar.text_input("🔍 Derin Arama", placeholder="STK-001, Domates, Fatura...", label_visibility="collapsed").strip().lower()
 
 otomatik_yonlendirilen_menu = None
 if sidebar_arama:
-    urun_veya_fatura_bulundu = any(
-        sidebar_arama in g.get("urun", "").lower() or sidebar_arama in g.get("fatura_no", "").lower() 
+    # 1. Stok / Fatura araması (ID, Ürün adı veya Fatura No içinde kısmi eşleşme)
+    stok_veya_fatura_bulundu = any(
+        sidebar_arama in str(g.get("id", "")).lower() or 
+        sidebar_arama in str(g.get("urun", "")).lower() or 
+        sidebar_arama in str(g.get("fatura_no", "")).lower() 
         for g in st.session_state.girisler
     )
-    if urun_veya_fatura_bulundu:
+    if stok_veya_fatura_bulundu:
         otomatik_yonlendirilen_menu = "Güncel Stok Durumu"
 
-    personel_bulundu = any(
-        sidebar_arama in p.get("ad_soyad", "").lower() or sidebar_arama in p.get("tc", "")
+    # 2. Personel araması
+    elif any(
+        sidebar_arama in str(p.get("ad_soyad", "")).lower() or 
+        sidebar_arama in str(p.get("tc", "")).lower()
         for p in st.session_state.personeller
-    )
-    if personel_bulundu:
+    ):
         otomatik_yonlendirilen_menu = "Personel & Çalışma Süresi Takibi"
 
-    ihtiyac_sahibi_bulundu = any(
-        sidebar_arama in i.get("ad_soyad", "").lower() or sidebar_arama in i.get("tc_hane", "")
+    # 3. İhtiyaç sahibi araması
+    elif any(
+        sidebar_arama in str(i.get("ad_soyad", "")).lower() or 
+        sidebar_arama in str(i.get("tc_hane", "")).lower()
         for i in st.session_state.ihtiyac_sahipleri
-    )
-    if ihtiyac_sahibi_bulundu:
+    ):
         otomatik_yonlendirilen_menu = "İhtiyaç Sahibi & Yemek Dağıtım Takibi"
 
     if otomatik_yonlendirilen_menu:
@@ -618,7 +623,6 @@ yasakli_menuler_listesi = aktif_k_bilgi.get("yasakli_menuler", [])
 toplam_aktif_stok_sayisi = len(set(g["urun"] for g in st.session_state.girisler))
 aktif_personel_sayisi = sum(1 for p in st.session_state.personeller if p.get("aktif", True))
 
-# Daha sade ve derli toplu gruplandırma yapısı
 menu_gruplari = {
     "🏠 Özet & Plan": [
         ("Kurumsal Dashboard & Özet", "")
@@ -681,7 +685,7 @@ if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="font-size: 10px; text-align: center; color: #64748b;">CollectUI Simplified v6</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 10px; text-align: center; color: #64748b;">sefautopcu</p>', unsafe_allow_html=True)
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -837,7 +841,7 @@ if menu == "Kurumsal Dashboard & Özet":
 
         <div class="dashboard-header">
             <div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;">Genel Bakış & Operasyonel Özet (CollectUI Pro)</h1>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;">Genel Bakış & Operasyonel Özet (sefautopcu Pro)</h1>
                 <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 13.5px;">Aziziye Aşevi kurum içi yönetim ve anlık takip paneli</p>
             </div>
             <div style="background: rgba(37, 99, 235, 0.15); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;">
