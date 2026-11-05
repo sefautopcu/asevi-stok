@@ -36,7 +36,7 @@ def metni_coz(sifreli_metin):
     except Exception:
         return str(sifreli_metin)
 
-# Tek ve Kusursuz CollectUI Dark Tasarım Dili & CSS Entegrasyonu
+# Tek ve Kusursuz CollectUI Dark Tasarım Dili & CSS Entegrasyonu (Sadeleştirilmiş Sidebar)
 st.markdown("""
     <style>
     .main, .stApp { 
@@ -94,11 +94,12 @@ st.markdown("""
         background-color: #2563eb !important;
         color: #ffffff !important;
         border: none !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
-        font-size: 13.5px !important;
+        font-size: 13px !important;
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        transition: all 0.25s ease;
+        transition: all 0.2s ease;
+        padding: 6px 10px !important;
     }
     div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
         background-color: #1d4ed8 !important;
@@ -503,7 +504,7 @@ def bugunun_turkce_tarihi():
 
 
 # =========================================================================
-# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (CollectUI Tek Dark Mod)
+# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI
 # =========================================================================
 if not st.session_state.oturum_aktif:
     st.markdown("<div style='text-align: center; margin-top: 50px;'></div>", unsafe_allow_html=True)
@@ -512,7 +513,7 @@ if not st.session_state.oturum_aktif:
         st.markdown("""
             <div style="text-align: center; margin-bottom: 24px;">
                 <h2 style="font-weight: 700; letter-spacing: -0.05em; color: #ffffff;">🍲 AZİZİYE AŞEVİ</h2>
-                <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">CollectUI Tek Dark Tema Pro Sistem</p>
+                <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">CollectUI Sadeleştirilmiş Dark Sistem</p>
             </div>
         """, unsafe_allow_html=True)
         
@@ -554,29 +555,28 @@ if not st.session_state.oturum_aktif:
 # =========================================================================
 # ANA UYGULAMA İÇERİĞİ
 # =========================================================================
-st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (CollectUI Tek Dark Pro)")
+st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (CollectUI Sadeleştirilmiş Pro)")
 st.markdown(f"<span style='color: #94a3b8;'>**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}</span>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ----------------- SIDEBAR & AĞAÇ MENÜ -----------------
+# ----------------- SADELEŞTİRİLMİŞ SIDEBAR & AĞAÇ MENÜ -----------------
 kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session_state.oturum_aktif else "MİSAFİR"
 
 st.sidebar.markdown(f"""
-    <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.25); padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="background: #2563eb; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">
+    <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.25); padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="background: #2563eb; color: white; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
-                <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">{kullanici_adi_goruntule}</div>
-                <div style="font-size: 11px; color: #94a3b8;">CollectUI Dark Workspace</div>
+                <div style="font-weight: 600; font-size: 13px; color: #ffffff;">{kullanici_adi_goruntule}</div>
+                <div style="font-size: 10px; color: #94a3b8;">Aktif Oturum</div>
             </div>
         </div>
-        <div style="font-size: 12px; color: #64748b;">↕</div>
     </div>
 """, unsafe_allow_html=True)
 
-sidebar_arama = st.sidebar.text_input("🔍 Hızlı Arama", placeholder="Öğe veya log ara...", label_visibility="collapsed").strip().lower()
+sidebar_arama = st.sidebar.text_input("🔍 Hızlı Menü Ara", placeholder="Menü veya öğe ara...", label_visibility="collapsed").strip().lower()
 
 otomatik_yonlendirilen_menu = None
 if sidebar_arama:
@@ -605,7 +605,7 @@ if sidebar_arama:
         st.session_state.aktif_menu = otomatik_yonlendirilen_menu
         st.query_params["menu"] = otomatik_yonlendirilen_menu
 
-st.sidebar.markdown('<p style="font-size: 11px; font-weight: 600; margin-top: 10px; margin-bottom: 6px; padding-left: 4px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">ÇALIŞMA ALANI MENÜSÜ</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 10px; font-weight: 600; margin-top: 6px; margin-bottom: 4px; padding-left: 2px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">MODÜLLER</p>', unsafe_allow_html=True)
 
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
 misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
@@ -618,32 +618,33 @@ yasakli_menuler_listesi = aktif_k_bilgi.get("yasakli_menuler", [])
 toplam_aktif_stok_sayisi = len(set(g["urun"] for g in st.session_state.girisler))
 aktif_personel_sayisi = sum(1 for p in st.session_state.personeller if p.get("aktif", True))
 
+# Daha sade ve derli toplu gruplandırma yapısı
 menu_gruplari = {
-    "🏠 Genel Bakış": [
+    "🏠 Özet & Plan": [
         ("Kurumsal Dashboard & Özet", "")
     ],
-    "📦 Depo & Stok Yönetimi": [
+    "📦 Depo": [
         ("Güncel Stok Durumu", str(toplam_aktif_stok_sayisi)),
         ("Yeni Mal Alımı / Fatura Ekle", ""),
         ("Ürün Sil / Düzenle", ""),
         ("Fire / Zayiat Girişi", ""),
         ("Ürün Birim Fiyatları & Ay Analizi", "")
     ],
-    "🍲 Üretim & Mutfak": [
+    "🍲 Mutfak": [
         ("Günlük Yemek Üretimi & Maliyet Raporu", ""),
         ("Kalori Hesaplama Aracı", "")
     ],
-    "👥 Sosyal & İnsan Kaynakları": [
+    "👥 Sosyal & İK": [
         ("İhtiyaç Sahibi & Yemek Dağıtım Takibi", str(len(st.session_state.ihtiyac_sahipleri))),
         ("Personel & Çalışma Süresi Takibi", str(aktif_personel_sayisi))
     ],
-    "📈 Raporlar & Arşiv": [
+    "📈 Raporlar": [
         ("Kullanım Takibi", "")
     ]
 }
 
 if yonetici_modu:
-    menu_gruplari["⚙️ Sistem Ayarları"] = [("Kullanıcı Ayarları", str(len(st.session_state.kullanicilar)))]
+    menu_gruplari["⚙️ Ayarlar"] = [("Kullanıcı Ayarları", str(len(st.session_state.kullanicilar)))]
 
 filtrelenmis_gruplar = {}
 for grup_adi, alt_menuler in menu_gruplari.items():
@@ -680,7 +681,7 @@ if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="font-size: 11px; text-align: center; color: #64748b;">CollectUI Single Dark Mode v5 - sefautopcu</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 10px; text-align: center; color: #64748b;">CollectUI Simplified v6</p>', unsafe_allow_html=True)
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -836,7 +837,7 @@ if menu == "Kurumsal Dashboard & Özet":
 
         <div class="dashboard-header">
             <div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;">Genel Bakış & Operasyonel Özet (CollectUI Dark Pro)</h1>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;">Genel Bakış & Operasyonel Özet (CollectUI Pro)</h1>
                 <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 13.5px;">Aziziye Aşevi kurum içi yönetim ve anlık takip paneli</p>
             </div>
             <div style="background: rgba(37, 99, 235, 0.15); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;">
@@ -2321,4 +2322,4 @@ elif menu == "Kullanıcı Ayarları":
                     st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = secilen_yasaklar
                     kullanıcıları_kaydet(st.session_state.kullanicilar)
                     st.success(f"'{yetki_verilecek_k}' kullanıcısının sayfa yetkileri başarıyla güncellendi!")
-                    st.reron() if hasattr(st, "reron") else st.rerun()
+                    st.rerun()
