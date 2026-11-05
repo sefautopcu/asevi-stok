@@ -24,7 +24,6 @@ def fernet_motorunu_baslat():
         gizli_anahtar = st.secrets["FERNET_KEY"].encode("utf-8")
         return Fernet(gizli_anahtar)
     except Exception:
-        # Güvenli fallback anahtarı (Üretimde st.secrets kullanımı zorunludur)
         return Fernet(Fernet.generate_key())
 
 fernet_motoru = fernet_motorunu_baslat()
@@ -35,7 +34,6 @@ def metni_sifrele(duz_metin):
     try:
         return fernet_motoru.encrypt(str(duz_metin).encode("utf-8")).decode("utf-8")
     except Exception as e:
-        st.error(f"Şifreleme hatası: {e}")
         return str(duz_metin)
 
 def metni_coz(sifreli_metin):
@@ -44,7 +42,6 @@ def metni_coz(sifreli_metin):
     try:
         return fernet_motoru.decrypt(str(sifreli_metin).encode("utf-8")).decode("utf-8")
     except Exception:
-        # Şifrelenmemiş veya eski ham metinler için güvenli geri dönüş
         return str(sifreli_metin)
 
 # TEK VE SAF SİYAH TEMA (Liquid Glass & Beyaz Çizgi İkon/Takvim Stili)
@@ -308,7 +305,7 @@ varsayilan_widgets = [
     {"id": "w2", "baslik": "Aylık Fire ve Zayiat Trendi (Çizgi Grafik)", "tur": "Çizgi Grafik", "aktif": True},
 ]
 
-# --- PERFORMANS İÇİN ÖNBELLEKLENMİŞ YÜKLEME FONKSİYONLARI ---
+# --- ÖNBELLEKLENMİŞ YÜKLEME FONKSİYONLARI ---
 
 @st.cache_data
 def widgetlari_yukle():
@@ -741,9 +738,3 @@ if menu == "Kurumsal Dashboard & Özet":
     st.info("Diğer menülere sol kenar çubuğundan geçiş yapabilirsiniz.")
 else:
     st.info(f"Seçilen aktif çalışma alanı: **{menu}**")
-
-
-<ElicitationsGroup message="Optimizasyon ve güvenlik güncellemelerini içeren kod tabanınız hazırlandı. Devam etmek için aşağıdaki adımlardan birini seçebilirsiniz:">
-  <Elicitation label="Performans önbellekleme mekanizmasını test etmek istiyorum" query="Performans önbellekleme mekanizmasını test etmek istiyorum. Hangi fonksiyonlar önbelleğe alındı?"/>
-  <Elicitation label="Güvenlik ve Fernet anahtarı yapılandırmasını incelemek istiyorum" query="Güvenlik ve Fernet anahtarı yapılandırmasını nasıl detaylandırabiliriz?"/>
-</ElicitationsGroup>
