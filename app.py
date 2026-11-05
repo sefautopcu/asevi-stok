@@ -45,7 +45,7 @@ def metni_coz(sifreli_metin):
     return str(sifreli_metin)
 
 
-# TEK VE SAF SİYAH TEMA (Liquid Glass Navigasyon, Logo ve Açılır Menü Efekti)
+# TEK VE SAF SİYAH TEMA (Liquid Glass & Beyaz Çizgi İkon/Takvim Stili)
 st.markdown(
     """
     <style>
@@ -147,7 +147,7 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* AÇILIR SEÇİM MENÜLERİ (SELECTBOX POPUP) İÇİN LIQUID GLASS EFEKTİ */
+    /* AÇILIR SEÇİM MENÜLERİ VE TAKVİM İKONLARI (BEYAZ ÇİZGİ / OUTLINE DÖNÜŞÜMÜ) */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
         background: rgba(12, 12, 12, 0.85) !important;
         backdrop-filter: blur(16px) !important;
@@ -157,6 +157,13 @@ st.markdown(
         box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.6) !important;
         border-radius: 14px !important;
     }
+    
+    /* Takvim ve Sistem İkonlarının Beyaz Çizgi (Outline) Görünümü */
+    .stDateInput svg, div[data-baseweb="calendar"] svg, button svg {
+        filter: brightness(0) invert(1) !important;
+        opacity: 0.85;
+    }
+
     li[role="option"], li[role="option"] div, li[role="option"] span {
         background: transparent !important;
         color: #e5e7eb !important;
