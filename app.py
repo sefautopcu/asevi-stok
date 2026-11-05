@@ -11,7 +11,7 @@ import pandas as pd
 from cryptography.fernet import Fernet
 
 # Sayfa Yapılandırması
-st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
+st.set_page_config(page_title="Aziziye - BoardUI Aşevi Takip Sistemi", page_icon="🍲", layout="wide")
 
 # Şifreleme Anahtarı ve Motoru
 try:
@@ -38,61 +38,61 @@ def metni_coz(sifreli_metin):
 
 # Oturumda Tema Durumu Kontrolü
 if "tema_secimi" not in st.session_state:
-    st.session_state.tema_secimi = "Koyu Tema (Dark)"
+    st.session_state.tema_secimi = "BoardUI Dark (Pro)"
 
-# Shadcn UI Tasarım Dili & CSS Entegrasyonu
-if st.session_state.tema_secimi == "Koyu Tema (Dark)":
+# BoardUI Tasarım Dili & CSS Entegrasyonu (BoardUI Palette & Styling)
+if st.session_state.tema_secimi == "BoardUI Dark (Pro)":
     st.markdown("""
         <style>
         .main, .stApp { 
-            background-color: #09090B !important; 
-            color: #FAFAFA !important;
+            background-color: #0c0f17 !important; 
+            color: #f3f4f6 !important;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         .stSidebar { 
-            background-color: #09090B !important; 
+            background-color: #090b10 !important; 
             padding-top: 10px; 
-            border-right: 1px solid #27272A;
+            border-right: 1px solid #1e2530;
         }
         .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-            color: #A1A1AA !important; 
+            color: #9ca3af !important; 
             font-size: 13.5px; 
         }
         h1, h2, h3, h4, h5, h6 { 
-            color: #FAFAFA !important; 
+            color: #ffffff !important; 
             font-weight: 600 !important;
             letter-spacing: -0.025em !important;
         }
         p, span, label, div, .stMarkdown { 
-            color: #FAFAFA !important; 
+            color: #e5e7eb !important; 
         }
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-        /* Shadcn Button Stili */
+        /* BoardUI Button Stili */
         div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
-            background-color: #18181B !important;
-            color: #FAFAFA !important;
-            border: 1px solid #27272A !important;
-            border-radius: 6px !important;
+            background-color: #171d29 !important;
+            color: #ffffff !important;
+            border: 1px solid #2a3447 !important;
+            border-radius: 8px !important;
             font-weight: 500 !important;
             font-size: 13.5px !important;
             transition: all 0.2s ease;
         }
         div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
-            background-color: #27272A !important;
-            color: #FAFAFA !important;
-            border-color: #3F3F46 !important;
+            background-color: #222b3b !important;
+            color: #ffffff !important;
+            border-color: #3b82f6 !important;
         }
 
-        /* Shadcn Card / Metric / Form Stili */
+        /* BoardUI Card / Metric / Form Stili */
         div.stMetric, div[data-testid="stExpander"], div.stForm {
-            background: #09090B !important;
-            border: 1px solid #27272A;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
-            color: #FAFAFA !important;
+            background: #111622 !important;
+            border: 1px solid #1e2636;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            color: #f3f4f6 !important;
         }
         
         /* Tablo Stili */
@@ -101,28 +101,28 @@ if st.session_state.tema_secimi == "Koyu Tema (Dark)":
             border-collapse: collapse;
             margin-top: 15px;
             margin-bottom: 15px;
-            background-color: #09090B;
-            border-radius: 8px;
+            background-color: #111622;
+            border-radius: 10px;
             overflow: hidden;
-            border: 1px solid #27272A;
+            border: 1px solid #1e2636;
         }
         .custom-table th {
-            background-color: #18181B;
-            color: #FAFAFA;
+            background-color: #171d29;
+            color: #ffffff;
             padding: 12px 16px;
             text-align: left;
             font-size: 13px;
             font-weight: 600;
-            border-bottom: 1px solid #27272A;
+            border-bottom: 1px solid #1e2636;
         }
         .custom-table td {
             padding: 12px 16px;
-            color: #A1A1AA;
+            color: #9ca3af;
             font-size: 13px;
-            border-bottom: 1px solid #27272A;
+            border-bottom: 1px solid #1e2636;
         }
         .custom-table tr:hover {
-            background-color: #121215;
+            background-color: #161d2d;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -130,78 +130,78 @@ else:
     st.markdown("""
         <style>
         .main, .stApp { 
-            background-color: #FFFFFF !important; 
-            color: #09090B !important;
+            background-color: #f8fafc !important; 
+            color: #0f172a !important;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         .stSidebar { 
-            background-color: #FAFAFA !important; 
+            background-color: #ffffff !important; 
             padding-top: 10px; 
-            border-right: 1px solid #E4E4E7;
+            border-right: 1px solid #e2e8f0;
         }
         .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-            color: #71717A !important; 
+            color: #64748b !important; 
             font-size: 13.5px; 
         }
         h1, h2, h3, h4, h5, h6 { 
-            color: #09090B !important; 
+            color: #0f172a !important; 
             font-weight: 600 !important;
             letter-spacing: -0.025em !important;
         }
         p, span, label, div, .stMarkdown { 
-            color: #09090B !important; 
+            color: #0f172a !important; 
         }
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
         div.stButton > button, div.stFormSubmitButton > button {
-            background-color: #FFFFFF !important;
-            color: #09090B !important;
-            border: 1px solid #E4E4E7 !important;
-            border-radius: 6px !important;
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
             font-weight: 500 !important;
             font-size: 13.5px !important;
         }
         div.stButton > button:hover, div.stFormSubmitButton > button:hover {
-            background-color: #F4F4F5 !important;
-            border-color: #D4D4D8 !important;
+            background-color: #f1f5f9 !important;
+            border-color: #94a3b8 !important;
         }
         div.stMetric, div[data-testid="stExpander"], div.stForm {
-            background: #FFFFFF !important;
-            border: 1px solid #E4E4E7;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            color: #09090B !important;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            color: #0f172a !important;
         }
         .custom-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
             margin-bottom: 15px;
-            background-color: #FFFFFF;
-            border-radius: 8px;
+            background-color: #ffffff;
+            border-radius: 10px;
             overflow: hidden;
-            border: 1px solid #E4E4E7;
+            border: 1px solid #e2e8f0;
             box-shadow: 0 1px 2px rgba(0,0,0,0.02);
         }
         .custom-table th {
-            background-color: #F4F4F5;
-            color: #09090B;
+            background-color: #f1f5f9;
+            color: #0f172a;
             padding: 12px 16px;
             text-align: left;
             font-size: 13px;
             font-weight: 600;
-            border-bottom: 1px solid #E4E4E7;
+            border-bottom: 1px solid #e2e8f0;
         }
         .custom-table td {
             padding: 12px 16px;
-            color: #71717A;
+            color: #64748b;
             font-size: 13px;
-            border-bottom: 1px solid #E4E4E7;
+            border-bottom: 1px solid #e2e8f0;
         }
         .custom-table tr:hover {
-            background-color: #FAFAFA;
+            background-color: #f8fafc;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -215,6 +215,7 @@ TATIL_DOSYASI = "asevi_resmi_tatiller.json"
 SILINENS_DOSYASI = "asevi_silinen_urunler_loglari.json"
 YEMEK_URETIM_ARSIV_DOSYASI = "asevi_yemek_uretim_arsivi.json"
 KULLANICI_YETKI_DOSYASI = "asevi_kullanici_yetkileri.json"
+DASHBOARD_WIDGET_DOSYASI = "boardui_dashboard_widgets.json"
 
 def ozel_html_tablo_goster(veri_listesi):
     if not veri_listesi:
@@ -292,6 +293,24 @@ varsayilan_kullanicilar = {
     "asci": {"sifre": "sydv25", "tip": "personel", "yasakli_menuler": []},
     "yonetim": {"sifre": "Yonetim25", "tip": "personel", "yasakli_menuler": []}
 }
+
+varsayilan_widgets = [
+    {"id": "w1", "baslik": "Kategori Bazlı Stok Dağılımı (Sütun Grafik)", "tur": "Sütun Grafik", "aktif": True},
+    {"id": "w2", "baslik": "Aylık Fire ve Zayiat Trendi (Çizgi Grafik)", "tur": "Çizgi Grafik", "aktif": True}
+]
+
+def widgetlari_yukle():
+    if os.path.exists(DASHBOARD_WIDGET_DOSYASI):
+        try:
+            with open(DASHBOARD_WIDGET_DOSYASI, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return varsayilan_widgets
+    return varsayilan_widgets
+
+def widgetlari_kaydet(veri):
+    with open(DASHBOARD_WIDGET_DOSYASI, "w", encoding="utf-8") as f:
+        json.dump(veri, f, ensure_ascii=False, indent=4)
 
 def kullanıcıları_yukle():
     if os.path.exists(KULLANICI_YETKI_DOSYASI):
@@ -462,6 +481,8 @@ if "dagitim_silme_mesaji" not in st.session_state:
     st.session_state.dagitim_silme_mesaji = ""
 if "kullanicilar" not in st.session_state:
     st.session_state.kullanicilar = kullanıcıları_yukle()
+if "dashboard_widgets" not in st.session_state:
+    st.session_state.dashboard_widgets = widgetlari_yukle()
 
 query_params = st.query_params
 
@@ -545,7 +566,7 @@ def bugunun_turkce_tarihi():
 
 
 # =========================================================================
-# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (Shadcn Tarzı)
+# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (BoardUI Pro Tarzı)
 # =========================================================================
 if not st.session_state.oturum_aktif:
     st.markdown("<div style='text-align: center; margin-top: 50px;'></div>", unsafe_allow_html=True)
@@ -554,7 +575,7 @@ if not st.session_state.oturum_aktif:
         st.markdown("""
             <div style="text-align: center; margin-bottom: 24px;">
                 <h2 style="font-weight: 700; letter-spacing: -0.05em;">🍲 AZİZİYE AŞEVİ</h2>
-                <p style="opacity: 0.6; font-size: 14px; margin-top: 4px;">Yönetim ve Takip Sistemi</p>
+                <p style="opacity: 0.6; font-size: 14px; margin-top: 4px;">BoardUI Tasarım Sistemi & Yönetim Paneli</p>
             </div>
         """, unsafe_allow_html=True)
         
@@ -596,17 +617,17 @@ if not st.session_state.oturum_aktif:
 # =========================================================================
 # ANA UYGULAMA İÇERİĞİ
 # =========================================================================
-st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI")
+st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (BoardUI Pro)")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-# ----------------- SHADCN TARZI AĞAÇ MENÜ -----------------
+# ----------------- BOARDUI TARZI MENÜ -----------------
 st.sidebar.markdown("""
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-left: 4px;">
-        <div style="background: #18181B; color: white; border: 1px solid #27272A; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 14px;">AZ</div>
+        <div style="background: #171d29; color: white; border: 1px solid #2a3447; padding: 6px 10px; border-radius: 8px; font-weight: bold; font-size: 14px;">AZ</div>
         <div>
             <div style="font-weight: 600; font-size: 14px; line-height: 1.2;">Aziziye Aşevi</div>
-            <div style="font-size: 11px; opacity: 0.6;">Yönetim Paneli</div>
+            <div style="font-size: 11px; opacity: 0.6;">BoardUI Pro Dashboard</div>
         </div>
     </div>
 """, unsafe_allow_html=True)
@@ -704,7 +725,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
 
 st.sidebar.markdown("---")
 st.sidebar.markdown('<p style="font-size: 12px; font-weight: 600; margin-bottom: 6px; padding-left: 2px;">🎨 Arayüz Teması</p>', unsafe_allow_html=True)
-yeni_tema = st.sidebar.selectbox("Tema Seçin", ["Koyu Tema (Dark)", "Açık Tema (Light)"], index=0 if st.session_state.tema_secimi=="Koyu Tema (Dark)" else 1, label_visibility="collapsed")
+yeni_tema = st.sidebar.selectbox("Tema Seçin", ["BoardUI Dark (Pro)", "BoardUI Light"], index=0 if st.session_state.tema_secimi=="BoardUI Dark (Pro)" else 1, label_visibility="collapsed")
 if yeni_tema != st.session_state.tema_secimi:
     st.session_state.tema_secimi = yeni_tema
     st.rerun()
@@ -714,12 +735,12 @@ kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session
 st.sidebar.markdown(f"""
     <div style="background: rgba(125, 125, 125, 0.05); border: 1px solid rgba(125, 125, 125, 0.1); padding: 10px 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="background: #27272A; color: white; width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">
+            <div style="background: #2a3447; color: white; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
                 <div style="font-weight: 600; font-size: 13px;">{kullanici_adi_goruntule}</div>
-                <div style="font-size: 11px; opacity: 0.5;">Aktif Oturum</div>
+                <div style="font-size: 11px; opacity: 0.5;">BoardUI Oturum</div>
             </div>
         </div>
     </div>
@@ -732,7 +753,7 @@ if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="font-size: 11px; text-align: center; opacity: 0.4;">sefautopcu</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 11px; text-align: center; opacity: 0.4;">BoardUI v4 - sefautopcu</p>', unsafe_allow_html=True)
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -740,14 +761,14 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
     ws = wb.active
     ws.title = "Rapor"
     ws.views.sheetView[0].showGridLines = True
-    header_fill = PatternFill(start_color="18181B", end_color="18181B", fill_type="solid")
+    header_fill = PatternFill(start_color="171d29", end_color="171d29", fill_type="solid")
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    title_font = Font(name="Calibri", size=14, bold=True, color="18181B")
+    title_font = Font(name="Calibri", size=14, bold=True, color="171d29")
     regular_font = Font(name="Calibri", size=11)
-    thin_border = Border(left=Side(style='thin', color='E4E4E7'), right=Side(style='thin', color='E4E4E7'), top=Side(style='thin', color='E4E4E7'), bottom=Side(style='thin', color='E4E4E7'))
+    thin_border = Border(left=Side(style='thin', color='1e2636'), right=Side(style='thin', color='1e2636'), top=Side(style='thin', color='1e2636'), bottom=Side(style='thin', color='1e2636'))
 
     ws.cell(row=1, column=1, value=baslik_str).font = title_font
-    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.datetime.now())}").font = Font(name="Calibri", size=11, italic=True, color="71717A")
+    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.datetime.now())}").font = Font(name="Calibri", size=11, italic=True, color="9ca3af")
 
     if not veri_listesi:
         excel_buffer = io.BytesIO()
@@ -783,19 +804,19 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
         <meta charset="utf-8">
         <title>{baslik}</title>
         <style>
-            body {{ font-family: 'Inter', sans-serif; margin: 30px; color: #09090B; }}
-            h2 {{ color: #09090B; margin-bottom: 5px; }}
-            p {{ color: #71717A; font-size: 14px; margin-top: 0; }}
+            body {{ font-family: 'Inter', sans-serif; margin: 30px; color: #0f172a; }}
+            h2 {{ color: #0f172a; margin-bottom: 5px; }}
+            p {{ color: #64748b; font-size: 14px; margin-top: 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-            th {{ background-color: #18181B; color: white; padding: 10px; text-align: left; font-size: 13px; }}
-            td {{ border: 1px solid #E4E4E7; padding: 8px 10px; font-size: 13px; }}
-            tr:nth-child(even) {{ background-color: #FAFAFA; }}
+            th {{ background-color: #171d29; color: white; padding: 10px; text-align: left; font-size: 13px; }}
+            td {{ border: 1px solid #e2e8f0; padding: 8px 10px; font-size: 13px; }}
+            tr:nth-child(even) {{ background-color: #f8fafc; }}
         </style>
     </head>
     <body>
         <h2>{baslik}</h2>
         <p>Rapor Tarihi: {datetime.datetime.now()}</p>
-        <hr style="border: 0; border-top: 1px solid #E4E4E7;"/>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0;"/>
     """
     if veri_listesi:
         headers = list(veri_listesi[0].keys())
@@ -845,7 +866,7 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
 
-# 0. KURUMSAL DASHBOARD & ÖZET (Shadcn Tasarım Standardına Göre)
+# 0. KURUMSAL DASHBOARD & ÖZET (BoardUI Pro Standartlarına ve Grafik Ekleme Seçeneğine Göre)
 if menu == "Kurumsal Dashboard & Özet":
     toplam_stok_kalemi = len(set(g["urun"] for g in st.session_state.girisler))
     toplam_envanter_maliyeti = sum(g["kalan"] * g["fiyat"] for g in st.session_state.girisler)
@@ -855,12 +876,12 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_fire_tutar = sum(l["tutar"] for l in loglar if l["tur"] == "Fire/Zayiat")
     aktif_calisan_personel_sayisi = sum(1 for p in st.session_state.personeller if p.get("aktif", True))
 
-    is_dark = (st.session_state.tema_secimi == "Koyu Tema (Dark)")
+    is_dark = (st.session_state.tema_secimi == "BoardUI Dark (Pro)")
     
-    card_bg = "#09090B" if is_dark else "#FFFFFF"
-    card_border = "#27272A" if is_dark else "#E4E4E7"
-    text_color = "#FAFAFA" if is_dark else "#09090B"
-    subtext_color = "#A1A1AA" if is_dark else "#71717A"
+    card_bg = "#111622" if is_dark else "#ffffff"
+    card_border = "#1e2636" if is_dark else "#e2e8f0"
+    text_color = "#f3f4f6" if is_dark else "#0f172a"
+    subtext_color = "#9ca3af" if is_dark else "#64748b"
 
     st.markdown(f"""
         <style>
@@ -871,16 +892,16 @@ if menu == "Kurumsal Dashboard & Özet":
             background: {card_bg};
             border: 1px solid {card_border};
             padding: 24px 32px;
-            border-radius: 8px;
+            border-radius: 12px;
             margin-bottom: 24px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }}
         .metric-card {{
             background: {card_bg};
             border: 1px solid {card_border};
             padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: all 0.2s ease;
             height: 160px;
             display: flex;
@@ -888,17 +909,17 @@ if menu == "Kurumsal Dashboard & Özet":
             justify-content: space-between;
         }}
         .metric-card:hover {{
-            border-color: #71717A;
+            border-color: #3b82f6;
         }}
         </style>
 
         <div class="dashboard-header">
             <div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 600; color: {text_color};">Genel Bakış & Operasyonel Özet</h1>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 600; color: {text_color};">Genel Bakış & Operasyonel Özet (BoardUI)</h1>
                 <p style="margin: 4px 0 0 0; color: {subtext_color}; font-size: 13.5px;">Aziziye Aşevi kurum içi yönetim ve anlık takip paneli</p>
             </div>
-            <div style="background: rgba(34, 197, 94, 0.1); color: #22C55E; border: 1px solid rgba(34, 197, 94, 0.2); padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 12px;">
-                ● Sistem Aktif
+            <div style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 6px 14px; border-radius: 8px; font-weight: 500; font-size: 12px;">
+                ● BoardUI v4 Aktif
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -934,7 +955,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire</div>
                         <div style="color: {text_color}; font-size: 28px; font-weight: 600; margin-top: 8px;">{toplam_fire_mik:,.1f} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Kg</span></div>
                     </div>
-                    <div style="color: #EF4444; font-size: 12px; font-weight: 500;">Zarar: {toplam_fire_tutar:,.0f} ₺</div>
+                    <div style="color: #ef4444; font-size: 12px; font-weight: 500;">Zarar: {toplam_fire_tutar:,.0f} ₺</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -956,7 +977,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Stok Değeri</div>
                         <div style="color: {text_color}; font-size: 24px; font-weight: 600; margin-top: 8px;">{toplam_envanter_maliyeti:,.0f} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">₺</span></div>
                     </div>
-                    <div style="color: #22C55E; font-size: 12px; font-weight: 500;">💰 Güncel Maliyet</div>
+                    <div style="color: #10b981; font-size: 12px; font-weight: 500;">💰 Güncel Maliyet</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -967,7 +988,7 @@ if menu == "Kurumsal Dashboard & Özet":
                     <div style="color: {subtext_color}; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Aktif Personel</div>
                     <div style="color: {text_color}; font-size: 28px; font-weight: 600; margin-top: 8px;">{aktif_calisan_personel_sayisi} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Kişi</span></div>
                 </div>
-                <div style="color: #A855F7; font-size: 12px; font-weight: 500;">👥 Kadro Durumu</div>
+                <div style="color: #a855f7; font-size: 12px; font-weight: 500;">👥 Kadro Durumu</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -993,6 +1014,84 @@ if menu == "Kurumsal Dashboard & Özet":
             st.session_state.aktif_menu = "Kalori Hesaplama Aracı"
             st.query_params["menu"] = "Kalori Hesaplama Aracı"
             st.rerun()
+
+    # =========================================================================
+    # SAYFANIN ALT TARAFINA ADMIN İSTEDİĞİ GİBİ GRAFİK EKLE / YÖNET SEÇENEĞİ
+    # =========================================================================
+    st.markdown("---")
+    st.markdown(f"<h3 style='font-size: 18px; font-weight: 600; color: {text_color}; margin-top: 20px;'>📊 İnteraktif Dashboard Grafikleri ve Widget Alanı</h3>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color: {subtext_color}; font-size: 13px;'>Aşağıda etkinleştirilmiş olan BoardUI grafik kartları görüntülenmektedir. Admin kullanıcıları yeni grafik widget'ı ekleyebilir veya mevcutları silebilir.</p>", unsafe_allow_html=True)
+
+    # Aktif widget'ları göster
+    aktif_w_list = [w for w in st.session_state.dashboard_widgets if w.get("aktif", True)]
+    if aktif_w_list:
+        for w in aktif_w_list:
+            st.markdown(f"<div style='border: 1px solid {card_border}; background: {card_bg}; padding: 20px; border-radius: 12px; margin-bottom: 20px;'>", unsafe_allow_html=True)
+            st.markdown(f"#### {w['baslik']}")
+            
+            if w['tur'] == "Sütun Grafik":
+                if st.session_state.girisler:
+                    df_stok = pd.DataFrame(st.session_state.girisler)
+                    if not df_stok.empty and "kategori" in df_stok.columns and "kalan" in df_stok.columns:
+                        fig = px.bar(df_stok, x="kategori", y="kalan", color="kategori", title="Kategori Bazlı Kalan Stok Miktarları", template="plotly_dark" if is_dark else "plotly")
+                        st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("Grafik için yeterli veri bulunmuyor.")
+            elif w['tur'] == "Çizgi Grafik":
+                if st.session_state.kullanim_loglari:
+                    df_log = pd.DataFrame(st.session_state.kullanim_loglari)
+                    if not df_log.empty and "tarih" in df_log.columns and "tutar" in df_log.columns:
+                        fig2 = px.line(df_log, x="tarih", y="tutar", title="Zaman İçerisinde Fire ve Kullanım Maliyeti Trendi", template="plotly_dark" if is_dark else "plotly")
+                        st.plotly_chart(fig2, use_container_width=True)
+                else:
+                    st.info("Trend grafiği için yeterli log kaydı bulunmuyor.")
+            elif w['tur'] == "Pasta Grafik (Dağılım)":
+                if st.session_state.girisler:
+                    df_giris = pd.DataFrame(st.session_state.girisler)
+                    fig3 = px.pie(df_giris, names="urun", values="kalan", title="Ürün Bazlı Envanter Dağılımı", template="plotly_dark" if is_dark else "plotly")
+                    st.plotly_chart(fig3, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.info("Görüntülenecek aktif grafik widget'ı bulunmuyor.")
+
+    # SADECE ADMİN KULLANICISININ GRAFİK EKLEME / YÖNETME SEÇENEĞİ
+    if yonetici_modu:
+        with st.expander("➕ Admin Özel: Dashboard'a Yeni Grafik / Widget Ekle veya Kaldır", expanded=False):
+            with st.form("yeni_widget_ekle_form"):
+                st.markdown("**Dashboard'a Yeni Grafik Ekle**")
+                w_baslik = st.text_input("Grafik Başlığı", "Örn: Depo Doluluk Oranı")
+                w_tur = st.selectbox("Grafik Türü", ["Sütun Grafik", "Çizgi Grafik", "Pasta Grafik (Dağılım)"])
+                w_ekle_btn = st.form_submit_button("Grafik Widget'ını Ekle")
+                
+                if w_ekle_btn and w_baslik:
+                    st.session_state.dashboard_widgets.append({
+                        "id": f"w-{len(st.session_state.dashboard_widgets)+1}",
+                        "baslik": w_baslik,
+                        "tur": w_tur,
+                        "aktif": True
+                    })
+                    widgetlari_kaydet(st.session_state.dashboard_widgets)
+                    st.success("Yeni grafik başarıyla eklendi!")
+                    st.rerun()
+
+            st.markdown("---")
+            with st.form("widget_sil_form"):
+                st.markdown("**🗑️ Mevcut Grafik Widget'ını Kaldır**")
+                if st.session_state.dashboard_widgets:
+                    w_secenekleri = [f"{w['id']} - {w['baslik']} ({w['tur']})" for w in st.session_state.dashboard_widgets]
+                    secilen_w_sil = st.selectbox("Kaldırılacak Grafiği Seçin", w_secenekleri)
+                    w_sil_btn = st.form_submit_button("Seçilen Grafiği Kaldır", type="primary")
+                    
+                    if w_sil_btn:
+                        wid = secilen_w_sil.split(" - ")[0]
+                        st.session_state.dashboard_widgets = [w for w in st.session_state.dashboard_widgets if w["id"] != wid]
+                        widgetlari_kaydet(st.session_state.dashboard_widgets)
+                        st.success("Grafik widget'ı kaldırıldı!")
+                        st.rerun()
+                else:
+                    st.info("Kaldırılacak grafik bulunmuyor.")
+    else:
+        st.markdown(f"<p style='font-size: 12px; color: {subtext_color}; font-style: italic;'>🔒 Dashboard sayfasına yeni grafik ekleme / kaldırma yetkisi yalnızca **Admin** kullanıcısına özeldir.</p>", unsafe_allow_html=True)
 
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
