@@ -623,7 +623,6 @@ st.markdown("---")
 # ----------------- BOARDUI PRO SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ -----------------
 kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session_state.oturum_aktif else "MİSAFİR"
 
-# BoardUI Tarzı Profil Seçici / Header Kartı
 st.sidebar.markdown(f"""
     <div style="background: #111622; border: 1px solid #1e2636; padding: 12px 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -639,7 +638,6 @@ st.sidebar.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# BoardUI Quick Search Input
 sidebar_arama = st.sidebar.text_input("🔍 Quick Search", placeholder="Search items, logs...", label_visibility="collapsed").strip().lower()
 
 otomatik_yonlendirilen_menu = None
@@ -729,7 +727,6 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
             if m == "Yeni Mal Alımı / Fatura Ekle" and salt_okunur_modu:
                 continue
             
-            # BoardUI Tarzı Badge entegrasyonlu Buton Yapısı
             btn_label = f"{m}  [{badge}]" if badge and badge != "0" else m
             btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
             if st.button(btn_label, use_container_width=True, type=btn_type, key=f"menu_btn_{m}"):
@@ -1317,7 +1314,7 @@ elif menu == "Fire / Zayiat Girişi":
 
         st.markdown("---")
         st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
-        fire_loglari = [l for l in st.session_state.kullanim_loglari if l.get("tur"] == "Fire/Zayiat"]
+        fire_loglari = [l for l in st.session_state.kullanim_loglari if l.get("tur") == "Fire/Zayiat"]
         if fire_loglari:
             fire_tablo_verisi = []
             for f_log in reversed(fire_loglari):
@@ -2373,7 +2370,7 @@ elif menu == "Kullanıcı Ayarları":
             if yetki_verilecek_k:
                 mevcut_yasaklar = st.session_state.kullanicilar[yetki_verilecek_k].get("yasakli_menuler", [])
                 
-                st.markdown(f"**'{yetky_verilecek_k if 'yetky_verilecek_k' in locals() else yetki_verilecek_k}'** kullanıcısının erişmesini **istemediğiniz** (kapalı olmasını istediğiniz) sayfaları seçin:")
+                st.markdown(f"**'{yetki_verilecek_k}'** kullanıcısının erişmesini **istemediğiniz** (kapalı olmasını istediğiniz) sayfaları seçin:")
                 
                 tum_yonetilebilir_menuler = [
                     "Kurumsal Dashboard & Özet",
