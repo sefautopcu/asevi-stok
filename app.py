@@ -45,7 +45,7 @@ def metni_coz(sifreli_metin):
     return str(sifreli_metin)
 
 
-# TEK VE SAF SİYAH TEMA (Liquid Glass Navigasyon Stili & Logo Entegrasyonu)
+# TEK VE SAF SİYAH TEMA (Liquid Glass Navigasyon, Logo ve Açılır Menü Efekti)
 st.markdown(
     """
     <style>
@@ -147,21 +147,30 @@ st.markdown(
         color: #ffffff !important;
     }
     
+    /* AÇILIR SEÇİM MENÜLERİ (SELECTBOX POPUP) İÇİN LIQUID GLASS EFEKTİ */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
-        background-color: #0c0c0c !important;
+        background: rgba(12, 12, 12, 0.85) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
         color: #ffffff !important;
-        border: 1px solid #2d2d2d !important;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.6) !important;
         border-radius: 14px !important;
     }
     li[role="option"], li[role="option"] div, li[role="option"] span {
-        background-color: #0c0c0c !important;
+        background: transparent !important;
         color: #e5e7eb !important;
     }
     li[role="option"]:hover, li[role="option"]:hover div, li[role="option"]:hover span {
-        background-color: #1f1f1f !important;
+        background: rgba(255, 255, 255, 0.08) !important;
         color: #ffffff !important;
     }
+    li[role="option"][aria-selected="true"] {
+        background: rgba(99, 102, 241, 0.2) !important;
+        color: #ffffff !important;
+        border-left: 3px solid #6366f1 !important;
+    }
+
     div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span, div[data-baseweb="calendar"] button {
         color: #ffffff !important;
     }
