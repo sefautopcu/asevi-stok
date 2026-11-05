@@ -12,7 +12,7 @@ import streamlit as st
 
 # Sayfa Yapılandırması
 st.set_page_config(
-    page_title="Aziziye - Siyah Tema Pro Aşevi Sistemi",
+    page_title="Aziziye - Aşevi Takip Sistemi",
     page_icon="🍲",
     layout="wide",
 )
@@ -1253,7 +1253,7 @@ if menu == "Kurumsal Dashboard & Özet":
         <div class="dashboard-header">
             <div>
                 <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: {text_color};">Genel Bakış & Operasyonel Özet</h1>
-                <p style="margin: 6px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi Saf Siyah Tasarım & Yönetim Paneli</p>
+                <p style="margin: 6px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi Yönetim Paneli</p>
             </div>
             <div style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12px;">
                 ● sefautopcu
