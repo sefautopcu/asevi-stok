@@ -12,7 +12,7 @@ import streamlit as st
 
 # Sayfa Yapılandırması
 st.set_page_config(
-    page_title="Aziziye - CollectUI Pro Aşevi Sistemi",
+    page_title="Aziziye - Siyah Tema Pro Aşevi Sistemi",
     page_icon="🍲",
     layout="wide",
 )
@@ -45,91 +45,87 @@ def metni_coz(sifreli_metin):
     return str(sifreli_metin)
 
 
-if "tema_secimi" not in st.session_state:
-  st.session_state.tema_secimi = "CollectUI Minimalist Dark"
-
-# CollectUI İlhamlı Minimalist & Modern Tasarım Dili (CSS Entegrasyonu)
-if st.session_state.tema_secimi == "CollectUI Minimalist Dark":
-  st.markdown(
-      """
+# TEK VE SAF SİYAH TEMA (Yüksek Okunabilirlik ve Kontrast Optimizasyonu)
+st.markdown(
+    """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
     .main, .stApp { 
-        background-color: #0f172a !important; 
-        color: #f8fafc !important;
+        background-color: #000000 !important; 
+        color: #ffffff !important;
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
     .stSidebar { 
-        background-color: #0b1329 !important; 
+        background-color: #050505 !important; 
         padding-top: 15px; 
-        border-right: 1px solid #1e293b;
+        border-right: 1px solid #1f1f1f;
     }
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-        color: #94a3b8 !important; 
+        color: #d1d5db !important; 
         font-size: 13.5px; 
     }
     h1, h2, h3, h4, h5, h6 { 
-        color: #f8fafc !important; 
+        color: #ffffff !important; 
         font-weight: 700 !important;
         letter-spacing: -0.03em !important;
     }
     p, span, label, div, .stMarkdown { 
-        color: #cbd5e1 !important; 
+        color: #e5e7eb !important; 
     }
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-    /* CollectUI Kart ve UI Bileşenleri */
+    /* Saf Siyah Tema Kart ve UI Bileşenleri */
     div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
-        background-color: #1e293b !important;
-        color: #f8fafc !important;
-        border: 1px solid #334155 !important;
+        background-color: #121212 !important;
+        color: #ffffff !important;
+        border: 1px solid #2d2d2d !important;
         border-radius: 12px !important;
         font-weight: 600 !important;
         font-size: 13.5px !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
-        background-color: #334155 !important;
+        background-color: #1f1f1f !important;
         border-color: #6366f1 !important;
         transform: translateY(-1px);
     }
 
     div.stMetric, div[data-testid="stExpander"], div.stForm {
-        background: #1e293b !important;
-        border: 1px solid #334155;
+        background: #0c0c0c !important;
+        border: 1px solid #222222;
         padding: 24px;
         border-radius: 16px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-        color: #f8fafc !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8);
+        color: #ffffff !important;
     }
     
-    /* Selectbox ve Takvim Popover Stilleri */
+    /* Selectbox ve Takvim Popover Stilleri (Saf Siyah) */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
-        background-color: #1e293b !important;
-        color: #f8fafc !important;
-        border: 1px solid #334155 !important;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+        background-color: #0c0c0c !important;
+        color: #ffffff !important;
+        border: 1px solid #2d2d2d !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.9) !important;
         border-radius: 14px !important;
     }
     li[role="option"], li[role="option"] div, li[role="option"] span {
-        background-color: #1e293b !important;
-        color: #f8fafc !important;
+        background-color: #0c0c0c !important;
+        color: #e5e7eb !important;
     }
     li[role="option"]:hover, li[role="option"]:hover div, li[role="option"]:hover span {
-        background-color: #334155 !important;
+        background-color: #1f1f1f !important;
         color: #ffffff !important;
     }
     div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span, div[data-baseweb="calendar"] button {
-        color: #f8fafc !important;
+        color: #ffffff !important;
     }
     input, div[data-baseweb="select"] > div {
-        background-color: #0f172a !important;
-        color: #f8fafc !important;
+        background-color: #000000 !important;
+        color: #ffffff !important;
         border-radius: 10px !important;
-        border-color: #334155 !important;
+        border-color: #2d2d2d !important;
     }
 
     .custom-table {
@@ -138,143 +134,33 @@ if st.session_state.tema_secimi == "CollectUI Minimalist Dark":
         border-spacing: 0;
         margin-top: 15px;
         margin-bottom: 15px;
-        background-color: #1e293b;
+        background-color: #0c0c0c;
         border-radius: 14px;
         overflow: hidden;
-        border: 1px solid #334155;
+        border: 1px solid #222222;
     }
     .custom-table th {
-        background-color: #0f172a;
-        color: #f8fafc;
+        background-color: #000000;
+        color: #ffffff;
         padding: 14px 18px;
         text-align: left;
         font-size: 13px;
         font-weight: 600;
-        border-bottom: 1px solid #334155;
+        border-bottom: 1px solid #222222;
     }
     .custom-table td {
         padding: 14px 18px;
-        color: #94a3b8;
+        color: #d1d5db;
         font-size: 13px;
-        border-bottom: 1px solid #334155;
+        border-bottom: 1px solid #222222;
     }
     .custom-table tr:hover {
-        background-color: rgba(51, 65, 85, 0.4);
+        background-color: rgba(31, 31, 31, 0.6);
     }
     </style>
     """,
-      unsafe_allow_html=True,
-  )
-else:
-  st.markdown(
-      """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
-    .main, .stApp { 
-        background-color: #f8fafc !important; 
-        color: #0f172a !important;
-        font-family: 'Plus Jakarta Sans', sans-serif !important;
-    }
-    .stSidebar { 
-        background-color: #ffffff !important; 
-        padding-top: 15px; 
-        border-right: 1px solid #e2e8f0;
-    }
-    .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-        color: #64748b !important; 
-        font-size: 13.5px; 
-    }
-    h1, h2, h3, h4, h5, h6 { 
-        color: #0f172a !important; 
-        font-weight: 700 !important;
-        letter-spacing: -0.03em !important;
-    }
-    p, span, label, div, .stMarkdown { 
-        color: #334155 !important; 
-    }
-    button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
-    section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
-
-    div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1) !important;
-        border-radius: 14px !important;
-    }
-    li[role="option"], li[role="option"] div, li[role="option"] span {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-    }
-    li[role="option"]:hover {
-        background-color: #f1f5f9 !important;
-        color: #0f172a !important;
-    }
-    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span {
-        color: #0f172a !important;
-    }
-    input, div[data-baseweb="select"] > div {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-        border-radius: 10px !important;
-    }
-
-    div.stButton > button, div.stFormSubmitButton > button {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        font-size: 13.5px !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-    div.stButton > button:hover, div.stFormSubmitButton > button:hover {
-        background-color: #f1f5f9 !important;
-        border-color: #94a3b8 !important;
-    }
-    div.stMetric, div[data-testid="stExpander"], div.stForm {
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0;
-        padding: 24px;
-        border-radius: 16px;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-        color: #0f172a !important;
-    }
-    .custom-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin-top: 15px;
-        margin-bottom: 15px;
-        background-color: #ffffff;
-        border-radius: 14px;
-        overflow: hidden;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
-    }
-    .custom-table th {
-        background-color: #f1f5f9;
-        color: #0f172a;
-        padding: 14px 18px;
-        text-align: left;
-        font-size: 13px;
-        font-weight: 600;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    .custom-table td {
-        padding: 14px 18px;
-        color: #64748b;
-        font-size: 13px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    .custom-table tr:hover {
-        background-color: #f8fafc;
-    }
-    </style>
-    """,
-      unsafe_allow_html=True,
-  )
+    unsafe_allow_html=True,
+)
 
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
@@ -835,7 +721,7 @@ def bugunun_turkce_tarihi():
 
 
 # =========================================================================
-# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (CollectUI Minimalist Tarzı)
+# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (Saf Siyah Tema)
 # =========================================================================
 if not st.session_state.oturum_aktif:
   st.markdown(
@@ -848,7 +734,7 @@ if not st.session_state.oturum_aktif:
         """
             <div style="text-align: center; margin-bottom: 24px;">
                 <h2 style="font-weight: 700; letter-spacing: -0.03em;">🍲 AZİZİYE AŞEVİ</h2>
-                <p style="opacity: 0.6; font-size: 14px; margin-top: 4px;">CollectUI Minimalist Tasarım Sistemi & Yönetim Paneli</p>
+                <p style="opacity: 0.7; font-size: 14px; margin-top: 4px; color: #d1d5db;">Saf Siyah Tasarım Sistemi & Yönetim Paneli</p>
             </div>
         """,
         unsafe_allow_html=True,
@@ -921,11 +807,11 @@ if not st.session_state.oturum_aktif:
 # =========================================================================
 # ANA UYGULAMA İÇERİĞİ
 # =========================================================================
-st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (CollectUI Pro)")
+st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (Saf Siyah Pro)")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-# ----------------- COLLECTUI SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ -----------------
+# ----------------- SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ (Saf Siyah) -----------------
 kullanici_adi_goruntule = (
     st.session_state.aktif_kullanici.upper()
     if st.session_state.oturum_aktif
@@ -934,17 +820,17 @@ kullanici_adi_goruntule = (
 
 st.sidebar.markdown(
     f"""
-    <div style="background: #1e293b; border: 1px solid #334155; padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+    <div style="background: #0c0c0c; border: 1px solid #222222; padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.8);">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="background: #334155; color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+            <div style="background: #222222; color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
-                <div style="font-weight: 600; font-size: 14px; color: #f8fafc;">{kullanici_adi_goruntule}</div>
-                <div style="font-size: 11.5px; color: #94a3b8;">Aziziye Workspace</div>
+                <div style="font-weight: 600; font-size: 14px; color: #ffffff;">{kullanici_adi_goruntule}</div>
+                <div style="font-size: 11.5px; color: #9ca3af;">Aziziye Workspace</div>
             </div>
         </div>
-        <div style="color: #94a3b8; font-size: 12px;">↕</div>
+        <div style="color: #9ca3af; font-size: 12px;">↕</div>
     </div>
 """,
     unsafe_allow_html=True,
@@ -988,8 +874,9 @@ if sidebar_arama:
 
 st.sidebar.markdown(
     '<p style="font-size: 11px; font-weight: 700; margin-top: 12px;'
-    ' margin-bottom: 8px; padding-left: 4px; opacity: 0.5; text-transform:'
-    ' uppercase; letter-spacing: 0.05em;">ÇALIŞMA ALANI NAVİGASYONU</p>',
+    ' margin-bottom: 8px; padding-left: 4px; opacity: 0.6; text-transform:'
+    ' uppercase; letter-spacing: 0.05em; color: #9ca3af;">ÇALIŞMA ALANI'
+    ' NAVİGASYONU</p>',
     unsafe_allow_html=True,
 )
 
@@ -1092,22 +979,6 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
         st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown(
-    '<p style="font-size: 12px; font-weight: 600; margin-bottom: 6px;'
-    ' padding-left: 2px;">🎨 CollectUI Tema Paleti</p>',
-    unsafe_allow_html=True,
-)
-yeni_tema = st.sidebar.selectbox(
-    "Tema Seçin",
-    ["CollectUI Minimalist Dark", "CollectUI Minimalist Light"],
-    index=0 if st.session_state.tema_secimi == "CollectUI Minimalist Dark" else 1,
-    label_visibility="collapsed",
-)
-if yeni_tema != st.session_state.tema_secimi:
-  st.session_state.tema_secimi = yeni_tema
-  st.rerun()
-
-st.sidebar.markdown("---")
 if st.sidebar.button(
     "Oturumu Kapat", use_container_width=True, type="secondary"
 ):
@@ -1118,8 +989,8 @@ if st.sidebar.button(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
-    '<p style="font-size: 11px; text-align: center; opacity: 0.4;">CollectUI'
-    " Minimalist Pro - sefautopcu</p>",
+    '<p style="font-size: 11px; text-align: center; opacity: 0.5; color:'
+    ' #9ca3af;">Saf Siyah Pro - sefautopcu</p>',
     unsafe_allow_html=True,
 )
 
@@ -1130,16 +1001,16 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
   ws.title = "Rapor"
   ws.views.sheetView[0].showGridLines = True
   header_fill = PatternFill(
-      start_color="1e293b", end_color="1e293b", fill_type="solid"
+      start_color="121212", end_color="121212", fill_type="solid"
   )
   header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-  title_font = Font(name="Calibri", size=14, bold=True, color="1e293b")
+  title_font = Font(name="Calibri", size=14, bold=True, color="000000")
   regular_font = Font(name="Calibri", size=11)
   thin_border = Border(
-      left=Side(style="thin", color="334155"),
-      right=Side(style="thin", color="334155"),
-      top=Side(style="thin", color="334155"),
-      bottom=Side(style="thin", color="334155"),
+      left=Side(style="thin", color="2d2d2d"),
+      right=Side(style="thin", color="2d2d2d"),
+      top=Side(style="thin", color="2d2d2d"),
+      bottom=Side(style="thin", color="2d2d2d"),
   )
 
   ws.cell(row=1, column=1, value=baslik_str).font = title_font
@@ -1147,7 +1018,7 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
       row=2,
       column=1,
       value=f"Rapor Tarihi: {str(datetime.datetime.now())}",
-  ).font = Font(name="Calibri", size=11, italic=True, color="94a3b8")
+  ).font = Font(name="Calibri", size=11, italic=True, color="6b7280")
 
   if not veri_listesi:
     excel_buffer = io.BytesIO()
@@ -1183,19 +1054,19 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
         <meta charset="utf-8">
         <title>{baslik}</title>
         <style>
-            body {{ font-family: 'Plus Jakarta Sans', sans-serif; margin: 30px; color: #0f172a; }}
-            h2 {{ color: #0f172a; margin-bottom: 5px; }}
-            p {{ color: #64748b; font-size: 14px; margin-top: 0; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-            th {{ background-color: #1e293b; color: white; padding: 12px; text-align: left; font-size: 13px; }}
-            td {{ border: 1px solid #e2e8f0; padding: 10px 12px; font-size: 13px; }}
-            tr:nth-child(even) {{ background-color: #f8fafc; }}
+            body {{ font-family: 'Plus Jakarta Sans', sans-serif; margin: 30px; color: #ffffff; background: #000000; }}
+            h2 {{ color: #ffffff; margin-bottom: 5px; }}
+            p {{ color: #9ca3af; font-size: 14px; margin-top: 0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background: #0c0c0c; }}
+            th {{ background-color: #121212; color: white; padding: 12px; text-align: left; font-size: 13px; }}
+            td {{ border: 1px solid #2d2d2d; padding: 10px 12px; font-size: 13px; color: #d1d5db; }}
+            tr:nth-child(even) {{ background-color: #050505; }}
         </style>
     </head>
     <body>
         <h2>{baslik}</h2>
         <p>Rapor Tarihi: {datetime.datetime.now()}</p>
-        <hr style="border: 0; border-top: 1px solid #e2e8f0;"/>
+        <hr style="border: 0; border-top: 1px solid #2d2d2d;"/>
     """
   if veri_listesi:
     headers = list(veri_listesi[0].keys())
@@ -1267,12 +1138,10 @@ if menu == "Kurumsal Dashboard & Özet":
       1 for p in st.session_state.personeller if p.get("aktif", True)
   )
 
-  is_dark = st.session_state.tema_secimi == "CollectUI Minimalist Dark"
-
-  card_bg = "#1e293b" if is_dark else "#ffffff"
-  card_border = "#334155" if is_dark else "#e2e8f0"
-  text_color = "#f8fafc" if is_dark else "#0f172a"
-  subtext_color = "#94a3b8" if is_dark else "#64748b"
+  card_bg = "#0c0c0c"
+  card_border = "#222222"
+  text_color = "#ffffff"
+  subtext_color = "#9ca3af"
 
   st.markdown(
       f"""
@@ -1286,14 +1155,14 @@ if menu == "Kurumsal Dashboard & Özet":
             padding: 28px 36px;
             border-radius: 20px;
             margin-bottom: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.9);
         }}
         .metric-card {{
             background: {card_bg};
             border: 1px solid {card_border};
             padding: 24px;
             border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
             transition: all 0.2s ease;
             height: 160px;
             display: flex;
@@ -1309,10 +1178,10 @@ if menu == "Kurumsal Dashboard & Özet":
         <div class="dashboard-header">
             <div>
                 <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: {text_color};">Genel Bakış & Operasyonel Özet</h1>
-                <p style="margin: 6px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi CollectUI Minimalist Tasarım & Yönetim Paneli</p>
+                <p style="margin: 6px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi Saf Siyah Tasarım & Yönetim Paneli</p>
             </div>
-            <div style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12px;">
-                ● CollectUI Pro Aktif
+            <div style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12px;">
+                ● Saf Siyah Pro Aktif
             </div>
         </div>
     """,
@@ -1357,7 +1226,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire</div>
                         <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_fire_mik:,.1f} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Kg</span></div>
                     </div>
-                    <div style="color: #ef4444; font-size: 12px; font-weight: 600;">Zarar: {toplam_fire_tutar:,.0f} ₺</div>
+                    <div style="color: #f87171; font-size: 12px; font-weight: 600;">Zarar: {toplam_fire_tutar:,.0f} ₺</div>
                 </div>
             """,
           unsafe_allow_html=True,
@@ -1385,7 +1254,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Stok Değeri</div>
                         <div style="color: {text_color}; font-size: 24px; font-weight: 700; margin-top: 8px;">{toplam_envanter_maliyeti:,.0f} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">₺</span></div>
                     </div>
-                    <div style="color: #10b981; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
+                    <div style="color: #34d399; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
                 </div>
             """,
           unsafe_allow_html=True,
@@ -1399,7 +1268,7 @@ if menu == "Kurumsal Dashboard & Özet":
                     <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Aktif Personel</div>
                     <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{aktif_calisan_personel_sayisi} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Kişi</span></div>
                 </div>
-                <div style="color: #a855f7; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
+                <div style="color: #c084fc; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
             </div>
         """,
         unsafe_allow_html=True,
@@ -1444,7 +1313,7 @@ if menu == "Kurumsal Dashboard & Özet":
   )
   st.markdown(
       f"<p style='color: {subtext_color}; font-size: 13.5px;'>Aşağıda"
-      " etkinleştirilmiş olan CollectUI kart tasarımlı grafikler"
+      " etkinleştirilmiş olan Saf Siyah kart tasarımlı grafikler"
       " görüntülenmektedir. Admin kullanıcıları yeni grafik widget'ı"
       " ekleyebilir veya mevcutları silebilir.</p>",
       unsafe_allow_html=True,
@@ -1458,7 +1327,7 @@ if menu == "Kurumsal Dashboard & Özet":
       st.markdown(
           f"<div style='border: 1px solid {card_border}; background:"
           f" {card_bg}; padding: 24px; border-radius: 16px; margin-bottom:"
-          " 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);'>",
+          " 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.8);'>",
           unsafe_allow_html=True,
       )
       st.markdown(f"#### {w['baslik']}")
@@ -1477,7 +1346,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 y="kalan",
                 color="kategori",
                 title="Kategori Bazlı Kalan Stok Miktarları",
-                template="plotly_dark" if is_dark else "plotly",
+                template="plotly_dark",
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -1495,7 +1364,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 x="tarih",
                 y="tutar",
                 title="Zaman İçerisinde Fire ve Kullanım Maliyeti Trendi",
-                template="plotly_dark" if is_dark else "plotly",
+                template="plotly_dark",
             )
             st.plotly_chart(fig2, use_container_width=True)
         else:
@@ -1508,7 +1377,7 @@ if menu == "Kurumsal Dashboard & Özet":
               names="urun",
               values="kalan",
               title="Ürün Bazlı Envanter Dağılımı",
-              template="plotly_dark" if is_dark else "plotly",
+              template="plotly_dark",
           )
           st.plotly_chart(fig3, use_container_width=True)
       st.markdown("</div>", unsafe_allow_html=True)
