@@ -1,0 +1,46 @@
+from functools import wraps
+import json
+import os
+import time
+
+PERFORMANS_LOG_DOSYASI = "asevi_performans_loglari.json"
+
+
+def performans_logu_kaydet(islem_adi, gecen_sure):
+  loglar = []
+  if os.path.exists(PERFORMANS_LOG_DOSYASI):
+    try:
+      with open(PERFORMANS_LOG_DOSYASI, "r", encoding="utf-8") as f:
+        loglar = json.load(f)
+    except Exception:
+      loglar = []
+
+  loglar.append({
+      "tarih": time.strftime("%Y-%m-%d %H:%M:%S"),
+      "islem": islem_adi,
+      "sure_saniye": round(gecen_sure, 4),
+  })
+
+  # Son 500 logu tutarak dosyanın şişmesini önleyelim
+  if len(loglar) > 500:
+    loglar = loglar[-500:]
+
+  with open(PERFORMANS_LOG_DOSYASI, "w", encoding="utf-8") as f:
+    json.dump(loglar, f, ensure_ascii=False, indent=4)
+
+
+# Fonksiyonların çalışma süresini ölçmek için Decorator
+def sureyi_olc(islem_adi):
+  def decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+      baslangic = time.time()
+      sonuc = func(*args, **kwargs)
+      bitis = time.time()
+      gecen = bitis - baslangic
+      performans_logu_kaydet(islem_adi, gecen)
+      return sonuc
+
+    return wrapper
+
+  return decorator
