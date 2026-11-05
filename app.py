@@ -36,7 +36,7 @@ def metni_coz(sifreli_metin):
     except Exception:
         return str(sifreli_metin)
 
-# Tek ve Kusursuz CollectUI Dark Tasarım Dili & CSS Entegrasyonu
+# CollectUI İlham Kaynaklı Profesyonel Dark Tasarım & Sidebar Entegrasyonu
 st.markdown("""
     <style>
     .main, .stApp { 
@@ -45,9 +45,9 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     .stSidebar { 
-        background-color: #111827 !important; 
+        background-color: #0f172a !important; 
         padding-top: 10px; 
-        border-right: 1px solid #1f2937;
+        border-right: 1px solid #1e293b;
     }
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
         color: #94a3b8 !important; 
@@ -66,31 +66,50 @@ st.markdown("""
 
     /* Form, Input ve Menü Bileşenleri */
     input, select, textarea {
-        background-color: #1f2937 !important;
+        background-color: #1e293b !important;
         color: #ffffff !important;
-        border: 1px solid #374151 !important;
+        border: 1px solid #334155 !important;
         border-radius: 8px !important;
     }
     div[data-baseweb="select"] > div, div[data-baseweb="base-input"] {
-        background-color: #1f2937 !important;
+        background-color: #1e293b !important;
         color: #ffffff !important;
-        border-color: #374151 !important;
+        border-color: #334155 !important;
     }
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"] {
-        background-color: #111827 !important;
+        background-color: #0f172a !important;
         color: #ffffff !important;
-        border: 1px solid #374151 !important;
+        border: 1px solid #334155 !important;
     }
     li[role="option"] {
-        background-color: #111827 !important;
+        background-color: #0f172a !important;
         color: #e2e8f0 !important;
     }
     li[role="option"]:hover {
-        background-color: #1f2937 !important;
-        color: #3b82f6 !important;
+        background-color: #1e293b !important;
+        color: #38bdf8 !important;
     }
 
-    div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
+    /* CollectUI İlhamlı Sidebar Butonları */
+    div.stSidebar div.stButton > button {
+        background-color: transparent !important;
+        color: #cbd5e1 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        font-size: 13px !important;
+        text-align: left !important;
+        padding: 8px 12px !important;
+        margin-bottom: 3px !important;
+        transition: all 0.2s ease;
+    }
+    div.stSidebar div.stButton > button:hover {
+        background-color: #1e293b !important;
+        color: #38bdf8 !important;
+    }
+
+    /* Ana Alan Butonları */
+    div.main div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
         background-color: #2563eb !important;
         color: #ffffff !important;
         border: none !important;
@@ -99,15 +118,16 @@ st.markdown("""
         font-size: 13px !important;
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         transition: all 0.2s ease;
-        padding: 6px 10px !important;
+        padding: 8px 14px !important;
     }
-    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
+    div.main div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
         background-color: #1d4ed8 !important;
         box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
     }
+    
     div.stMetric, div[data-testid="stExpander"], div.stForm {
         background: #111827 !important;
-        border: 1px solid #1f2937;
+        border: 1px solid #1e293b;
         padding: 24px;
         border-radius: 16px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
@@ -121,7 +141,7 @@ st.markdown("""
         background-color: #111827;
         border-radius: 12px;
         overflow: hidden;
-        border: 1px solid #1f2937;
+        border: 1px solid #1e293b;
     }
     .custom-table th {
         background-color: #0b0f19;
@@ -130,16 +150,16 @@ st.markdown("""
         text-align: left;
         font-size: 13px;
         font-weight: 600;
-        border-bottom: 1px solid #1f2937;
+        border-bottom: 1px solid #1e293b;
     }
     .custom-table td {
         padding: 14px 18px;
         color: #cbd5e1;
         font-size: 13px;
-        border-bottom: 1px solid #1f2937;
+        border-bottom: 1px solid #1e293b;
     }
     .custom-table tr:hover {
-        background-color: #1f2937;
+        background-color: #1e293b;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -559,18 +579,18 @@ st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (sefautopcu Pro)")
 st.markdown(f"<span style='color: #94a3b8;'>**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}</span>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ----------------- DERİNLEŞTİRİLMİŞ AKILLI ARAMA & SIDEBAR -----------------
+# ----------------- COLLECTUI İLHAMLI PROFESYONEL SIDEBAR & AKILLI ARAMA -----------------
 kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session_state.oturum_aktif else "MİSAFİR"
 
 st.sidebar.markdown(f"""
-    <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.25); padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="background: #2563eb; color: white; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">
+    <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="background: #0ea5e9; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
-                <div style="font-weight: 600; font-size: 13px; color: #ffffff;">{kullanici_adi_goruntule}</div>
-                <div style="font-size: 10px; color: #94a3b8;">Aktif Oturum</div>
+                <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">{kullanici_adi_goruntule}</div>
+                <div style="font-size: 11px; color: #94a3b8;">Aktif Oturum</div>
             </div>
         </div>
     </div>
@@ -580,7 +600,6 @@ sidebar_arama = st.sidebar.text_input("🔍 Derin Arama", placeholder="STK-001, 
 
 otomatik_yonlendirilen_menu = None
 if sidebar_arama:
-    # 1. Stok / Fatura araması (ID, Ürün adı veya Fatura No içinde kısmi eşleşme)
     stok_veya_fatura_bulundu = any(
         sidebar_arama in str(g.get("id", "")).lower() or 
         sidebar_arama in str(g.get("urun", "")).lower() or 
@@ -589,16 +608,12 @@ if sidebar_arama:
     )
     if stok_veya_fatura_bulundu:
         otomatik_yonlendirilen_menu = "Güncel Stok Durumu"
-
-    # 2. Personel araması
     elif any(
         sidebar_arama in str(p.get("ad_soyad", "")).lower() or 
         sidebar_arama in str(p.get("tc", "")).lower()
         for p in st.session_state.personeller
     ):
         otomatik_yonlendirilen_menu = "Personel & Çalışma Süresi Takibi"
-
-    # 3. İhtiyaç sahibi araması
     elif any(
         sidebar_arama in str(i.get("ad_soyad", "")).lower() or 
         sidebar_arama in str(i.get("tc_hane", "")).lower()
@@ -610,7 +625,7 @@ if sidebar_arama:
         st.session_state.aktif_menu = otomatik_yonlendirilen_menu
         st.query_params["menu"] = otomatik_yonlendirilen_menu
 
-st.sidebar.markdown('<p style="font-size: 10px; font-weight: 600; margin-top: 6px; margin-bottom: 4px; padding-left: 2px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">MODÜLLER</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 11px; font-weight: 600; margin-top: 8px; margin-bottom: 6px; padding-left: 4px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">NAVİGASYON</p>', unsafe_allow_html=True)
 
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
 misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
@@ -627,28 +642,28 @@ menu_gruplari = {
     "🏠 Özet & Plan": [
         ("Kurumsal Dashboard & Özet", "")
     ],
-    "📦 Depo": [
+    "📦 Depo Yönetimi": [
         ("Güncel Stok Durumu", str(toplam_aktif_stok_sayisi)),
         ("Yeni Mal Alımı / Fatura Ekle", ""),
         ("Ürün Sil / Düzenle", ""),
         ("Fire / Zayiat Girişi", ""),
         ("Ürün Birim Fiyatları & Ay Analizi", "")
     ],
-    "🍲 Mutfak": [
+    "🍲 Mutfak & Üretim": [
         ("Günlük Yemek Üretimi & Maliyet Raporu", ""),
         ("Kalori Hesaplama Aracı", "")
     ],
-    "👥 Sosyal & İK": [
+    "👥 Sosyal Hizmetler & İK": [
         ("İhtiyaç Sahibi & Yemek Dağıtım Takibi", str(len(st.session_state.ihtiyac_sahipleri))),
         ("Personel & Çalışma Süresi Takibi", str(aktif_personel_sayisi))
     ],
-    "📈 Raporlar": [
+    "📈 Raporlar & Arşiv": [
         ("Kullanım Takibi", "")
     ]
 }
 
 if yonetici_modu:
-    menu_gruplari["⚙️ Ayarlar"] = [("Kullanıcı Ayarları", str(len(st.session_state.kullanicilar)))]
+    menu_gruplari["⚙️ Sistem Ayarları"] = [("Kullanıcı Ayarları", str(len(st.session_state.kullanicilar)))]
 
 filtrelenmis_gruplar = {}
 for grup_adi, alt_menuler in menu_gruplari.items():
@@ -670,8 +685,12 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
             if m == "Yeni Mal Alımı / Fatura Ekle" and salt_okunur_modu:
                 continue
             
-            btn_label = f"{m}  [{badge}]" if badge and badge != "0" else m
-            btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
+            is_aktif = (st.session_state.aktif_menu == m)
+            btn_label = f"▸ {m}  [{badge}]" if badge and badge != "0" else f"▸ {m}"
+            if is_aktif:
+                btn_label = f"● {m}" + (f" [{badge}]" if badge and badge != "0" else "")
+            
+            btn_type = "primary" if is_aktif else "secondary"
             if st.button(btn_label, use_container_width=True, type=btn_type, key=f"menu_btn_{m}"):
                 st.session_state.aktif_menu = m
                 st.query_params["menu"] = m
@@ -685,7 +704,7 @@ if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="font-size: 10px; text-align: center; color: #64748b;">sefautopcu</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 11px; text-align: center; color: #64748b; font-weight: 500;">sefautopcu</p>', unsafe_allow_html=True)
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -697,7 +716,7 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     title_font = Font(name="Calibri", size=14, bold=True, color="2563eb")
     regular_font = Font(name="Calibri", size=11)
-    thin_border = Border(left=Side(style='thin', color='374151'), right=Side(style='thin', color='374151'), top=Side(style='thin', color='374151'), bottom=Side(style='thin', color='374151'))
+    thin_border = Border(left=Side(style='thin', color='334155'), right=Side(style='thin', color='334155'), top=Side(style='thin', color='334155'), bottom=Side(style='thin', color='334155'))
 
     ws.cell(row=1, column=1, value=baslik_str).font = title_font
     ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.datetime.now())}").font = Font(name="Calibri", size=11, italic=True, color="94a3b8")
@@ -737,18 +756,18 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
         <title>{baslik}</title>
         <style>
             body {{ font-family: 'Inter', sans-serif; margin: 30px; color: #f1f5f9; background-color: #0b0f19; }}
-            h2 {{ color: #3b82f6; margin-bottom: 5px; }}
+            h2 {{ color: #38bdf8; margin-bottom: 5px; }}
             p {{ color: #94a3b8; font-size: 14px; margin-top: 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
             th {{ background-color: #2563eb; color: white; padding: 12px; text-align: left; font-size: 13px; }}
-            td {{ border: 1px solid #1f2937; padding: 10px 12px; font-size: 13px; color: #e2e8f0; }}
+            td {{ border: 1px solid #1e293b; padding: 10px 12px; font-size: 13px; color: #e2e8f0; }}
             tr:nth-child(even) {{ background-color: #111827; }}
         </style>
     </head>
     <body>
         <h2>{baslik}</h2>
         <p>Rapor Tarihi: {datetime.datetime.now()}</p>
-        <hr style="border: 0; border-top: 1px solid #1f2937;"/>
+        <hr style="border: 0; border-top: 1px solid #1e293b;"/>
     """
     if veri_listesi:
         headers = list(veri_listesi[0].keys())
@@ -815,7 +834,7 @@ if menu == "Kurumsal Dashboard & Özet":
             justify-content: space-between;
             align-items: center;
             background: #111827;
-            border: 1px solid #1f2937;
+            border: 1px solid #1e293b;
             padding: 24px 32px;
             border-radius: 16px;
             margin-bottom: 24px;
@@ -823,7 +842,7 @@ if menu == "Kurumsal Dashboard & Özet":
         }
         .metric-card {
             background: #111827;
-            border: 1px solid #1f2937;
+            border: 1px solid #1e293b;
             padding: 24px;
             border-radius: 16px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
@@ -834,7 +853,7 @@ if menu == "Kurumsal Dashboard & Özet":
             justify-content: space-between;
         }
         .metric-card:hover {
-            border-color: #3b82f6;
+            border-color: #38bdf8;
             transform: translateY(-2px);
         }
         </style>
@@ -844,7 +863,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;">Genel Bakış & Operasyonel Özet (sefautopcu Pro)</h1>
                 <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 13.5px;">Aziziye Aşevi kurum içi yönetim ve anlık takip paneli</p>
             </div>
-            <div style="background: rgba(37, 99, 235, 0.15); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;">
+            <div style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;">
                 ● CollectUI Dark Aktif
             </div>
         </div>
@@ -903,7 +922,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         <div style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Stok Değeri</div>
                         <div style="color: #ffffff; font-size: 24px; font-weight: 700; margin-top: 8px;">{toplam_envanter_maliyeti:,.0f} <span style="font-size: 13px; font-weight: normal; color: #94a3b8;">₺</span></div>
                     </div>
-                    <div style="color: #60a5fa; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
+                    <div style="color: #38bdf8; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -949,7 +968,7 @@ if menu == "Kurumsal Dashboard & Özet":
     aktif_w_list = [w for w in st.session_state.dashboard_widgets if w.get("aktif", True)]
     if aktif_w_list:
         for w in aktif_w_list:
-            st.markdown("<div style='border: 1px solid #1f2937; background: #111827; padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);'>", unsafe_allow_html=True)
+            st.markdown("<div style='border: 1px solid #1e293b; background: #111827; padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);'>", unsafe_allow_html=True)
             st.markdown(f"#### {w['baslik']}")
             
             if w['tur'] == "Sütun Grafik":
