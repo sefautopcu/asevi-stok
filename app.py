@@ -12,11 +12,10 @@ import streamlit as st
 
 # Sayfa Yapılandırması
 st.set_page_config(
-    page_title="Aziziye - Aşevi Takip Sistemi",
-    page_icon="🍲",
-    layout="wide",
+    page_title="Aziziye - Aşevi Takip Sistemi",
+    page_icon="🍲",
+    layout="wide",
 )
-
 # Şifreleme Anahtarı ve Motoru
 try:
     gizli_anahtar = st.secrets["FERNET_KEY"].encode("utf-8")
