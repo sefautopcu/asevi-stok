@@ -12,7 +12,7 @@ import streamlit as st
 
 # Sayfa Yapılandırması
 st.set_page_config(
-    page_title="Aziziye - Aşevi Sistemi",
+    page_title="Aziziye - BoardUI Pro Aşevi Sistemi",
     page_icon="🍲",
     layout="wide",
 )
