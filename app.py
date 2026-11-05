@@ -11,7 +11,7 @@ import pandas as pd
 from cryptography.fernet import Fernet
 
 # Sayfa Yapılandırması
-st.set_page_config(page_title="Aziziye - BoardUI Aşevi Takip Sistemi", page_icon="🍲", layout="wide")
+st.set_page_config(page_title="Aziziye - BoardUI Pro Aşevi Sistemi", page_icon="🍲", layout="wide")
 
 # Şifreleme Anahtarı ve Motoru
 try:
@@ -36,11 +36,10 @@ def metni_coz(sifreli_metin):
     except Exception:
         return str(sifreli_metin)
 
-# Oturumda Tema Durumu Kontrolü
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "BoardUI Dark (Pro)"
 
-# BoardUI Tasarım Dili & CSS Entegrasyonu (BoardUI Palette & Styling)
+# BoardUI Pro Tasarım Dili & CSS Entegrasyonu
 if st.session_state.tema_secimi == "BoardUI Dark (Pro)":
     st.markdown("""
         <style>
@@ -575,7 +574,7 @@ if not st.session_state.oturum_aktif:
         st.markdown("""
             <div style="text-align: center; margin-bottom: 24px;">
                 <h2 style="font-weight: 700; letter-spacing: -0.05em;">🍲 AZİZİYE AŞEVİ</h2>
-                <p style="opacity: 0.6; font-size: 14px; margin-top: 4px;">BoardUI Tasarım Sistemi & Yönetim Paneli</p>
+                <p style="opacity: 0.6; font-size: 14px; margin-top: 4px;">BoardUI Pro Tasarım Sistemi & Yönetim Paneli</p>
             </div>
         """, unsafe_allow_html=True)
         
@@ -621,18 +620,27 @@ st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (BoardUI Pro)")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-# ----------------- BOARDUI TARZI MENÜ -----------------
-st.sidebar.markdown("""
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-left: 4px;">
-        <div style="background: #171d29; color: white; border: 1px solid #2a3447; padding: 6px 10px; border-radius: 8px; font-weight: bold; font-size: 14px;">AZ</div>
-        <div>
-            <div style="font-weight: 600; font-size: 14px; line-height: 1.2;">Aziziye Aşevi</div>
-            <div style="font-size: 11px; opacity: 0.6;">BoardUI Pro Dashboard</div>
+# ----------------- BOARDUI PRO SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ -----------------
+kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session_state.oturum_aktif else "MİSAFİR"
+
+# BoardUI Tarzı Profil Seçici / Header Kartı
+st.sidebar.markdown(f"""
+    <div style="background: #111622; border: 1px solid #1e2636; padding: 12px 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="background: #2a3447; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">
+                {kullanici_adi_goruntule[:1]}
+            </div>
+            <div>
+                <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">{kullanici_adi_goruntule}</div>
+                <div style="font-size: 11px; color: #9ca3af;">Aziziye Workspace</div>
+            </div>
         </div>
+        <div style="color: #9ca3af; font-size: 12px;">↕</div>
     </div>
 """, unsafe_allow_html=True)
 
-sidebar_arama = st.sidebar.text_input("🔍 Menüde Ara...", placeholder="Ürün, Fatura, Personel, T.C....", label_visibility="collapsed").strip().lower()
+# BoardUI Quick Search Input
+sidebar_arama = st.sidebar.text_input("🔍 Quick Search", placeholder="Search items, logs...", label_visibility="collapsed").strip().lower()
 
 otomatik_yonlendirilen_menu = None
 if sidebar_arama:
@@ -661,7 +669,7 @@ if sidebar_arama:
         st.session_state.aktif_menu = otomatik_yonlendirilen_menu
         st.query_params["menu"] = otomatik_yonlendirilen_menu
 
-st.sidebar.markdown('<p style="font-size: 11px; font-weight: 600; margin-top: 10px; margin-bottom: 6px; padding-left: 4px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.05em;">NAVIGASYON</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 11px; font-weight: 600; margin-top: 10px; margin-bottom: 6px; padding-left: 4px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.05em;">WORKSPACE NAVIGATION</p>', unsafe_allow_html=True)
 
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
 misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
@@ -671,81 +679,72 @@ salt_okunur_modu = misafir_modu or yonetim_modu
 aktif_k_bilgi = st.session_state.kullanicilar.get(st.session_state.aktif_kullanici, {})
 yasakli_menuler_listesi = aktif_k_bilgi.get("yasakli_menuler", [])
 
+toplam_aktif_stok_sayisi = len(set(g["urun"] for g in st.session_state.girisler))
+aktif_personel_sayisi = sum(1 for p in st.session_state.personeller if p.get("aktif", True))
+
 menu_gruplari = {
     "🏠 Genel Bakış": [
-        "Kurumsal Dashboard & Özet"
+        ("Kurumsal Dashboard & Özet", "")
     ],
     "📦 Depo & Stok Yönetimi": [
-        "Güncel Stok Durumu", 
-        "Yeni Mal Alımı / Fatura Ekle", 
-        "Ürün Sil / Düzenle", 
-        "Fire / Zayiat Girişi",
-        "Ürün Birim Fiyatları & Ay Analizi"
+        ("Güncel Stok Durumu", str(toplam_aktif_stok_sayisi)),
+        ("Yeni Mal Alımı / Fatura Ekle", ""),
+        ("Ürün Sil / Düzenle", ""),
+        ("Fire / Zayiat Girişi", ""),
+        ("Ürün Birim Fiyatları & Ay Analizi", "")
     ],
     "🍲 Üretim & Mutfak": [
-        "Günlük Yemek Üretimi & Maliyet Raporu",
-        "Kalori Hesaplama Aracı"
+        ("Günlük Yemek Üretimi & Maliyet Raporu", ""),
+        ("Kalori Hesaplama Aracı", "")
     ],
     "👥 Sosyal & İnsan Kaynakları": [
-        "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
-        "Personel & Çalışma Süresi Takibi"
+        ("İhtiyaç Sahibi & Yemek Dağıtım Takibi", str(len(st.session_state.ihtiyac_sahipleri))),
+        ("Personel & Çalışma Süresi Takibi", str(aktif_personel_sayisi))
     ],
     "📈 Raporlar & Arşiv": [
-        "Kullanım Takibi"
+        ("Kullanım Takibi", "")
     ]
 }
 
 if yonetici_modu:
-    menu_gruplari["⚙️ Sistem Ayarları"] = ["Kullanıcı Ayarları"]
+    menu_gruplari["⚙️ Sistem Ayarları"] = [("Kullanıcı Ayarları", str(len(st.session_state.kullanicilar)))]
 
 filtrelenmis_gruplar = {}
 for grup_adi, alt_menuler in menu_gruplari.items():
     uygun_menuler = []
-    for m in alt_menuler:
+    for m, badge in alt_menuler:
         if misafir_modu and m in ["Güncel Stok Durumu", "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", "İhtiyaç Sahibi & Yemek Dağıtım Takibi", "Personel & Çalışma Süresi Takibi", "Kullanım Takibi"]:
             continue
         if not yonetici_modu and m in yasakli_menuler_listesi:
             continue
         if not sidebar_arama or sidebar_arama in m.lower() or sidebar_arama in grup_adi.lower() or otomatik_yonlendirilen_menu == m:
-            uygun_menuler.append(m)
+            uygun_menuler.append((m, badge))
     if uygun_menuler:
         filtrelenmis_gruplar[grup_adi] = uygun_menuler
 
 for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
-    grup_aktif_mu = st.session_state.aktif_menu in alt_menuler
+    grup_aktif_mu = any(st.session_state.aktif_menu == m for m, _ in alt_menuler)
     with st.sidebar.expander(grup_adi, expanded=grup_aktif_mu or bool(sidebar_arama)):
-        for m in alt_menuler:
+        for m, badge in alt_menuler:
             if m == "Yeni Mal Alımı / Fatura Ekle" and salt_okunur_modu:
                 continue
+            
+            # BoardUI Tarzı Badge entegrasyonlu Buton Yapısı
+            btn_label = f"{m}  [{badge}]" if badge and badge != "0" else m
             btn_type = "primary" if st.session_state.aktif_menu == m else "secondary"
-            if st.button(m, use_container_width=True, type=btn_type, key=f"menu_btn_{m}"):
+            if st.button(btn_label, use_container_width=True, type=btn_type, key=f"menu_btn_{m}"):
                 st.session_state.aktif_menu = m
                 st.query_params["menu"] = m
                 st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="font-size: 12px; font-weight: 600; margin-bottom: 6px; padding-left: 2px;">🎨 Arayüz Teması</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 12px; font-weight: 600; margin-bottom: 6px; padding-left: 2px;">🎨 BoardUI Theme Palette</p>', unsafe_allow_html=True)
 yeni_tema = st.sidebar.selectbox("Tema Seçin", ["BoardUI Dark (Pro)", "BoardUI Light"], index=0 if st.session_state.tema_secimi=="BoardUI Dark (Pro)" else 1, label_visibility="collapsed")
 if yeni_tema != st.session_state.tema_secimi:
     st.session_state.tema_secimi = yeni_tema
     st.rerun()
 
 st.sidebar.markdown("---")
-kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session_state.oturum_aktif else "MİSAFİR"
-st.sidebar.markdown(f"""
-    <div style="background: rgba(125, 125, 125, 0.05); border: 1px solid rgba(125, 125, 125, 0.1); padding: 10px 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="background: #2a3447; color: white; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">
-                {kullanici_adi_goruntule[:1]}
-            </div>
-            <div>
-                <div style="font-weight: 600; font-size: 13px;">{kullanici_adi_goruntule}</div>
-                <div style="font-size: 11px; opacity: 0.5;">BoardUI Oturum</div>
-            </div>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
 if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"):
     st.session_state.oturum_aktif = False
     st.session_state.aktif_kullanici = "misafir"
@@ -753,7 +752,7 @@ if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="font-size: 11px; text-align: center; opacity: 0.4;">BoardUI v4 - sefautopcu</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 11px; text-align: center; opacity: 0.4;">BoardUI v4 Pro - sefautopcu</p>', unsafe_allow_html=True)
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -866,7 +865,7 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
 
-# 0. KURUMSAL DASHBOARD & ÖZET (BoardUI Pro Standartlarına ve Grafik Ekleme Seçeneğine Göre)
+# 0. KURUMSAL DASHBOARD & ÖZET
 if menu == "Kurumsal Dashboard & Özet":
     toplam_stok_kalemi = len(set(g["urun"] for g in st.session_state.girisler))
     toplam_envanter_maliyeti = sum(g["kalan"] * g["fiyat"] for g in st.session_state.girisler)
@@ -915,11 +914,11 @@ if menu == "Kurumsal Dashboard & Özet":
 
         <div class="dashboard-header">
             <div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 600; color: {text_color};">Genel Bakış & Operasyonel Özet (BoardUI)</h1>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 600; color: {text_color};">Genel Bakış & Operasyonel Özet (BoardUI Pro)</h1>
                 <p style="margin: 4px 0 0 0; color: {subtext_color}; font-size: 13.5px;">Aziziye Aşevi kurum içi yönetim ve anlık takip paneli</p>
             </div>
             <div style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 6px 14px; border-radius: 8px; font-weight: 500; font-size: 12px;">
-                ● BoardUI v4 Aktif
+                ● BoardUI Pro v4 Aktif
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -1015,14 +1014,11 @@ if menu == "Kurumsal Dashboard & Özet":
             st.query_params["menu"] = "Kalori Hesaplama Aracı"
             st.rerun()
 
-    # =========================================================================
-    # SAYFANIN ALT TARAFINA ADMIN İSTEDİĞİ GİBİ GRAFİK EKLE / YÖNET SEÇENEĞİ
-    # =========================================================================
+    # DASHBOARD GRAFİK WIDGET ALANI
     st.markdown("---")
     st.markdown(f"<h3 style='font-size: 18px; font-weight: 600; color: {text_color}; margin-top: 20px;'>📊 İnteraktif Dashboard Grafikleri ve Widget Alanı</h3>", unsafe_allow_html=True)
     st.markdown(f"<p style='color: {subtext_color}; font-size: 13px;'>Aşağıda etkinleştirilmiş olan BoardUI grafik kartları görüntülenmektedir. Admin kullanıcıları yeni grafik widget'ı ekleyebilir veya mevcutları silebilir.</p>", unsafe_allow_html=True)
 
-    # Aktif widget'ları göster
     aktif_w_list = [w for w in st.session_state.dashboard_widgets if w.get("aktif", True)]
     if aktif_w_list:
         for w in aktif_w_list:
@@ -1054,7 +1050,6 @@ if menu == "Kurumsal Dashboard & Özet":
     else:
         st.info("Görüntülenecek aktif grafik widget'ı bulunmuyor.")
 
-    # SADECE ADMİN KULLANICISININ GRAFİK EKLEME / YÖNETME SEÇENEĞİ
     if yonetici_modu:
         with st.expander("➕ Admin Özel: Dashboard'a Yeni Grafik / Widget Ekle veya Kaldır", expanded=False):
             with st.form("yeni_widget_ekle_form"):
@@ -1322,7 +1317,7 @@ elif menu == "Fire / Zayiat Girişi":
 
         st.markdown("---")
         st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
-        fire_loglari = [l for l in st.session_state.kullanim_loglari if l.get("tur") == "Fire/Zayiat"]
+        fire_loglari = [l for l in st.session_state.kullanim_loglari if l.get("tur"] == "Fire/Zayiat"]
         if fire_loglari:
             fire_tablo_verisi = []
             for f_log in reversed(fire_loglari):
@@ -2378,7 +2373,7 @@ elif menu == "Kullanıcı Ayarları":
             if yetki_verilecek_k:
                 mevcut_yasaklar = st.session_state.kullanicilar[yetki_verilecek_k].get("yasakli_menuler", [])
                 
-                st.markdown(f"**'{yetki_verilecek_k}'** kullanıcısının erişmesini **istemediğiniz** (kapalı olmasını istediğiniz) sayfaları seçin:")
+                st.markdown(f"**'{yetky_verilecek_k if 'yetky_verilecek_k' in locals() else yetki_verilecek_k}'** kullanıcısının erişmesini **istemediğiniz** (kapalı olmasını istediğiniz) sayfaları seçin:")
                 
                 tum_yonetilebilir_menuler = [
                     "Kurumsal Dashboard & Özet",
