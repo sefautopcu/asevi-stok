@@ -12,7 +12,7 @@ import streamlit as st
 
 # Sayfa Yapılandırması
 st.set_page_config(
-    page_title="Aziziye - Aşevi Takip Sistemi",
+    page_title="Aziziye - Aşevi Sistemi",
     page_icon="🍲",
     layout="wide",
 )
@@ -48,7 +48,7 @@ def metni_coz(sifreli_metin):
 if "tema_secimi" not in st.session_state:
   st.session_state.tema_secimi = "BoardUI Dark (Pro)"
 
-# BoardUI Pro Tasarım Dili & CSS Entegrasyonu (Light Tema Açılır Menü ve Takvim Düzeltmeli)
+# BoardUI Pro Tasarım Dili & CSS Entegrasyonu (Dark Tema Takvim ve Seçim Kutusu Metin Düzeltmeli Kesin Çözüm)
 if st.session_state.tema_secimi == "BoardUI Dark (Pro)":
   st.markdown(
       """
@@ -77,6 +77,35 @@ if st.session_state.tema_secimi == "BoardUI Dark (Pro)":
     }
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
+
+    /* KESİN ÇÖZÜM: DARK TEMA BASEWEB AÇILIR MENÜ, LİSTE VE TAKVİM KONTRAST DÜZELTMESİ */
+    div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
+        background-color: #161d2d !important;
+        color: #ffffff !important;
+        border: 1px solid #2a3447 !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+        border-radius: 10px !important;
+    }
+    li[role="option"] {
+        background-color: #161d2d !important;
+        color: #ffffff !important;
+    }
+    li[role="option"] div, li[role="option"] span, 
+    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span,
+    div[data-baseweb="calendar"] button {
+        color: #ffffff !important;
+    }
+    li[role="option"]:hover {
+        background-color: #222b3b !important;
+        color: #ffffff !important;
+    }
+    div[data-baseweb="calendar"] button:hover {
+        background-color: #222b3b !important;
+    }
+    input, div[data-baseweb="select"] > div {
+        background-color: #111622 !important;
+        color: #ffffff !important;
+    }
 
     div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
         background-color: #171d29 !important;
@@ -163,7 +192,6 @@ else:
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-    /* KESİN ÇÖZÜM: LIGHT TEMA İÇİN BASEWEB SELECTBOX LİSTESİ VE TAKVİM POPUP'LARI */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
         background-color: #ffffff !important;
         color: #0f172a !important;
@@ -3565,26 +3593,3 @@ elif menu == "Kullanıcı Ayarları":
             "Kalori Hesaplama Aracı",
             "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
             "Personel & Çalışma Süresi Takibi",
-            "Kullanım Takibi",
-        ]
-
-        secilen_yasaklar = []
-        for m_item in tum_yonetilebilir_menuler:
-          varsayilan_durum = m_item in mevcur_yasaklar
-          if st.checkbox(
-              f"Kapat / Gizle: {m_item}",
-              value=varsayilan_durum,
-              key=f"yasak_{yetki_verilecek_k}_{m_item}",
-          ):
-            secilen_yasaklar.append(m_item)
-
-        if st.button("Yetki Ayarlarını Kaydet", type="primary"):
-          st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = (
-              secilen_yasaklar
-          )
-          kullanıcıları_kaydet(st.session_state.kullanicilar)
-          st.success(
-              f"'{yetki_verilecek_k}' kullanıcısının sayfa yetkileri başarıyla"
-              " güncellendi!"
-          )
-          st.rerun()
