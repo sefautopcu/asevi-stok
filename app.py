@@ -45,7 +45,7 @@ def metni_coz(sifreli_metin):
     return str(sifreli_metin)
 
 
-# TEK VE SAF SİYAH TEMA (Yüksek Okunabilirlik ve Kontrast Optimizasyonu)
+# TEK VE SAF SİYAH TEMA (Liquid Glass Navigasyon Stili)
 st.markdown(
     """
     <style>
@@ -56,15 +56,60 @@ st.markdown(
         color: #ffffff !important;
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
+    
+    /* Yan Menü Arka Planı ve Çerçevesiz Tasarım */
     .stSidebar { 
-        background-color: #050505 !important; 
+        background-color: #000000 !important; 
         padding-top: 15px; 
-        border-right: 1px solid #1f1f1f;
+        border-right: 1px solid #121212 !important;
     }
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
         color: #d1d5db !important; 
         font-size: 13.5px; 
     }
+    
+    /* Yan Menü Expander ve Buton Çerçevelerinin Kaldırılması & Liquid Glass Efekti */
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin-bottom: 4px;
+    }
+    
+    section[data-testid="stSidebar"] div.stButton > button {
+        background: transparent !important;
+        color: #9ca3af !important;
+        border: none !important;
+        border-radius: 10px !important;
+        text-align: left !important;
+        box-shadow: none !important;
+        font-weight: 500 !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 8px 12px !important;
+    }
+    
+    /* Liquid Glass Hover Efekti */
+    section[data-testid="stSidebar"] div.stButton > button:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+        transform: translateX(4px);
+    }
+    
+    /* Aktif Menü Butonu Stili */
+    section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
+        background: rgba(255, 255, 255, 0.09) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        font-weight: 600 !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+    }
+
     h1, h2, h3, h4, h5, h6 { 
         color: #ffffff !important; 
         font-weight: 700 !important;
@@ -76,7 +121,7 @@ st.markdown(
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-    /* Saf Siyah Tema Kart ve UI Bileşenleri */
+    /* Ana Sayfa Butonları */
     div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
         background-color: #121212 !important;
         color: #ffffff !important;
@@ -102,7 +147,6 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* Selectbox ve Takvim Popover Stilleri (Saf Siyah) */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
         background-color: #0c0c0c !important;
         color: #ffffff !important;
@@ -811,7 +855,7 @@ st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (Saf Siyah Pro)")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-# ----------------- SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ (Saf Siyah) -----------------
+# ----------------- SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ (Liquid Glass) -----------------
 kullanici_adi_goruntule = (
     st.session_state.aktif_kullanici.upper()
     if st.session_state.oturum_aktif
@@ -820,9 +864,9 @@ kullanici_adi_goruntule = (
 
 st.sidebar.markdown(
     f"""
-    <div style="background: #0c0c0c; border: 1px solid #222222; padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.8);">
+    <div style="background: transparent; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="background: #222222; color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+            <div style="background: rgba(255,255,255,0.08); color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 1px solid rgba(255,255,255,0.1);">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
@@ -830,7 +874,6 @@ st.sidebar.markdown(
                 <div style="font-size: 11.5px; color: #9ca3af;">Aziziye Workspace</div>
             </div>
         </div>
-        <div style="color: #9ca3af; font-size: 12px;">↕</div>
     </div>
 """,
     unsafe_allow_html=True,
@@ -990,7 +1033,7 @@ if st.sidebar.button(
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     '<p style="font-size: 11px; text-align: center; opacity: 0.5; color:'
-    ' #9ca3af;">Saf Siyah Pro - sefautopcu</p>',
+    ' #9ca3af;">Liquid Glass Pro - sefautopcu</p>',
     unsafe_allow_html=True,
 )
 
@@ -1181,7 +1224,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 <p style="margin: 6px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi Saf Siyah Tasarım & Yönetim Paneli</p>
             </div>
             <div style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12px;">
-                ● Saf Siyah Pro Aktif
+                ● Liquid Glass Pro Aktif
             </div>
         </div>
     """,
