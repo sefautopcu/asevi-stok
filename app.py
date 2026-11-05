@@ -1053,6 +1053,9 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
                 st.query_params["menu"] = m
                 st.rerun()
 
+
+
+
 st.sidebar.markdown("---")
 if st.sidebar.button(
     "Oturumu Kapat", use_container_width=True, type="secondary"
