@@ -1065,7 +1065,7 @@ if st.sidebar.button(
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     '<p style="font-size: 11px; text-align: center; opacity: 0.5; color:'
-    ' #9ca3af;">Liquid Glass Pro - sefautopcu</p>',
+    ' #9ca3af;">sefautopcu</p>',
     unsafe_allow_html=True,
 )
 
