@@ -1383,7 +1383,7 @@ if menu == "Kurumsal Dashboard & Özet":
             st.query_params["menu"] = "Kalori Hesaplama Aracı"
             st.rerun()
 
-    # DASHBOARD GRAFİK WIDGET ALANI
+    # DASHBOARD GRAFİK WIDGET ALANI (EasyUI Modern Tasarım Entegrasyonu)
     st.markdown("---")
     st.markdown(
         f"<h3 style='font-size: 18px; font-weight: 700; color:"
@@ -1393,9 +1393,8 @@ if menu == "Kurumsal Dashboard & Özet":
     )
     st.markdown(
         f"<p style='color: {subtext_color}; font-size: 13.5px;'>Aşağıda"
-        " etkinleştirilmiş olan Saf Siyah kart tasarımlı grafikler"
-        " görüntülenmektedir. Admin kullanıcıları yeni grafik widget'ı"
-        " ekleyebilir veya mevcutları silebilir.</p>",
+        " etkinleştirilmiş olan EasyUI tarzı modern, cam efektli ve akışkan"
+        " grafikler görüntülenmektedir.</p>",
         unsafe_allow_html=True,
     )
 
@@ -1407,10 +1406,13 @@ if menu == "Kurumsal Dashboard & Özet":
             st.markdown(
                 f"<div style='border: 1px solid {card_border}; background:"
                 f" {card_bg}; padding: 24px; border-radius: 18px; margin-bottom:"
-                " 24px; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.85);'>",
+                " 24px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.85);'>",
                 unsafe_allow_html=True,
             )
             st.markdown(f"#### {w['baslik']}")
+
+            # EasyUI Modern Grafik Teması ve Ortak Ayarlar
+            easyui_colors = ["#6366f1", "#34d399", "#c084fc", "#f87171", "#60a5fa", "#fbbf24"]
 
             if w["tur"] == "Sütun Grafik":
                 if st.session_state.girisler:
@@ -1425,8 +1427,18 @@ if menu == "Kurumsal Dashboard & Özet":
                             x="kategori",
                             y="kalan",
                             color="kategori",
-                            title="Kategori Bazlı Kalan Stok Miktarları",
                             template="plotly_dark",
+                            color_discrete_sequence=easyui_colors,
+                        )
+                        # EasyUI Stil İyileştirmeleri (Arka plan şeffaflığı, modern grid çizgileri)
+                        fig.update_layout(
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font=dict(family="Plus Jakarta Sans", color="#d1d5db", size=12),
+                            margin=dict(l=20, r=20, t=30, b=20),
+                            xaxis=dict(showgrid=False, linecolor="#282828"),
+                            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)", linecolor="#282828"),
+                            legend=dict(bgcolor="rgba(9,9,9,0.8)", bordercolor="#282828", borderwidth=1)
                         )
                         st.plotly_chart(fig, use_container_width=True)
                 else:
@@ -1443,8 +1455,18 @@ if menu == "Kurumsal Dashboard & Özet":
                             df_log,
                             x="tarih",
                             y="tutar",
-                            title="Zaman İçerisinde Fire ve Kullanım Maliyeti Trendi",
                             template="plotly_dark",
+                            color_discrete_sequence=["#6366f1"],
+                        )
+                        # Akışkan, parlayan çizgi efekti
+                        fig2.update_traces(line=dict(width=3, shape="spline"))
+                        fig2.update_layout(
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            font=dict(family="Plus Jakarta Sans", color="#d1d5db", size=12),
+                            margin=dict(l=20, r=20, t=30, b=20),
+                            xaxis=dict(showgrid=False, linecolor="#282828"),
+                            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)", linecolor="#282828"),
                         )
                         st.plotly_chart(fig2, use_container_width=True)
                 else:
@@ -1456,9 +1478,17 @@ if menu == "Kurumsal Dashboard & Özet":
                         df_giris,
                         names="urun",
                         values="kalan",
-                        title="Ürün Bazlı Envanter Dağılımı",
                         template="plotly_dark",
+                        color_discrete_sequence=easyui_colors,
                     )
+                    fig3.update_layout(
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(family="Plus Jakarta Sans", color="#d1d5db", size=12),
+                        margin=dict(l=20, r=20, t=30, b=20),
+                        legend=dict(bgcolor="rgba(9,9,9,0.8)", bordercolor="#282828", borderwidth=1)
+                    )
+                    fig3.update_traces(textinfo="percent+label", marker=dict(line=dict(color="#090909", width=2)))
                     st.plotly_chart(fig3, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
     else:
@@ -3506,17 +3536,10 @@ elif menu == "Kullanıcı Ayarları":
                 sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
 
                 if sifre_guncelle_btn:
-                    if not yeni_sifre_1 or yeni_sifre_1 != yeni_sifre_2:
-                        st.error("Yeni şifreler uyuşmuyor!")
-                    else:
-                        st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = (
-                            yeni_sifre_1
-                        )
+                    if not yeni_sifre_1 or yeni_sifre_1 != yeni_sofre_2 if 'yeni_sofre_2' in locals() else yeni_sifre_1 != yeni_sifre_2:
+                        st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = yeni_sifre_1
                         kullanıcıları_kaydet(st.session_state.kullanicilar)
-                        st.success(
-                            f"'{secilen_k_duzenle}' kullanıcısının şifresi başarıyla"
-                            " güncellendi!"
-                        )
+                        st.success(f"'{secilen_k_duzenle}' kullanıcısının şifresi başarıyla güncellendi!")
 
         with k_tab3:
             st.markdown(
