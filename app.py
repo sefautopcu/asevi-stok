@@ -8,9 +8,34 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+from cryptography.fernet import Fernet
 
 # Sayfa Yapılandırması
 st.set_page_config(page_title="Aziziye - Aşevi Takip Ekranı", page_icon="🍲", layout="wide")
+
+# Streamlit secrets üzerinden güvenli anahtarı alıyoruz (Yoksa yedek anahtar üretir)
+try:
+    gizli_anahtar = st.secrets["FERNET_KEY"].encode("utf-8")
+    fernet_motoru = Fernet(gizli_anahtar)
+except Exception:
+    # Yerel testler için fallback anahtar
+    fernet_motoru = Fernet(Fernet.generate_key())
+
+def metni_sifrele(duz_metin):
+    if not duz_metin:
+        return ""
+    try:
+        return fernet_motoru.encrypt(str(duz_metin).encode("utf-8")).decode("utf-8")
+    except Exception:
+        return str(duz_metin)
+
+def metni_coz(sifreli_metin):
+    if not sifreli_metin:
+        return ""
+    try:
+        return fernet_motoru.decrypt(str(sifreli_metin).encode("utf-8")).decode("utf-8")
+    except Exception:
+        return str(sifreli_metin)
 
 # Oturumda Tema Durumu Kontrolü
 if "tema_secimi" not in st.session_state:
@@ -328,14 +353,29 @@ def ihtiyac_sahiplerini_yukle():
     if os.path.exists(IHTIYAC_SAHIPLERI_DOSYASI):
         try:
             with open(IHTIYAC_SAHIPLERI_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
+                ham_veri = json.load(f)
+                cozulmus_liste = []
+                for k in ham_veri:
+                    k_kopya = k.copy()
+                    k_kopya["tc_hane"] = metni_coz(k.get("tc_hane", ""))
+                    k_kopya["telefon"] = metni_coz(k.get("telefon", ""))
+                    k_kopya["adres"] = metni_coz(k.get("adres", ""))
+                    cozulmus_liste.append(k_kopya)
+                return cozulmus_liste
         except Exception:
             return []
     return []
 
-def ihtiyac_sahiplerini_kaydet(veri):
+def ihtiyac_sahiplerini_kaydet(veri_listesi):
+    sifrelenmis_liste = []
+    for k in veri_listesi:
+        k_kopya = k.copy()
+        k_kopya["tc_hane"] = metni_sifrele(k.get("tc_hane", ""))
+        k_kopya["telefon"] = metni_sifrele(k.get("telefon", ""))
+        k_kopya["adres"] = metni_sifrele(k.get("adres", ""))
+        sifrelenmis_liste.append(k_kopya)
     with open(IHTIYAC_SAHIPLERI_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+        json.dump(sifrelenmis_liste, f, ensure_ascii=False, indent=4)
 
 def dagitim_loglarini_yukle():
     if os.path.exists(DAGITIM_LOG_DOSYASI):
@@ -354,14 +394,25 @@ def personelleri_yukle():
     if os.path.exists(PERSONEL_DOSYASI):
         try:
             with open(PERSONEL_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
+                ham_veri = json.load(f)
+                cozulmus_p = []
+                for p in ham_veri:
+                    p_kopya = p.copy()
+                    p_kopya["tc"] = metni_coz(p.get("tc", ""))
+                    cozulmus_p.append(p_kopya)
+                return cozulmus_p
         except Exception:
             return varsayilan_personeller
     return varsayilan_personeller
 
-def personelleri_kaydet(veri):
+def personelleri_kaydet(veri_listesi):
+    sifrelenmis_p = []
+    for p in veri_listesi:
+        p_kopya = p.copy()
+        p_kopya["tc"] = metni_sifrele(p.get("tc", ""))
+        sifrelenmis_p.append(p_kopya)
     with open(PERSONEL_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+        json.dump(sifrelenmis_p, f, ensure_ascii=False, indent=4)
 
 def resmi_tatilleri_yukle():
     if os.path.exists(TATIL_DOSYASI):
@@ -594,7 +645,6 @@ misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kull
 yonetim_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "yonetim")
 salt_okunur_modu = misafir_modu or yonetim_modu
 
-# Aktif kullanıcının yasaklı menülerini alalım
 aktif_k_bilgi = st.session_state.kullanicilar.get(st.session_state.aktif_kullanici, {})
 yasakli_menuler_listesi = aktif_k_bilgi.get("yasakli_menuler", [])
 
@@ -631,7 +681,6 @@ for grup_adi, alt_menuler in menu_gruplari.items():
     for m in alt_menuler:
         if misafir_modu and m in ["Güncel Stok Durumu", "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", "İhtiyaç Sahibi & Yemek Dağıtım Takibi", "Personel & Çalışma Süresi Takibi", "Kullanım Takibi"]:
             continue
-        # Admin tarafından yasaklanmış menüleri gizle
         if not yonetici_modu and m in yasakli_menuler_listesi:
             continue
         if not sidebar_arama or sidebar_arama in m.lower() or sidebar_arama in grup_adi.lower() or otomatik_yonlendirilen_menu == m:
@@ -791,12 +840,11 @@ def ortak_indirme_alani(excel_veri, pdf_veri, dosya_adi_koku, unique_key):
 
 menu = st.session_state.aktif_menu
 
-# Yasaklı menü kontrolü (Eğer admin değilse ve menü yasaklanmışsa anasayfaya yönlendir)
 if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
 
-# 0. KURUMSAL DASHBOARD & ÖZET
+# 0. KURUMSAL DASHBOARD & ÖZET (BoardUI Tasarım Standardına Göre Güncellenmiş)
 if menu == "Kurumsal Dashboard & Özet":
     toplam_stok_kalemi = len(set(g["urun"] for g in st.session_state.girisler))
     toplam_envanter_maliyeti = sum(g["kalan"] * g["fiyat"] for g in st.session_state.girisler)
@@ -807,123 +855,141 @@ if menu == "Kurumsal Dashboard & Özet":
     aktif_calisan_personel_sayisi = sum(1 for p in st.session_state.personeller if p.get("aktif", True))
 
     is_dark = (st.session_state.tema_secimi == "Koyu Tema (Dark)")
-    card_bg = "#1E293B" if is_dark else "#FFFFFF"
-    card_border = "#334155" if is_dark else "#E5E7EB"
-    text_color = "#F8FAFC" if is_dark else "#111827"
-    subtext_color = "#94A3B8" if is_dark else "#4B5563"
+    
+    card_bg = "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)" if is_dark else "linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)"
+    card_border = "#334155" if is_dark else "#E2E8F0"
+    text_color = "#F8FAFC" if is_dark else "#0F172A"
+    subtext_color = "#94A3B8" if is_dark else "#64748B"
 
-    kare_kart_style = f"""
-        background: {card_bg}; 
-        border: 1px solid {card_border}; 
-        padding: 24px; 
-        border-radius: 16px; 
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
-        margin-bottom: 20px; 
-        height: 180px; 
-        display: flex; 
-        flex-direction: column; 
-        justify-content: space-between;
-    """
+    st.markdown(f"""
+        <style>
+        .dashboard-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: {card_bg};
+            border: 1px solid {card_border};
+            padding: 24px 32px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }}
+        .metric-card {{
+            background: {card_bg};
+            border: 1px solid {card_border};
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 170px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }}
+        .metric-card:hover {{
+            transform: translateY(-4px);
+            border-color: #38BDF8;
+            box-shadow: 0 12px 20px -3px rgba(56, 189, 248, 0.15);
+        }}
+        </style>
 
-    row1_c1, row1_c2 = st.columns(2)
-    with row1_c1:
+        <div class="dashboard-header">
+            <div>
+                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: {text_color};">Genel Bakış & Operasyonel Özet</h1>
+                <p style="margin: 4px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi kurum içi yönetim ve anlık takip paneli</p>
+            </div>
+            <div style="background: rgba(56, 189, 248, 0.1); color: #38BDF8; padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 13px;">
+                🟢 Sistem Aktif
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    with c1:
         st.markdown(f"""
-            <div style="{kare_kart_style}">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Ürün Çeşidi</div>
-                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 10px;">{toplam_stok_kalemi} Çeşit</div>
-                    </div>
-                    <div style="background: rgba(56, 189, 248, 0.15); padding: 12px; border-radius: 12px; color: #38BDF8; font-size: 20px;">📦</div>
+            <div class="metric-card">
+                <div>
+                    <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Ürün Çeşidi</div>
+                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_stok_kalemi} <span style="font-size: 14px; font-weight: normal; color: {subtext_color};">Çeşit</span></div>
                 </div>
-                <div style="color: {subtext_color}; font-size: 12px;">Aktif Depo Çeşitliliği</div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="color: #38BDF8; font-size: 12px; font-weight: 500;">📦 Aktif Envanter</span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
-    with row1_c2:
+    with c2:
         if misafir_modu:
             st.markdown(f"""
-                <div style="{kare_kart_style}">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div>
-                            <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Fire / Zayiat</div>
-                            <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 10px;">Gizli</div>
-                        </div>
-                        <div style="background: rgba(239, 68, 68, 0.15); padding: 12px; border-radius: 12px; color: #EF4444; font-size: 20px;">📉</div>
+                <div class="metric-card">
+                    <div>
+                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Toplam Fire / Zayiat</div>
+                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">Gizli</div>
                     </div>
-                    <div style="color: {subtext_color}; font-size: 12px;">Bu bilgi misafir hesabına gizlenmiştir.</div>
+                    <div style="color: {subtext_color}; font-size: 12px;">Yetkisiz Görünüm</div>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-                <div style="{kare_kart_style}">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div>
-                            <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Fire / Zayiat</div>
-                            <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 10px;">{toplam_fire_mik:,.1f} Kg</div>
-                        </div>
-                        <div style="background: rgba(239, 68, 68, 0.15); padding: 12px; border-radius: 12px; color: #EF4444; font-size: 20px;">📉</div>
+                <div class="metric-card">
+                    <div>
+                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Toplam Fire</div>
+                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_fire_mik:,.1f} <span style="font-size: 14px; font-weight: normal; color: {subtext_color};">Kg</span></div>
                     </div>
-                    <div style="color: #EF4444; font-size: 12px; font-weight: 600;">Maddi Zarar: {toplam_fire_tutar:,.2f} ₺</div>
+                    <div style="color: #EF4444; font-size: 12px; font-weight: 600;">Zarar: {toplam_fire_tutar:,.0f} ₺</div>
                 </div>
             """, unsafe_allow_html=True)
 
-    row2_c1, row2_c2 = st.columns(2)
-    with row2_c1:
+    with c3:
         if misafir_modu:
             st.markdown(f"""
-                <div style="{kare_kart_style}">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div>
-                            <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Stok Değeri</div>
-                            <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 10px;">Gizli</div>
-                        </div>
-                        <div style="background: rgba(52, 211, 153, 0.15); padding: 12px; border-radius: 12px; color: #34D399; font-size: 20px;">💰</div>
+                <div class="metric-card">
+                    <div>
+                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Toplam Stok Değeri</div>
+                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">Gizli</div>
                     </div>
-                    <div style="color: {subtext_color}; font-size: 12px;">Bu bilgi misafir hesabına gizlenmiştir.</div>
+                    <div style="color: {subtext_color}; font-size: 12px;">Yetkisiz Görünüm</div>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-                <div style="{kare_kart_style}">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div>
-                            <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Toplam Stok Değeri</div>
-                            <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 10px;">{toplam_envanter_maliyeti:,.2f} ₺</div>
-                        </div>
-                        <div style="background: rgba(52, 211, 153, 0.15); padding: 12px; border-radius: 12px; color: #34D399; font-size: 20px;">💰</div>
+                <div class="metric-card">
+                    <div>
+                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Stok Değeri</div>
+                        <div style="color: {text_color}; font-size: 24px; font-weight: 700; margin-top: 8px;">{toplam_envanter_maliyeti:,.0f} <span style="font-size: 14px; font-weight: normal; color: {subtext_color};">₺</span></div>
                     </div>
-                    <div style="color: {subtext_color}; font-size: 12px;">Güncel Envanter Maliyeti</div>
+                    <div style="color: #34D399; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
                 </div>
             """, unsafe_allow_html=True)
 
-    with row2_c2:
+    with c4:
         st.markdown(f"""
-            <div style="{kare_kart_style}">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <div style="color: {subtext_color}; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Aktif Çalışan Personel</div>
-                        <div style="color: {text_color}; font-size: 32px; font-weight: 700; margin-top: 10px;">{aktif_calisan_personel_sayisi} Kişi</div>
-                    </div>
-                    <div style="background: rgba(167, 139, 250, 0.15); padding: 12px; border-radius: 12px; color: #A78BFA; font-size: 20px;">👥</div>
+            <div class="metric-card">
+                <div>
+                    <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Aktif Personel</div>
+                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{aktif_calisan_personel_sayisi} <span style="font-size: 14px; font-weight: normal; color: {subtext_color};">Kişi</span></div>
                 </div>
-                <div style="color: {subtext_color}; font-size: 12px;">Aktif Kadro Durumu</div>
+                <div style="color: #A78BFA; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
             </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.subheader("🚀 Hızlı İşlem Kısayolları")
+    st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='font-size: 18px; font-weight: 600; color: {text_color}; margin-bottom: 16px;'>⚡ Hızlı İşlem Kısayolları</h3>", unsafe_allow_html=True)
+    
     q1, q2, q3 = st.columns(3)
     with q1:
         if not misafir_modu:
-            if st.button("📦 Stok Durumuna Git", use_container_width=True):
+            if st.button("📦 Güncel Stok Durumuna Git", use_container_width=True):
                 st.session_state.aktif_menu = "Güncel Stok Durumu"
                 st.query_params["menu"] = "Güncel Stok Durumu"
                 st.rerun()
         else:
-            st.button("📦 Stok Durumuna Git (Kısıtlı)", use_container_width=True, disabled=True)
+            st.button("📦 Stok Durumu (Kısıtlı)", use_container_width=True, disabled=True)
     with q2:
-        if st.button("🍲 Yemek Üretimi Yap", use_container_width=True):
+        if st.button("🍲 Günlük Yemek Üretimi Yap", use_container_width=True):
             st.session_state.aktif_menu = "Günlük Yemek Üretimi & Maliyet Raporu"
             st.query_params["menu"] = "Günlük Yemek Üretimi & Maliyet Raporu"
             st.rerun()
@@ -2208,8 +2274,6 @@ elif menu == "Kullanıcı Ayarları":
                         st.error("Yeni şifreler uyuşmuyor!")
                     else:
                         st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = yeni_sifre_1
-                        if secilen_k_duzenle == "admin":
-                            yonetici_sifresi_kaydet(yeni_sifre_1)
                         kullanıcıları_kaydet(st.session_state.kullanicilar)
                         st.success(f"'{secilen_k_duzenle}' kullanıcısının şifresi başarıyla güncellendi!")
 
