@@ -45,7 +45,7 @@ def metni_coz(sifreli_metin):
         return str(sifreli_metin)
 
 
-# TEK VE SAF SİYAH TEMA (Liquid Glass & Beyaz Çizgi İkon/Takvim Stili)
+# TEK VE SAF SİYAH TEMA & EASYUI TARZI MİKRO-ANİMASYON / LİQUID GLASS STİLLERİ
 st.markdown(
     """
     <style>
@@ -61,7 +61,7 @@ st.markdown(
     .stSidebar { 
         background-color: #000000 !important; 
         padding-top: 10px; 
-        border-right: 1px solid #121212 !important;
+        border-right: 1px solid #161616 !important;
     }
     .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
         color: #d1d5db !important; 
@@ -80,34 +80,34 @@ st.markdown(
         background: transparent !important;
         color: #9ca3af !important;
         border: none !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         text-align: left !important;
         box-shadow: none !important;
         font-weight: 500 !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        padding: 8px 12px !important;
+        padding: 9px 14px !important;
     }
     
-    /* Liquid Glass Hover Efekti */
+    /* EasyUI Tarzı Liquid Glass Hover Efekti */
     section[data-testid="stSidebar"] div.stButton > button:hover {
-        background: rgba(255, 255, 255, 0.06) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
+        background: rgba(255, 255, 255, 0.07) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
         color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-        transform: translateX(4px);
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+        transform: translateX(5px);
     }
     
     /* Aktif Menü Butonu Stili */
     section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
-        background: rgba(255, 255, 255, 0.09) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
         color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
         font-weight: 600 !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+        box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.5) !important;
     }
 
     h1, h2, h3, h4, h5, h6 { 
@@ -125,37 +125,37 @@ st.markdown(
     div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
         background-color: #121212 !important;
         color: #ffffff !important;
-        border: 1px solid #2d2d2d !important;
+        border: 1px solid #282828 !important;
         border-radius: 12px !important;
         font-weight: 600 !important;
         font-size: 13.5px !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
-        background-color: #1f1f1f !important;
+        background-color: #1a1a1a !important;
         border-color: #6366f1 !important;
         transform: translateY(-1px);
     }
 
     div.stMetric, div[data-testid="stExpander"], div.stForm {
-        background: #0c0c0c !important;
-        border: 1px solid #222222;
+        background: #090909 !important;
+        border: 1px solid #1f1f1f;
         padding: 24px;
-        border-radius: 16px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8);
+        border-radius: 18px;
+        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.85);
         color: #ffffff !important;
     }
     
     /* AÇILIR SEÇİM MENÜLERİ VE TAKVİM İKONLARI (BEYAZ ÇİZGİ / OUTLINE DÖNÜŞÜMÜ) */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
-        background: rgba(12, 12, 12, 0.85) !important;
-        backdrop-filter: blur(16px) !important;
-        -webkit-backdrop-filter: blur(16px) !important;
+        background: rgba(12, 12, 12, 0.9) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
         color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.6) !important;
-        border-radius: 14px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.7) !important;
+        border-radius: 16px !important;
     }
     
     /* Takvim ve Sistem İkonlarının Beyaz Çizgi (Outline) Görünümü */
@@ -173,7 +173,7 @@ st.markdown(
         color: #ffffff !important;
     }
     li[role="option"][aria-selected="true"] {
-        background: rgba(99, 102, 241, 0.2) !important;
+        background: rgba(99, 102, 241, 0.25) !important;
         color: #ffffff !important;
         border-left: 3px solid #6366f1 !important;
     }
@@ -182,10 +182,10 @@ st.markdown(
         color: #ffffff !important;
     }
     input, div[data-baseweb="select"] > div {
-        background-color: #000000 !important;
+        background-color: #0b0b0b !important;
         color: #ffffff !important;
-        border-radius: 10px !important;
-        border-color: #2d2d2d !important;
+        border-radius: 12px !important;
+        border-color: #282828 !important;
     }
 
     .custom-table {
@@ -194,10 +194,10 @@ st.markdown(
         border-spacing: 0;
         margin-top: 15px;
         margin-bottom: 15px;
-        background-color: #0c0c0c;
-        border-radius: 14px;
+        background-color: #090909;
+        border-radius: 16px;
         overflow: hidden;
-        border: 1px solid #222222;
+        border: 1px solid #1f1f1f;
     }
     .custom-table th {
         background-color: #000000;
@@ -206,16 +206,16 @@ st.markdown(
         text-align: left;
         font-size: 13px;
         font-weight: 600;
-        border-bottom: 1px solid #222222;
+        border-bottom: 1px solid #1f1f1f;
     }
     .custom-table td {
         padding: 14px 18px;
         color: #d1d5db;
         font-size: 13px;
-        border-bottom: 1px solid #222222;
+        border-bottom: 1px solid #1f1f1f;
     }
     .custom-table tr:hover {
-        background-color: rgba(31, 31, 31, 0.6);
+        background-color: rgba(255, 255, 255, 0.03);
     }
     </style>
     """,
@@ -781,20 +781,21 @@ def bugunun_turkce_tarihi():
 
 
 # =========================================================================
-# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (Saf Siyah Tema)
+# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (EasyUI Tarzı Liquid Glass)
 # =========================================================================
 if not st.session_state.oturum_aktif:
     st.markdown(
-        "<div style='text-align: center; margin-top: 50px;'></div>",
+        "<div style='text-align: center; margin-top: 40px;'></div>",
         unsafe_allow_html=True,
     )
-    c1, c2, c3 = st.columns([1, 1.2, 1])
+    c1, c2, c3 = st.columns([1, 1.3, 1])
     with c2:
         st.markdown(
             """
-                <div style="text-align: center; margin-bottom: 24px;">
-                    <h2 style="font-weight: 700; letter-spacing: -0.03em;">🍲 AZİZİYE AŞEVİ</h2>
-                    <p style="opacity: 0.7; font-size: 14px; margin-top: 4px; color: #d1d5db;">Yönetim Paneli</p>
+                <div style="text-align: center; margin-bottom: 28px; background: #090909; border: 1px solid #1f1f1f; padding: 32px; border-radius: 20px; box-shadow: 0 16px 40px rgba(0,0,0,0.8);">
+                    <div style="font-size: 36px; margin-bottom: 12px;">🍲</div>
+                    <h2 style="font-weight: 700; letter-spacing: -0.03em; margin: 0; color: #ffffff;">AZİZİYE AŞEVİ</h2>
+                    <p style="opacity: 0.6; font-size: 13.5px; margin-top: 6px; color: #9ca3af;">Yönetim & Takip Sistemi</p>
                 </div>
             """,
             unsafe_allow_html=True,
@@ -835,7 +836,7 @@ if not st.session_state.oturum_aktif:
                     st.error("Hatalı kullanıcı adı veya şifre!")
 
         st.markdown(
-            "<div style='text-align: center; margin: 16px 0; opacity: 0.5; font-size:"
+            "<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size:"
             " 13px;'>veya</div>",
             unsafe_allow_html=True,
         )
@@ -898,7 +899,7 @@ st.sidebar.markdown(
     f"""
     <div style="background: transparent; padding: 6px 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="background: rgba(255,255,255,0.06); color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; border: 1px solid rgba(255,255,255,0.08);">
+            <div style="background: rgba(255,255,255,0.07); color: white; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; border: 1px solid rgba(255,255,255,0.1);">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
@@ -1086,10 +1087,10 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
     title_font = Font(name="Calibri", size=14, bold=True, color="000000")
     regular_font = Font(name="Calibri", size=11)
     thin_border = Border(
-        left=Side(style="thin", color="2d2d2d"),
-        right=Side(style="thin", color="2d2d2d"),
-        top=Side(style="thin", color="2d2d2d"),
-        bottom=Side(style="thin", color="2d2d2d"),
+        left=Side(style="thin", color="282828"),
+        right=Side(style="thin", color="282828"),
+        top=Side(style="thin", color="282828"),
+        bottom=Side(style="thin", color="282828"),
     )
 
     ws.cell(row=1, column=1, value=baslik_str).font = title_font
@@ -1136,16 +1137,16 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
             body {{ font-family: 'Plus Jakarta Sans', sans-serif; margin: 30px; color: #ffffff; background: #000000; }}
             h2 {{ color: #ffffff; margin-bottom: 5px; }}
             p {{ color: #9ca3af; font-size: 14px; margin-top: 0; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background: #0c0c0c; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background: #090909; }}
             th {{ background-color: #121212; color: white; padding: 12px; text-align: left; font-size: 13px; }}
-            td {{ border: 1px solid #2d2d2d; padding: 10px 12px; font-size: 13px; color: #d1d5db; }}
+            td {{ border: 1px solid #282828; padding: 10px 12px; font-size: 13px; color: #d1d5db; }}
             tr:nth-child(even) {{ background-color: #050505; }}
         </style>
     </head>
     <body>
         <h2>{baslik}</h2>
         <p>Rapor Tarihi: {datetime.datetime.now()}</p>
-        <hr style="border: 0; border-top: 1px solid #2d2d2d;"/>
+        <hr style="border: 0; border-top: 1px solid #282828;"/>
     """
     if veri_listesi:
         headers = list(veri_listesi[0].keys())
@@ -1217,8 +1218,8 @@ if menu == "Kurumsal Dashboard & Özet":
         1 for p in st.session_state.personeller if p.get("aktif", True)
     )
 
-    card_bg = "#0c0c0c"
-    card_border = "#222222"
+    card_bg = "#090909"
+    card_border = "#1f1f1f"
     text_color = "#ffffff"
     subtext_color = "#9ca3af"
 
@@ -1234,14 +1235,14 @@ if menu == "Kurumsal Dashboard & Özet":
             padding: 28px 36px;
             border-radius: 20px;
             margin-bottom: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.9);
+            box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.9);
         }}
         .metric-card {{
             background: {card_bg};
             border: 1px solid {card_border};
             padding: 24px;
             border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
             transition: all 0.2s ease;
             height: 160px;
             display: flex;
@@ -1259,7 +1260,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: {text_color};">Genel Bakış & Operasyonel Özet</h1>
                 <p style="margin: 6px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi Yönetim Paneli</p>
             </div>
-            <div style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 8px 16px; border-radius: 10px; font-weight: 600; font-size: 12px;">
+            <div style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 12px; backdrop-filter: blur(12px);">
                 ● sefautopcu
             </div>
         </div>
@@ -1405,8 +1406,8 @@ if menu == "Kurumsal Dashboard & Özet":
         for w in aktif_w_list:
             st.markdown(
                 f"<div style='border: 1px solid {card_border}; background:"
-                f" {card_bg}; padding: 24px; border-radius: 16px; margin-bottom:"
-                " 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.8);'>",
+                f" {card_bg}; padding: 24px; border-radius: 18px; margin-bottom:"
+                " 24px; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.85);'>",
                 unsafe_allow_html=True,
             )
             st.markdown(f"#### {w['baslik']}")
