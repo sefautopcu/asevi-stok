@@ -1054,7 +1054,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
                 st.rerun()
 
 st.sidebar.markdown(
-        "<div style='margin-top: 60px;'></div>", unsafe_allow_html=True
+        "<div style='margin-top: 100px;'></div>", unsafe_allow_html=True
     )
 
 st.sidebar.markdown("---")
