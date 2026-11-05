@@ -6,7 +6,6 @@ from datetime import datetime
 VERITABANI_DOSYASI = "asevi_stok_veritabani.json"
 LOG_DOSYASI = "sistem_loglari.json"
 
-# --- VERİTABANI YÖNETİMİ ---
 def verileri_yukle():
     if not os.path.exists(VERITABANI_DOSYASI):
         varsayilan_veri = {
@@ -21,14 +20,18 @@ def verileri_yukle():
     try:
         with open(VERITABANI_DOSYASI, "r", encoding="utf-8") as f:
             veri = json.load(f)
-            # Eğer dosya içeriği yanlışlıkla liste veya başka bir şey olduysa sözlüğe çevir
+            # Eğer eski veritabanı liste formatındaysa veya bozulduysa düzelt
             if not isinstance(veri, dict):
                 return {
-                    "stok": [],
+                    "stok": veri if isinstance(veri, list) else [],
                     "ihtiyac_sahipleri": [],
                     "personel": [],
                     "uretim": []
                 }
+            # Eksik anahtarları tamamla
+            for key in ["stok", "ihtiyac_sahipleri", "personel", "uretim"]:
+                if key not in veri:
+                    veri[key] = []
             return veri
     except Exception as e:
         return {
@@ -42,7 +45,6 @@ def verileri_kaydet(veri):
     with open(VERITABANI_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(veri, f, ensure_ascii=False, indent=4)
 
-# --- LOGLAMA MEKANİZMASI ---
 def log_kaydet(kullanici, rol, islem_detayi):
     loglar = []
     if os.path.exists(LOG_DOSYASI):
@@ -63,7 +65,6 @@ def log_kaydet(kullanici, rol, islem_detayi):
     with open(LOG_DOSYASI, "w", encoding="utf-8") as f:
         json.dump(loglar, f, ensure_ascii=False, indent=4)
 
-# --- YETKİ VE ROL KONTROLÜ ---
 def oturum_baslat():
     if "kullanici_adi" not in st.session_state:
         st.session_state.kullanici_adi = "Misafir"
