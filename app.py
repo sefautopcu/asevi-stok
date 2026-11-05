@@ -867,7 +867,7 @@ if not st.session_state.oturum_aktif:
 # =========================================================================
 # ANA UYGULAMA İÇERİĞİ
 # =========================================================================
-st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (Saf Siyah Pro)")
+st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI ")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
