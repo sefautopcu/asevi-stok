@@ -794,7 +794,7 @@ if not st.session_state.oturum_aktif:
             """
                 <div style="text-align: center; margin-bottom: 24px;">
                     <h2 style="font-weight: 700; letter-spacing: -0.03em;">🍲 AZİZİYE AŞEVİ</h2>
-                    <p style="opacity: 0.7; font-size: 14px; margin-top: 4px; color: #d1d5db;">Saf Siyah Tasarım Sistemi & Yönetim Paneli</p>
+                    <p style="opacity: 0.7; font-size: 14px; margin-top: 4px; color: #d1d5db;">Yönetim Paneli</p>
                 </div>
             """,
             unsafe_allow_html=True,
