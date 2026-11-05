@@ -39,7 +39,7 @@ def metni_coz(sifreli_metin):
 if "tema_secimi" not in st.session_state:
     st.session_state.tema_secimi = "BoardUI Dark (Pro)"
 
-# BoardUI Pro Tasarım Dili & CSS Entegrasyonu (Light/Dark Popover Düzeltmeli)
+# BoardUI Pro Tasarım Dili & CSS Entegrasyonu (Light Tema Açılır Menü ve Takvim Düzeltmeli)
 if st.session_state.tema_secimi == "BoardUI Dark (Pro)":
     st.markdown("""
         <style>
@@ -150,18 +150,22 @@ else:
         button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
         section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-        /* LIGHT TEMA İÇİN SELECTBOX VE TAKVİM POPUP / DROPDOWN DÜZELTMESİ */
-        div[data-baseweb="menu"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
+        /* KESİN ÇÖZÜM: LIGHT TEMA İÇİN BASEWEB SELECTBOX LİSTESİ VE TAKVİM POPUP'LARI */
+        div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
             background-color: #ffffff !important;
             color: #0f172a !important;
             border: 1px solid #cbd5e1 !important;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
             border-radius: 10px !important;
         }
-        div[data-baseweb="menu"] div, div[data-baseweb="calendar"] div, div[role="option"] div, span {
+        li[role="option"] {
+            background-color: #ffffff !important;
             color: #0f172a !important;
         }
-        div[role="option"]:hover {
+        li[role="option"] div, li[role="option"] span, div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span {
+            color: #0f172a !important;
+        }
+        li[role="option"]:hover {
             background-color: #f1f5f9 !important;
             color: #0f172a !important;
         }
@@ -2279,7 +2283,7 @@ elif menu == "Kullanım Takibi":
                     "İşlemi Yapan": l.get("islem_yapan", "admin")
                 })
 
-        excel_kul_data = tablo_to_excel_bytes(kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım dan Fire Takibi Raporu")
+        excel_kul_data = tablo_to_excel_bytes(kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu")
         pdf_kul_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Kullanım ve Fire Takibi Raporu", kullanim_tablo_verisi)
 
         with col_indir_kul:
@@ -2372,7 +2376,7 @@ elif menu == "Kullanıcı Ayarları":
                 sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
 
                 if sifre_guncelle_btn:
-                    if not yeni_sifre_1 or yeni_sifre_1 != yeni_sifre_2:
+                    if not yeni_sfile_1 if 'yeni_sfile_1' in locals() else not yeni_sifre_1 or yeni_sifre_1 != yeni_sifre_2:
                         st.error("Yeni şifreler uyuşmuyor!")
                     else:
                         st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = yeni_sifre_1
