@@ -36,194 +36,112 @@ def metni_coz(sifreli_metin):
     except Exception:
         return str(sifreli_metin)
 
-if "tema_secimi" not in st.session_state:
-    st.session_state.tema_secimi = "CollectUI Modern Light"
+# Tek ve Kusursuz CollectUI Dark Tasarım Dili & CSS Entegrasyonu
+st.markdown("""
+    <style>
+    .main, .stApp { 
+        background-color: #0b0f19 !important; 
+        color: #f1f5f9 !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .stSidebar { 
+        background-color: #111827 !important; 
+        padding-top: 10px; 
+        border-right: 1px solid #1f2937;
+    }
+    .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
+        color: #94a3b8 !important; 
+        font-size: 13.5px; 
+    }
+    h1, h2, h3, h4, h5, h6 { 
+        color: #ffffff !important; 
+        font-weight: 700 !important;
+        letter-spacing: -0.025em !important;
+    }
+    p, span, label, div, .stMarkdown { 
+        color: #e2e8f0 !important; 
+    }
+    button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
+    section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-# CollectUI İlhamlı Modern Tasarım Dili & CSS Entegrasyonu (Tamamen Türkçe & Kusursuz Light/Dark Uyumlu)
-if st.session_state.tema_secimi == "CollectUI Modern Dark":
-    st.markdown("""
-        <style>
-        .main, .stApp { 
-            background-color: #0f172a !important; 
-            color: #f8fafc !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .stSidebar { 
-            background-color: #1e293b !important; 
-            padding-top: 10px; 
-            border-right: 1px solid #334155;
-        }
-        .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-            color: #cbd5e1 !important; 
-            font-size: 13.5px; 
-        }
-        h1, h2, h3, h4, h5, h6 { 
-            color: #ffffff !important; 
-            font-weight: 700 !important;
-            letter-spacing: -0.025em !important;
-        }
-        p, span, label, div, .stMarkdown { 
-            color: #e2e8f0 !important; 
-        }
-        button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
-        section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
+    /* Form, Input ve Menü Bileşenleri */
+    input, select, textarea {
+        background-color: #1f2937 !important;
+        color: #ffffff !important;
+        border: 1px solid #374151 !important;
+        border-radius: 8px !important;
+    }
+    div[data-baseweb="select"] > div, div[data-baseweb="base-input"] {
+        background-color: #1f2937 !important;
+        color: #ffffff !important;
+        border-color: #374151 !important;
+    }
+    div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"] {
+        background-color: #111827 !important;
+        color: #ffffff !important;
+        border: 1px solid #374151 !important;
+    }
+    li[role="option"] {
+        background-color: #111827 !important;
+        color: #e2e8f0 !important;
+    }
+    li[role="option"]:hover {
+        background-color: #1f2937 !important;
+        color: #3b82f6 !important;
+    }
 
-        div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
-            background-color: #3b82f6 !important;
-            color: #ffffff !important;
-            border: none !important;
-            border-radius: 10px !important;
-            font-weight: 600 !important;
-            font-size: 13.5px !important;
-            box-shadow: 0 4px 12px rgba(59, 130, 246,.3);
-            transition: all 0.25s ease;
-        }
-        div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
-            background-color: #2563eb !important;
-            box-shadow: 0 6px 16px rgba(59, 130, 246,.5);
-        }
-        div.stMetric, div[data-testid="stExpander"], div.stForm {
-            background: #1e293b !important;
-            border: 1px solid #334155;
-            padding: 24px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            color: #f8fafc !important;
-        }
-        .custom-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            margin-bottom: 15px;
-            background-color: #1e293b;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #334155;
-        }
-        .custom-table th {
-            background-color: #0f172a;
-            color: #ffffff;
-            padding: 14px 18px;
-            text-align: left;
-            font-size: 13px;
-            font-weight: 600;
-            border-bottom: 1px solid #334155;
-        }
-        .custom-table td {
-            padding: 14px 18px;
-            color: #cbd5e1;
-            font-size: 13px;
-            border-bottom: 1px solid #334155;
-        }
-        .custom-table tr:hover {
-            background-color: #273548;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-        <style>
-        .main, .stApp { 
-            background-color: #f8fafc !important; 
-            color: #0f172a !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .stSidebar { 
-            background-color: #ffffff !important; 
-            padding-top: 10px; 
-            border-right: 1px solid #e2e8f0;
-        }
-        .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-            color: #475569 !important; 
-            font-size: 13.5px; 
-        }
-        h1, h2, h3, h4, h5, h6 { 
-            color: #0f172a !important; 
-            font-weight: 700 !important;
-            letter-spacing: -0.025em !important;
-        }
-        p, span, label, div, .stMarkdown { 
-            color: #1e293b !important; 
-        }
-        button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
-        section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
-
-        /* CollectUI Modern Light Temalı Açılır Menü ve Takvim Bileşenleri */
-        div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-            border: 1px solid #cbd5e1 !important;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.08) !important;
-            border-radius: 12px !important;
-        }
-        li[role="option"] {
-            background-color: #ffffff !important;
-            color: #0f172a !important;
-        }
-        li[role="option"] div, li[role="option"] span, div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span {
-            color: #0f172a !important;
-        }
-        li[role="option"]:hover {
-            background-color: #f1f5f9 !important;
-            color: #2563eb !important;
-        }
-        input {
-            color: #0f172a !important;
-        }
-
-        div.stButton > button, div.stFormSubmitButton > button {
-            background-color: #2563eb !important;
-            color: #ffffff !important;
-            border: none !important;
-            border-radius: 10px !important;
-            font-weight: 600 !important;
-            font-size: 13.5px !important;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-            transition: all 0.2s ease;
-        }
-        div.stButton > button:hover, div.stFormSubmitButton > button:hover {
-            background-color: #1d4ed8 !important;
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-        }
-        div.stMetric, div[data-testid="stExpander"], div.stForm {
-            background: #ffffff !important;
-            border: 1px solid #e2e8f0;
-            padding: 24px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-            color: #0f172a !important;
-        }
-        .custom-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            margin-bottom: 15px;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
-        }
-        .custom-table th {
-            background-color: #f8fafc;
-            color: #0f172a;
-            padding: 14px 18px;
-            text-align: left;
-            font-size: 13px;
-            font-weight: 600;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .custom-table td {
-            padding: 14px 18px;
-            color: #475569;
-            font-size: 13px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .custom-table tr:hover {
-            background-color: #f1f5f9;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        font-size: 13.5px !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        transition: all 0.25s ease;
+    }
+    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
+        background-color: #1d4ed8 !important;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
+    }
+    div.stMetric, div[data-testid="stExpander"], div.stForm {
+        background: #111827 !important;
+        border: 1px solid #1f2937;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        color: #f1f5f9 !important;
+    }
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        background-color: #111827;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #1f2937;
+    }
+    .custom-table th {
+        background-color: #0b0f19;
+        color: #ffffff;
+        padding: 14px 18px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        border-bottom: 1px solid #1f2937;
+    }
+    .custom-table td {
+        padding: 14px 18px;
+        color: #cbd5e1;
+        font-size: 13px;
+        border-bottom: 1px solid #1f2937;
+    }
+    .custom-table tr:hover {
+        background-color: #1f2937;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 VERI_DOSYASI = "asevi_stok_veritabani.json"
 KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
@@ -585,7 +503,7 @@ def bugunun_turkce_tarihi():
 
 
 # =========================================================================
-# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (CollectUI Modern Tarzı)
+# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (CollectUI Tek Dark Mod)
 # =========================================================================
 if not st.session_state.oturum_aktif:
     st.markdown("<div style='text-align: center; margin-top: 50px;'></div>", unsafe_allow_html=True)
@@ -593,15 +511,15 @@ if not st.session_state.oturum_aktif:
     with c2:
         st.markdown("""
             <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="font-weight: 700; letter-spacing: -0.05em;">🍲 AZİZİYE AŞEVİ</h2>
-                <p style="opacity: 0.7; font-size: 14px; margin-top: 4px;">CollectUI Modern UI/UX Tasarım Sistemi & Yönetim Paneli</p>
+                <h2 style="font-weight: 700; letter-spacing: -0.05em; color: #ffffff;">🍲 AZİZİYE AŞEVİ</h2>
+                <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">CollectUI Tek Dark Tema Pro Sistem</p>
             </div>
         """, unsafe_allow_html=True)
         
         with st.form("merkezi_giris_formu"):
-            st.markdown("**Kullanıcı Adı**")
+            st.markdown("<span style='color: #cbd5e1; font-weight: 500;'>Kullanıcı Adı</span>", unsafe_allow_html=True)
             k_adi_inp = st.text_input("Kullanıcı Adı", placeholder="Kullanıcı adı giriniz...", label_visibility="collapsed").strip().lower()
-            st.markdown("**Şifre**")
+            st.markdown("<span style='color: #cbd5e1; font-weight: 500;'>Şifre</span>", unsafe_allow_html=True)
             sifre_inp = st.text_input("Şifre", type="password", placeholder="Şifre giriniz...", label_visibility="collapsed")
             
             giris_tikla = st.form_submit_button("Giriş Yap", use_container_width=True)
@@ -618,7 +536,7 @@ if not st.session_state.oturum_aktif:
                 else:
                     st.error("Hatalı kullanıcı adı veya şifre!")
 
-        st.markdown("<div style='text-align: center; margin: 16px 0; opacity: 0.5; font-size: 13px;'>veya</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align: center; margin: 16px 0; color: #64748b; font-size: 13px;'>veya</div>", unsafe_allow_html=True)
         
         if st.button("👁️ Misafir Girişi İçin Tıklayın (Gözlemci)", use_container_width=True, type="secondary"):
             st.session_state.oturum_aktif = True
@@ -636,25 +554,25 @@ if not st.session_state.oturum_aktif:
 # =========================================================================
 # ANA UYGULAMA İÇERİĞİ
 # =========================================================================
-st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (CollectUI Modern Pro)")
-st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
+st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI (CollectUI Tek Dark Pro)")
+st.markdown(f"<span style='color: #94a3b8;'>**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}</span>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ----------------- COLLECTUI SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ -----------------
+# ----------------- SIDEBAR & AĞAÇ MENÜ -----------------
 kullanici_adi_goruntule = st.session_state.aktif_kullanici.upper() if st.session_state.oturum_aktif else "MİSAFİR"
 
 st.sidebar.markdown(f"""
-    <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.15); padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+    <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.25); padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="background: #2563eb; color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
-                <div style="font-weight: 600; font-size: 13.5px;">{kullanici_adi_goruntule}</div>
-                <div style="font-size: 11px; opacity: 0.6;">CollectUI Workspace</div>
+                <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">{kullanici_adi_goruntule}</div>
+                <div style="font-size: 11px; color: #94a3b8;">CollectUI Dark Workspace</div>
             </div>
         </div>
-        <div style="font-size: 12px; opacity: 0.5;">↕</div>
+        <div style="font-size: 12px; color: #64748b;">↕</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -687,7 +605,7 @@ if sidebar_arama:
         st.session_state.aktif_menu = otomatik_yonlendirilen_menu
         st.query_params["menu"] = otomatik_yonlendirilen_menu
 
-st.sidebar.markdown('<p style="font-size: 11px; font-weight: 600; margin-top: 10px; margin-bottom: 6px; padding-left: 4px; opacity: 0.5; text-transform: uppercase; letter-spacing: 0.05em;">ÇALIŞMA ALANI MENÜSÜ</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 11px; font-weight: 600; margin-top: 10px; margin-bottom: 6px; padding-left: 4px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">ÇALIŞMA ALANI MENÜSÜ</p>', unsafe_allow_html=True)
 
 yonetici_modu = (st.session_state.oturum_aktif and st.session_state.aktif_kullanici == "admin")
 misafir_modu = (not st.session_state.oturum_aktif or st.session_state.aktif_kullanici == "misafir")
@@ -755,13 +673,6 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
                 st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="font-size: 12px; font-weight: 600; margin-bottom: 6px; padding-left: 2px;">🎨 CollectUI Tema Paleti</p>', unsafe_allow_html=True)
-yeni_tema = st.sidebar.selectbox("Tema Seçin", ["CollectUI Modern Light", "CollectUI Modern Dark"], index=0 if st.session_state.tema_secimi=="CollectUI Modern Light" else 1, label_visibility="collapsed")
-if yeni_tema != st.session_state.tema_secimi:
-    st.session_state.tema_secimi = yeni_tema
-    st.rerun()
-
-st.sidebar.markdown("---")
 if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"):
     st.session_state.oturum_aktif = False
     st.session_state.aktif_kullanici = "misafir"
@@ -769,7 +680,7 @@ if st.sidebar.button("Oturumu Kapat", use_container_width=True, type="secondary"
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<p style="font-size: 11px; text-align: center; opacity: 0.4;">CollectUI Inspiration v4 - sefautopcu</p>', unsafe_allow_html=True)
+st.sidebar.markdown('<p style="font-size: 11px; text-align: center; color: #64748b;">CollectUI Single Dark Mode v5 - sefautopcu</p>', unsafe_allow_html=True)
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -781,10 +692,10 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     title_font = Font(name="Calibri", size=14, bold=True, color="2563eb")
     regular_font = Font(name="Calibri", size=11)
-    thin_border = Border(left=Side(style='thin', color='cbd5e1'), right=Side(style='thin', color='cbd5e1'), top=Side(style='thin', color='cbd5e1'), bottom=Side(style='thin', color='cbd5e1'))
+    thin_border = Border(left=Side(style='thin', color='374151'), right=Side(style='thin', color='374151'), top=Side(style='thin', color='374151'), bottom=Side(style='thin', color='374151'))
 
     ws.cell(row=1, column=1, value=baslik_str).font = title_font
-    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.datetime.now())}").font = Font(name="Calibri", size=11, italic=True, color="64748b")
+    ws.cell(row=2, column=1, value=f"Rapor Tarihi: {str(datetime.datetime.now())}").font = Font(name="Calibri", size=11, italic=True, color="94a3b8")
 
     if not veri_listesi:
         excel_buffer = io.BytesIO()
@@ -820,19 +731,19 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
         <meta charset="utf-8">
         <title>{baslik}</title>
         <style>
-            body {{ font-family: 'Inter', sans-serif; margin: 30px; color: #0f172a; }}
-            h2 {{ color: #2563eb; margin-bottom: 5px; }}
-            p {{ color: #64748b; font-size: 14px; margin-top: 0; }}
+            body {{ font-family: 'Inter', sans-serif; margin: 30px; color: #f1f5f9; background-color: #0b0f19; }}
+            h2 {{ color: #3b82f6; margin-bottom: 5px; }}
+            p {{ color: #94a3b8; font-size: 14px; margin-top: 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
             th {{ background-color: #2563eb; color: white; padding: 12px; text-align: left; font-size: 13px; }}
-            td {{ border: 1px solid #e2e8f0; padding: 10px 12px; font-size: 13px; }}
-            tr:nth-child(even) {{ background-color: #f8fafc; }}
+            td {{ border: 1px solid #1f2937; padding: 10px 12px; font-size: 13px; color: #e2e8f0; }}
+            tr:nth-child(even) {{ background-color: #111827; }}
         </style>
     </head>
     <body>
         <h2>{baslik}</h2>
         <p>Rapor Tarihi: {datetime.datetime.now()}</p>
-        <hr style="border: 0; border-top: 1px solid #e2e8f0;"/>
+        <hr style="border: 0; border-top: 1px solid #1f2937;"/>
     """
     if veri_listesi:
         headers = list(veri_listesi[0].keys())
@@ -892,51 +803,44 @@ if menu == "Kurumsal Dashboard & Özet":
     toplam_fire_tutar = sum(l["tutar"] for l in loglar if l["tur"] == "Fire/Zayiat")
     aktif_calisan_personel_sayisi = sum(1 for p in st.session_state.personeller if p.get("aktif", True))
 
-    is_dark = (st.session_state.tema_secimi == "CollectUI Modern Dark")
-    
-    card_bg = "#1e293b" if is_dark else "#ffffff"
-    card_border = "#334155" if is_dark else "#e2e8f0"
-    text_color = "#f8fafc" if is_dark else "#0f172a"
-    subtext_color = "#cbd5e1" if is_dark else "#64748b"
-
-    st.markdown(f"""
+    st.markdown("""
         <style>
-        .dashboard-header {{
+        .dashboard-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: {card_bg};
-            border: 1px solid {card_border};
+            background: #111827;
+            border: 1px solid #1f2937;
             padding: 24px 32px;
             border-radius: 16px;
             margin-bottom: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-        }}
-        .metric-card {{
-            background: {card_bg};
-            border: 1px solid {card_border};
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+        .metric-card {
+            background: #111827;
+            border: 1px solid #1f2937;
             padding: 24px;
             border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             transition: all 0.25s ease;
             height: 160px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-        }}
-        .metric-card:hover {{
-            border-color: #2563eb;
+        }
+        .metric-card:hover {
+            border-color: #3b82f6;
             transform: translateY(-2px);
-        }}
+        }
         </style>
 
         <div class="dashboard-header">
             <div>
-                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: {text_color};">Genel Bakış & Operasyonel Özet (CollectUI Pro)</h1>
-                <p style="margin: 4px 0 0 0; color: {subtext_color}; font-size: 13.5px;">Aziziye Aşevi kurum içi yönetim ve anlık takip paneli</p>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;">Genel Bakış & Operasyonel Özet (CollectUI Dark Pro)</h1>
+                <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 13.5px;">Aziziye Aşevi kurum içi yönetim ve anlık takip paneli</p>
             </div>
-            <div style="background: rgba(37, 99, 235, 0.1); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.2); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;">
-                ● CollectUI Modern Aktif
+            <div style="background: rgba(37, 99, 235, 0.15); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px;">
+                ● CollectUI Dark Aktif
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -947,10 +851,10 @@ if menu == "Kurumsal Dashboard & Özet":
         st.markdown(f"""
             <div class="metric-card">
                 <div>
-                    <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Ürün Çeşidi</div>
-                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_stok_kalemi} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Çeşit</span></div>
+                    <div style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Ürün Çeşidi</div>
+                    <div style="color: #ffffff; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_stok_kalemi} <span style="font-size: 13px; font-weight: normal; color: #94a3b8;">Çeşit</span></div>
                 </div>
-                <div style="color: {subtext_color}; font-size: 12px;">📦 Aktif Envanter</div>
+                <div style="color: #94a3b8; font-size: 12px;">📦 Aktif Envanter</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -959,20 +863,20 @@ if menu == "Kurumsal Dashboard & Özet":
             st.markdown(f"""
                 <div class="metric-card">
                     <div>
-                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire / Zayiat</div>
-                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">Gizli</div>
+                        <div style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire / Zayiat</div>
+                        <div style="color: #ffffff; font-size: 28px; font-weight: 700; margin-top: 8px;">Gizli</div>
                     </div>
-                    <div style="color: {subtext_color}; font-size: 12px;">Yetkisiz Görünüm</div>
+                    <div style="color: #94a3b8; font-size: 12px;">Yetkisiz Görünüm</div>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
                 <div class="metric-card">
                     <div>
-                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire</div>
-                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_fire_mik:,.1f} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Kg</span></div>
+                        <div style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire</div>
+                        <div style="color: #ffffff; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_fire_mik:,.1f} <span style="font-size: 13px; font-weight: normal; color: #94a3b8;">Kg</span></div>
                     </div>
-                    <div style="color: #ef4444; font-size: 12px; font-weight: 600;">Zarar: {toplam_fire_tutar:,.0f} ₺</div>
+                    <div style="color: #f87171; font-size: 12px; font-weight: 600;">Zarar: {toplam_fire_tutar:,.0f} ₺</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -981,20 +885,20 @@ if menu == "Kurumsal Dashboard & Özet":
             st.markdown(f"""
                 <div class="metric-card">
                     <div>
-                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Stok Değeri</div>
-                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">Gizli</div>
+                        <div style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Stok Değeri</div>
+                        <div style="color: #ffffff; font-size: 28px; font-weight: 700; margin-top: 8px;">Gizli</div>
                     </div>
-                    <div style="color: {subtext_color}; font-size: 12px;">Yetkisiz Görünüm</div>
+                    <div style="color: #94a3b8; font-size: 12px;">Yetkisiz Görünüm</div>
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
                 <div class="metric-card">
                     <div>
-                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Stok Değeri</div>
-                        <div style="color: {text_color}; font-size: 24px; font-weight: 700; margin-top: 8px;">{toplam_envanter_maliyeti:,.0f} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">₺</span></div>
+                        <div style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Stok Değeri</div>
+                        <div style="color: #ffffff; font-size: 24px; font-weight: 700; margin-top: 8px;">{toplam_envanter_maliyeti:,.0f} <span style="font-size: 13px; font-weight: normal; color: #94a3b8;">₺</span></div>
                     </div>
-                    <div style="color: #2563eb; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
+                    <div style="color: #60a5fa; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -1002,15 +906,15 @@ if menu == "Kurumsal Dashboard & Özet":
         st.markdown(f"""
             <div class="metric-card">
                 <div>
-                    <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Aktif Personel</div>
-                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{aktif_calisan_personel_sayisi} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Kişi</span></div>
+                    <div style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Aktif Personel</div>
+                    <div style="color: #ffffff; font-size: 28px; font-weight: 700; margin-top: 8px;">{aktif_calisan_personel_sayisi} <span style="font-size: 13px; font-weight: normal; color: #94a3b8;">Kişi</span></div>
                 </div>
-                <div style="color: #9333ea; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
+                <div style="color: #c084fc; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
             </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='font-size: 16px; font-weight: 700; color: {text_color}; margin-bottom: 16px;'>⚡ Hızlı İşlem Kısayolları</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 16px;'>⚡ Hızlı İşlem Kısayolları</h3>", unsafe_allow_html=True)
     
     q1, q2, q3 = st.columns(3)
     with q1:
@@ -1034,20 +938,20 @@ if menu == "Kurumsal Dashboard & Özet":
 
     # DASHBOARD GRAFİK WIDGET ALANI
     st.markdown("---")
-    st.markdown(f"<h3 style='font-size: 18px; font-weight: 700; color: {text_color}; margin-top: 20px;'>📊 İnteraktif Dashboard Grafikleri ve Widget Alanı</h3>", unsafe_allow_html=True)
-    st.markdown(f"<p style='color: {subtext_color}; font-size: 13px;'>Aşağıda CollectUI standartlarına göre tasarlanmış grafik kartları görüntülenmektedir. Admin kullanıcıları yeni grafik widget'ı ekleyebilir veya mevcutları silebilir.</p>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size: 18px; font-weight: 700; color: #ffffff; margin-top: 20px;'>📊 İnteraktif Dashboard Grafikleri ve Widget Alanı</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #94a3b8; font-size: 13px;'>Aşağıda CollectUI Dark standartlarına göre tasarlanmış grafik kartları görüntülenmektedir. Admin kullanıcıları yeni grafik widget'ı ekleyebilir veya mevcutları silebilir.</p>", unsafe_allow_html=True)
 
     aktif_w_list = [w for w in st.session_state.dashboard_widgets if w.get("aktif", True)]
     if aktif_w_list:
         for w in aktif_w_list:
-            st.markdown(f"<div style='border: 1px solid {card_border}; background: {card_bg}; padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);'>", unsafe_allow_html=True)
+            st.markdown("<div style='border: 1px solid #1f2937; background: #111827; padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);'>", unsafe_allow_html=True)
             st.markdown(f"#### {w['baslik']}")
             
             if w['tur'] == "Sütun Grafik":
                 if st.session_state.girisler:
                     df_stok = pd.DataFrame(st.session_state.girisler)
                     if not df_stok.empty and "kategori" in df_stok.columns and "kalan" in df_stok.columns:
-                        fig = px.bar(df_stok, x="kategori", y="kalan", color="kategori", title="Kategori Bazlı Kalan Stok Miktarları", template="plotly_dark" if is_dark else "plotly")
+                        fig = px.bar(df_stok, x="kategori", y="kalan", color="kategori", title="Kategori Bazlı Kalan Stok Miktarları", template="plotly_dark")
                         st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("Grafik için yeterli veri bulunmuyor.")
@@ -1055,14 +959,14 @@ if menu == "Kurumsal Dashboard & Özet":
                 if st.session_state.kullanim_loglari:
                     df_log = pd.DataFrame(st.session_state.kullanim_loglari)
                     if not df_log.empty and "tarih" in df_log.columns and "tutar" in df_log.columns:
-                        fig2 = px.line(df_log, x="tarih", y="tutar", title="Zaman İçerisinde Fire ve Kullanım Maliyeti Trendi", template="plotly_dark" if is_dark else "plotly")
+                        fig2 = px.line(df_log, x="tarih", y="tutar", title="Zaman İçerisinde Fire ve Kullanım Maliyeti Trendi", template="plotly_dark")
                         st.plotly_chart(fig2, use_container_width=True)
                 else:
                     st.info("Trend grafiği için yeterli log kaydı bulunmuyor.")
             elif w['tur'] == "Pasta Grafik (Dağılım)":
                 if st.session_state.girisler:
                     df_giris = pd.DataFrame(st.session_state.girisler)
-                    fig3 = px.pie(df_giris, names="urun", values="kalan", title="Ürün Bazlı Envanter Dağılımı", template="plotly_dark" if is_dark else "plotly")
+                    fig3 = px.pie(df_giris, names="urun", values="kalan", title="Ürün Bazlı Envanter Dağılımı", template="plotly_dark")
                     st.plotly_chart(fig3, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
     else:
@@ -1104,7 +1008,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 else:
                     st.info("Kaldırılacak grafik bulunmuyor.")
     else:
-        st.markdown(f"<p style='font-size: 12px; color: {subtext_color}; font-style: italic;'>🔒 Dashboard sayfasına yeni grafik ekleme / kaldırma yetkisi yalnızca **Admin** kullanıcısına özeldir.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 12px; color: #94a3b8; font-style: italic;'>🔒 Dashboard sayfasına yeni grafik ekleme / kaldırma yetkisi yalnızca **Admin** kullanıcısına özeldir.</p>", unsafe_allow_html=True)
 
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
@@ -2160,261 +2064,4 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.markdown("**➕ Sağlık Raporu Ekle**")
                         p_rap_secenekleri = [p["ad_soyad"] for p in st.session_state.personeller if p.get("aktif", True)]
                         if p_rap_secenekleri:
-                            secilen_p_rap = st.selectbox("Personel Seçin", p_rap_secenekleri, key="rap_p")
-                            r_nereden = st.text_input("Kurum / Hastane", "Örn: Erzurum Şehir Hastanesi")
-                            col_r1, col_r2 = st.columns(2)
-                            with col_r1: r_bas = st.date_input("Başlangıç Tarihi", key="rap_bas")
-                            with col_r2: r_bit = st.date_input("Bitiş Tarihi", key="rap_bit")
-                            r_teshis = st.text_input("Teşhis / Açıklama", "Örn: Üst Solunum Yolu")
-                            rap_submit = st.form_submit_button("Sağlık Raporunu Kaydet")
-                            
-                            if rap_submit:
-                                if r_bas > r_bit:
-                                    st.error("Başlangıç bitişten sonra olamaz!")
-                                else:
-                                    for p in st.session_state.personeller:
-                                        if p["ad_soyad"] == secilen_p_rap:
-                                            if "izinler" not in p: p["izinler"] = []
-                                            p["izinler"].append({"tur": "Sağlık Raporu", "baslangic": str(r_bas), "bitis": str(r_bit), "kurum": r_nereden, "teshis": r_teshis})
-                                    personelleri_kaydet(st.session_state.personeller)
-                                    st.success("Sağlık raporu kaydedildi!")
-                                    st.rerun()
-                        else:
-                            st.info("Aktif personel bulunmuyor.")
-
-                with col_r_sil:
-                    with st.form("saglik_raporu_sil_form"):
-                        st.markdown("**🗑️ Sağlık Raporu Sil**")
-                        tum_saglik_raporlari = []
-                        for p in st.session_state.personeller:
-                            for idx, iz in enumerate(p.get("izinler", [])):
-                                if iz.get("tur") == "Sağlık Raporu":
-                                    tum_saglik_raporlari.append({"personel": p["ad_soyad"], "idx": idx, "ozet": f"{p['ad_soyad']} | Başlangıç: {iz['baslangic']} ({iz.get('teshis')})"})
-                        
-                        if tum_saglik_raporlari:
-                            secenek_sil_r = [item["ozet"] for item in tum_saglik_raporlari]
-                            secilen_sil_r_str = st.selectbox("Silinecek Raporu Seçin", secenek_sil_r)
-                            r_sil_btn = st.form_submit_button("Seçilen Raporu Sil", type="primary")
-                            
-                            if r_sil_btn:
-                                secilen_item_r = next((item for item in tum_saglik_raporlari if item["ozet"] == secilen_sil_r_str), None)
-                                if secilen_item_r:
-                                    for p in st.session_state.personeller:
-                                        if p["ad_soyad"] == secilen_item_r["personel"]:
-                                            raporlar = [i for i in p["izinler"] if i.get("tur") == "Sağlık Raporu"]
-                                            digerleri = [i for i in p["izinler"] if i.get("tur") != "Sağlık Raporu"]
-                                            silinecek_hedef_r = raporlar[secilen_item_r["idx"]]
-                                            p["izinler"] = digerleri + [i for i in raporlar if i != silinecek_hedef_r]
-                                    personelleri_kaydet(st.session_state.personeller)
-                                    st.success("Sağlık raporu silindi!")
-                                    st.rerun()
-                        else:
-                            st.info("Silinebilecek sağlık raporu yok.")
-
-            st.markdown("---")
-            st.subheader("📋 Kayıtlı Tüm Sağlık Raporları Tablosu")
-            if saglik_tablo_listesi:
-                ozel_html_tablo_goster(saglik_tablo_listesi)
-            else:
-                st.info("Kayıtlı sağlık raporu bulunmuyor.")
-
-        with p_tab5:
-            col_b_net, col_indir_net = st.columns([2, 2])
-            with col_b_net:
-                st.subheader("📊 Personel Net Çalışma Süresi Raporu")
-
-            if not st.session_state.personeller:
-                st.info("Kayıtlı personel bulunmuyor.")
-            else:
-                p_isimleri = [p["ad_soyad"] for p in st.session_state.personeller]
-                secilen_rapor_p = st.selectbox("Personel Seçin", p_isimleri, key="prs_rapor_sec")
-                c_kol1, c_kol2 = st.columns(2)
-                with c_kol1: donem_bas = st.date_input("Dönem Başlangıç", value=datetime.date(2026, 10, 1), key="d_bas")
-                with c_kol2: donem_bit = st.date_input("Dönem Bitiş", value=datetime.date(2026, 10, 31), key="d_bit")
-
-                if donem_bas > donem_bit:
-                    st.error("⚠️ Başlangıç tarihi bitişten büyük olamaz!")
-                else:
-                    ilgili_personel_obj = next((p for p in st.session_state.personeller if p["ad_soyad"] == secilen_rapor_p), None)
-                    if ilgili_personel_obj:
-                        net_gun, toplam_izin, saglik_raporu_gun, saatlik_izin_saat = net_calisma_gunu_hesapla(donem_bas, donem_bit, ilgili_personel_obj.get("izinler", []), st.session_state.resmi_tatiller)
-                        m_p1, m_p2, m_p3, m_p4 = st.columns(4)
-                        with m_p1: st.metric("Net Çalışılan Gün", f"{net_gun} Gün")
-                        with m_p2: st.metric("Yıllık İzin", f"{toplam_izin} Gün")
-                        with m_p3: st.metric("Sağlık Raporu", f"{saglik_raporu_gun} Gün")
-                        with m_p4: st.metric("Saatlik İzin", f"{saatlik_izin_saat} Saat")
-
-                        net_rapor_liste = [{
-                            "Personel": secilen_rapor_p,
-                            "Dönem": f"{donem_bas} / {donem_bit}",
-                            "Net Çalışılan Gün": f"{net_gun} Gün",
-                            "Yıllık İzin": f"{toplam_izin} Gün",
-                            "Sağlık Raporu": f"{saglik_raporu_gun} Gün",
-                            "Saatlik İzin": f"{saatlik_izin_saat} Saat"
-                        }]
-
-                        excel_net_data = tablo_to_excel_bytes(net_rapor_liste, f"Net Çalışma Raporu - {secilen_rapor_p}")
-                        pdf_net_data = tablo_to_html_pdf_bytes(f"Net Çalışma Raporu - {secilen_rapor_p}", net_rapor_liste)
-
-                        with col_indir_net:
-                            ortak_indirme_alani(excel_net_data, pdf_net_data, f"net_calisma_raporu_{secilen_rapor_p}", "net_calisma_sayfasi")
-
-                        st.markdown("---")
-                        ozel_html_tablo_goster(net_rapor_liste)
-
-# 9. KULLANIM TAKİBİ
-elif menu == "Kullanım Takibi":
-    if misafir_modu:
-        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
-    else:
-        col_b_kul, col_indir_kul = st.columns([2, 2])
-        with col_b_kul:
-            st.header("📈 Depo Ürün Kullanım ve Fire Takibi")
-        
-        loglar = st.session_state.kullanim_loglari
-        kullanim_tablo_verisi = []
-        if loglar:
-            for l in reversed(loglar):
-                kullanim_tablo_verisi.append({
-                    "Tarih / Saat": l.get("tarih", "-"),
-                    "Ürün Adı": l.get("urun", "-"),
-                    "İşlem Türü": l.get("tur", "Günlük Kullanım"),
-                    "Miktar": f"{l.get('miktar', 0)}",
-                    "Tutar": f"{l.get('tutar', 0):,.2f} ₺",
-                    "İşlemi Yapan": l.get("islem_yapan", "admin")
-                })
-
-        excel_kul_data = tablo_to_excel_bytes(kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu")
-        pdf_kul_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Kullanım ve Fire Takibi Raporu", kullanim_tablo_verisi)
-
-        with col_indir_kul:
-            ortak_indirme_alani(excel_kul_data, pdf_kul_data, "kullanim_ve_fire_takibi", "kullanim_sayfasi")
-
-        if kullanim_tablo_verisi:
-            ozel_html_tablo_goster(kullanim_tablo_verisi)
-        else:
-            st.info("Kullanım veya fire hareketi bulunmuyor.")
-
-# 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
-elif menu == "Ürün Birim Fiyatları & Ay Analizi":
-    col_b_fiy, col_indir_fiy = st.columns([2, 2])
-    with col_b_fiy:
-        st.header("💰 Ürün Birim Fiyatları")
-    if st.session_state.girisler:
-        if misafir_modu:
-            fiyat_tablo = [{"Ürün Adı": g["urun"], "Birim": g["birim"]} for g in st.session_state.girisler]
-        else:
-            fiyat_tablo = [{"Ürün": g["urun"], "Fiyat": g["fiyat"], "Birim": g["birim"]} for g in st.session_state.girisler]
-        ozel_html_tablo_goster(fiyat_tablo)
-
-# 11. KULLANICI AYARLARI (SADECE ADMİN)
-elif menu == "Kullanıcı Ayarları":
-    if not yonetici_modu:
-        st.warning("⚠️ Bu sayfaya yalnızca **Admin** erişebilir.")
-    else:
-        st.header("⚙️ Kullanıcı Ayarları ve Sayfa Yetki Yönetimi")
-        st.markdown("Sistemdeki kullanıcıları yönetebilir, yeni kullanıcı ekleyebilir, şifrelerini değiştirebilir ve istiyorsanız belirli sayfalara erişim kısıtlamaları (yetki) verebilirsiniz.")
-
-        k_tab1, k_tab2, k_tab3 = st.tabs(["👤 Kullanıcı Ekle / Sil", "🔑 Şifre Değiştir", "🛡️ Sayfa Yetki Yönetimi (Aç/Kapat)"])
-
-        with k_tab1:
-            col_k_ekle, col_k_sil = st.columns(2)
-            with col_k_ekle:
-                with st.form("yeni_kullanici_ekle_form"):
-                    st.markdown("**➕ Yeni Kullanıcı Ekle**")
-                    y_k_adi = st.text_input("Kullanıcı Adı (Örn: depo_sorumlusu)").strip().lower()
-                    y_sifre = st.text_input("Şifre", type="password")
-                    y_tip = st.selectbox("Kullanıcı Tipi", ["personel", "admin"])
-                    y_kaydet_btn = st.form_submit_button("Kullanıcıyı Kaydet")
-
-                    if y_kaydet_btn and y_k_adi and y_sifre:
-                        if y_k_adi in st.session_state.kullanicilar:
-                            st.error("Bu kullanıcı adı zaten sistemde mevcut!")
-                        else:
-                            st.session_state.kullanicilar[y_k_adi] = {
-                                "sifre": y_sifre,
-                                "tip": y_tip,
-                                "yasakli_menuler": []
-                            }
-                            kullanıcıları_kaydet(st.session_state.kullanicilar)
-                            st.success(f"Başarılı! '{y_k_adi}' kullanıcısı oluşturuldu.")
-                            st.rerun()
-
-            with col_k_sil:
-                with st.form("kullanici_sil_form"):
-                    st.markdown("**🗑️ Kullanıcı Sil**")
-                    silinebilir_kullanicilar = [k for k in st.session_state.kullanicilar.keys() if k != "admin"]
-                    if silinebilir_kullanicilar:
-                        secilen_sil_k = st.selectbox("Silinecek Kullanıcıyı Seçin", silinebilir_kullanicilar)
-                        k_sil_btn = st.form_submit_button("Kullanıcıyı Sil", type="primary")
-
-                        if k_sil_btn:
-                            del st.session_state.kullanicilar[secilen_sil_k]
-                            kullanıcıları_kaydet(st.session_state.kullanicilar)
-                            st.success(f"Başarılı! '{secilen_sil_k}' silindi.")
-                            st.rerun()
-                    else:
-                        st.info("Silinebilecek başka kullanıcı bulunmuyor (Admin silinemez).")
-
-            st.markdown("---")
-            st.subheader("📋 Mevcut Kullanıcılar Listesi")
-            kullanici_tablo_listesi = []
-            for k_ad, k_vals in st.session_state.kullanicilar.items():
-                kullanici_tablo_listesi.append({
-                    "Kullanıcı Adı": k_ad,
-                    "Kullanıcı Tipi": k_vals.get("tip", "personel"),
-                    "Yasaklı Menü Sayısı": len(k_vals.get("yasakli_menuler", []))
-                })
-            ozel_html_tablo_goster(kullanici_tablo_listesi)
-
-        with k_tab2:
-            with st.form("admin_sifre_guncelle_form"):
-                st.markdown("**🔑 Kullanıcı Şifresi Değiştir / Güncelle**")
-                tum_k_isimleri = list(st.session_state.kullanicilar.keys())
-                secilen_k_duzenle = st.selectbox("Şifresi Değiştirilecek Kullanıcı", tum_k_isimleri)
-                yeni_sifre_1 = st.text_input("Yeni Şifre", type="password")
-                yeni_sifre_2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
-                sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
-
-                if sifre_guncelle_btn:
-                    if not yeni_sifre_1 or yeni_sifre_1 != yeni_sifre_2:
-                        st.error("Yeni şifreler uyuşmuyor!")
-                    else:
-                        st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = yeni_sifre_1
-                        kullanıcıları_kaydet(st.session_state.kullanicilar)
-                        st.success(f"'{secilen_k_duzenle}' kullanıcısının şifresi başarıyla güncellendi!")
-
-        with k_tab3:
-            st.markdown("**🛡️ Sayfa Yetki Yönetimi (İstediğiniz sayfayı kullanıcıya kapatın veya açın)**")
-            yetki_verilecek_k = st.selectbox("Yetkileri Düzenlenecek Kullanıcı", [k for k in st.session_state.kullanicilar.keys() if k != "admin"])
-            
-            if yetki_verilecek_k:
-                mevcut_yasaklar = st.session_state.kullanicilar[yetki_verilecek_k].get("yasakli_menuler", [])
-                
-                st.markdown(f"**'{yetki_verilecek_k}'** kullanıcısının erişmesini **istemediğiniz** (kapalı olmasını istediğiniz) sayfaları seçin:")
-                
-                tum_yonetilebilir_menuler = [
-                    "Kurumsal Dashboard & Özet",
-                    "Güncel Stok Durumu", 
-                    "Yeni Mal Alımı / Fatura Ekle", 
-                    "Ürün Sil / Düzenle", 
-                    "Fire / Zayiat Girişi",
-                    "Ürün Birim Fiyatları & Ay Analizi",
-                    "Günlük Yemek Üretimi & Maliyet Raporu",
-                    "Kalori Hesaplama Aracı",
-                    "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
-                    "Personel & Çalışma Süresi Takibi",
-                    "Kullanım Takibi"
-                ]
-
-                secilen_yasaklar = []
-                for m_item in tum_yonetilebilir_menuler:
-                    varsayilan_durum = m_item in mevcut_yasaklar
-                    if st.checkbox(f"Kapat / Gizle: {m_item}", value=varsayilan_durum, key=f"yasak_{yetki_verilecek_k}_{m_item}"):
-                        secilen_yasaklar.append(m_item)
-
-                if st.button("Yetki Ayarlarını Kaydet", type="primary"):
-                    st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = secilen_yasaklar
-                    kullanıcıları_kaydet(st.session_state.kullanicilar)
-                    st.success(f"'{yetki_verilecek_k}' kullanıcısının sayfa yetkileri başarıyla güncellendi!")
-                    st.rerun()
+                            secilen_p
