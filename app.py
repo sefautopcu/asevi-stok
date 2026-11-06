@@ -42,7 +42,6 @@ def metni_coz(sifreli_metin):
     if not sifreli_metin:
         return ""
     try:
-        # Eğer metin şifreli formatta değilse (eski düz metinler için) doğrudan döndür
         if not str(sifreli_metin).startswith("gAAAAA"):
             return str(sifreli_metin)
         return fernet_motoru.decrypt(str(sifreli_metin).encode("utf-8")).decode(
@@ -1774,7 +1773,11 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
     else:
         st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
         with st.form("fatura_formu"):
-            tarih_giris = simdi_tr_str("%Y-%m-%d %H:%M")
+            # Geçmiş veya bugün için fatura tarihi seçimi eklendi
+            fatura_tarihi_secim = st.date_input("📅 Fatura / Alım Tarihi", value=datetime.date.today())
+            fatura_saati_secim = st.time_input("⏰ Alım Saati", value=datetime.datetime.now().time())
+            tarih_giris = f"{fatura_tarihi_secim.strftime('%Y-%m-%d')} {fatura_saati_secim.strftime('%H:%M')}"
+
             fatura_no_input = st.text_input(
                 "Fatura No / Belge No (Örn: FAT-2026-105)"
             ).strip().upper()
@@ -1840,7 +1843,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "islem_yapan": islem_yapan_kisi,
                 })
                 verileri_kaydet(st.session_state.girisler)
-                st.success(f"Başarılı! {miktar} miktar {urun} depoya işlendi.")
+                st.success(f"Başarılı! {miktar} miktar {urun} seçilen tarih ({tarih_giris}) ile depoya işlendi.")
                 st.rerun()
 
         st.markdown("---")
@@ -1850,7 +1853,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             for g in reversed(st.session_state.girisler):
                 fatura_log_tablosu.append({
                     "Kayıt ID": g.get("id", "-"),
-                    "Eklenme Tarihi / Saati": g.get("tarih", "-"),
+                    "Fatura / Alım Tarihi": g.get("tarih", "-"),
                     "Fatura No": g.get("fatura_no", "BELİRTİLMEMİŞ"),
                     "Ürün Adı": g.get("urun", "-"),
                     "Kategori": g.get("kategori", "-"),
