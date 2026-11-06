@@ -3536,10 +3536,12 @@ elif menu == "Kullanıcı Ayarları":
                 sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
 
                 if sifre_guncelle_btn:
-                    if not yeni_sifre_1 or yeni_sifre_1 != yeni_sofre_2 if 'yeni_sofre_2' in locals() else yeni_sifre_1 != yeni_sifre_2:
+                    if yeni_sifre_1 and yeni_sifre_1 == yeni_sifre_2:
                         st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = yeni_sifre_1
                         kullanıcıları_kaydet(st.session_state.kullanicilar)
                         st.success(f"'{secilen_k_duzenle}' kullanıcısının şifresi başarıyla güncellendi!")
+                    else:
+                        st.error("Şifreler boş olamaz ve birbiriyle uyuşmalıdır!")
 
         with k_tab3:
             st.markdown(
