@@ -54,9 +54,14 @@ def sifre_hashle(sifre):
     return hashlib.sha256(str(sifre).encode("utf-8")).hexdigest()
 
 
-# Tema Durumu Yönetimi
+# Tema Durumu Yönetimi (URL parametreleri ile senkronize)
+query_params = st.query_params
+
 if "tema" not in st.session_state:
-    st.session_state.tema = "Dark"  # Varsayılan Dark Tema
+    if "theme" in query_params and query_params["theme"] in ["Dark", "Light"]:
+        st.session_state.tema = query_params["theme"]
+    else:
+        st.session_state.tema = "Dark"  # Varsayılan Dark Tema
 
 # Tema Renk Paletleri
 if st.session_state.tema == "Dark":
@@ -1001,6 +1006,7 @@ yeni_tema = st.sidebar.radio(
 secilen_tema_val = "Dark" if "Dark" in yeni_tema else "Light"
 if secilen_tema_val != st.session_state.tema:
     st.session_state.tema = secilen_tema_val
+    st.query_params["theme"] = secilen_tema_val
     st.rerun()
 
 st.sidebar.markdown(
@@ -3548,11 +3554,11 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                 # 3. Bu Ayki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_filtre
+                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_filtre
                 )
                 log_harcanan = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_filtre
+                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_filtre
                 )
             else:
                 # 1. Yıllık Devreden Stok (Seçilen yıldan önceki yıllar)
@@ -3568,11 +3574,11 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                 # 3. Bu Yılki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:4] == secilen_filtre
+                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:4] == secilen_filtre
                 )
                 log_harcanan = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:4] == secilen_filtre
+                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:4] == secilen_filtre
                 )
 
             toplam_gelen_arz = devreden_stok + donem_gelen
