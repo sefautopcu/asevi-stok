@@ -3535,7 +3535,7 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                 )
                 log_harcanan = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
+                    if l.get("urun", "") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre):
                 )
             else:
                 # 1. Yıllık Devreden Stok
