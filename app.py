@@ -446,9 +446,9 @@ varsayilan_resmi_tatiller = [
 ]
 
 varsayilan_kullanicilar = {
-    "admin": {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": []},
-    "asci": {"sifre": "sydv25", "tip": "personel", "yasakli_menuler": []},
-    "yonetim": {"sifre": "Yonetim25", "tip": "personel", "yasakli_menuler": []},
+    "admin": {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": []},
+    "asci": {"sifre": "sydv25", "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": []},
+    "yonetim": {"sifre": "Yonetim25", "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": []},
 }
 
 varsayilan_widgets = [
@@ -486,7 +486,13 @@ def kullanıcıları_yukle():
     if os.path.exists(KULLANICI_YETKI_DOSYASI):
         try:
             with open(KULLANICI_YETKI_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                for k, v in data.items():
+                    if "yasakli_menuler" not in v:
+                        v["yasakli_menuler"] = []
+                    if "maskeli_alanlar" not in v:
+                        v["maskeli_alanlar"] = []
+                return data
         except Exception:
             return varsayilan_kullanicilar
     return varsayilan_kullanicilar
@@ -974,6 +980,7 @@ aktif_k_bilgi = st.session_state.kullanicilar.get(
     st.session_state.aktif_kullanici, {}
 )
 yasakli_menuler_listesi = aktif_k_bilgi.get("yasakli_menuler", [])
+aktif_k_maskeleri = aktif_k_bilgi.get("maskeli_alanlar", [])
 
 toplam_aktif_stok_sayisi = len(set(g["urun"] for g in st.session_state.girisler))
 aktif_personel_sayisi = sum(
@@ -1218,6 +1225,12 @@ if menu == "Kurumsal Dashboard & Özet":
         1 for p in st.session_state.personeller if p.get("aktif", True)
     )
 
+    # Maskeleme Kontrolleri
+    m_urun_cesidi = "🔒 Gizli" if "Ürün Çeşidi" in aktif_k_maskeleri else f"{toplam_stok_kalemi} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Çeşit</span>"
+    m_toplam_fire = "🔒 Gizli" if "Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_mik:,.1f} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Kg</span>"
+    m_stok_degeri = "🔒 Gizli" if "Stok Değeri" in aktif_k_maskeleri else f"{toplam_envanter_maliyeti:,.0f} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>₺</span>"
+    m_aktif_personel = "🔒 Gizli" if "Aktif Personel" in aktif_k_maskeleri else f"{aktif_calisan_personel_sayisi} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Kişi</span>"
+
     card_bg = "#090909"
     card_border = "#1f1f1f"
     text_color = "#ffffff"
@@ -1276,7 +1289,7 @@ if menu == "Kurumsal Dashboard & Özet":
             <div class="metric-card">
                 <div>
                     <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Ürün Çeşidi</div>
-                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_stok_kalemi} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Çeşit</span></div>
+                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_urun_cesidi}</div>
                 </div>
                 <div style="color: {subtext_color}; font-size: 12px;">📦 Aktif Envanter</div>
             </div>
@@ -1304,9 +1317,9 @@ if menu == "Kurumsal Dashboard & Özet":
                 <div class="metric-card">
                     <div>
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire</div>
-                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{toplam_fire_mik:,.1f} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Kg</span></div>
+                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_toplam_fire}</div>
                     </div>
-                    <div style="color: #f87171; font-size: 12px; font-weight: 600;">Zarar: {toplam_fire_tutar:,.0f} ₺</div>
+                    <div style="color: #f87171; font-size: 12px; font-weight: 600;">Zarar: {"🔒 Gizli" if "Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_tutar:,.0f} ₺"}</div>
                 </div>
             """,
                 unsafe_allow_html=True,
@@ -1332,7 +1345,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 <div class="metric-card">
                     <div>
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Stok Değeri</div>
-                        <div style="color: {text_color}; font-size: 24px; font-weight: 700; margin-top: 8px;">{toplam_envanter_maliyeti:,.0f} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">₺</span></div>
+                        <div style="color: {text_color}; font-size: 24px; font-weight: 700; margin-top: 8px;">{m_stok_degeri}</div>
                     </div>
                     <div style="color: #34d399; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
                 </div>
@@ -1346,7 +1359,7 @@ if menu == "Kurumsal Dashboard & Özet":
             <div class="metric-card">
                 <div>
                     <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Aktif Personel</div>
-                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{aktif_calisan_personel_sayisi} <span style="font-size: 13px; font-weight: normal; color: {subtext_color};">Kişi</span></div>
+                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_aktif_personel}</div>
                 </div>
                 <div style="color: #c084fc; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
             </div>
@@ -1411,7 +1424,6 @@ if menu == "Kurumsal Dashboard & Özet":
             )
             st.markdown(f"#### {w['baslik']}")
 
-            # EasyUI Modern Grafik Teması ve Ortak Ayarlar
             easyui_colors = ["#6366f1", "#34d399", "#c084fc", "#f87171", "#60a5fa", "#fbbf24"]
 
             if w["tur"] == "Sütun Grafik":
@@ -1430,7 +1442,6 @@ if menu == "Kurumsal Dashboard & Özet":
                             template="plotly_dark",
                             color_discrete_sequence=easyui_colors,
                         )
-                        # EasyUI Stil İyileştirmeleri (Arka plan şeffaflığı, modern grid çizgileri)
                         fig.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
@@ -1458,7 +1469,6 @@ if menu == "Kurumsal Dashboard & Özet":
                             template="plotly_dark",
                             color_discrete_sequence=["#6366f1"],
                         )
-                        # Akışkan, parlayan çizgi efekti
                         fig2.update_traces(line=dict(width=3, shape="spline"))
                         fig2.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
@@ -3449,17 +3459,17 @@ elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya yalnızca **Admin** erişebilir.")
     else:
-        st.header("⚙️ Kullanıcı Ayarları ve Sayfa Yetki Yönetimi")
+        st.header("⚙️ Kullanıcı Ayarları, Sayfa Yetki ve Alan Maskeleme")
         st.markdown(
             "Sistemdeki kullanıcıları yönetebilir, yeni kullanıcı ekleyebilir,"
-            " şifrelerini değiştirebilir ve istiyorsanız belirli sayfalara erişim"
-            " kısıtlamaları (yetki) verebilirsiniz."
+            " şifrelerini değiştirebilir, sayfa erişimlerini kısıtlayabilir ve"
+            " Dashboard üzerindeki hassas alanları maskeleyebilirsiniz."
         )
 
         k_tab1, k_tab2, k_tab3 = st.tabs([
             "👤 Kullanıcı Ekle / Sil",
             "🔑 Şifre Değiştir",
-            "🛡️ Sayfa Yetki Yönetimi (Aç/Kapat)",
+            "🛡️ Sayfa Yetki & Alan Maskeleme Yönetimi",
         ])
 
         with k_tab1:
@@ -3484,6 +3494,7 @@ elif menu == "Kullanıcı Ayarları":
                                 "sifre": y_sifre,
                                 "tip": y_tip,
                                 "yasakli_menuler": [],
+                                "maskeli_alanlar": [],
                             }
                             kullanıcıları_kaydet(st.session_state.kullanicilar)
                             st.success(f"Başarılı! '{y_k_adi}' kullanıcısı oluşturuldu.")
@@ -3521,6 +3532,7 @@ elif menu == "Kullanıcı Ayarları":
                     "Kullanıcı Adı": k_ad,
                     "Kullanıcı Tipi": k_vals.get("tip", "personel"),
                     "Yasaklı Menü Sayısı": len(k_vals.get("yasakli_menuler", [])),
+                    "Maskeli Alan Sayısı": len(k_vals.get("maskeli_alanlar", [])),
                 })
             ozel_html_tablo_goster(kullanici_tablo_listesi)
 
@@ -3545,24 +3557,23 @@ elif menu == "Kullanıcı Ayarları":
 
         with k_tab3:
             st.markdown(
-                "**🛡️ Sayfa Yetki Yönetimi (İstediğiniz sayfayı kullanıcıya kapatın"
-                " veya açın)**"
+                "**🛡️ Sayfa Yetki Yönetimi ve Alan Maskeleme**<br>"
+                "İstediğiniz sayfayı kullanıcıya kapatabilir veya sayfa içindeki hassas metrikleri maskeleyebilirsiniz.",
+                unsafe_allow_html=True
             )
             yetki_verilecek_k = st.selectbox(
-                "Yetkileri Düzenlenecek Kullanıcı",
+                "Yetkileri / Maskelemesi Düzenlenecek Kullanıcı",
                 [k for k in st.session_state.kullanicilar.keys() if k != "admin"],
+                key="yetki_maskeleme_kullanici_sec"
             )
 
             if yetki_verilecek_k:
-                mevcur_yasaklar = st.session_state.kullanicilar[yetki_verilecek_k].get(
-                    "yasakli_menuler", []
-                )
+                k_veri = st.session_state.kullanicilar[yetki_verilecek_k]
+                mevcut_yasaklar = k_veri.get("yasakli_menuler", [])
+                mevcut_maskeler = k_veri.get("maskeli_alanlar", [])
 
-                st.markdown(
-                    f"**'{yetki_verilecek_k}'** kullanıcısının erişmesini"
-                    " **istemediğiniz** (kapalı olmasını istediğiniz) sayfaları"
-                    " seçin:"
-                )
+                st.markdown("---")
+                st.markdown(f"**1️⃣ '{yetki_verilecek_k}' Kullanıcısının Sayfa Erişim Kısıtları:**")
 
                 tum_yonetilebilir_menuler = [
                     "Kurumsal Dashboard & Özet",
@@ -3580,7 +3591,7 @@ elif menu == "Kullanıcı Ayarları":
 
                 secilen_yasaklar = []
                 for m_item in tum_yonetilebilir_menuler:
-                    varsayilan_durum = m_item in mevcur_yasaklar
+                    varsayilan_durum = m_item in mevcut_yasaklar
                     if st.checkbox(
                         f"Kapat / Gizle: {m_item}",
                         value=varsayilan_durum,
@@ -3588,13 +3599,33 @@ elif menu == "Kullanıcı Ayarları":
                     ):
                         secilen_yasaklar.append(m_item)
 
-                if st.button("Yetki Ayarlarını Kaydet", type="primary"):
-                    st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = (
-                        secilen_yasaklar
-                    )
+                st.markdown("---")
+                st.markdown(f"**2️⃣ '{yetki_verilecek_k}' Kullanıcısının Alan Bazlı Maskeleme Tercihleri:**")
+
+                maskelenebilir_alanlar = [
+                    "Ürün Çeşidi",
+                    "Toplam Fire",
+                    "Stok Değeri",
+                    "Aktif Personel",
+                ]
+
+                secilen_maskeler = []
+                for alan in maskelenebilir_alanlar:
+                    mask_durum = alan in mevcut_maskeler
+                    if st.checkbox(
+                        f"🔒 Maskele / Gizle: {alan} (Dashboard üzerinde gizle)",
+                        value=mask_durum,
+                        key=f"mask_{yetki_verilecek_k}_{alan}",
+                    ):
+                        secilen_maskeler.append(alan)
+
+                st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+                if st.button("Yetki ve Maskeleme Ayarlarını Kaydet", type="primary"):
+                    st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = secilen_yasaklar
+                    st.session_state.kullanicilar[yetki_verilecek_k]["maskeli_alanlar"] = secilen_maskeler
                     kullanıcıları_kaydet(st.session_state.kullanicilar)
                     st.success(
-                        f"'{yetki_verilecek_k}' kullanıcısının sayfa yetkileri başarıyla"
+                        f"'{yetki_verilecek_k}' kullanıcısının yetki ve maskeleme ayarları başarıyla"
                         " güncellendi!"
                     )
                     st.rerun()
