@@ -435,6 +435,23 @@ varsayilan_resmi_tatiller = [
     {"tarih": "2026-10-29", "aciklama": "Cumhuriyet Bayramı"},
 ]
 
+misafir_yasaklar_varsayilan = [
+    "Güncel Stok Durumu",
+    "Ürün Sil / Düzenle",
+    "Fire / Zayiat Girişi",
+    "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
+    "Personel & Çalışma Süresi Takibi",
+    "Kullanım Takibi",
+    "Kapsamlı Envanter ve Hareket Raporu",
+]
+misafir_maskeler_varsayilan = [
+    "1. Sayfa: Toplam Fire",
+    "1. Sayfa: Stok Değeri",
+    "2. Sayfa: Güncel Stok Durumu - Kalan Miktar",
+    "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi",
+    "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
+]
+
 varsayilan_kullanicilar = {
     "admin": {"sifre": sifre_hashle("Ss123321"), "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
     "asci": {"sifre": sifre_hashle("sydv25"), "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
@@ -442,8 +459,8 @@ varsayilan_kullanicilar = {
     "misafir": {
         "sifre": "", 
         "tip": "misafir", 
-        "yasakli_menuler": [], 
-        "maskeli_alanlar": [], 
+        "yasakli_menuler": misafir_yasaklar_varsayilan, 
+        "maskeli_alanlar": misafir_maskeler_varsayilan, 
         "salt_okunur": True,
         "buton_metni": "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)",
         "buton_aktif": True
@@ -495,6 +512,13 @@ def kullanıcıları_yukle():
                         v["salt_okunur"] = (k in ["yonetim", "misafir"])
                     elif k in ["yonetim", "misafir"]:
                         v["salt_okunur"] = True
+                    
+                    if k == "misafir":
+                        if not v["yasakli_menuler"]:
+                            v["yasakli_menuler"] = misafir_yasaklar_varsayilan
+                        if not v["maskeli_alanlar"]:
+                            v["maskeli_alanlar"] = misafir_maskeler_varsayilan
+
                     if v.get("sifre") and len(v["sifre"]) != 64 and k != "misafir":
                         v["sifre"] = sifre_hashle(v["sifre"])
                 
@@ -505,6 +529,10 @@ def kullanıcıları_yukle():
                         data["misafir"]["buton_metni"] = "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)"
                     if "buton_aktif" not in data["misafir"]:
                         data["misafir"]["buton_aktif"] = True
+                    if not data["misafir"]["yasakli_menuler"]:
+                        data["misafir"]["yasakli_menuler"] = misafir_yasaklar_varsayilan
+                    if not data["misafir"]["maskeli_alanlar"]:
+                        data["misafir"]["maskeli_alanlar"] = misafir_maskeler_varsayilan
 
                 return data
         except Exception:
@@ -1770,7 +1798,7 @@ elif menu == "Güncel Stok Durumu":
         st.markdown("### Envanter Listesi")
         ozel_html_tablo_goster(stok_tablosu)
 
-# 2. YENİ MAL ALIMI / FATURA EKLE (DÜZELTİLMİŞ YENİ ÜRÜN / CHECKBOX MANTIĞI)
+# 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
     if salt_okunur_modu:
         st.warning(
@@ -3620,8 +3648,8 @@ elif menu == "Kullanıcı Ayarları":
             st.session_state.kullanicilar["misafir"] = {
                 "sifre": "",
                 "tip": "misafir",
-                "yasakli_menuler": [],
-                "maskeli_alanlar": [],
+                "yasakli_menuler": misafir_yasaklar_varsayilan,
+                "maskeli_alanlar": misafir_maskeler_varsayilan,
                 "salt_okunur": True,
                 "buton_metni": "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)",
                 "buton_aktif": True
@@ -3730,7 +3758,7 @@ elif menu == "Kullanıcı Ayarları":
 
                     if misafir_btn_kaydet:
                         if "misafir" not in st.session_state.kullanicilar:
-                            st.session_state.kullanicilar["misafir"] = {"tip": "misafir", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": True}
+                            st.session_state.kullanicilar["misafir"] = {"tip": "misafir", "yasakli_menuler": misafir_yasaklar_varsayilan, "maskeli_alanlar": misafir_maskeler_varsayilan, "salt_okunur": True}
                         
                         st.session_state.kullanicilar["misafir"]["buton_metni"] = yeni_buton_metni
                         st.session_state.kullanicilar["misafir"]["buton_aktif"] = yeni_buton_durumu
