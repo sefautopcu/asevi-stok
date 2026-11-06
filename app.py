@@ -3653,40 +3653,22 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
             kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
 
-            if filtre_turu == "ay":
-                devreden_stok = sum(
-                    g["kalan"] for g in st.session_state.girisler 
-                    if g["urun"] == u and str(g.get("tarih", "")) < secilen_filtre
-                )
-                donem_gelen = sum(
-                    g["miktar"] for g in st.session_state.girisler 
-                    if g["urun"] == u and str(g.get("tarih", "")).startswith(secilen_filtre)
-                )
-                toplam_fire = sum(
-                    l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
-                )
-                log_harcanan = sum(
-                    l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
-                )
-            else:
-                devreden_stok = sum(
-                    g["kalan"] for g in st.session_state.girisler 
-                    if g["urun"] == u and str(g.get("tarih", "")) < secilen_filtre
-                )
-                donem_gelen = sum(
-                    g["miktar"] for g in st.session_state.girisler 
-                    if g["urun"] == u and str(g.get("tarih", "")).startswith(secilen_filtre)
-                )
-                toplam_fire = sum(
-                    l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
-                )
-                log_harcanan = sum(
-                    l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
-                )
+            devreden_stok = sum(
+                g["kalan"] for g in st.session_state.girisler 
+                if g["urun"] == u and str(g.get("tarih", "")) < secilen_filtre
+            )
+            donem_gelen = sum(
+                g["miktar"] for g in st.session_state.girisler 
+                if g["urun"] == u and str(g.get("tarih", "")).startswith(secilen_filtre)
+            )
+            toplam_fire = sum(
+                l["miktar"] for l in st.session_state.kullanim_loglari 
+                if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
+            )
+            log_harcanan = sum(
+                l["miktar"] for l in st.session_state.kullanim_loglari 
+                if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
+            )
 
             toplam_gelen_arz = devreden_stok + donem_gelen
             hesaplanan_fark = max(0.0, toplam_gelen_arz - sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u) - toplam_fire)
@@ -3722,7 +3704,6 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             ozel_html_tablo_goster(kapsamli_veri_listesi)
         else:
             st.info("Raporlanacak ürün hareketi bulunmuyor.")
-
 # 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_fiy, col_indir_fiy = st.columns([2, 2])
