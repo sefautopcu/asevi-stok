@@ -317,6 +317,7 @@ KALORI_TABLOSU = {
     "BURGU MAKARNA": 350,
     "İNCE UZUN MAKARNA": 350,
     "ERİŞTE MAKARNA": 360,
+    "ARPA ŞEHRİYE": 350,
     "UN": 364,
     "PATATES": 77,
     "SOĞAN": 40,
@@ -384,13 +385,13 @@ varsayilan_girisler = [
         "id": "STK-002",
         "tarih": "2026-09-28 08:35",
         "fatura_no": "FAT-2026-002",
-        "urun": "MAYDANOZ",
-        "kategori": "SEBZE",
+        "urun": "ARPA ŞEHRİYE",
+        "kategori": "KURU GIDA",
         "birim": "Kg",
-        "miktar": 20.0,
-        "kalan": max(0.0, 20.0 - 3.1),
-        "fiyat": 25.0,
-        "depo": "Soğuk Hava Deposu +5/+6",
+        "miktar": 40.0,
+        "kalan": 40.0,
+        "fiyat": 30.0,
+        "depo": "Kuru Gıda Deposu",
         "islem_yapan": "admin",
     },
 ]
@@ -404,38 +405,6 @@ varsayilan_loglar = [
         "tutar": 4200.00,
         "islem_yapan": "admin",
     },
-    {
-        "tarih": "2026-10-09 10:00",
-        "urun": "PATLICAN",
-        "tur": "Fire/Zayiat",
-        "miktar": 52.4,
-        "tutar": 2882.00,
-        "islem_yapan": "admin",
-    },
-    {
-        "tarih": "2026-10-14 10:00",
-        "urun": "MUZ",
-        "tur": "Fire/Zayiat",
-        "miktar": 54.5,
-        "tutar": 5995.00,
-        "islem_yapan": "admin",
-    },
-    {
-        "tarih": "2026-10-20 10:00",
-        "urun": "SALATALIK",
-        "tur": "Fire/Zayiat",
-        "miktar": 43.0,
-        "tutar": 1935.00,
-        "islem_yapan": "admin",
-    },
-    {
-        "tarih": "2026-10-21 10:00",
-        "urun": "TAM YAĞLI YOĞURT",
-        "tur": "Fire/Zayiat",
-        "miktar": 15.0,
-        "tutar": 993.00,
-        "islem_yapan": "admin",
-    },
 ]
 
 varsayilan_personeller = [
@@ -444,38 +413,6 @@ varsayilan_personeller = [
         "ad_soyad": "MUHAMMED İLKER ÇELİK",
         "gorev": "Şoför",
         "baslama": "2026-10-12",
-        "aktif": True,
-        "izinler": [],
-    },
-    {
-        "tc": "22222222222",
-        "ad_soyad": "EMİRHAN DÖNMEZ",
-        "gorev": "Şoför",
-        "baslama": "2026-10-12",
-        "aktif": True,
-        "izinler": [],
-    },
-    {
-        "tc": "33333333333",
-        "ad_soyad": "SEDAT UZUN",
-        "gorev": "Aşçı",
-        "baslama": "2026-09-25",
-        "aktif": True,
-        "izinler": [],
-    },
-    {
-        "tc": "44444444444",
-        "ad_soyad": "BURAK AYAŞTI",
-        "gorev": "Temizlik Personeli",
-        "baslama": "2026-09-25",
-        "aktif": True,
-        "izinler": [],
-    },
-    {
-        "tc": "55555555555",
-        "ad_soyad": "HÜSEYİN KAYMAK",
-        "gorev": "Aşçı Yardımcısı",
-        "baslama": "2026-10-26",
         "aktif": True,
         "izinler": [],
     },
@@ -3524,8 +3461,8 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
         
         if rapor_tipi == "Aylık Rapor":
             with c_tur2:
-                rapor_ayi = st.selectbox("Rapor Dönemi / Ayı", ["2026-9 (Eylül)","2026-10 (Ekim)", "2026-11 (Kasım)", "2026-12 (Aralık)"], index=1)
-            secilen_filtre = rapor_ayi.split(" ")[0] # Örn: "2026-11"
+                rapor_ayi = st.selectbox("Rapor Dönemi / Ayı", ["2026-09 (Eylül)", "2026-10 (Ekim)", "2026-11 (Kasım)", "2026-12 (Aralık)"], index=0)
+            secilen_filtre = rapor_ayi.split(" ")[0] # Örn: "2026-09"
             filtre_turu = "ay"
         else:
             with c_tur2:
@@ -3541,44 +3478,44 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
 
             if filtre_turu == "ay":
-                # 1. Aylık Devreden Stok
+                # 1. Aylık Devreden Stok (Seçilen aydan önceki alımlar - kalanlar)
                 devreden_stok = sum(
                     g["kalan"] for g in st.session_state.girisler 
-                    if g["urun"] == u and g.get("tarih", "2026-01-01")[:7] < secilen_filtre
+                    if g["urun"] == u and str(g.get("tarih", "")) < secilen_filtre
                 )
-                # 2. Bu Ay Gelen
+                # 2. Bu Ay Gelen (Tam tarih eşleşmesi için startswith kullanıldı)
                 donem_gelen = sum(
                     g["miktar"] for g in st.session_state.girisler 
-                    if g["urun"] == u and g.get("tarih", "")[:7] == secilen_filtre
+                    if g["urun"] == u and str(g.get("tarih", "")).startswith(secilen_filtre)
                 )
                 # 3. Bu Ayki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_filtre
+                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
                 log_harcanan = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_filtre
+                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
             else:
-                # 1. Yıllık Devreden Stok (Seçilen yıldan önceki yıllar)
+                # 1. Yıllık Devreden Stok
                 devreden_stok = sum(
                     g["kalan"] for g in st.session_state.girisler 
-                    if g["urun"] == u and g.get("tarih", "2026-01-01")[:4] < secilen_filtre
+                    if g["urun"] == u and str(g.get("tarih", "")) < secilen_filtre
                 )
                 # 2. Bu Yıl Gelen
                 donem_gelen = sum(
                     g["miktar"] for g in st.session_state.girisler 
-                    if g["urun"] == u and g.get("tarih", "")[:4] == secilen_filtre
+                    if g["urun"] == u and str(g.get("tarih", "")).startswith(secilen_filtre)
                 )
                 # 3. Bu Yılki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:4] == secilen_filtre
+                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
                 log_harcanan = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:4] == secilen_filtre
+                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
 
             toplam_gelen_arz = devreden_stok + donem_gelen
