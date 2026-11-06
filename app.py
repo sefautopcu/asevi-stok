@@ -68,7 +68,7 @@ if st.session_state.tema == "Dark":
     border_color = "#1f1f1f"
     input_bg = "#0b0b0b"
     table_hover = "rgba(255, 255, 255, 0.03)"
-    popover_bg = "rgba(12, 12, 12, 0.9)"
+    popover_bg = "rgba(12, 12, 12, 0.95)"
     plotly_template = "plotly_dark"
 else:
     bg_color = "#f8fafc"
@@ -76,10 +76,10 @@ else:
     sidebar_bg = "#f1f5f9"
     text_color = "#0f172a"
     subtext_color = "#64748b"
-    border_color = "#e2e8f0"
+    border_color = "#cbd5e1"
     input_bg = "#ffffff"
     table_hover = "rgba(0, 0, 0, 0.02)"
-    popover_bg = "rgba(255, 255, 255, 0.95)"
+    popover_bg = "rgba(255, 255, 255, 0.98)"
     plotly_template = "plotly_white"
 
 # DİNAMİK TEMA VE EASYUI / LİQUID GLASS STİLLERİ
@@ -177,13 +177,14 @@ st.markdown(
         color: {text_color} !important;
     }}
     
+    /* AÇILIR MENÜ, LİSTE KUTULARI VE TAKVİM DÜZENLEMELERİ */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {{
         background: {popover_bg} !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
         color: {text_color} !important;
         border: 1px solid {border_color} !important;
-        box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.2) !important;
+        box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.15) !important;
         border-radius: 16px !important;
     }}
 
@@ -192,7 +193,7 @@ st.markdown(
         color: {text_color} !important;
     }}
     li[role="option"]:hover, li[role="option"]:hover div, li[role="option"]:hover span {{
-        background: rgba(99, 102, 241, 0.1) !important;
+        background: rgba(99, 102, 241, 0.12) !important;
         color: {text_color} !important;
     }}
     li[role="option"][aria-selected="true"] {{
@@ -201,14 +202,26 @@ st.markdown(
         border-left: 3px solid #6366f1 !important;
     }}
 
-    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span, div[data-baseweb="calendar"] button {{
+    /* Takvim Bileşenleri Metin ve Arka Plan Düzeltmeleri */
+    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span, div[data-baseweb="calendar"] button, div[data-baseweb="calendar"] svg {{
         color: {text_color} !important;
+        background-color: transparent !important;
     }}
+    div[data-baseweb="calendar"] button:hover {{
+        background-color: rgba(99, 102, 241, 0.15) !important;
+        border-radius: 8px;
+    }}
+
     input, div[data-baseweb="select"] > div {{
         background-color: {input_bg} !important;
         color: {text_color} !important;
         border-radius: 12px !important;
         border-color: {border_color} !important;
+    }}
+    
+    input::placeholder {{
+        color: {subtext_color} !important;
+        opacity: 0.7;
     }}
 
     .custom-table {{
