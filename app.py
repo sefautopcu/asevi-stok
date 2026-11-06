@@ -1237,6 +1237,12 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
 
 
 def tablo_to_html_pdf_bytes(baslik, veri_listesi):
+    try:
+        import zoneinfo
+        tr_zaman = datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        tr_zaman = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -1255,7 +1261,7 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
     </head>
     <body>
         <h2>{baslik}</h2>
-        <p>Rapor Tarihi: {datetime.datetime.now()}</p>
+        <p>Rapor Tarihi ve Saati: {tr_zaman}</p>
         <hr style="border: 0; border-top: 1px solid {border_color};"/>
     """
     if veri_listesi:
@@ -3476,7 +3482,7 @@ elif menu == "Kullanım Takibi":
                 })
 
         excel_kul_data = tablo_to_excel_bytes(
-            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu"
+            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım dan Fire Takibi Raporu"
         )
         pdf_kul_data = tablo_to_html_pdf_bytes(
             "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu", kullanim_tablo_verisi
@@ -3540,12 +3546,12 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             # 3. Bu Ayki Fire ve Harcamalar
             toplam_fire = sum(
                 l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_yil_ay
+                if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_yil_ay
             )
 
             log_harcanan = sum(
                 l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_yil_ay
+                if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_yil_ay
             )
 
             hesaplanan_fark = max(0.0, toplam_gelen_arz - sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u) - toplam_fire)
@@ -3772,7 +3778,7 @@ elif menu == "Kullanıcı Ayarları":
                     if maskeli_mi:
                         secilen_maskeler.append(alan)
 
-                if st.button("🛡️ Yetki and Maskeleme Ayarlarını Kaydet", type="primary"):
+                if st.button("🛡️ Yetki ve Maskeleme Ayarlarını Kaydet", type="primary"):
                     st.session_state.kullanicilar[yetki_secilen_k]["yasakli_menuler"] = secilen_yasaklar
                     st.session_state.kullanicilar[yetki_secilen_k]["maskeli_alanlar"] = secilen_maskeler
                     kullanıcıları_kaydet(st.session_state.kullanicilar)
