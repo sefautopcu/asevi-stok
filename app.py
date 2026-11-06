@@ -3717,7 +3717,7 @@ elif menu == "Kullanıcı Ayarları":
         with k_tab3:
             st.markdown("**🛡️ Sayfa Kısıtlamaları, Sütun Maskeleme ve Misafir Buton Yönetimi**")
             
-            with st.expander("👁️ Giriş Ekranı Misafir Butonu Ayarları", expanded=True):
+            with st.expander("👁️ Giriş Ekranı Misafir Butonu Ayarları", expanded=False):
                 with st.form("misafir_buton_ayar_form"):
                     m_ayar = st.session_state.kullanicilar.get("misafir", {})
                     mevcut_metin = m_ayar.get("buton_metni", "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)")
@@ -3739,79 +3739,104 @@ elif menu == "Kullanıcı Ayarları":
                         st.rerun()
 
             st.markdown("---")
-            yetki_secilen_k = st.selectbox("Yetkileri Düzenlenecek Kullanıcıyı Seçin", [k for k in st.session_state.kullanicilar.keys() if k != "admin"], key="yetki_k_box")
+            tum_kullanici_adlari = list(st.session_state.kullanicilar.keys())
+            yetki_secilen_k = st.selectbox("Yetkileri Düzenlenecek Kullanıcıyı Seçin", tum_kullanici_adlari, key="yetki_k_box_ana")
             
             if yetki_secilen_k in st.session_state.kullanicilar:
                 k_obj = st.session_state.kullanicilar[yetki_secilen_k]
-                
-                st.markdown("---")
-                st.markdown("#### 1. Menü / Sayfa Yasakları (Erişim Kısıtlama)")
-                tum_menuler = [
-                    "Kurumsal Dashboard & Özet",
-                    "Güncel Stok Durumu",
-                    "Yeni Mal Alımı / Fatura Ekle",
-                    "Ürün Sil / Düzenle",
-                    "Fire / Zayiat Girişi",
-                    "Ürün Birim Fiyatları & Ay Analizi",
-                    "Günlük Yemek Üretimi & Maliyet Raporu",
-                    "Kalori Hesaplama Aracı",
-                    "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
-                    "Personel & Çalışma Süresi Takibi",
-                    "Kullanım Takibi",
-                    "Kapsamlı Envanter ve Hareket Raporu",
-                ]
-                
                 mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
-                secilen_yasaklar = []
-                for m in tum_menuler:
-                    yasakli_mi = st.checkbox(f"Yasakla: {m}", value=(m in mevcut_yasaklar), key=f"yasak_{yetki_secilen_k}_{m}")
-                    if yasakli_mi:
-                        secilen_yasaklar.append(m)
-
-                st.markdown("---")
-                st.markdown("#### 2. Sütun / Alan Maskeleme (Gizleme)")
-                hassas_alanlar = [
-                    "1. Sayfa: Ürün Çeşidi",
-                    "1. Sayfa: Toplam Fire",
-                    "1. Sayfa: Stok Değeri",
-                    "1. Sayfa: Aktif Personel",
-                    "1. Sayfa: Grafik Alanı",
-                    "2. Sayfa: Güncel Stok Durumu - Kalan Miktar",
-                    "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi",
-                    "3. Sayfa: Yemek Üretim ve Maliyet Arşivi",
-                    "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
-                    "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No",
-                    "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı",
-                    "4. Sayfa: İhtiyaç Sahipleri - Telefon",
-                    "4. Sayfa: İhtiyaç Sahipleri - Adres",
-                    "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı",
-                    "4. Sayfa: Yemek Dağıtımları - Tarih/Saat",
-                    "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
-                    "4. Sayfa: Yemek Dağıtımları - Menü",
-                    "4. Sayfa: Yemek Dağıtımları - Porsiyon",
-                    "4. Sayfa: Sayaç Raporu - T.C./Hane No",
-                    "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi",
-                    "4. Sayfa: Sayaç Raporu - Günlük Alım",
-                    "4.Sayfa: Sayaç Raporu - Haftalık Alım",
-                    "4. Sayfa: Sayaç Raporu - Aylık Alım",
-                    "5. Sayfa: Kullanım Takibi - Tarih/Saat",
-                    "5. Sayfa: Kullanım Takibi - Ürün Adı",
-                    "5. Sayfa: Kullanım Takibi - İşlem Türü",
-                    "5. Sayfa: Kullanım Takibi - Miktar",
-                    "5. Sayfa: Kullanım Takibi - Tutar",
-                    "5. Sayfa: Kullanım Takibi - İşlemi Yapan",
-                ]
-
                 mevcut_maskeler = k_obj.get("maskeli_alanlar", [])
-                secilen_maskeler = []
-                for alan in hassas_alanlar:
-                    maskeli_mi = st.checkbox(f"Maskele/Gizle: {alan}", value=(alan in mevcut_maskeler), key=f"mask_{yetki_secilen_k}_{alan}")
-                    if maskeli_mi:
-                        secilen_maskeler.append(alan)
 
-                if st.button("🛡️ Yetki ve Maskeleme Ayarlarını Kaydet", type="primary"):
-                    st.session_state.kullanicilar[yetki_secilen_k]["yasakli_menuler"] = secilen_yasaklar
-                    st.session_state.kullanicilar[yetki_secilen_k]["maskeli_alanlar"] = secilen_maskeler
-                    kullanıcıları_kaydet(st.session_state.kullanicilar)
-                    st.success(f"'{yetki_secilen_k}' kullanıcısının yetki ve maskeleme ayarları güncellendi!")
-                    st.rerun()
+                with st.form(f"yetki_form_{yetki_secilen_k}"):
+                    st.markdown(f"#### 👤 {yetki_secilen_k.upper()} - Menü Yasakları ve Alan Maskeleri")
+                    
+                    st.markdown("##### 1. Menü / Sayfa Yasakları (Erişim Kısıtlama)")
+                    tum_menuler = [
+                        "Kurumsal Dashboard & Özet",
+                        "Güncel Stok Durumu",
+                        "Yeni Mal Alımı / Fatura Ekle",
+                        "Ürün Sil / Düzenle",
+                        "Fire / Zayiat Girişi",
+                        "Ürün Birim Fiyatları & Ay Analizi",
+                        "Günlük Yemek Üretimi & Maliyet Raporu",
+                        "Kalori Hesaplama Aracı",
+                        "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
+                        "Personel & Çalışma Süresi Takibi",
+                        "Kullanım Takibi",
+                        "Kapsamlı Envanter ve Hareket Raporu",
+                    ]
+                    
+                    secilen_yasaklar = []
+                    for m in tum_menuler:
+                        yasakli_mi = st.checkbox(f"Yasakla: {m}", value=(m in mevcut_yasaklar), key=f"yasak_{yetki_secilen_k}_{m}")
+                        if yasakli_mi:
+                            secilen_yasaklar.append(m)
+
+                    st.markdown("---")
+                    st.markdown("##### 2. Sütun / Alan Maskeleme (Gizleme)")
+                    hassas_alanlar = [
+                        "1. Sayfa: Ürün Çeşidi",
+                        "1. Sayfa: Toplam Fire",
+                        "1. Sayfa: Stok Değeri",
+                        "1. Sayfa: Aktif Personel",
+                        "1. Sayfa: Grafik Alanı",
+                        "2. Sayfa: Güncel Stok Durumu - Kalan Miktar",
+                        "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi",
+                        "3. Sayfa: Yemek Üretim ve Maliyet Arşivi",
+                        "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
+                        "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No",
+                        "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı",
+                        "4. Sayfa: İhtiyaç Sahipleri - Telefon",
+                        "4. Sayfa: İhtiyaç Sahipleri - Adres",
+                        "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı",
+                        "4. Sayfa: Yemek Dağıtımları - Tarih/Saat",
+                        "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
+                        "4. Sayfa: Yemek Dağıtımları - Menü",
+                        "4. Sayfa: Yemek Dağıtımları - Porsiyon",
+                        "4. Sayfa: Sayaç Raporu - T.C./Hane No",
+                        "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi",
+                        "4. Sayfa: Sayaç Raporu - Günlük Alım",
+                        "4. Sayfa: Sayaç Raporu - Haftalık Alım",
+                        "4. Sayfa: Sayaç Raporu - Aylık Alım",
+                        "5. Sayfa: Kullanım Takibi - Tarih/Saat",
+                        "5. Sayfa: Kullanım Takibi - Ürün Adı",
+                        "5. Sayfa: Kullanım Takibi - İşlem Türü",
+                        "5. Sayfa: Kullanım Takibi - Miktar",
+                        "5. Sayfa: Kullanım Takibi - Tutar",
+                        "5. Sayfa: Kullanım Takibi - İşlemi Yapan",
+                    ]
+
+                    secilen_maskeler = []
+                    for alan in hassas_alanlar:
+                        maskeli_mi = st.checkbox(f"Maskele/Gizle: {alan}", value=(alan in mevcut_maskeler), key=f"mask_{yetki_secilen_k}_{alan}")
+                        if maskeli_mi:
+                            secilen_maskeler.append(alan)
+
+                    kaydet_btn_yetki = st.form_submit_button(f"🛡️ {yetki_secilen_k.upper()} Yetki ve Maskeleme Ayarlarını Kaydet", type="primary")
+                    if kaydet_btn_yetki:
+                        st.session_state.kullanicilar[yetki_secilen_k]["yasakli_menuler"] = secilen_yasaklar
+                        st.session_state.kullanicilar[yetki_secilen_k]["maskeli_alanlar"] = secilen_maskeler
+                        kullanıcıları_kaydet(st.session_state.kullanicilar)
+                        st.success(f"'{yetki_secilen_k}' kullanıcısının yetki ve maskeleme ayarları başarıyla güncellendi!")
+                        st.rerun()
+
+            st.markdown("---")
+            st.subheader("📊 Tüm Kullanıcıların Yetki, Yasak ve Maskeleme Özet Tablosu")
+            
+            ozet_tablo_listesi = []
+            for k_ad, k_veri in st.session_state.kullanicilar.items():
+                yasak_sayisi = len(k_veri.get("yasakli_menuler", []))
+                mask_sayisi = len(k_veri.get("maskeli_alanlar", []))
+                tip = k_veri.get("tip", "personel")
+                salt = "Evet" if k_veri.get("salt_okunur", False) else "Hayır"
+                
+                ozet_tablo_listesi.append({
+                    "Kullanıcı Adı": k_ad,
+                    "Kullanıcı Tipi": tip,
+                    "Salt Okunur": salt,
+                    "Yasaklı Menü Sayısı": f"{yasak_sayisi} Adet",
+                    "Maskelenen Alan Sayısı": f"{mask_sayisi} Adet",
+                })
+            
+            if ozet_tablo_listesi:
+                ozel_html_tablo_goster(ozet_tablo_listesi)
