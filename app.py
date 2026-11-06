@@ -3524,7 +3524,7 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
         
         if rapor_tipi == "Aylık Rapor":
             with c_tur2:
-                rapor_ayi = st.selectbox("Rapor Dönemi / Ayı", ["2026-10 (Ekim)", "2026-11 (Kasım)", "2026-12 (Aralık)"], index=1)
+                rapor_ayi = st.selectbox("Rapor Dönemi / Ayı", ["2026-9 (Eylül)","2026-10 (Ekim)", "2026-11 (Kasım)", "2026-12 (Aralık)"], index=1)
             secilen_filtre = rapor_ayi.split(" ")[0] # Örn: "2026-11"
             filtre_turu = "ay"
         else:
