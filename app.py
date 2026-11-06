@@ -1303,7 +1303,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 unsafe_allow_html=True,
             )
         else:
-            zarar_gosterim_ metin = "🔒 Gizli" if "1. Sayfa: Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_tutar:,.0f} ₺"
+            zarar_gosterim_metin = "🔒 Gizli" if "1. Sayfa: Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_tutar:,.0f} ₺"
             st.markdown(
                 f"""
                 <div class="metric-card">
@@ -1311,7 +1311,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire</div>
                         <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_toplam_fire}</div>
                     </div>
-                    <div style="color: #f87171; font-size: 12px; font-weight: 600;">Zarar: {zarar_gosterim_ metin}</div>
+                    <div style="color: #f87171; font-size: 12px; font-weight: 600;">Zarar: {zarar_gosterim_metin}</div>
                 </div>
             """,
                 unsafe_allow_html=True,
@@ -3447,7 +3447,7 @@ elif menu == "Kullanım Takibi":
                 })
 
         excel_kul_data = tablo_to_excel_bytes(
-            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu"
+            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım dan Fire Takibi Raporu"
         )
         pdf_kul_data = tablo_to_html_pdf_bytes(
             "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu", kullanim_tablo_verisi
