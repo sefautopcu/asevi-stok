@@ -3482,7 +3482,7 @@ elif menu == "Kullanım Takibi":
                 })
 
         excel_kul_data = tablo_to_excel_bytes(
-            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım dan Fire Takibi Raporu"
+            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu"
         )
         pdf_kul_data = tablo_to_html_pdf_bytes(
             "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu", kullanim_tablo_verisi
@@ -3546,12 +3546,12 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             # 3. Bu Ayki Fire ve Harcamalar
             toplam_fire = sum(
                 l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_yil_ay
+                if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_yil_ay
             )
 
             log_harcanan = sum(
                 l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_yil_ay
+                if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_yil_ay
             )
 
             hesaplanan_fark = max(0.0, toplam_gelen_arz - sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u) - toplam_fire)
