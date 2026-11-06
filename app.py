@@ -177,9 +177,6 @@ st.markdown(
         color: {text_color} !important;
     }}
     
-    /* ========================================================================= */
-    /* KESİN ÇÖZÜM: TÜM BASEWEB POPOVER, LİSTE, MENÜ VE TAKVİMLER */
-    /* ========================================================================= */
     div[data-baseweb="menu"], 
     ul[role="listbox"], 
     div[data-baseweb="popover"], 
@@ -194,7 +191,6 @@ st.markdown(
         border-radius: 12px !important;
     }}
 
-    /* Selectbox ve Dropdown Seçenekleri */
     li[role="option"], 
     li[role="option"] div, 
     li[role="option"] span,
@@ -213,7 +209,6 @@ st.markdown(
         color: {text_color} !important;
     }}
 
-    /* Takvim (Calendar) İçindeki Yazılar, Butonlar ve Günler */
     div[data-baseweb="calendar"] *, 
     div[data-baseweb="calendar"] div, 
     div[data-baseweb="calendar"] span, 
@@ -226,7 +221,6 @@ st.markdown(
         border-radius: 50% !important;
     }}
 
-    /* Input Alanları ve Dropdown Ana Kutuları */
     input, 
     div[data-baseweb="select"] > div,
     div[data-baseweb="base-input"] {{
@@ -763,6 +757,7 @@ gecerli_menuler = [
     "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
     "Personel & Çalışma Süresi Takibi",
     "Kullanım Takibi",
+    "Kapsamlı Envanter ve Hareket Raporu",  # <--- YENİ EKLENEN RAPOR SAYFASI
     "Kullanıcı Ayarları",
 ]
 
@@ -995,7 +990,6 @@ st.sidebar.markdown(
     unsafe_allow_html=True,
 )
 
-# Sidebar Tema Değiştirme Butonu
 st.sidebar.markdown(f'<p style="font-size: 11px; font-weight: 700; margin-bottom: 6px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; color: {subtext_color};">GÖRÜNÜM MODU</p>', unsafe_allow_html=True)
 yeni_tema = st.sidebar.radio(
     "Tema Seçimi", 
@@ -1115,7 +1109,10 @@ menu_gruplari = {
         ),
         ("Personel & Çalışma Süresi Takibi", str(aktif_personel_sayisi)),
     ],
-    "📈 Raporlar & Arşiv": [("Kullanım Takibi", "")],
+    "📈 Raporlar & Arşiv": [
+        ("Kullanım Takibi", ""),
+        ("Kapsamlı Envanter ve Hareket Raporu", ""),  # <--- Raporlar grubunun altına eklendi
+    ],
 }
 
 if yonetici_modu:
@@ -1135,6 +1132,7 @@ for grup_adi, alt_menuler in menu_gruplari.items():
             "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
             "Personel & Çalışma Süresi Takibi",
             "Kullanım Takibi",
+            "Kapsamlı Envanter ve Hareket Raporu",
         ]:
             continue
         if not yonetici_modu and m in yasakli_menuler_listesi:
@@ -3497,6 +3495,69 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Kullanım veya fire hareketi bulunmuyor.")
 
+# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (YENİ EKLENEN SAYFA)
+elif menu == "Kapsamlı Envanter ve Hareket Raporu":
+    if misafir_modu:
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    else:
+        col_b_kapsam, col_indir_kapsam = st.columns([2, 2])
+        with col_b_kapsam:
+            st.header("📊 Kapsamlı Envanter ve Hareket Raporu")
+            st.markdown("Tüm ürünlere ait toplam gelen, devreden/harcanan, fire ve güncel stok durumlarını tek ekranda inceleyin.")
+
+        # Tüm ürünleri topla
+        tum_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+        kapsamli_veri_listesi = []
+
+        for u in tum_urunler:
+            # Gelen Toplam Miktar (Faturalardan / Gelişlerden)
+            toplam_gelen = sum(g["miktar"] for g in st.session_state.girisler if g["urun"] == u)
+            # Güncel Kalan Stok
+            guncel_stok = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
+            # Birim
+            birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
+            # Kategori
+            kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
+
+            # Toplam Fire / Zayiat Miktarı
+            toplam_fire = sum(
+                l["miktar"] for l in st.session_state.kullanim_loglari 
+                if l.get("urun") == u and l.get("tur") == "Fire/Zayiat"
+            )
+
+            # Harcanan / Kullanılan Miktar (Yemek üretimleri ve diğer kullanımlar)
+            toplam_kullanilan = sum(
+                l["miktar"] for l in st.session_state.kullanim_loglari 
+                if l.get("urun") == u and l.get("tur", "").startswith("Günlük Kullanım")
+            )
+
+            kapsamli_veri_listesi.append({
+                "Ürün Adı": u,
+                "Kategori": kategori,
+                "Birim": birim,
+                "Toplam Gelen": f"{toplam_gelen:,.1f} {birim}",
+                "Toplam Kullanılan": f"{toplam_kullanilan:,.1f} {birim}",
+                "Toplam Fire": f"{toplam_fire:,.1f} {birim}",
+                "Güncel Stok": f"{guncel_stok:,.1f} {birim}",
+            })
+
+        excel_kapsam_data = tablo_to_excel_bytes(kapsamli_veri_listesi, "Aziziye Aşevi - Kapsamlı Envanter ve Hareket Raporu")
+        pdf_kapsam_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Kapsamlı Envanter ve Hareket Raporu", kapsamli_veri_listesi)
+
+        with col_indir_kapsam:
+            ortak_indirme_alani(
+                excel_kapsam_data,
+                pdf_kapsam_data,
+                "kapsamli_envanter_hareket_raporu",
+                "kapsamli_rapor_sayfasi",
+            )
+
+        st.markdown("---")
+        if kapsamli_veri_listesi:
+            ozel_html_tablo_goster(kapsamli_veri_listesi)
+        else:
+            st.info("Raporlanacak ürün hareketi bulunmuyor.")
+
 # 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_fiy, col_indir_fiy = st.columns([2, 2])
@@ -3637,6 +3698,7 @@ elif menu == "Kullanıcı Ayarları":
                     "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
                     "Personel & Çalışma Süresi Takibi",
                     "Kullanım Takibi",
+                    "Kapsamlı Envanter ve Hareket Raporu",
                 ]
                 
                 mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
