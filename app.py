@@ -3495,7 +3495,7 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Kullanım veya fire hareketi bulunmuyor.")
 
-# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (DÜZELTİLDİ: MATEMATİKSEL DENGE SAĞLANDI)
+# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (DÖNEMSEL DEVİR MANTIĞIYLA)
 elif menu == "Kapsamlı Envanter ve Hareket Raporu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -3503,52 +3503,75 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
         col_b_kapsam, col_indir_kapsam = st.columns([2, 2])
         with col_b_kapsam:
             st.header("📊 Kapsamlı Envanter ve Hareket Raporu")
-            st.markdown("Tüm ürünlere ait toplam gelen, harcanan, fire ve sonraki döneme/aya **devreden** stok durumlarını tek ekranda inceleyin.")
+            st.markdown("Seçilen döneme ait devreden (açılış) stoğu, yeni gelen alımları, harcanan, fire ve güncel stok dengesini inceleyin.")
+
+        # Dönem Seçimi (Örn: Kasım 2026)
+        c_donem1, c_donem2 = st.columns(2)
+        with c_donem1:
+            rapor_ayi = st.selectbox("Rapor Dönemi / Ayı", ["2026-10 (Ekim)", "2026-11 (Kasım)", "2026-12 (Aralık)"], index=1)
+        
+        secilen_yil_ay = rapor_ayi.split(" ")[0] # Örn: "2026-11"
 
         tum_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
         kapsamli_veri_listesi = []
 
         for u in tum_urunler:
-            toplam_gelen = sum(g["miktar"] for g in st.session_state.girisler if g["urun"] == u)
-            guncel_stok = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
             birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
             kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
 
+            # 1. Devreden Stok (Seçilen ayın başından ÖNCEKİ kalan miktar veya önceki dönemin devri)
+            devreden_stok = sum(
+                g["kalan"] for g in st.session_state.girisler 
+                if g["urun"] == u and g.get("tarih", "2026-01-01")[:7] < secilen_yil_ay
+            )
+            if devreden_stok == 0:
+                ilk_kayit = min((g for g in st.session_state.girisler if g["urun"] == u), key=lambda x: x.get("tarih", ""), default=None)
+                if ilk_kayit and ilk_kayit.get("tarih", "")[:7] == secilen_yil_ay:
+                    devreden_stok = 0.0
+
+            # 2. Bu Ay Gelen (Seçilen ay içinde yapılan alımlar)
+            bu_ay_gelen = sum(
+                g["miktar"] for g in st.session_state.girisler 
+                if g["urun"] == u and g.get("tarih", "")[:7] == secilen_yil_ay
+            )
+
+            toplam_gelen_arz = devreden_stok + bu_ay_gelen
+
+            # 3. Bu Ayki Fire ve Harcamalar
             toplam_fire = sum(
                 l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun") == u and l.get("tur") == "Fire/Zayiat"
+                if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_yil_ay
             )
 
             log_harcanan = sum(
                 l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", ""))
+                if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_yil_ay
             )
 
-            # MATEMATİKSEL DENGE: Gelen - Stok - Fire = Harcanan (Loglarda eksik kalan varsa otomatik tamamlanır)
-            hesaplanan_fark = max(0.0, toplam_gelen - guncel_stok - toplam_fire)
+            hesaplanan_fark = max(0.0, toplam_gelen_arz - sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u) - toplam_fire)
             toplam_harcanan = max(log_harcanan, hesaplanan_fark)
 
-            devreden_stok = guncel_stok
+            guncel_stok = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
 
             kapsamli_veri_listesi.append({
                 "Ürün Adı": u,
                 "Kategori": kategori,
                 "Birim": birim,
-                "Toplam Gelen": f"{toplam_gelen:,.1f} {birim}",
+                "Devreden Stok (Açılış)": f"{devreden_stok:,.1f} {birim}",
+                "Bu Ay Gelen": f"{bu_ay_gelen:,.1f} {birim}",
                 "Toplam Harcanan": f"{toplam_harcanan:,.1f} {birim}",
                 "Toplam Fire": f"{toplam_fire:,.1f} {birim}",
-                "Devreden Stok (Kalan)": f"{devreden_stok:,.1f} {birim}",
                 "Güncel Stok": f"{guncel_stok:,.1f} {birim}",
             })
 
-        excel_kapsam_data = tablo_to_excel_bytes(kapsamli_veri_listesi, "Aziziye Aşevi - Kapsamlı Envanter ve Hareket Raporu")
-        pdf_kapsam_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Kapsamlı Envanter ve Hareket Raporu", kapsamli_veri_listesi)
+        excel_kapsam_data = tablo_to_excel_bytes(kapsamli_veri_listesi, f"Aziziye Aşevi - Envanter Raporu ({secilen_yil_ay})")
+        pdf_kapsam_data = tablo_to_html_pdf_bytes(f"Aziziye Aşevi - Envanter Raporu ({secilen_yil_ay})", kapsamli_veri_listesi)
 
         with col_indir_kapsam:
             ortak_indirme_alani(
                 excel_kapsam_data,
                 pdf_kapsam_data,
-                "kapsamli_envanter_hareket_raporu",
+                f"envanter_raporu_{secilen_yil_ay}",
                 "kapsamli_rapor_sayfasi",
             )
 
