@@ -498,8 +498,7 @@ def kullanıcıları_yukle():
                         v["salt_okunur"] = (k == "yonetim")
                     elif k == "yonetim":
                         v["salt_okunur"] = True
-                    # Düz metin şifreleri otomatik olarak hash formatına çevir
-                    if v.get("sifre") and len(v["sifre"]) != 64:  # SHA256 hash uzunluğu 64 karakterdir
+                    if v.get("sifre") and len(v["sifre"]) != 64:
                         v["sifre"] = sifre_hashle(v["sifre"])
                 return data
         except Exception:
@@ -686,7 +685,6 @@ if "kullanicilar" not in st.session_state:
 if "dashboard_widgets" not in st.session_state:
     st.session_state.dashboard_widgets = widgetlari_yukle()
 
-# Brute-force sayaçları session state başlatma
 if "hatali_giris_sayisi" not in st.session_state:
     st.session_state.hatali_giris_sayisi = 0
 if "kilitlenme_bitis_zamani" not in st.session_state:
@@ -802,7 +800,7 @@ def bugunun_turkce_tarihi():
 
 
 # =========================================================================
-# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (EasyUI Tarzı Liquid Glass + Brute-Force & Master Key)
+# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI
 # =========================================================================
 if not st.session_state.oturum_aktif:
     st.markdown(
@@ -822,7 +820,6 @@ if not st.session_state.oturum_aktif:
             unsafe_allow_html=True,
         )
 
-        # Brute-force kilit kontrolü
         simdikiekran_zaman = time.time()
         kilitli_mi = st.session_state.kilitlenme_bitis_zamani > simdikiekran_zaman
 
@@ -857,7 +854,6 @@ if not st.session_state.oturum_aktif:
                         k_adi_inp in kullanici_db
                         and kullanici_db[k_adi_inp]["sifre"] == girilen_sifre_hash
                     ):
-                        # Başarılı giriş, sayacı sıfırla
                         st.session_state.hatali_giris_sayisi = 0
                         st.session_state.oturum_aktif = True
                         st.session_state.aktif_kullanici = k_adi_inp
@@ -877,8 +873,7 @@ if not st.session_state.oturum_aktif:
                             st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {kalan_hak}")
 
         st.markdown(
-            "<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size:"
-            " 13px;'>veya</div>",
+            "<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size: 13px;'>veya</div>",
             unsafe_allow_html=True,
         )
 
@@ -895,7 +890,6 @@ if not st.session_state.oturum_aktif:
 
         st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
-        # Master Key ile Acil Admin Şifre Kurtarma Paneli
         with st.expander("🔑 Admin Şifre Kurtarma (Master Key)"):
             with st.form("master_key_sifre_sifirla"):
                 st.markdown("Şifrenizi unuttuysanız sistem kurtarma anahtarı ile admin şifresini sıfırlayabilirsiniz.")
@@ -903,7 +897,6 @@ if not st.session_state.oturum_aktif:
                 sifirla_btn = st.form_submit_button("Admin Şifresini Fabrika Ayarına Döndür")
 
                 if sifirla_btn:
-                    # Güvenli master anahtar (st.secrets üzerinden veya varsayılan)
                     tanimli_master = st.secrets.get("MASTER_RECOVERY_KEY", "aziziye_master_2026")
                     if master_key_inp == tanimli_master:
                         if "admin" in st.session_state.kullanicilar:
@@ -915,16 +908,11 @@ if not st.session_state.oturum_aktif:
                     else:
                         st.error("Hatalı Kurtarma Anahtarı!")
 
-        st.markdown(
-            "<div style='margin-top: 20px;'></div>", unsafe_allow_html=True
-        )
+        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
         if st.button(
             "✉️ İletişim / Destek", use_container_width=True, type="secondary"
         ):
-            st.info(
-                "📩 İletişim için **sefaunaltopcu@gmail.com** mail adresi ile"
-                " iletişime geçebilirsiniz."
-            )
+            st.info("📩 İletişim için **sefaunaltopcu@gmail.com** mail adresi ile iletişime geçebilirsiniz.")
 
     st.stop()
 
@@ -1010,10 +998,7 @@ if sidebar_arama:
         st.query_params["menu"] = otomatik_yonlendirilen_menu
 
 st.sidebar.markdown(
-    '<p style="font-size: 11px; font-weight: 700; margin-top: 12px;'
-    ' margin-bottom: 8px; padding-left: 4px; opacity: 0.6; text-transform:'
-    ' uppercase; letter-spacing: 0.05em; color: #9ca3af;">ÇALIŞMA ALANI'
-    ' NAVİGASYONU</p>',
+    '<p style="font-size: 11px; font-weight: 700; margin-top: 12px; margin-bottom: 8px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af;">ÇALIŞMA ALANI NAVİGASYONU</p>',
     unsafe_allow_html=True,
 )
 
@@ -1119,9 +1104,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
                 st.query_params["menu"] = m
                 st.rerun()
 
-st.sidebar.markdown(
-        "<div style='margin-top: 150px;'></div>", unsafe_allow_html=True
-    )
+st.sidebar.markdown("<div style='margin-top: 150px;'></div>", unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
 if st.sidebar.button(
@@ -1134,8 +1117,7 @@ if st.sidebar.button(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
-    '<p style="font-size: 11px; text-align: center; opacity: 0.5; color:'
-    ' #9ca3af;">sefautopcu</p>',
+    '<p style="font-size: 11px; text-align: center; opacity: 0.5; color: #9ca3af;">sefautopcu</p>',
     unsafe_allow_html=True,
 )
 
@@ -1425,12 +1407,9 @@ if menu == "Kurumsal Dashboard & Özet":
             unsafe_allow_html=True,
         )
 
+    st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
     st.markdown(
-        "<div style='margin-top: 30px;'></div>", unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<h3 style='font-size: 16px; font-weight: 700; color:"
-        f" {text_color}; margin-bottom: 16px;'>⚡ Hızlı İşlem Kısayolları</h3>",
+        f"<h3 style='font-size: 16px; font-weight: 700; color: {text_color}; margin-bottom: 16px;'>⚡ Hızlı İşlem Kısayolları</h3>",
         unsafe_allow_html=True,
     )
 
@@ -1456,15 +1435,11 @@ if menu == "Kurumsal Dashboard & Özet":
 
     st.markdown("---")
     st.markdown(
-        f"<h3 style='font-size: 18px; font-weight: 700; color:"
-        f" {text_color}; margin-top: 20px;'>📊 İnteraktif Dashboard Grafikleri"
-        " ve Widget Alanı</h3>",
+        f"<h3 style='font-size: 18px; font-weight: 700; color: {text_color}; margin-top: 20px;'>📊 İnteraktif Dashboard Grafikleri ve Widget Alanı</h3>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<p style='color: {subtext_color}; font-size: 13.5px;'>Aşağıda"
-        " etkinleştirilmiş olan EasyUI tarzı modern, cam efektli ve akışkan"
-        " grafikler görüntülenmektedir.</p>",
+        f"<p style='color: {subtext_color}; font-size: 13.5px;'>Aşağıda etkinleştirilmiş olan EasyUI tarzı modern, cam efektli ve akışkan grafikler görüntülenmektedir.</p>",
         unsafe_allow_html=True,
     )
 
@@ -1477,9 +1452,7 @@ if menu == "Kurumsal Dashboard & Özet":
         if aktif_w_list:
             for w in aktif_w_list:
                 st.markdown(
-                    f"<div style='border: 1px solid {card_border}; background:"
-                    f" {card_bg}; padding: 24px; border-radius: 18px; margin-bottom:"
-                    " 24px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.85);'>",
+                    f"<div style='border: 1px solid {card_border}; background: {card_bg}; padding: 24px; border-radius: 18px; margin-bottom: 24px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.85);'>",
                     unsafe_allow_html=True,
                 )
                 st.markdown(f"#### {w['baslik']}")
@@ -1618,9 +1591,7 @@ if menu == "Kurumsal Dashboard & Özet":
                     st.info("Kaldırılacak grafik bulunmuyor.")
     else:
         st.markdown(
-            f"<p style='font-size: 12px; color: {subtext_color}; font-style:"
-            " italic;'>🔒 Dashboard sayfasına yeni grafik ekleme / kaldırma yetkisi"
-            " yalnızca <b>Admin</b> kullanıcısına özeldir.</p>",
+            f"<p style='font-size: 12px; color: {subtext_color}; font-style: italic;'>🔒 Dashboard sayfasına yeni grafik ekleme / kaldırma yetkisi yalnızca <b>Admin</b> kullanıcısına özeldir.</p>",
             unsafe_allow_html=True,
         )
 
@@ -1772,8 +1743,7 @@ elif menu == "Güncel Stok Durumu":
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
     if salt_okunur_modu:
         st.warning(
-            "⚠️ Bu sayfaya yalnızca gözlem amaçlı erişebilirsiniz. Salt okunur"
-            " (Yönetim/Misafir) modda işlem yapamazsınız."
+            "⚠️ Bu sayfaya yalnızca gözlem amaçlı erişebilirsiniz. Salt okunur (Yönetim/Misafir) modda işlem yapamazsınız."
         )
     else:
         st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
@@ -1861,14 +1831,9 @@ elif menu == "Ürün Sil / Düzenle":
     else:
         st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
         if salt_okunur_modu:
-            st.warning(
-                "👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda silme"
-                " işlemi gerçekleştiremezsiniz."
-            )
+            st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda silme işlemi gerçekleştiremezsiniz.")
         elif not yonetici_modu:
-            st.warning(
-                "⚠️ Bu ekrana erişmek için **Admin** hesabıyla giriş yapmalısınız."
-            )
+            st.warning("⚠️ Bu ekrana erişmek için **Admin** hesabıyla giriş yapmalısınız.")
         else:
             if st.session_state.silme_mesaji:
                 st.success(st.session_state.silme_mesaji)
@@ -1878,8 +1843,7 @@ elif menu == "Ürün Sil / Düzenle":
             else:
                 with st.form("urun_silme_formu"):
                     secenekler = [
-                        f"{g['id']} - {g['urun']} (Eklenme: {g.get('tarih', '-')},"
-                        f" Kalan: {g['kalan']} {g['birim']})"
+                        f"{g['id']} - {g['urun']} (Eklenme: {g.get('tarih', '-')}, Kalan: {g['kalan']} {g['birim']})"
                         for g in st.session_state.girisler
                     ]
                     secilen_kayit_str = st.selectbox(
@@ -1950,10 +1914,7 @@ elif menu == "Fire / Zayiat Girişi":
     else:
         st.header("🗑️ Fire / Zayiat Bildirimi")
         if salt_okunur_modu:
-            st.warning(
-                "👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire"
-                " düşemezsiniz."
-            )
+            st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
         else:
             with st.form("fire_formu"):
                 benzersiz_urunler = sorted(
@@ -2102,9 +2063,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     key="yemek_miktar",
                 )
             with col3:
-                st.markdown(
-                    "<div style='margin-top: 28px;'></div>", unsafe_allow_html=True
-                )
+                st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
                 if st.button("Sepete Ekle", use_container_width=True):
                     if kullanilacak_miktar > 0 and kullanilacak_miktar <= stok_max:
                         st.session_state.sepet.append(
@@ -2230,8 +2189,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     loglari_kaydet(st.session_state.kullanim_loglari)
                     st.session_state.sepet = []
                     st.success(
-                        f"{uretim_tarih_str} tarihli üretim başarıyla tamamlandı ve"
-                        " arşive kaydedildi!"
+                        f"{uretim_tarih_str} tarihli üretim başarıyla tamamlandı ve arşive kaydedildi!"
                     )
                     st.rerun()
 
@@ -2268,8 +2226,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         secilen_gun_uretimleri = st.session_state.yemek_uretim_arsivi
     else:
         st.subheader(
-            f"📅 Seçilen Tarihteki ({secilen_tarih_str}) Yemek Üretim ve Maliyet"
-            " Arşivi"
+            f"📅 Seçilen Tarihteki ({secilen_tarih_str}) Yemek Üretim ve Maliyet Arşivi"
         )
         secilen_gun_uretimleri = [
             u
@@ -2346,9 +2303,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     f"arsiv_{secilen_tarih_str}",
                 )
         else:
-            st.info(
-                f"Seçilen kriterde kayıtlı yemek üretim ve maliyet arşivi bulunmuyor."
-            )
+            st.info("Seçilen kriterde kayıtlı yemek üretim ve maliyet arşivi bulunmuyor.")
 
 # 6. KALORİ HESAPLAMA ARACI
 elif menu == "Kalori Hesaplama Aracı":
@@ -2395,8 +2350,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     else:
         st.header("👥 İhtiyaç Sahibi ve Yemek Dağıtım Takibi")
         st.markdown(
-            "Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun,"
-            " yönetin ve yemek dağıtımlarını takip edin."
+            "Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun, yönetin ve yemek dağıtımlarını takip edin."
         )
 
         tab1, tab2, tab3 = st.tabs([
@@ -2449,10 +2403,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 )
 
             if yonetim_modu:
-                st.info(
-                    "👀 Yönetim modundasınız. Bu ekranda yalnızca kayıtlı ihtiyaç"
-                    " sahiplerini gözlemleyebilirsiniz."
-                )
+                st.info("👀 Yönetim modundasınız. Bu ekranda yalnızca kayıtlı ihtiyaç sahiplerini gözlemleyebilirsiniz.")
             else:
                 col_form_ekle, col_form_sil = st.columns(2)
                 with col_form_ekle:
@@ -2493,8 +2444,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                         st.markdown("**🗑️ Kayıtlı İhtiyaç Sahibini Sil**")
                         if st.session_state.ihtiyac_sahipleri:
                             kisi_secenekleri_sil = [
-                                f"{k['id']} - {k['ad_soyad']} (T.C./Hane:"
-                                f" {k.get('tc_hane', '-')})"
+                                f"{k['id']} - {k['ad_soyad']} (T.C./Hane: {k.get('tc_hane', '-')})"
                                 for k in st.session_state.ihtiyac_sahipleri
                             ]
                             secilen_silinecek = st.selectbox(
@@ -2578,15 +2528,9 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 )
 
             if yonetim_modu:
-                st.info(
-                    "👀 Yönetim modundasınız. Bu ekranda yeni dağıtım kaydı"
-                    " oluşturamazsınız."
-                )
+                st.info("👀 Yönetim modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
             elif not st.session_state.ihtiyac_sahipleri:
-                st.warning(
-                    "Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı"
-                    " yapmalısınız."
-                )
+                st.warning("Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı yapmalısınız.")
             else:
                 col_d_ekle, col_d_sil = st.columns(2)
                 with col_d_ekle:
@@ -2625,8 +2569,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                         st.markdown("**🗑️ Yemek Dağıtım Kaydını Sil**")
                         if st.session_state.dagitim_loglari:
                             dagitim_secenekleri = [
-                                f"DAG-{idx:03d} - {d['kisi']} | Menü: {d['menu']}"
-                                f" ({d['tarih']})"
+                                f"DAG-{idx:03d} - {d['kisi']} | Menü: {d['menu']} ({d['tarih']})"
                                 for idx, d in enumerate(st.session_state.dagitim_loglari)
                             ]
                             secilen_sil_dag = st.selectbox(
@@ -2645,8 +2588,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                                 )
                                 dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
                                 st.session_state.dagitim_silme_mesaji = (
-                                    f"Başarılı! {silinen_dagitim['kisi']} için yapılan"
-                                    " dağıtım kaydı silindi."
+                                    f"Başarılı! {silinen_dagitim['kisi']} için yapılan dağıtım kaydı silindi."
                                 )
                                 st.rerun()
                         else:
@@ -2662,9 +2604,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
         with tab3:
             col_b_sayac, col_indir_sayac = st.columns([2, 2])
             with col_b_sayac:
-                st.subheader(
-                    "📊 Kişi Bazlı Günlük, Haftalık ve Aylık Sayaç Raporu"
-                )
+                st.subheader("📊 Kişi Bazlı Günlük, Haftalık ve Aylık Sayaç Raporu")
 
             simdi_dt = datetime.datetime.now()
             bugun_str = simdi_dt.strftime("%Y-%m-%d")
@@ -2767,8 +2707,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
     else:
         st.header("👥 Personel ve Çalışma Süresi Takibi")
         st.markdown(
-            "Personel yönetimi, yıllık izinler, saatlik izinler, sağlık"
-            " raporları ve resmi tatilleri bu ekrandan yönetebilirsiniz."
+            "Personel yönetimi, yıllık izinler, saatlik izinler, sağlık raporları ve resmi tatilleri bu ekrandan yönetebilirsiniz."
         )
 
         p_tab1, p_tab2, p_tab3, p_tab4, p_tab5 = st.tabs([
@@ -2832,10 +2771,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 )
 
             if yonetim_modu:
-                st.info(
-                    "👀 Yönetim modundasınız. Bu ekranda yalnızca personel listesini"
-                    " görüntüleyebilirsiniz."
-                )
+                st.info("👀 Yönetim modundasınız. Bu ekranda yalnızca personel listesini görüntüleyebilirsiniz.")
             else:
                 col_p_ekle, col_p_sil, col_p_durum = st.columns(3)
                 with col_p_ekle:
@@ -2970,15 +2906,9 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 )
 
             if yonetim_modu:
-                st.info(
-                    "👀 Yönetim modundasınız. Bu ekranda izin ekleyemez veya"
-                    " silemezsiniz."
-                )
+                st.info("👀 Yönetim modundasınız. Bu ekranda izin ekleyemez veya silemezsiniz.")
             elif not yonetici_modu:
-                st.warning(
-                    "⚠️ Yıllık izin işlemleri yalnızca **Admin** tarafından"
-                    " yapılabilir."
-                )
+                st.warning("⚠️ Yıllık izin işlemleri yalnızca **Admin** tarafından yapılabilir.")
             else:
                 col_y_ekle, col_y_sil = st.columns(2)
                 with col_y_ekle:
@@ -3027,8 +2957,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                         "personel": p["ad_soyad"],
                                         "idx": idx,
                                         "ozet": (
-                                            f"{p['ad_soyad']} | Başlangıç: {iz['baslangic']} -"
-                                            f" Bitiş: {iz['bitis']}"
+                                            f"{p['ad_soyad']} | Başlangıç: {iz['baslangic']} - Bitiş: {iz['bitis']}"
                                         ),
                                     })
 
@@ -3113,15 +3042,9 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 )
 
             if yonetim_modu:
-                st.info(
-                    "👀 Yönetim modundasınız. Bu ekranda saatlik izin ekleyemez veya"
-                    " silemezsiniz."
-                )
+                st.info("👀 Yönetim modundasınız. Bu ekranda saatlik izin ekleyemez veya silemezsiniz.")
             elif not yonetici_modu:
-                st.warning(
-                    "⚠️ Saatlik izin işlemleri yalnızca **Admin** tarafından"
-                    " yapılabilir."
-                )
+                st.warning("⚠️ Saatlik izin işlemleri yalnızca **Admin** tarafından yapılabilir.")
             else:
                 col_s_ekle, col_s_sil = st.columns(2)
                 with col_s_ekle:
@@ -3166,8 +3089,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                                 "bitis": str(s_tarih),
                                                 "saat": round(fark_saat, 2),
                                                 "detay": (
-                                                    f"{s_bas_saat.strftime('%H:%M')} -"
-                                                    f" {s_bit_saat.strftime('%H:%M')} ({s_aciklama})"
+                                                    f"{s_bas_saat.strftime('%H:%M')} - {s_bit_saat.strftime('%H:%M')} ({s_aciklama})"
                                                 ),
                                             })
                                     personelleri_kaydet(st.session_state.personeller)
@@ -3187,8 +3109,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                         "personel": p["ad_soyad"],
                                         "idx": idx,
                                         "ozet": (
-                                            f"{p['ad_soyad']} | Tarih: {iz['baslangic']} |"
-                                            f" {iz.get('saat')} Saat"
+                                            f"{p['ad_soyad']} | Tarih: {iz['baslangic']} | {iz.get('saat')} Saat"
                                         ),
                                     })
 
@@ -3274,15 +3195,9 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 )
 
             if yonetim_modu:
-                st.info(
-                    "👀 Yönetim modundasınız. Bu ekranda sağlık raporu ekleyemez veya"
-                    " silemezsiniz."
-                )
+                st.info("👀 Yönetim modundasınız. Bu ekranda sağlık raporu ekleyemez veya silemezsiniz.")
             elif not yonetici_modu:
-                st.warning(
-                    "⚠️ Sağlık raporu işlemleri yalnızca **Admin** tarafından"
-                    " yapılabilir."
-                )
+                st.warning("⚠️ Sağlık raporu işlemleri yalnızca **Admin** tarafından yapılabilir.")
             else:
                 col_r_ekle, col_r_sil = st.columns(2)
                 with col_r_ekle:
@@ -3342,8 +3257,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                         "personel": p["ad_soyad"],
                                         "idx": idx,
                                         "ozet": (
-                                            f"{p['ad_soyad']} | Başlangıç: {iz['baslangic']}"
-                                            f" ({iz.get('teshis')})"
+                                            f"{p['ad_soyad']} | Başlangıç: {iz['baslangic']} ({iz.get('teshis')})"
                                         ),
                                     })
 
@@ -3552,9 +3466,7 @@ elif menu == "Kullanıcı Ayarları":
     else:
         st.header("⚙️ Kullanıcı Ayarları, Sayfa Yetki ve Alan Maskeleme")
         st.markdown(
-            "Sistemdeki kullanıcıları yönetebilir, yeni kullanıcı ekleyebilir,"
-            " şifrelerini değiştirebilir, sayfa erişimlerini kısıtlayabilir ve"
-            " sayfa/sütun bazlı hassas alanları maskeleyebilirsiniz."
+            "Sistemdeki kullanıcıları yönetebilir, yeni kullanıcı ekleyebilir, şifrelerini değiştirebilir, sayfa erişimlerini kısıtlayabilir ve sayfa/sütun bazlı hassas alanları maskeleyebilirsiniz."
         )
 
         k_tab1, k_tab2, k_tab3 = st.tabs([
@@ -3613,9 +3525,7 @@ elif menu == "Kullanıcı Ayarları":
                             st.success(f"Başarılı! '{secilen_sil_k}' silindi.")
                             st.rerun()
                     else:
-                        st.info(
-                            "Silinebilecek başka kullanıcı bulunmuyor (Admin silinemez)."
-                        )
+                        st.info("Silinebilecek başka kullanıcı bulunmuyor (Admin silinemez).")
 
             st.markdown("---")
             st.subheader("📋 Mevcut Kullanıcılar Listesi")
@@ -3623,68 +3533,39 @@ elif menu == "Kullanıcı Ayarları":
             with st.form("mevcut_kullanici_salt_okunur_guncelle_form"):
                 st.markdown("**✏️ Mevcut Kullanıcıların Salt Okunur Durumunu Güncelle**")
                 guncellenecek_k_adi = st.selectbox("Düzenlenecek Kullanıcıyı Seçin", [k for k in st.session_state.kullanicilar.keys() if k != "admin"])
-                mevcut_durum_val = st.session_state.kullanicilar.get(guncellenecek_k_adi, {}).get("salt_okunur", False)
-                yeni_salt_okunur_durum = st.checkbox("🔒 Salt Okunur Modu Aktif Et", value=mevcut_durum_val)
-                guncelle_btn = st.form_submit_button("Salt Okunur Durumunu Kaydet")
+                mevcut_salt_durumu = st.session_state.kullanicilar.get(guncellenecek_k_adi, {}).get("salt_okunur", False)
+                yeni_salt_durumu = st.checkbox("Salt Okunur Modu Aktif", value=mevcut_salt_durumu)
+                guncelle_salt_btn = st.form_submit_button("Salt Okunur Durumunu Güncelle")
 
-                if guncelle_btn and guncellenecek_k_adi:
-                    st.session_state.kullanicilar[guncellenecek_k_adi]["salt_okunur"] = yeni_salt_okunur_durum
+                if guncelle_salt_btn:
+                    st.session_state.kullanicilar[guncellenecek_k_adi]["salt_okunur"] = yeni_salt_durumu
                     kullanıcıları_kaydet(st.session_state.kullanicilar)
                     st.success(f"'{guncellenecek_k_adi}' kullanıcısının salt okunur durumu güncellendi!")
                     st.rerun()
 
-            st.markdown("---")
-            kullanici_tablo_listesi = []
-            for k_ad, k_vals in st.session_state.kullanicilar.items():
-                kullanici_tablo_listesi.append({
-                    "Kullanıcı Adı": k_ad,
-                    "Kullanıcı Tipi": k_vals.get("tip", "personel"),
-                    "Salt Okunur Mu?": "Evet" if (k_vals.get("salt_okunur", False) or k_ad == "yonetim") else "Hayır",
-                    "Yasaklı Menü Sayısı": len(k_vals.get("yasakli_menuler", [])),
-                    "Maskeli Alan Sayısı": len(k_vals.get("maskeli_alanlar", [])),
-                })
-            ozel_html_tablo_goster(kullanici_tablo_listesi)
-
         with k_tab2:
-            with st.form("admin_sifre_guncelle_form"):
-                st.markdown("**🔑 Kullanıcı Şifresi Değiştir / Güncelle**")
-                tum_k_isimleri = list(st.session_state.kullanicilar.keys())
-                secilen_k_duzenle = st.selectbox(
-                    "Şifresi Değiştirilecek Kullanıcı", tum_k_isimleri
-                )
-                yeni_sifre_1 = st.text_input("Yeni Şifre", type="password")
-                yeni_sifre_2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
-                sifre_guncelle_btn = st.form_submit_button("Şifreyi Güncelle")
+            with st.form("sifre_degistir_form"):
+                st.markdown("**🔑 Kullanıcı Şifresi Değiştir**")
+                s_kullanici = st.selectbox("Kullanıcı Seçin", list(st.session_state.kullanicilar.keys()), key="s_kul_box")
+                yeni_sifre_inp = st.text_input("Yeni Şifre", type="password", key="y_sif_box")
+                sifre_degis_btn = st.form_submit_button("Şifreyi Güncelle")
 
-                if sifre_guncelle_btn:
-                    if yeni_sifre_1 and yeni_sifre_1 == yeni_sifre_2:
-                        st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = sifre_hashle(yeni_sifre_1)
-                        kullanıcıları_kaydet(st.session_state.kullanicilar)
-                        st.success(f"'{secilen_k_duzenle}' kullanıcısının şifresi başarıyla güncellendi!")
-                    else:
-                        st.error("Şifreler boş olamaz ve birbiriyle uyuşmalıdır!")
+                if sifre_degis_btn and yeni_sifre_inp:
+                    st.session_state.kullanicilar[s_kullanici]["sifre"] = sifre_hashle(yeni_sifre_inp)
+                    kullanıcıları_kaydet(st.session_state.kullanicilar)
+                    st.success(f"'{s_kullanici}' kullanıcısının şifresi başarıyla güncellendi!")
+                    st.rerun()
 
         with k_tab3:
-            st.markdown(
-                "**🛡️ Sayfa Yetki Yönetimi ve Sütun/Alan Bazlı Maskeleme**<br>"
-                "İstediğiniz sayfayı kullanıcıya kapatabilir veya istediğiniz sayfa/tablonun sütunlarını net bir şekilde maskeleyebilirsiniz.",
-                unsafe_allow_html=True
-            )
-            yetki_verilecek_k = st.selectbox(
-                "Yetkileri / Maskelemesi Düzenlenecek Kullanıcı",
-                [k for k in st.session_state.kullanicilar.keys() if k != "admin"],
-                key="yetki_maskeleme_kullanici_sec"
-            )
-
-            if yetki_verilecek_k:
-                k_veri = st.session_state.kullanicilar[yetki_verilecek_k]
-                mevcut_yasaklar = k_veri.get("yasakli_menuler", [])
-                mevcut_maskeler = k_veri.get("maskeli_alanlar", [])
-
+            st.markdown("**🛡️ Sayfa Kısıtlamaları ve Sütun/Alan Maskeleme Yönetimi**")
+            yetki_secilen_k = st.selectbox("Yetkileri Düzenlenecek Kullanıcıyı Seçin", [k for k in st.session_state.kullanicilar.keys() if k != "admin"], key="yetki_k_box")
+            
+            if yetki_secilen_k in st.session_state.kullanicilar:
+                k_obj = st.session_state.kullanicilar[yetki_secilen_k]
+                
                 st.markdown("---")
-                st.markdown(f"**1️⃣ '{yetki_verilecek_k}' Kullanıcısının Sayfa Erişim Kısıtları:**")
-
-                tum_yonetilebilir_menuler = [
+                st.markdown("#### 1. Menü / Sayfa Yasakları (Erişim Kısıtlama)")
+                tum_menuler = [
                     "Kurumsal Dashboard & Özet",
                     "Güncel Stok Durumu",
                     "Yeni Mal Alımı / Fatura Ekle",
@@ -3697,21 +3578,17 @@ elif menu == "Kullanıcı Ayarları":
                     "Personel & Çalışma Süresi Takibi",
                     "Kullanım Takibi",
                 ]
-
+                
+                mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
                 secilen_yasaklar = []
-                for m_item in tum_yonetilebilir_menuler:
-                    varsayilan_durum = m_item in mevcut_yasaklar
-                    if st.checkbox(
-                        f"Kapat / Gizle: {m_item}",
-                        value=varsayilan_durum,
-                        key=f"yasak_{yetki_verilecek_k}_{m_item}",
-                    ):
-                        secilen_yasaklar.append(m_item)
+                for m in tum_menuler:
+                    yasakli_mi = st.checkbox(f"Yasakla: {m}", value=(m in mevcut_yasaklar), key=f"yasak_{yetki_secilen_k}_{m}")
+                    if yasakli_mi:
+                        secilen_yasaklar.append(m)
 
                 st.markdown("---")
-                st.markdown(f"**2️⃣ '{yetki_verilecek_k}' Kullanıcısının Sütun / Alan Bazlı Maskeleme Tercihleri:**")
-
-                maskelenebilir_alanlar = [
+                st.markdown("#### 2. Sütun / Alan Maskeleme (Gizleme)")
+                hassas_alanlar = [
                     "1. Sayfa: Ürün Çeşidi",
                     "1. Sayfa: Toplam Fire",
                     "1. Sayfa: Stok Değeri",
@@ -3719,8 +3596,8 @@ elif menu == "Kullanıcı Ayarları":
                     "1. Sayfa: Grafik Alanı",
                     "2. Sayfa: Güncel Stok Durumu - Kalan Miktar",
                     "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi",
-                    "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
                     "3. Sayfa: Yemek Üretim ve Maliyet Arşivi",
+                    "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
                     "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No",
                     "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı",
                     "4. Sayfa: İhtiyaç Sahipleri - Telefon",
@@ -3740,28 +3617,19 @@ elif menu == "Kullanıcı Ayarları":
                     "5. Sayfa: Kullanım Takibi - İşlem Türü",
                     "5. Sayfa: Kullanım Takibi - Miktar",
                     "5. Sayfa: Kullanım Takibi - Tutar",
-                    "5. Sayfa: Kullanım Takibi - İşlemi Yapan"
+                    "5. Sayfa: Kullanım Takibi - İşlemi Yapan",
                 ]
 
+                mevcut_maskeler = k_obj.get("maskeli_alanlar", [])
                 secilen_maskeler = []
-                for alan in maskelenebilir_alanlar:
-                    mask_durum = alan in mevcut_maskeler
-                    if st.checkbox(
-                        f"🔒 Maskele / Gizle: {alan}",
-                        value=mask_durum,
-                        key=f"mask_{yetki_verilecek_k}_{alan}",
-                    ):
+                for alan in hassas_alanlar:
+                    maskeli_mi = st.checkbox(f"Maskele/Gizle: {alan}", value=(alan in mevcut_maskeler), key=f"mask_{yetki_secilen_k}_{alan}")
+                    if maskeli_mi:
                         secilen_maskeler.append(alan)
 
-                st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-                if st.button("Yetki ve Maskeleme Ayarlarını Kaydet", type="primary"):
-                    try:
-                        st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = secilen_yasaklar
-                        st.session_state.kullanicilar[yetki_verilecek_k]["maskeli_alanlar"] = secilen_maskeler
-                        kullanıcıları_kaydet(st.session_state.kullanicilar)
-                        st.success(
-                            f"İşlem tamamlanmıştır: '{yetki_verilecek_k}' kullanıcısının yetki ve maskeleme ayarları başarıyla gerçekleştirilmiştir!"
-                        )
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Hata oluştu: Ayarlar kaydedilirken bir sorun yaşandı ({e}).")
+                if st.button("🛡️ Yetki ve Maskeleme Ayarlarını Kaydet", type="primary"):
+                    st.session_state.kullanicilar[yetki_secilen_k]["yasakli_menuler"] = secilen_yasaklar
+                    st.session_state.kullanicilar[yetki_secilen_k]["maskeli_alanlar"] = secilen_maskeler
+                    kullanıcıları_kaydet(st.session_state.kullanicilar)
+                    st.success(f"'{yetki_secilen_k}' kullanıcısının yetki ve maskeleme ayarları güncellendi!")
+                    st.rerun()
