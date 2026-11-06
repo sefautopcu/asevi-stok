@@ -1770,7 +1770,7 @@ elif menu == "Güncel Stok Durumu":
         st.markdown("### Envanter Listesi")
         ozel_html_tablo_goster(stok_tablosu)
 
-# 2. YENİ MAL ALIMI / FATURA EKLE (GÜNCELLENMİŞ AKILLI SEÇİM VE YENİ ÜRÜN EKLEME MANTIĞI)
+# 2. YENİ MAL ALIMI / FATURA EKLE (DÜZELTİLMİŞ YENİ ÜRÜN / CHECKBOX MANTIĞI)
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
     if salt_okunur_modu:
         st.warning(
@@ -1784,7 +1784,6 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 "Fatura No / Belge No (Örn: FAT-2026-105)"
             ).strip().upper()
             
-            # Mevcut ürünleri sistemden alalım
             mevcut_urun_listesi = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
             
             yeni_urun_secimi = st.checkbox("➕ Listede Olmayan Yepyeni Bir Ürün Ekle")
@@ -1823,11 +1822,10 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
 
             submitted = st.form_submit_button("Depoya Yeni Ürün / Fatura Ekle")
             if submitted and urun:
-                # Akıllı benzerlik kontrolü (Fuzzy matching)
                 if yeni_urun_secimi and mevcut_urun_listesi:
                     benzerler = difflib.get_close_matches(urun, mevcut_urun_listesi, n=1, cutoff=0.7)
                     if benzerler:
-                        st.warning(f"⚠️ Dikkat! Yazdığınız ürün mevcut '{benzerler[0]}' adına çok benziyor. Yanlışlıkla yeni ürün açıyor olabilirsiniz!")
+                        st.warning(f"⚠️ Dikkat! Yazdığınız ürün mevcut '{benzerler[0]}' adına çok benziyor.")
 
                 islem_yapan_kisi = st.session_state.aktif_kullanici
                 fatura_no_degeri = (
@@ -3484,7 +3482,7 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Kullanım veya fire hareketi bulunmuyor.")
 
-# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (DÖNEMSEL / YILLIK DEVİR MANTIĞIYLA)
+# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU
 elif menu == "Kapsamlı Envanter ve Hareket Raporu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -3494,7 +3492,6 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             st.header("📊 Kapsamlı Envanter ve Hareket Raporu")
             st.markdown("Seçilen döneme ait devreden (açılış) stoğu, yeni gelen alımları, harcanan, fire ve güncel stok dengesini aylık veya yıllık olarak inceleyin.")
 
-        # Rapor Türü Seçimi (Aylık veya Yıllık)
         c_tur1, c_tur2 = st.columns(2)
         with c_tur1:
             rapor_tipi = st.selectbox("Rapor Periyodu", ["Aylık Rapor", "Yıllık Rapor"])
@@ -3502,12 +3499,12 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
         if rapor_tipi == "Aylık Rapor":
             with c_tur2:
                 rapor_ayi = st.selectbox("Rapor Dönemi / Ayı", ["2026-09 (Eylül)", "2026-10 (Ekim)", "2026-11 (Kasım)", "2026-12 (Aralık)"], index=0)
-            secilen_filtre = rapor_ayi.split(" ")[0] # Örn: "2026-09"
+            secilen_filtre = rapor_ayi.split(" ")[0]
             filtre_turu = "ay"
         else:
             with c_tur2:
                 rapor_yili = st.selectbox("Rapor Yılı", ["2026", "2027", "2028"], index=0)
-            secilen_filtre = rapor_yili # Örn: "2026"
+            secilen_filtre = rapor_yili
             filtre_turu = "yil"
 
         tum_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
@@ -3518,17 +3515,14 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
 
             if filtre_turu == "ay":
-                # 1. Aylık Devreden Stok (Seçilen aydan önceki alımlar - kalanlar)
                 devreden_stok = sum(
                     g["kalan"] for g in st.session_state.girisler 
                     if g["urun"] == u and str(g.get("tarih", "")) < secilen_filtre
                 )
-                # 2. Bu Ay Gelen (Tam tarih eşleşmesi için startswith kullanıldı)
                 donem_gelen = sum(
                     g["miktar"] for g in st.session_state.girisler 
                     if g["urun"] == u and str(g.get("tarih", "")).startswith(secilen_filtre)
                 )
-                # 3. Bu Ayki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
                     if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
@@ -3538,17 +3532,14 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                     if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
             else:
-                # 1. Yıllık Devreden Stok
                 devreden_stok = sum(
                     g["kalan"] for g in st.session_state.girisler 
                     if g["urun"] == u and str(g.get("tarih", "")) < secilen_filtre
                 )
-                # 2. Bu Yıl Gelen
                 donem_gelen = sum(
                     g["miktar"] for g in st.session_state.girisler 
                     if g["urun"] == u and str(g.get("tarih", "")).startswith(secilen_filtre)
                 )
-                # 3. Bu Yılki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
                     if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
