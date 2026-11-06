@@ -485,8 +485,11 @@ def kullanıcıları_yukle():
                         v["yasakli_menuler"] = []
                     if "maskeli_alanlar" not in v:
                         v["maskeli_alanlar"] = []
+                    # Otomatik tanıma ve düzeltme: 'yonetim' kullanıcısı veya salt_okunur True olanlar
                     if "salt_okunur" not in v:
                         v["salt_okunur"] = (k == "yonetim")
+                    elif k == "yonetim":
+                        v["salt_okunur"] = True
                 return data
         except Exception:
             return varsayilan_kullanicilar
@@ -2220,7 +2223,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             if u.get("tarih") == secilen_tarih_str
         ]
 
-    # Maskeleme Kontrolü (3. Sayfa - Seçilen Tarihteki Yemek Üretim ve Maliyet Arşivi)
+    # Maskeleme Kontrolü (3. Sayfa - Yemek Üretim ve Maliyet Arşivi)
     if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" in aktif_k_maskeleri:
         st.info("🔒 Yemek Üretim ve Maliyet Arşivi bu kullanıcı için maskelenmiştir (gizlenmiştir).")
     else:
@@ -3568,12 +3571,28 @@ elif menu == "Kullanıcı Ayarları":
 
             st.markdown("---")
             st.subheader("📋 Mevcut Kullanıcılar Listesi")
+            
+            # YENİ EKLENTİ: Mevcut kullanıcıların salt okunur durumunu doğrudan tablodan/formdan güncelleyebilme
+            with st.form("mevcut_kullanici_salt_okunur_guncelle_form"):
+                st.markdown("**✏️ Mevcut Kullanıcıların Salt Okunur Durumunu Güncelle**")
+                guncellenecek_k_adi = st.selectbox("Düzenlenecek Kullanıcıyı Seçin", [k for k in st.session_state.kullanicilar.keys() if k != "admin"])
+                mevcut_durum_val = st.session_state.kullanicilar.get(guncellenecek_k_adi, {}).get("salt_okunur", False)
+                yeni_salt_okunur_durum = st.checkbox("🔒 Salt Okunur Modu Aktif Et", value=mevcut_durum_val)
+                guncelle_btn = st.form_submit_button("Salt Okunur Durumunu Kaydet")
+
+                if guncelle_btn and guncellenecek_k_adi:
+                    st.session_state.kullanicilar[guncellenecek_k_adi]["salt_okunur"] = yeni_salt_okunur_durum
+                    kullanıcıları_kaydet(st.session_state.kullanicilar)
+                    st.success(f"'{guncellenecek_k_adi}' kullanıcısının salt okunur durumu güncellendi!")
+                    st.rerun()
+
+            st.markdown("---")
             kullanici_tablo_listesi = []
             for k_ad, k_vals in st.session_state.kullanicilar.items():
                 kullanici_tablo_listesi.append({
                     "Kullanıcı Adı": k_ad,
                     "Kullanıcı Tipi": k_vals.get("tip", "personel"),
-                    "Salt Okunur Mu?": "Evet" if k_vals.get("salt_okunur", False) else "Hayır",
+                    "Salt Okunur Mu?": "Evet" if (k_vals.get("salt_okunur", False) or k_ad == "yonetim") else "Hayır",
                     "Yasaklı Menü Sayısı": len(k_vals.get("yasakli_menuler", [])),
                     "Maskeli Alan Sayısı": len(k_vals.get("maskeli_alanlar", [])),
                 })
@@ -3660,7 +3679,7 @@ elif menu == "Kullanıcı Ayarları":
                     "4. Sayfa: İhtiyaç Sahipleri - Telefon",
                     "4. Sayfa: İhtiyaç Sahipleri - Adres",
                     "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı",
-                    "4. Sayfa: Yemek Dağıtımları - Tarih/Saat",
+                    "4. Sayfa: Yemek Dağıtımları - Tarih/Saati",
                     "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
                     "4. Sayfa: Yemek Dağıtımları - Menü",
                     "4. Sayfa: Yemek Dağıtımları - Porsiyon",
