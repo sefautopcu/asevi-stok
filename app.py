@@ -6,6 +6,7 @@ import os
 import time
 import difflib
 import zoneinfo
+import requests
 from cryptography.fernet import Fernet
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -66,6 +67,50 @@ def simdi_tr_str(format_str="%Y-%m-%d %H:%M"):
         return datetime.datetime.now().strftime(format_str)
 
 
+# =========================================================================
+# SUPABASE BULUT VERİTABANI BAĞLANTI FONKSİYONLARI
+# =========================================================================
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "")
+
+def supabase_veri_oku(kayit_id, varsayilan_deger):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return varsayilan_deger
+    url = f"{SUPABASE_URL}/rest/v1/asevi_veritabani?id=eq.{kayit_id}&select=veri"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}"
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data and len(data) > 0:
+                return data[0].get("veri", varsayilan_deger)
+    except Exception:
+        pass
+    return varsayilan_deger
+
+def supabase_veri_kaydet(kayit_id, veri_objesi):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return
+    url = f"{SUPABASE_URL}/rest/v1/asevi_veritabani"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+    }
+    payload = {
+        "id": kayit_id,
+        "veri": veri_objesi
+    }
+    try:
+        requests.post(url, headers=headers, json=payload, timeout=5)
+    except Exception:
+        pass
+
+
 # Tema Durumu Yönetimi (URL parametreleri ile senkronize)
 query_params = st.query_params
 
@@ -99,7 +144,7 @@ else:
     popover_bg = "#ffffff"
     plotly_template = "plotly_white"
 
-# DİNAMİK TEMA VE KESİN ÇÖZÜMLÜ AÇILIR MENÜ / TAKVİM STİLLERİ
+# DİNAMİK TEMA STİLLERİ
 st.markdown(
     f"""
     <style>
@@ -286,35 +331,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-VERI_DOSYASI = "asevi_stok_veritabani.json"
-KULLANIM_LOG_DOSYASI = "asevi_kullanim_loglari.json"
-IHTIYAC_SAHIPLERI_DOSYASI = "asevi_ihtiyac_sahipleri.json"
-DAGITIM_LOG_DOSYASI = "asevi_dagitim_loglari.json"
-PERSONEL_DOSYASI = "asevi_personel_veritabani.json"
-TATIL_DOSYASI = "asevi_resmi_tatiller.json"
-SILINENS_DOSYASI = "asevi_silinen_urunler_loglari.json"
-YEMEK_URETIM_ARSIV_DOSYASI = "asevi_yemek_uretim_arsivi.json"
-KULLANICI_YETKI_DOSYASI = "asevi_kullanici_yetkileri.json"
-DASHBOARD_WIDGET_DOSYASI = "boardui_dashboard_widgets.json"
-
-
-def ozel_html_tablo_goster(veri_listesi):
-    if not veri_listesi:
-        st.info("Gösterilecek kayıt bulunmuyor.")
-        return
-    headers = list(veri_listesi[0].keys())
-    html = "<table class='custom-table'><thead><tr>"
-    for h in headers:
-        html += f"<th>{h}</th>"
-    html += "</tr></thead><tbody>"
-    for row in veri_listesi:
-        html += "<tr>"
-        for h in headers:
-            html += f"<td>{row.get(h, '')}</td>"
-        html += "</tr>"
-    html += "</tbody></table>"
-    st.markdown(html, unsafe_allow_html=True)
-
 
 KALORI_TABLOSU = {
     "PİRİNÇ": 130,
@@ -455,132 +471,91 @@ varsayilan_widgets = [
 
 
 def widgetlari_yukle():
-    if os.path.exists(DASHBOARD_WIDGET_DOSYASI):
-        try:
-            with open(DASHBOARD_WIDGET_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return varsayilan_widgets
-    return varsayilan_widgets
+    return supabase_veri_oku("dashboard_widgets", varsayilan_widgets)
 
 
 def widgetlari_kaydet(veri):
-    with open(DASHBOARD_WIDGET_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("dashboard_widgets", veri)
 
 
 def kullanıcıları_yukle():
-    if os.path.exists(KULLANICI_YETKI_DOSYASI):
-        try:
-            with open(KULLANICI_YETKI_DOSYASI, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for k, v in data.items():
-                    if "yasakli_menuler" not in v:
-                        v["yasakli_menuler"] = []
-                    if "maskeli_alanlar" not in v:
-                        v["maskeli_alanlar"] = []
-                    if "salt_okunur" not in v:
-                        v["salt_okunur"] = (k in ["yonetim", "misafir"])
-                    elif k in ["yonetim", "misafir"]:
-                        v["salt_okunur"] = True
-                    
-                    if k == "misafir":
-                        if not v["yasakli_menuler"]:
-                            v["yasakli_menuler"] = misafir_yasaklar_varsayilan
-                        if not v["maskeli_alanlar"]:
-                            v["maskeli_alanlar"] = misafir_maskeler_varsayilan
+    data = supabase_veri_oku("kullanici_yetkileri", varsayilan_kullanicilar)
+    for k, v in data.items():
+        if "yasakli_menuler" not in v:
+            v["yasakli_menuler"] = []
+        if "maskeli_alanlar" not in v:
+            v["maskeli_alanlar"] = []
+        if "salt_okunur" not in v:
+            v["salt_okunur"] = (k in ["yonetim", "misafir"])
+        elif k in ["yonetim", "misafir"]:
+            v["salt_okunur"] = True
+        
+        if k == "misafir":
+            if not v["yasakli_menuler"]:
+                v["yasakli_menuler"] = misafir_yasaklar_varsayilan
+            if not v["maskeli_alanlar"]:
+                v["maskeli_alanlar"] = misafir_maskeler_varsayilan
 
-                    if v.get("sifre") and len(v["sifre"]) != 64 and k != "misafir":
-                        v["sifre"] = sifre_hashle(v["sifre"])
-                
-                if "misafir" not in data:
-                    data["misafir"] = varsayilan_kullanicilar["misafir"]
-                else:
-                    if "buton_metni" not in data["misafir"]:
-                        data["misafir"]["buton_metni"] = "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)"
-                    if "buton_aktif" not in data["misafir"]:
-                        data["misafir"]["buton_aktif"] = True
-                    if not data["misafir"]["yasakli_menuler"]:
-                        data["misafir"]["yasakli_menuler"] = misafir_yasaklar_varsayilan
-                    if not data["misafir"]["maskeli_alanlar"]:
-                        data["misafir"]["maskeli_alanlar"] = misafir_maskeler_varsayilan
+        if v.get("sifre") and len(v["sifre"]) != 64 and k != "misafir":
+            v["sifre"] = sifre_hashle(v["sifre"])
+    
+    if "misafir" not in data:
+        data["misafir"] = varsayilan_kullanicilar["misafir"]
+    else:
+        if "buton_metni" not in data["misafir"]:
+            data["misafir"]["buton_metni"] = "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)"
+        if "buton_aktif" not in data["misafir"]:
+            data["misafir"]["buton_aktif"] = True
+        if not data["misafir"]["yasakli_menuler"]:
+            data["misafir"]["yasakli_menuler"] = misafir_yasaklar_varsayilan
+        if not data["misafir"]["maskeli_alanlar"]:
+            data["misafir"]["maskeli_alanlar"] = misafir_maskeler_varsayilan
 
-                return data
-        except Exception:
-            return varsayilan_kullanicilar
-    return varsayilan_kullanicilar
+    return data
 
 
 def kullanıcıları_kaydet(veri):
-    with open(KULLANICI_YETKI_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("kullanici_yetkileri", veri)
 
 
 def verileri_yukle():
-    if os.path.exists(VERI_DOSYASI):
-        try:
-            with open(VERI_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+    return supabase_veri_oku("girisler", [])
 
 
 def verileri_kaydet(veri):
-    with open(VERI_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("girisler", veri)
 
 
 def loglari_yukle():
-    if os.path.exists(KULLANIM_LOG_DOSYASI):
-        try:
-            with open(KULLANIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+    return supabase_veri_oku("kullanim_loglari", [])
 
 
 def loglari_kaydet(veri):
-    with open(KULLANIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("kullanim_loglari", veri)
 
 
 def silinen_urun_loglarini_yukle():
-    if os.path.exists(SILINENS_DOSYASI):
-        try:
-            with open(SILINENS_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+    return supabase_veri_oku("silinen_urun_loglari", [])
 
 
 def silinen_urun_loglarini_kaydet(veri):
-    with open(SILINENS_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("silinen_urun_loglari", veri)
 
 
 def ihtiyac_sahiplerini_yukle():
-    if os.path.exists(IHTIYAC_SAHIPLERI_DOSYASI):
-        try:
-            with open(IHTIYAC_SAHIPLERI_DOSYASI, "r", encoding="utf-8") as f:
-                ham_veri = json.load(f)
-                cozulmus_liste = []
-                for k in ham_veri:
-                    k_kopya = k.copy()
-                    h_tc = k.get("tc_hane", "")
-                    h_tel = k.get("telefon", "")
-                    h_adr = k.get("adres", "")
-                    
-                    k_kopya["tc_hane"] = metni_coz(h_tc) if h_tc else ""
-                    k_kopya["telefon"] = metni_coz(h_tel) if h_tel else ""
-                    k_kopya["adres"] = metni_coz(h_adr) if h_adr else ""
-                    cozulmus_liste.append(k_kopya)
-                return cozulmus_liste
-        except Exception:
-            return []
-    return []
+    ham_veri = supabase_veri_oku("ihtiyac_sahipleri", [])
+    cozulmus_liste = []
+    for k in ham_veri:
+        k_kopya = k.copy()
+        h_tc = k.get("tc_hane", "")
+        h_tel = k.get("telefon", "")
+        h_adr = k.get("adres", "")
+        
+        k_kopya["tc_hane"] = metni_coz(h_tc) if h_tc else ""
+        k_kopya["telefon"] = metni_coz(h_tel) if h_tel else ""
+        k_kopya["adres"] = metni_coz(h_adr) if h_adr else ""
+        cozulmus_liste.append(k_kopya)
+    return cozulmus_liste
 
 
 def ihtiyac_sahiplerini_kaydet(veri_listesi):
@@ -591,40 +566,26 @@ def ihtiyac_sahiplerini_kaydet(veri_listesi):
         k_kopya["telefon"] = metni_sifrele(k.get("telefon", ""))
         k_kopya["adres"] = metni_sifrele(k.get("adres", ""))
         sifrelenmis_liste.append(k_kopya)
-    with open(IHTIYAC_SAHIPLERI_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(sifrelenmis_liste, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("ihtiyac_sahipleri", sifrelenmis_liste)
 
 
 def dagitim_loglarini_yukle():
-    if os.path.exists(DAGITIM_LOG_DOSYASI):
-        try:
-            with open(DAGITIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+    return supabase_veri_oku("dagitim_loglari", [])
 
 
 def dagitim_loglarini_kaydet(veri):
-    with open(DAGITIM_LOG_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("dagitim_loglari", veri)
 
 
 def personelleri_yukle():
-    if os.path.exists(PERSONEL_DOSYASI):
-        try:
-            with open(PERSONEL_DOSYASI, "r", encoding="utf-8") as f:
-                ham_veri = json.load(f)
-                cozulmus_p = []
-                for p in ham_veri:
-                    p_kopya = p.copy()
-                    h_tc = p.get("tc", "")
-                    p_kopya["tc"] = metni_coz(h_tc) if h_tc else ""
-                    cozulmus_p.append(p_kopya)
-                return cozulmus_p
-        except Exception:
-            return varsayilan_personeller
-    return varsayilan_personeller
+    ham_veri = supabase_veri_oku("personeller", varsayilan_personeller)
+    cozulmus_p = []
+    for p in ham_veri:
+        p_kopya = p.copy()
+        h_tc = p.get("tc", "")
+        p_kopya["tc"] = metni_coz(h_tc) if h_tc else ""
+        cozulmus_p.append(p_kopya)
+    return cozulmus_p
 
 
 def personelleri_kaydet(veri_listesi):
@@ -633,33 +594,19 @@ def personelleri_kaydet(veri_listesi):
         p_kopya = p.copy()
         p_kopya["tc"] = metni_sifrele(p.get("tc", ""))
         sifrelenmis_p.append(p_kopya)
-    with open(PERSONEL_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(sifrelenmis_p, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("personeller", sifrelenmis_p)
 
 
 def resmi_tatilleri_yukle():
-    if os.path.exists(TATIL_DOSYASI):
-        try:
-            with open(TATIL_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return varsayilan_resmi_tatiller
-    return varsayilan_resmi_tatiller
+    return supabase_veri_oku("resmi_tatiller", varsayilan_resmi_tatiller)
 
 
 def yemek_uretim_arsivini_yukle():
-    if os.path.exists(YEMEK_URETIM_ARSIV_DOSYASI):
-        try:
-            with open(YEMEK_URETIM_ARSIV_DOSYASI, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+    return supabase_veri_oku("yemek_uretim_arsivi", [])
 
 
 def yemek_uretim_arsivini_kaydet(veri):
-    with open(YEMEK_URETIM_ARSIV_DOSYASI, "w", encoding="utf-8") as f:
-        json.dump(veri, f, ensure_ascii=False, indent=4)
+    supabase_veri_kaydet("yemek_uretim_arsivi", veri)
 
 
 if "girisler" not in st.session_state:
@@ -1773,7 +1720,6 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
     else:
         st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
         with st.form("fatura_formu"):
-            # Geçmiş veya bugün için fatura tarihi seçimi eklendi
             fatura_tarihi_secim = st.date_input("📅 Fatura / Alım Tarihi", value=datetime.date.today())
             fatura_saati_secim = st.time_input("⏰ Alım Saati", value=datetime.datetime.now().time())
             tarih_giris = f"{fatura_tarihi_secim.strftime('%Y-%m-%d')} {fatura_saati_secim.strftime('%H:%M')}"
@@ -3445,7 +3391,7 @@ elif menu == "Kullanım Takibi":
                 })
 
         excel_kul_data = tablo_to_excel_bytes(
-            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu"
+            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım dan Fire Takibi Raporu"
         )
         pdf_kul_data = tablo_to_html_pdf_bytes(
             "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu", kullanim_tablo_verisi
