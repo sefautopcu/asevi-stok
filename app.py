@@ -68,7 +68,7 @@ if st.session_state.tema == "Dark":
     border_color = "#1f1f1f"
     input_bg = "#0b0b0b"
     table_hover = "rgba(255, 255, 255, 0.03)"
-    popover_bg = "rgba(12, 12, 12, 0.95)"
+    popover_bg = "#121212"
     plotly_template = "plotly_dark"
 else:
     bg_color = "#f8fafc"
@@ -79,10 +79,10 @@ else:
     border_color = "#cbd5e1"
     input_bg = "#ffffff"
     table_hover = "rgba(0, 0, 0, 0.02)"
-    popover_bg = "rgba(255, 255, 255, 0.98)"
+    popover_bg = "#ffffff"
     plotly_template = "plotly_white"
 
-# DİNAMİK TEMA VE EASYUI / LİQUID GLASS STİLLERİ
+# DİNAMİK TEMA VE KESİN ÇÖZÜMLÜ AÇILIR MENÜ / TAKVİM STİLLERİ
 st.markdown(
     f"""
     <style>
@@ -177,42 +177,59 @@ st.markdown(
         color: {text_color} !important;
     }}
     
-    /* AÇILIR MENÜ, LİSTE KUTULARI VE TAKVİM DÜZENLEMELERİ */
-    div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {{
-        background: {popover_bg} !important;
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
+    /* ========================================================================= */
+    /* KESİN ÇÖZÜM: TÜM BASEWEB POPOVER, LİSTE, MENÜ VE TAKVİMLER */
+    /* ========================================================================= */
+    div[data-baseweb="menu"], 
+    ul[role="listbox"], 
+    div[data-baseweb="popover"], 
+    div[data-baseweb="calendar"],
+    div[data-baseweb="select"] ul,
+    div[id*="popover"],
+    div[class*="popover"] {{
+        background-color: {popover_bg} !important;
         color: {text_color} !important;
         border: 1px solid {border_color} !important;
-        box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.15) !important;
-        border-radius: 16px !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
+        border-radius: 12px !important;
     }}
 
-    li[role="option"], li[role="option"] div, li[role="option"] span {{
-        background: transparent !important;
+    /* Selectbox ve Dropdown Seçenekleri */
+    li[role="option"], 
+    li[role="option"] div, 
+    li[role="option"] span,
+    div[data-baseweb="menu"] div {{
+        background-color: transparent !important;
         color: {text_color} !important;
     }}
-    li[role="option"]:hover, li[role="option"]:hover div, li[role="option"]:hover span {{
-        background: rgba(99, 102, 241, 0.12) !important;
+    li[role="option"]:hover, 
+    li[role="option"]:hover div, 
+    li[role="option"]:hover span {{
+        background-color: rgba(99, 102, 241, 0.15) !important;
         color: {text_color} !important;
     }}
     li[role="option"][aria-selected="true"] {{
-        background: rgba(99, 102, 241, 0.25) !important;
+        background-color: rgba(99, 102, 241, 0.3) !important;
         color: {text_color} !important;
-        border-left: 3px solid #6366f1 !important;
     }}
 
-    /* Takvim Bileşenleri Metin ve Arka Plan Düzeltmeleri */
-    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span, div[data-baseweb="calendar"] button, div[data-baseweb="calendar"] svg {{
+    /* Takvim (Calendar) İçindeki Yazılar, Butonlar ve Günler */
+    div[data-baseweb="calendar"] *, 
+    div[data-baseweb="calendar"] div, 
+    div[data-baseweb="calendar"] span, 
+    div[data-baseweb="calendar"] button {{
         color: {text_color} !important;
         background-color: transparent !important;
     }}
     div[data-baseweb="calendar"] button:hover {{
-        background-color: rgba(99, 102, 241, 0.15) !important;
-        border-radius: 8px;
+        background-color: rgba(99, 102, 241, 0.2) !important;
+        border-radius: 50% !important;
     }}
 
-    input, div[data-baseweb="select"] > div {{
+    /* Input Alanları ve Dropdown Ana Kutuları */
+    input, 
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="base-input"] {{
         background-color: {input_bg} !important;
         color: {text_color} !important;
         border-radius: 12px !important;
