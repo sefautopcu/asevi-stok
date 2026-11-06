@@ -439,9 +439,9 @@ varsayilan_resmi_tatiller = [
 ]
 
 varsayilan_kullanicilar = {
-    "admin": {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": []},
-    "asci": {"sifre": "sydv25", "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": []},
-    "yonetim": {"sifre": "Yonetim25", "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": []},
+    "admin": {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
+    "asci": {"sifre": "sydv25", "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
+    "yonetim": {"sifre": "Yonetim25", "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": True},
 }
 
 varsayilan_widgets = [
@@ -485,6 +485,8 @@ def kullanıcıları_yukle():
                         v["yasakli_menuler"] = []
                     if "maskeli_alanlar" not in v:
                         v["maskeli_alanlar"] = []
+                    if "salt_okunur" not in v:
+                        v["salt_okunur"] = (k == "yonetim")
                 return data
         except Exception:
             return varsayilan_kullanicilar
@@ -961,15 +963,18 @@ misafir_modu = (
     not st.session_state.oturum_aktif
     or st.session_state.aktif_kullanici == "misafir"
 )
-yonetim_modu = (
-    st.session_state.oturum_aktif
-    and st.session_state.aktif_kullanici == "yonetim"
-)
-salt_okunur_modu = misafir_modu or yonetim_modu
 
 aktif_k_bilgi = st.session_state.kullanicilar.get(
     st.session_state.aktif_kullanici, {}
 )
+kullanici_salt_okunur_mu = aktif_k_bilgi.get("salt_okunur", False) or st.session_state.aktif_kullanici == "yonetim"
+
+yonetim_modu = (
+    st.session_state.oturum_aktif
+    and kullanici_salt_okunur_mu
+)
+salt_okunur_modu = misafir_modu or yonetim_modu
+
 yasakli_menuler_listesi = aktif_k_bilgi.get("yasakli_menuler", [])
 aktif_k_maskeleri = aktif_k_bilgi.get("maskeli_alanlar", [])
 
@@ -3519,6 +3524,7 @@ elif menu == "Kullanıcı Ayarları":
                     )
                     y_sifre = st.text_input("Şifre", type="password")
                     y_tip = st.selectbox("Kullanıcı Tipi", ["personel", "admin"])
+                    y_salt_okunur = st.checkbox("🔒 Salt Okunur Olarak Tanımla (Yönetim gibi tüm sayfalara erişir, değişiklik yapamaz)")
                     y_kaydet_btn = st.form_submit_button("Kullanıcıyı Kaydet")
 
                     if y_kaydet_btn and y_k_adi and y_sifre:
@@ -3530,6 +3536,7 @@ elif menu == "Kullanıcı Ayarları":
                                 "tip": y_tip,
                                 "yasakli_menuler": [],
                                 "maskeli_alanlar": [],
+                                "salt_okunur": y_salt_okunur,
                             }
                             kullanıcıları_kaydet(st.session_state.kullanicilar)
                             st.success(f"Başarılı! '{y_k_adi}' kullanıcısı oluşturuldu.")
@@ -3566,6 +3573,7 @@ elif menu == "Kullanıcı Ayarları":
                 kullanici_tablo_listesi.append({
                     "Kullanıcı Adı": k_ad,
                     "Kullanıcı Tipi": k_vals.get("tip", "personel"),
+                    "Salt Okunur Mu?": "Evet" if k_vals.get("salt_okunur", False) else "Hayır",
                     "Yasaklı Menü Sayısı": len(k_vals.get("yasakli_menuler", [])),
                     "Maskeli Alan Sayısı": len(k_vals.get("maskeli_alanlar", [])),
                 })
