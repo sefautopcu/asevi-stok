@@ -438,6 +438,15 @@ varsayilan_kullanicilar = {
     "admin": {"sifre": sifre_hashle("Ss123321"), "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
     "asci": {"sifre": sifre_hashle("sydv25"), "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
     "yonetim": {"sifre": sifre_hashle("Yonetim25"), "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": True},
+    "misafir": {
+        "sifre": "", 
+        "tip": "misafir", 
+        "yasakli_menuler": [], 
+        "maskeli_alanlar": [], 
+        "salt_okunur": True,
+        "buton_metni": "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)",
+        "buton_aktif": True
+    },
 }
 
 varsayilan_widgets = [
@@ -482,11 +491,21 @@ def kullanıcıları_yukle():
                     if "maskeli_alanlar" not in v:
                         v["maskeli_alanlar"] = []
                     if "salt_okunur" not in v:
-                        v["salt_okunur"] = (k == "yonetim")
-                    elif k == "yonetim":
+                        v["salt_okunur"] = (k in ["yonetim", "misafir"])
+                    elif k in ["yonetim", "misafir"]:
                         v["salt_okunur"] = True
-                    if v.get("sifre") and len(v["sifre"]) != 64:
+                    if v.get("sifre") and len(v["sifre"]) != 64 and k != "misafir":
                         v["sifre"] = sifre_hashle(v["sifre"])
+                
+                # Misafir kullanıcısının buton ayarlarının eksik olma ihtimaline karşı güvence
+                if "misafir" not in data:
+                    data["misafir"] = varsayilan_kullanicilar["misafir"]
+                else:
+                    if "buton_metni" not in data["misafir"]:
+                        data["misafir"]["buton_metni"] = "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)"
+                    if "buton_aktif" not in data["misafir"]:
+                        data["misafir"]["buton_aktif"] = True
+
                 return data
         except Exception:
             return varsayilan_kullanicilar
@@ -865,16 +884,21 @@ if not st.session_state.oturum_aktif:
             unsafe_allow_html=True,
         )
 
-        if st.button(
-            "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)",
-            use_container_width=True,
-            type="secondary",
-        ):
-            st.session_state.oturum_aktif = True
-            st.session_state.aktif_kullanici = "misafir"
-            st.query_params["auth"] = "true"
-            st.query_params["user"] = "misafir"
-            st.rerun()
+        misafir_ayar = st.session_state.kullanicilar.get("misafir", {})
+        misafir_buton_metni = misafir_ayar.get("buton_metni", "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)")
+        misafir_buton_aktif = misafir_ayar.get("buton_aktif", True)
+
+        if misafir_buton_aktif:
+            if st.button(
+                misafir_buton_metni,
+                use_container_width=True,
+                type="secondary",
+            ):
+                st.session_state.oturum_aktif = True
+                st.session_state.aktif_kullanici = "misafir"
+                st.query_params["auth"] = "true"
+                st.query_params["user"] = "misafir"
+                st.rerun()
 
         st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
@@ -1016,7 +1040,7 @@ misafir_modu = (
 aktif_k_bilgi = st.session_state.kullanicilar.get(
     st.session_state.aktif_kullanici, {}
 )
-kullanici_salt_okunur_mu = aktif_k_bilgi.get("salt_okunur", False) or st.session_state.aktif_kullanici == "yonetim"
+kullanici_salt_okunur_mu = aktif_k_bilgi.get("salt_okunur", False) or st.session_state.aktif_kullanici in ["yonetim", "misafir"]
 
 yonetim_modu = (
     st.session_state.oturum_aktif
@@ -3585,6 +3609,17 @@ elif menu == "Kullanıcı Ayarları":
             "Sistemdeki kullanıcıları yönetebilir, yeni kullanıcı ekleyebilir, şifrelerini değiştirebilir, sayfa erişimlerini kısıtlayabilir ve sayfa/sütun bazlı hassas alanları maskeleyebilirsiniz."
         )
 
+        if "misafir" not in st.session_state.kullanicilar:
+            st.session_state.kullanicilar["misafir"] = {
+                "sifre": "",
+                "tip": "misafir",
+                "yasakli_menuler": [],
+                "maskeli_alanlar": [],
+                "salt_okunur": True,
+                "buton_metni": "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)",
+                "buton_aktif": True
+            }
+
         k_tab1, k_tab2, k_tab3 = st.tabs([
             "👤 Kullanıcı Ekle / Sil",
             "🔑 Şifre Değiştir",
@@ -3625,7 +3660,7 @@ elif menu == "Kullanıcı Ayarları":
                 with st.form("kullanici_sil_form"):
                     st.markdown("**🗑️ Kullanıcı Sil**")
                     silinebilir_kullanicilar = [
-                        k for k in st.session_state.kullanicilar.keys() if k != "admin"
+                        k for k in st.session_state.kullanicilar.keys() if k not in ["admin", "misafir"]
                     ]
                     if silinebilir_kullanicilar:
                         secilen_sil_k = st.selectbox(
@@ -3641,7 +3676,7 @@ elif menu == "Kullanıcı Ayarları":
                             st.success(f"Başarılı! '{secilen_sil_k}' silindi.")
                             st.rerun()
                     else:
-                        st.info("Silinebilecek başka kullanıcı bulunmuyor (Admin silinemez).")
+                        st.info("Silinebilecek başka kullanıcı bulunmuyor.")
 
             st.markdown("---")
             st.subheader("📋 Mevcut Kullanıcılar Listesi")
@@ -3662,7 +3697,7 @@ elif menu == "Kullanıcı Ayarları":
         with k_tab2:
             with st.form("sifre_degistir_form"):
                 st.markdown("**🔑 Kullanıcı Şifresi Değiştir**")
-                s_kullanici = st.selectbox("Kullanıcı Seçin", list(st.session_state.kullanicilar.keys()), key="s_kul_box")
+                s_kullanici = st.selectbox("Kullanıcı Seçin", [k for k in st.session_state.kullanicilar.keys() if k != "misafir"], key="s_kul_box")
                 yeni_sifre_inp = st.text_input("Yeni Şifre", type="password", key="y_sif_box")
                 sifre_degis_btn = st.form_submit_button("Şifreyi Güncelle")
 
@@ -3673,7 +3708,30 @@ elif menu == "Kullanıcı Ayarları":
                     st.rerun()
 
         with k_tab3:
-            st.markdown("**🛡️ Sayfa Kısıtlamaları ve Sütun/Alan Maskeleme Yönetimi**")
+            st.markdown("**🛡️ Sayfa Kısıtlamaları, Sütun Maskeleme ve Misafir Buton Yönetimi**")
+            
+            with st.expander("👁️ Giriş Ekranı Misafir Butonu Ayarları", expanded=True):
+                with st.form("misafir_buton_ayar_form"):
+                    m_ayar = st.session_state.kullanicilar.get("misafir", {})
+                    mevcut_metin = m_ayar.get("buton_metni", "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)")
+                    mevcut_durum = m_ayar.get("buton_aktif", True)
+
+                    yeni_buton_metni = st.text_input("Misafir Buton Metni / Başlığı", value=mevcut_metin)
+                    yeni_buton_durumu = st.checkbox("Giriş Ekranında Misafir Butonunu Göster (Aktif)", value=mevcut_durum)
+                    
+                    misafir_btn_kaydet = st.form_submit_button("Misafir Buton Ayarlarını Kaydet")
+
+                    if misafir_btn_kaydet:
+                        if "misafir" not in st.session_state.kullanicilar:
+                            st.session_state.kullanicilar["misafir"] = {"tip": "misafir", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": True}
+                        
+                        st.session_state.kullanicilar["misafir"]["buton_metni"] = yeni_buton_metni
+                        st.session_state.kullanicilar["misafir"]["buton_aktif"] = yeni_buton_durumu
+                        kullanıcıları_kaydet(st.session_state.kullanicilar)
+                        st.success("Misafir buton ayarları başarıyla güncellendi!")
+                        st.rerun()
+
+            st.markdown("---")
             yetki_secilen_k = st.selectbox("Yetkileri Düzenlenecek Kullanıcıyı Seçin", [k for k in st.session_state.kullanicilar.keys() if k != "admin"], key="yetki_k_box")
             
             if yetki_secilen_k in st.session_state.kullanicilar:
