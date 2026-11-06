@@ -42,6 +42,9 @@ def metni_coz(sifreli_metin):
     if not sifreli_metin:
         return ""
     try:
+        # Eğer metin şifreli formatta değilse (eski düz metinler için) doğrudan döndür
+        if not str(sifreli_metin).startswith("gAAAAA"):
+            return str(sifreli_metin)
         return fernet_motoru.decrypt(str(sifreli_metin).encode("utf-8")).decode(
             "utf-8"
         )
@@ -567,9 +570,13 @@ def ihtiyac_sahiplerini_yukle():
                 cozulmus_liste = []
                 for k in ham_veri:
                     k_kopya = k.copy()
-                    k_kopya["tc_hane"] = metni_coz(k.get("tc_hane", ""))
-                    k_kopya["telefon"] = metni_coz(k.get("telefon", ""))
-                    k_kopya["adres"] = metni_coz(k.get("adres", ""))
+                    h_tc = k.get("tc_hane", "")
+                    h_tel = k.get("telefon", "")
+                    h_adr = k.get("adres", "")
+                    
+                    k_kopya["tc_hane"] = metni_coz(h_tc) if h_tc else ""
+                    k_kopya["telefon"] = metni_coz(h_tel) if h_tel else ""
+                    k_kopya["adres"] = metni_coz(h_adr) if h_adr else ""
                     cozulmus_liste.append(k_kopya)
                 return cozulmus_liste
         except Exception:
@@ -612,7 +619,8 @@ def personelleri_yukle():
                 cozulmus_p = []
                 for p in ham_veri:
                     p_kopya = p.copy()
-                    p_kopya["tc"] = metni_coz(p.get("tc", ""))
+                    h_tc = p.get("tc", "")
+                    p_kopya["tc"] = metni_coz(h_tc) if h_tc else ""
                     cozulmus_p.append(p_kopya)
                 return cozulmus_p
         except Exception:
