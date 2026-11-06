@@ -3495,7 +3495,7 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Kullanım veya fire hareketi bulunmuyor.")
 
-# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (GÜNCELLENDİ: DEVREDEN STOK EKLENDİ)
+# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (DÜZELTİLDİ: MATEMATİKSEL DENGE SAĞLANDI)
 elif menu == "Kapsamlı Envanter ve Hareket Raporu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -3505,35 +3505,29 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             st.header("📊 Kapsamlı Envanter ve Hareket Raporu")
             st.markdown("Tüm ürünlere ait toplam gelen, harcanan, fire ve sonraki döneme/aya **devreden** stok durumlarını tek ekranda inceleyin.")
 
-        # Tüm ürünleri topla
         tum_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
         kapsamli_veri_listesi = []
 
         for u in tum_urunler:
-            # Toplam Gelen Miktar
             toplam_gelen = sum(g["miktar"] for g in st.session_state.girisler if g["urun"] == u)
-            # Güncel Kalan Stok (Depoda halihazırda duran)
             guncel_stok = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
-            # Birim
             birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
-            # Kategori
             kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
 
-            # Toplam Fire / Zayiat Miktarı
             toplam_fire = sum(
                 l["miktar"] for l in st.session_state.kullanim_loglari 
                 if l.get("urun") == u and l.get("tur") == "Fire/Zayiat"
             )
 
-            # Harcanan / Kullanılan Miktar (Yemek üretimleri ve diğer kullanımlar)
-            toplam_kullanilan = sum(
+            log_harcanan = sum(
                 l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun") == u and l.get("tur", "").startswith("Günlük Kullanım")
+                if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", ""))
             )
 
-            # Devreden Stok Mantığı: 
-            # Eğer ürünün toplam gelenden harcanan ve fireler düşüldükten sonra kalan kısmı 
-            # (veya doğrudan anlık güncel kalan stoku) sonraki aya devreden stoku ifade eder.
+            # MATEMATİKSEL DENGE: Gelen - Stok - Fire = Harcanan (Loglarda eksik kalan varsa otomatik tamamlanır)
+            hesaplanan_fark = max(0.0, toplam_gelen - guncel_stok - toplam_fire)
+            toplam_harcanan = max(log_harcanan, hesaplanan_fark)
+
             devreden_stok = guncel_stok
 
             kapsamli_veri_listesi.append({
@@ -3541,7 +3535,7 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                 "Kategori": kategori,
                 "Birim": birim,
                 "Toplam Gelen": f"{toplam_gelen:,.1f} {birim}",
-                "Toplam Harcanan": f"{toplam_kullanilan:,.1f} {birim}",
+                "Toplam Harcanan": f"{toplam_harcanan:,.1f} {birim}",
                 "Toplam Fire": f"{toplam_fire:,.1f} {birim}",
                 "Devreden Stok (Kalan)": f"{devreden_stok:,.1f} {birim}",
                 "Güncel Stok": f"{guncel_stok:,.1f} {birim}",
@@ -3755,7 +3749,7 @@ elif menu == "Kullanıcı Ayarları":
                     if maskeli_mi:
                         secilen_maskeler.append(alan)
 
-                if st.button("🛡️ Yetki ve Maskeleme Ayarlarını Kaydet", type="primary"):
+                if st.button("🛡️ Yetki and Maskeleme Ayarlarını Kaydet", type="primary"):
                     st.session_state.kullanicilar[yetki_secilen_k]["yasakli_menuler"] = secilen_yasaklar
                     st.session_state.kullanicilar[yetki_secilen_k]["maskeli_alanlar"] = secilen_maskeler
                     kullanıcıları_kaydet(st.session_state.kullanicilar)
