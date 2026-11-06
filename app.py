@@ -5,6 +5,7 @@ import json
 import os
 import time
 import difflib
+import zoneinfo
 from cryptography.fernet import Fernet
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -53,6 +54,14 @@ def sifre_hashle(sifre):
     if not sifre:
         return ""
     return hashlib.sha256(str(sifre).encode("utf-8")).hexdigest()
+
+
+def simdi_tr_str(format_str="%Y-%m-%d %H:%M"):
+    """Gerçek Türkiye saatini (Europe/Istanbul) döndürür."""
+    try:
+        return datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).strftime(format_str)
+    except Exception:
+        return datetime.datetime.now().strftime(format_str)
 
 
 # Tema Durumu Yönetimi (URL parametreleri ile senkronize)
@@ -761,7 +770,7 @@ def net_calisma_gunu_hesapla(
 
 
 def bugunun_turkce_tarihi():
-    simdi = datetime.date.today()
+    simdi = datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).date() if hasattr(datetime, "datetime") else datetime.date.today()
     aylar = {
         1: "Ocak",
         2: "Şubat",
@@ -1156,7 +1165,7 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
     ws.cell(
         row=2,
         column=1,
-        value=f"Rapor Tarihi: {str(datetime.datetime.now())}",
+        value=f"Rapor Tarihi ve Saati: {simdi_tr_str('%Y-%m-%d %H:%M:%S')}",
     ).font = Font(name="Calibri", size=11, italic=True, color="6b7280")
 
     if not veri_listesi:
@@ -1186,11 +1195,7 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
 
 
 def tablo_to_html_pdf_bytes(baslik, veri_listesi):
-    try:
-        import zoneinfo
-        tr_zaman = datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).strftime("%Y-%m-%d %H:%M:%S")
-    except Exception:
-        tr_zaman = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    tr_zaman = simdi_tr_str("%Y-%m-%d %H:%M:%S")
 
     html = f"""
     <!DOCTYPE html>
@@ -1761,7 +1766,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
     else:
         st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
         with st.form("fatura_formu"):
-            tarih_giris = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            tarih_giris = simdi_tr_str("%Y-%m-%d %H:%M")
             fatura_no_input = st.text_input(
                 "Fatura No / Belge No (Örn: FAT-2026-105)"
             ).strip().upper()
@@ -1892,7 +1897,7 @@ elif menu == "Ürün Sil / Düzenle":
                         if ilgili_oge:
                             silinen_urun_adi = ilgili_oge["urun"]
                             st.session_state.silinen_urun_loglari.append({
-                                "tarih": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                "tarih": simdi_tr_str("%Y-%m-%d %H:%M"),
                                 "urun": silinen_urun_adi,
                                 "kayit_id": ilgili_oge["id"],
                                 "fatura_no": ilgili_oge.get("fatura_no", "-"),
@@ -1993,7 +1998,7 @@ elif menu == "Fire / Zayiat Girişi":
 
                     verileri_kaydet(st.session_state.girisler)
                     st.session_state.kullanim_loglari.append({
-                        "tarih": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "tarih": simdi_tr_str("%Y-%m-%d %H:%M"),
                         "urun": secilen_gercek_urun,
                         "tur": "Fire/Zayiat",
                         "miktar": fire_miktari,
@@ -2162,7 +2167,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 if st.button(
                     "🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"
                 ):
-                    tarih_simdi = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    tarih_simdi = simdi_tr_str("%Y-%m-%d %H:%M")
 
                     arsiv_malzemeler = []
                     for item in st.session_state.sepet:
@@ -2448,9 +2453,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 
                         kaydet_btn = st.form_submit_button("İhtiyaç Sahibini Kaydet")
                         if kaydet_btn and yeni_ad:
-                            islem_tarihi_str = datetime.datetime.now().strftime(
-                                "%Y-%m-%d %H:%M"
-                            )
+                            islem_tarihi_str = simdi_tr_str("%Y-%m-%d %H:%M")
                             islem_yapan_kisi = st.session_state.aktif_kullanici
                             st.session_state.ihtiyac_sahipleri.append({
                                 "id": f"IHT-{len(st.session_state.ihtiyac_sahipleri)+1:03d}",
@@ -2557,7 +2560,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                     toplu_kaydet_btn = st.form_submit_button("🚀 Seçilen Tüm Hanelere Toplu Dağıtımı Onayla ve Kaydet", type="primary")
 
                     if toplu_kaydet_btn:
-                        d_tarih_saat = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                        d_tarih_saat = simdi_tr_str("%Y-%m-%d %H:%M")
                         eklenen_sayisi = 0
                         for sv in secim_verileri:
                             if sv["secili"]:
@@ -2619,7 +2622,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             with col_b_sayac:
                 st.subheader("📊 Kişi Bazlı Günlük, Haftalık ve Aylık Sayaç Raporu")
 
-            simdi_dt = datetime.datetime.now()
+            simdi_dt = datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")) if hasattr(datetime, "datetime") else datetime.datetime.now()
             bugun_str = simdi_dt.strftime("%Y-%m-%d")
             yedi_gun_once = (simdi_dt - datetime.timedelta(days=7)).date()
             bu_yil_ay = simdi_dt.strftime("%Y-%m")
@@ -2740,7 +2743,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                 st.success(st.session_state.personel_silme_mesaji)
                 st.session_state.personel_silme_mesaji = ""
 
-            bugun_tarihi = datetime.date.today()
+            bugun_tarihi = datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).date() if hasattr(datetime, "datetime") else datetime.date.today()
             p_gosterim = []
             for p in st.session_state.personeller:
                 bas_tarih_str = p.get("baslama", "2026-01-01")
@@ -2794,7 +2797,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         p_ad = st.text_input("Personel Adı Soyadı").strip().upper()
                         p_gorev = st.text_input("Görevi (Örn: Aşçı)")
                         p_bas = st.date_input(
-                            "İşe Başlama Tarihi", value=datetime.date.today()
+                            "İşe Başlama Tarihi", value=datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).date() if hasattr(datetime, "datetime") else datetime.date.today()
                         )
                         p_submit = st.form_submit_button("Personeli Kaydet")
 
