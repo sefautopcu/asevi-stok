@@ -1,9 +1,9 @@
 import datetime
+import hashlib
 import io
 import json
 import os
 import time
-import hashlib
 from cryptography.fernet import Fernet
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -54,38 +54,66 @@ def sifre_hashle(sifre):
     return hashlib.sha256(str(sifre).encode("utf-8")).hexdigest()
 
 
-# TEK VE SAF SİYAH TEMA & EASYUI TARZI MİKRO-ANİMASYON / LİQUID GLASS STİLLERİ
+# Tema Durumu Yönetimi
+if "tema" not in st.session_state:
+    st.session_state.tema = "Dark"  # Varsayılan Dark Tema
+
+# Tema Renk Paletleri
+if st.session_state.tema == "Dark":
+    bg_color = "#000000"
+    card_bg = "#090909"
+    sidebar_bg = "#000000"
+    text_color = "#ffffff"
+    subtext_color = "#9ca3af"
+    border_color = "#1f1f1f"
+    input_bg = "#0b0b0b"
+    table_hover = "rgba(255, 255, 255, 0.03)"
+    popover_bg = "rgba(12, 12, 12, 0.9)"
+    plotly_template = "plotly_dark"
+else:
+    bg_color = "#f8fafc"
+    card_bg = "#ffffff"
+    sidebar_bg = "#f1f5f9"
+    text_color = "#0f172a"
+    subtext_color = "#64748b"
+    border_color = "#e2e8f0"
+    input_bg = "#ffffff"
+    table_hover = "rgba(0, 0, 0, 0.02)"
+    popover_bg = "rgba(255, 255, 255, 0.95)"
+    plotly_template = "plotly_white"
+
+# DİNAMİK TEMA VE EASYUI / LİQUID GLASS STİLLERİ
 st.markdown(
-    """
+    f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
-    .main, .stApp { 
-        background-color: #000000 !important; 
-        color: #ffffff !important;
+    .main, .stApp {{ 
+        background-color: {bg_color} !important; 
+        color: {text_color} !important;
         font-family: 'Plus Jakarta Sans', sans-serif !important;
-    }
+    }}
     
-    .stSidebar { 
-        background-color: #000000 !important; 
+    .stSidebar {{ 
+        background-color: {sidebar_bg} !important; 
         padding-top: 10px; 
-        border-right: 1px solid #161616 !important;
-    }
-    .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div { 
-        color: #d1d5db !important; 
+        border-right: 1px solid {border_color} !important;
+    }}
+    .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div {{ 
+        color: {subtext_color} !important; 
         font-size: 13.5px; 
-    }
+    }}
     
-    section[data-testid="stSidebar"] div[data-testid="stExpander"] {
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] {{
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
         margin-bottom: -50px;
-    }
+    }}
     
-    section[data-testid="stSidebar"] div.stButton > button {
+    section[data-testid="stSidebar"] div.stButton > button {{
         background: transparent !important;
-        color: #9ca3af !important;
+        color: {subtext_color} !important;
         border: none !important;
         border-radius: 12px !important;
         text-align: left !important;
@@ -93,132 +121,125 @@ st.markdown(
         font-weight: 500 !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         padding: 9px 14px !important;
-    }
+    }}
     
-    section[data-testid="stSidebar"] div.stButton > button:hover {
-        background: rgba(255, 255, 255, 0.07) !important;
+    section[data-testid="stSidebar"] div.stButton > button:hover {{
+        background: rgba(99, 102, 241, 0.08) !important;
         backdrop-filter: blur(16px) !important;
         -webkit-backdrop-filter: blur(16px) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+        color: {text_color} !important;
+        border: 1px solid rgba(99, 102, 241, 0.2) !important;
+        box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.15) !important;
         transform: translateX(5px);
-    }
+    }}
     
-    section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
-        background: rgba(255, 255, 255, 0.1) !important;
+    section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {{
+        background: rgba(99, 102, 241, 0.15) !important;
         backdrop-filter: blur(16px) !important;
         -webkit-backdrop-filter: blur(16px) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: {text_color} !important;
+        border: 1px solid rgba(99, 102, 241, 0.4) !important;
         font-weight: 600 !important;
-        box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.5) !important;
-    }
+    }}
 
-    h1, h2, h3, h4, h5, h6 { 
-        color: #ffffff !important; 
+    h1, h2, h3, h4, h5, h6 {{ 
+        color: {text_color} !important; 
         font-weight: 700 !important;
         letter-spacing: -0.03em !important;
-    }
-    p, span, label, div, .stMarkdown { 
-        color: #e5e7eb !important; 
-    }
-    button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
-    section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
+    }}
+    p, span, label, div, .stMarkdown {{ 
+        color: {text_color} !important; 
+    }}
+    button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div {{ display: none !important; }}
+    section[data-testid="stSidebar"] [data-testid="baseButton-header"] {{ color: transparent !important; }}
 
-    div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
-        background-color: #121212 !important;
-        color: #ffffff !important;
-        border: 1px solid #282828 !important;
+    div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {{
+        background-color: {card_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
         border-radius: 12px !important;
         font-weight: 600 !important;
         font-size: 13.5px !important;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {
-        background-color: #1a1a1a !important;
+    }}
+    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {{
         border-color: #6366f1 !important;
         transform: translateY(-1px);
-    }
+    }}
 
-    div.stMetric, div[data-testid="stExpander"], div.stForm {
-        background: #090909 !important;
-        border: 1px solid #1f1f1f;
+    div.stMetric, div[data-testid="stExpander"], div.stForm {{
+        background: {card_bg} !important;
+        border: 1px solid {border_color};
         padding: 24px;
         border-radius: 18px;
-        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.85);
-        color: #ffffff !important;
-    }
+        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12);
+        color: {text_color} !important;
+    }}
     
-    div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
-        background: rgba(12, 12, 12, 0.9) !important;
+    div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {{
+        background: {popover_bg} !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.7) !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
+        box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.2) !important;
         border-radius: 16px !important;
-    }
-    
-    .stDateInput svg, div[data-baseweb="calendar"] svg, button svg {
-        filter: brightness(0) invert(1) !important;
-        opacity: 0.85;
-    }
+    }}
 
-    li[role="option"], li[role="option"] div, li[role="option"] span {
+    li[role="option"], li[role="option"] div, li[role="option"] span {{
         background: transparent !important;
-        color: #e5e7eb !important;
-    }
-    li[role="option"]:hover, li[role="option"]:hover div, li[role="option"]:hover span {
-        background: rgba(255, 255, 255, 0.08) !important;
-        color: #ffffff !important;
-    }
-    li[role="option"][aria-selected="true"] {
+        color: {text_color} !important;
+    }}
+    li[role="option"]:hover, li[role="option"]:hover div, li[role="option"]:hover span {{
+        background: rgba(99, 102, 241, 0.1) !important;
+        color: {text_color} !important;
+    }}
+    li[role="option"][aria-selected="true"] {{
         background: rgba(99, 102, 241, 0.25) !important;
-        color: #ffffff !important;
+        color: {text_color} !important;
         border-left: 3px solid #6366f1 !important;
-    }
+    }}
 
-    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span, div[data-baseweb="calendar"] button {
-        color: #ffffff !important;
-    }
-    input, div[data-baseweb="select"] > div {
-        background-color: #0b0b0b !important;
-        color: #ffffff !important;
+    div[data-baseweb="calendar"] div, div[data-baseweb="calendar"] span, div[data-baseweb="calendar"] button {{
+        color: {text_color} !important;
+    }}
+    input, div[data-baseweb="select"] > div {{
+        background-color: {input_bg} !important;
+        color: {text_color} !important;
         border-radius: 12px !important;
-        border-color: #282828 !important;
-    }
+        border-color: {border_color} !important;
+    }}
 
-    .custom-table {
+    .custom-table {{
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
         margin-top: 15px;
         margin-bottom: 15px;
-        background-color: #090909;
+        background-color: {card_bg};
         border-radius: 16px;
         overflow: hidden;
-        border: 1px solid #1f1f1f;
-    }
-    .custom-table th {
-        background-color: #000000;
-        color: #ffffff;
+        border: 1px solid {border_color};
+    }}
+    .custom-table th {{
+        background-color: {sidebar_bg};
+        color: {text_color};
         padding: 14px 18px;
         text-align: left;
         font-size: 13px;
         font-weight: 600;
-        border-bottom: 1px solid #1f1f1f;
-    }
-    .custom-table td {
+        border-bottom: 1px solid {border_color};
+    }}
+    .custom-table td {{
         padding: 14px 18px;
-        color: #d1d5db;
+        color: {subtext_color};
         font-size: 13px;
-        border-bottom: 1px solid #1f1f1f;
-    }
-    .custom-table tr:hover {
-        background-color: rgba(255, 255, 255, 0.03);
-    }
+        border-bottom: 1px solid {border_color};
+    }}
+    .custom-table tr:hover {{
+        background-color: {table_hover};
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -810,11 +831,11 @@ if not st.session_state.oturum_aktif:
     c1, c2, c3 = st.columns([1, 1.3, 1])
     with c2:
         st.markdown(
-            """
-                <div style="text-align: center; margin-bottom: 28px; background: #090909; border: 1px solid #1f1f1f; padding: 32px; border-radius: 20px; box-shadow: 0 16px 40px rgba(0,0,0,0.8);">
+            f"""
+                <div style="text-align: center; margin-bottom: 28px; background: {card_bg}; border: 1px solid {border_color}; padding: 32px; border-radius: 20px; box-shadow: 0 16px 40px rgba(0,0,0,0.08);">
                     <div style="font-size: 36px; margin-bottom: 12px;">🍲</div>
-                    <h2 style="font-weight: 700; letter-spacing: -0.03em; margin: 0; color: #ffffff;">AZİZİYE AŞEVİ</h2>
-                    <p style="opacity: 0.6; font-size: 13.5px; margin-top: 6px; color: #9ca3af;">Yönetim & Takip Sistemi</p>
+                    <h2 style="font-weight: 700; letter-spacing: -0.03em; margin: 0; color: {text_color};">AZİZİYE AŞEVİ</h2>
+                    <p style="opacity: 0.6; font-size: 13.5px; margin-top: 6px; color: {subtext_color};">Yönetim & Takip Sistemi</p>
                 </div>
             """,
             unsafe_allow_html=True,
@@ -873,7 +894,7 @@ if not st.session_state.oturum_aktif:
                             st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {kalan_hak}")
 
         st.markdown(
-            "<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size: 13px;'>veya</div>",
+            f"<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size: 13px; color: {subtext_color};'>veya</div>",
             unsafe_allow_html=True,
         )
 
@@ -930,30 +951,44 @@ kullanici_adi_goruntule = (
 )
 
 st.sidebar.markdown(
-    """
-    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 12px;">
-        <div style="background: rgba(255,255,255,0.08); color: #ffffff; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(12px);">
+    f"""
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid {border_color}; margin-bottom: 12px;">
+        <div style="background: rgba(99, 102, 241, 0.1); color: {text_color}; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid {border_color}; backdrop-filter: blur(12px);">
             🍲
         </div>
         <div>
-            <div style="font-weight: 700; font-size: 15px; color: #ffffff; letter-spacing: -0.02em;">AZİZİYE AŞEVİ</div>
-            <div style="font-size: 11px; color: #9ca3af; font-weight: 500;">Yönetim & Takip Sistemi</div>
+            <div style="font-weight: 700; font-size: 15px; color: {text_color}; letter-spacing: -0.02em;">AZİZİYE AŞEVİ</div>
+            <div style="font-size: 11px; color: {subtext_color}; font-weight: 500;">Yönetim & Takip Sistemi</div>
         </div>
     </div>
 """,
     unsafe_allow_html=True,
 )
 
+# Sidebar Tema Değiştirme Butonu
+st.sidebar.markdown(f'<p style="font-size: 11px; font-weight: 700; margin-bottom: 6px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; color: {subtext_color};">GÖRÜNÜM MODU</p>', unsafe_allow_html=True)
+yeni_tema = st.sidebar.radio(
+    "Tema Seçimi", 
+    ["Dark (Koyu)", "Light (Açık)"], 
+    index=0 if st.session_state.tema == "Dark" else 1,
+    label_visibility="collapsed",
+    horizontal=True
+)
+secilen_tema_val = "Dark" if "Dark" in yeni_tema else "Light"
+if secilen_tema_val != st.session_state.tema:
+    st.session_state.tema = secilen_tema_val
+    st.rerun()
+
 st.sidebar.markdown(
     f"""
-    <div style="background: transparent; padding: 6px 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+    <div style="background: transparent; padding: 6px 8px; display: flex; align-items: center; justify-content: space-between; margin-top: 12px; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="background: rgba(255,255,255,0.07); color: white; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="background: rgba(99, 102, 241, 0.12); color: {text_color}; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; border: 1px solid {border_color};">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
-                <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">{kullanici_adi_goruntule}</div>
-                <div style="font-size: 11px; color: #9ca3af;">Aktif Oturum</div>
+                <div style="font-weight: 600; font-size: 13.5px; color: {text_color};">{kullanici_adi_goruntule}</div>
+                <div style="font-size: 11px; color: {subtext_color};">Aktif Oturum</div>
             </div>
         </div>
     </div>
@@ -998,7 +1033,7 @@ if sidebar_arama:
         st.query_params["menu"] = otomatik_yonlendirilen_menu
 
 st.sidebar.markdown(
-    '<p style="font-size: 11px; font-weight: 700; margin-top: 12px; margin-bottom: 8px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af;">ÇALIŞMA ALANI NAVİGASYONU</p>',
+    f'<p style="font-size: 11px; font-weight: 700; margin-top: 12px; margin-bottom: 8px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; color: {subtext_color};">ÇALIŞMA ALANI NAVİGASYONU</p>',
     unsafe_allow_html=True,
 )
 
@@ -1117,7 +1152,7 @@ if st.sidebar.button(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
-    '<p style="font-size: 11px; text-align: center; opacity: 0.5; color: #9ca3af;">sefautopcu</p>',
+    f'<p style="font-size: 11px; text-align: center; opacity: 0.5; color: {subtext_color};">sefautopcu</p>',
     unsafe_allow_html=True,
 )
 
@@ -1128,16 +1163,16 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
     ws.title = "Rapor"
     ws.views.sheetView[0].showGridLines = True
     header_fill = PatternFill(
-        start_color="121212", end_color="121212", fill_type="solid"
+        start_color="6366f1", end_color="6366f1", fill_type="solid"
     )
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     title_font = Font(name="Calibri", size=14, bold=True, color="000000")
     regular_font = Font(name="Calibri", size=11)
     thin_border = Border(
-        left=Side(style="thin", color="282828"),
-        right=Side(style="thin", color="282828"),
-        top=Side(style="thin", color="282828"),
-        bottom=Side(style="thin", color="282828"),
+        left=Side(style="thin", color="e2e8f0"),
+        right=Side(style="thin", color="e2e8f0"),
+        top=Side(style="thin", color="e2e8f0"),
+        bottom=Side(style="thin", color="e2e8f0"),
     )
 
     ws.cell(row=1, column=1, value=baslik_str).font = title_font
@@ -1181,19 +1216,19 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
         <meta charset="utf-8">
         <title>{baslik}</title>
         <style>
-            body {{ font-family: 'Plus Jakarta Sans', sans-serif; margin: 30px; color: #ffffff; background: #000000; }}
-            h2 {{ color: #ffffff; margin-bottom: 5px; }}
-            p {{ color: #9ca3af; font-size: 14px; margin-top: 0; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background: #090909; }}
-            th {{ background-color: #121212; color: white; padding: 12px; text-align: left; font-size: 13px; }}
-            td {{ border: 1px solid #282828; padding: 10px 12px; font-size: 13px; color: #d1d5db; }}
-            tr:nth-child(even) {{ background-color: #050505; }}
+            body {{ font-family: 'Plus Jakarta Sans', sans-serif; margin: 30px; color: {text_color}; background: {bg_color}; }}
+            h2 {{ color: {text_color}; margin-bottom: 5px; }}
+            p {{ color: {subtext_color}; font-size: 14px; margin-top: 0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background: {card_bg}; }}
+            th {{ background-color: #6366f1; color: white; padding: 12px; text-align: left; font-size: 13px; }}
+            td {{ border: 1px solid {border_color}; padding: 10px 12px; font-size: 13px; color: {subtext_color}; }}
+            tr:nth-child(even) {{ background-color: {sidebar_bg}; }}
         </style>
     </head>
     <body>
         <h2>{baslik}</h2>
         <p>Rapor Tarihi: {datetime.datetime.now()}</p>
-        <hr style="border: 0; border-top: 1px solid #282828;"/>
+        <hr style="border: 0; border-top: 1px solid {border_color};"/>
     """
     if veri_listesi:
         headers = list(veri_listesi[0].keys())
@@ -1265,15 +1300,10 @@ if menu == "Kurumsal Dashboard & Özet":
         1 for p in st.session_state.personeller if p.get("aktif", True)
     )
 
-    m_urun_cesidi = "🔒 Gizli" if "1. Sayfa: Ürün Çeşidi" in aktif_k_maskeleri else f"{toplam_stok_kalemi} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Çeşit</span>"
-    m_toplam_fire = "🔒 Gizli" if "1. Sayfa: Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_mik:,.1f} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Kg</span>"
-    m_stok_degeri = "🔒 Gizli" if "1. Sayfa: Stok Değeri" in aktif_k_maskeleri else f"{toplam_envanter_maliyeti:,.0f} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>₺</span>"
-    m_aktif_personel = "🔒 Gizli" if "1. Sayfa: Aktif Personel" in aktif_k_maskeleri else f"{aktif_calisan_personel_sayisi} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Kişi</span>"
-
-    card_bg = "#090909"
-    card_border = "#1f1f1f"
-    text_color = "#ffffff"
-    subtext_color = "#9ca3af"
+    m_urun_cesidi = "🔒 Gizli" if "1. Sayfa: Ürün Çeşidi" in aktif_k_maskeleri else f"{toplam_stok_kalemi} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Çeşit</span>"
+    m_toplam_fire = "🔒 Gizli" if "1. Sayfa: Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_mik:,.1f} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Kg</span>"
+    m_stok_degeri = "🔒 Gizli" if "1. Sayfa: Stok Değeri" in aktif_k_maskeleri else f"{toplam_envanter_maliyeti:,.0f} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>₺</span>"
+    m_aktif_personel = "🔒 Gizli" if "1. Sayfa: Aktif Personel" in aktif_k_maskeleri else f"{aktif_calisan_personel_sayisi} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Kişi</span>"
 
     st.markdown(
         f"""
@@ -1283,18 +1313,18 @@ if menu == "Kurumsal Dashboard & Özet":
             justify-content: space-between;
             align-items: center;
             background: {card_bg};
-            border: 1px solid {card_border};
+            border: 1px solid {border_color};
             padding: 28px 36px;
             border-radius: 20px;
             margin-bottom: 24px;
-            box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.9);
+            box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.08);
         }}
         .metric-card {{
             background: {card_bg};
-            border: 1px solid {card_border};
+            border: 1px solid {border_color};
             padding: 24px;
             border-radius: 16px;
-            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
             transition: all 0.2s ease;
             height: 160px;
             display: flex;
@@ -1312,7 +1342,7 @@ if menu == "Kurumsal Dashboard & Özet":
                 <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: {text_color};">Genel Bakış & Operasyonel Özet</h1>
                 <p style="margin: 6px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi Yönetim Paneli</p>
             </div>
-            <div style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 12px; backdrop-filter: blur(12px);">
+            <div style="background: rgba(99, 102, 241, 0.12); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 12px; backdrop-filter: blur(12px);">
                 ● sefautopcu
             </div>
         </div>
@@ -1359,7 +1389,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire</div>
                         <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_toplam_fire}</div>
                     </div>
-                    <div style="color: #f87171; font-size: 12px; font-weight: 600;">Zarar: {zarar_gosterim_metin}</div>
+                    <div style="color: #ef4444; font-size: 12px; font-weight: 600;">Zarar: {zarar_gosterim_metin}</div>
                 </div>
             """,
                 unsafe_allow_html=True,
@@ -1387,7 +1417,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Stok Değeri</div>
                         <div style="color: {text_color}; font-size: 24px; font-weight: 700; margin-top: 8px;">{m_stok_degeri}</div>
                     </div>
-                    <div style="color: #34d399; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
+                    <div style="color: #10b981; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
                 </div>
             """,
                 unsafe_allow_html=True,
@@ -1401,7 +1431,7 @@ if menu == "Kurumsal Dashboard & Özet":
                     <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Aktif Personel</div>
                     <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_aktif_personel}</div>
                 </div>
-                <div style="color: #c084fc; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
+                <div style="color: #a855f7; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
             </div>
         """,
             unsafe_allow_html=True,
@@ -1452,12 +1482,12 @@ if menu == "Kurumsal Dashboard & Özet":
         if aktif_w_list:
             for w in aktif_w_list:
                 st.markdown(
-                    f"<div style='border: 1px solid {card_border}; background: {card_bg}; padding: 24px; border-radius: 18px; margin-bottom: 24px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.85);'>",
+                    f"<div style='border: 1px solid {border_color}; background: {card_bg}; padding: 24px; border-radius: 18px; margin-bottom: 24px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.08);'>",
                     unsafe_allow_html=True,
                 )
                 st.markdown(f"#### {w['baslik']}")
 
-                easyui_colors = ["#6366f1", "#34d399", "#c084fc", "#f87171", "#60a5fa", "#fbbf24"]
+                easyui_colors = ["#6366f1", "#10b981", "#a855f7", "#ef4444", "#3b82f6", "#f59e0b"]
 
                 if w["tur"] == "Sütun Grafik":
                     if st.session_state.girisler:
@@ -1472,17 +1502,17 @@ if menu == "Kurumsal Dashboard & Özet":
                                 x="kategori",
                                 y="kalan",
                                 color="kategori",
-                                template="plotly_dark",
+                                template=plotly_template,
                                 color_discrete_sequence=easyui_colors,
                             )
                             fig.update_layout(
                                 plot_bgcolor="rgba(0,0,0,0)",
                                 paper_bgcolor="rgba(0,0,0,0)",
-                                font=dict(family="Plus Jakarta Sans", color="#d1d5db", size=12),
+                                font=dict(family="Plus Jakarta Sans", color=subtext_color, size=12),
                                 margin=dict(l=20, r=20, t=30, b=20),
-                                xaxis=dict(showgrid=False, linecolor="#282828"),
-                                yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)", linecolor="#282828"),
-                                legend=dict(bgcolor="rgba(9,9,9,0.8)", bordercolor="#282828", borderwidth=1)
+                                xaxis=dict(showgrid=False, linecolor=border_color),
+                                yaxis=dict(showgrid=True, gridcolor="rgba(100,100,100,0.1)", linecolor=border_color),
+                                legend=dict(bgcolor=card_bg, bordercolor=border_color, borderwidth=1)
                             )
                             st.plotly_chart(fig, use_container_width=True)
                     else:
@@ -1499,17 +1529,17 @@ if menu == "Kurumsal Dashboard & Özet":
                                 df_log,
                                 x="tarih",
                                 y="tutar",
-                                template="plotly_dark",
+                                template=plotly_template,
                                 color_discrete_sequence=["#6366f1"],
                             )
                             fig2.update_traces(line=dict(width=3, shape="spline"))
                             fig2.update_layout(
                                 plot_bgcolor="rgba(0,0,0,0)",
                                 paper_bgcolor="rgba(0,0,0,0)",
-                                font=dict(family="Plus Jakarta Sans", color="#d1d5db", size=12),
+                                font=dict(family="Plus Jakarta Sans", color=subtext_color, size=12),
                                 margin=dict(l=20, r=20, t=30, b=20),
-                                xaxis=dict(showgrid=False, linecolor="#282828"),
-                                yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)", linecolor="#282828"),
+                                xaxis=dict(showgrid=False, linecolor=border_color),
+                                yaxis=dict(showgrid=True, gridcolor="rgba(100,100,100,0.1)", linecolor=border_color),
                             )
                             st.plotly_chart(fig2, use_container_width=True)
                     else:
@@ -1521,17 +1551,17 @@ if menu == "Kurumsal Dashboard & Özet":
                             df_giris,
                             names="urun",
                             values="kalan",
-                            template="plotly_dark",
+                            template=plotly_template,
                             color_discrete_sequence=easyui_colors,
                         )
                         fig3.update_layout(
                             plot_bgcolor="rgba(0,0,0,0)",
                             paper_bgcolor="rgba(0,0,0,0)",
-                            font=dict(family="Plus Jakarta Sans", color="#d1d5db", size=12),
+                            font=dict(family="Plus Jakarta Sans", color=subtext_color, size=12),
                             margin=dict(l=20, r=20, t=30, b=20),
-                            legend=dict(bgcolor="rgba(9,9,9,0.8)", bordercolor="#282828", borderwidth=1)
+                            legend=dict(bgcolor=card_bg, bordercolor=border_color, borderwidth=1)
                         )
-                        fig3.update_traces(textinfo="percent+label", marker=dict(line=dict(color="#090909", width=2)))
+                        fig3.update_traces(textinfo="percent+label", marker=dict(line=dict(color=card_bg, width=2)))
                         st.plotly_chart(fig3, use_container_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
         else:
