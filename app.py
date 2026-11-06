@@ -422,14 +422,27 @@ varsayilan_resmi_tatiller = [
     {"tarih": "2026-10-29", "aciklama": "Cumhuriyet Bayramı"},
 ]
 
+varsayilan_depolar = [
+    "Soğuk Hava Deposu +5/+6",
+    "Soğuk Hava Deposu -18",
+    "Sebze Deposu",
+    "Kuru Gıda Deposu"
+]
+
 misafir_yasaklar_varsayilan = [
+    "Kurumsal Dashboard & Özet",
     "Güncel Stok Durumu",
+    "Yeni Mal Alımı / Fatura Ekle",
     "Ürün Sil / Düzenle",
     "Fire / Zayiat Girişi",
+    "Ürün Birim Fiyatları & Ay Analizi",
+    "Günlük Yemek Üretimi & Maliyet Raporu",
+    "Kalori Hesaplama Aracı",
     "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
     "Personel & Çalışma Süresi Takibi",
     "Kullanım Takibi",
     "Kapsamlı Envanter ve Hareket Raporu",
+    "Depo Yönetimi",
 ]
 misafir_maskeler_varsayilan = [
     "1. Sayfa: Toplam Fire",
@@ -476,6 +489,22 @@ def widgetlari_yukle():
 
 def widgetlari_kaydet(veri):
     supabase_veri_kaydet("dashboard_widgets", veri)
+
+
+def depoları_yukle():
+    return supabase_veri_oku("depolar_listesi", varsayilan_depolar)
+
+
+def depoları_kaydet(veri):
+    supabase_veri_kaydet("depolar_listesi", veri)
+
+
+def kritik_seviyeleri_yukle():
+    return supabase_veri_oku("kritik_seviyeler", {})
+
+
+def kritik_seviyeleri_kaydet(veri):
+    supabase_veri_kaydet("kritik_seviyeler", veri)
 
 
 def kullanıcıları_yukle():
@@ -625,6 +654,10 @@ if "resmi_tatiller" not in st.session_state:
     st.session_state.resmi_tatiller = resmi_tatilleri_yukle()
 if "yemek_uretim_arsivi" not in st.session_state:
     st.session_state.yemek_uretim_arsivi = yemek_uretim_arsivini_yukle()
+if "depolar" not in st.session_state:
+    st.session_state.depolar = depoları_yukle()
+if "kritik_seviyeler" not in st.session_state:
+    st.session_state.kritik_seviyeler = kritik_seviyeleri_yukle()
 if "kalori_sepeti" not in st.session_state:
     st.session_state.kalori_sepeti = []
 if "personel_silme_mesaji" not in st.session_state:
@@ -664,6 +697,7 @@ gecerli_menuler = [
     "Personel & Çalışma Süresi Takibi",
     "Kullanım Takibi",
     "Kapsamlı Envanter ve Hareket Raporu",
+    "Depo Yönetimi",
     "Kullanıcı Ayarları",
 ]
 
@@ -1009,6 +1043,7 @@ menu_gruplari = {
         ("Ürün Sil / Düzenle", ""),
         ("Fire / Zayiat Girişi", ""),
         ("Ürün Birim Fiyatları & Ay Analizi", ""),
+        ("Depo Yönetimi", str(len(st.session_state.depolar))),
     ],
     "🍲 Üretim & Mutfak": [
         ("Günlük Yemek Üretimi & Maliyet Raporu", ""),
@@ -1045,6 +1080,7 @@ for grup_adi, alt_menuler in menu_gruplari.items():
             "Personel & Çalışma Süresi Takibi",
             "Kullanım Takibi",
             "Kapsamlı Envanter ve Hareket Raporu",
+            "Depo Yönetimi",
         ]:
             continue
         if not yonetici_modu and m in yasakli_menuler_listesi:
@@ -1552,6 +1588,7 @@ if menu == "Kurumsal Dashboard & Özet":
                     })
                     widgetlari_kaydet(st.session_state.dashboard_widgets)
                     st.success("Yeni grafik başarıyla eklendi!")
+                    st.balloons()
                     st.rerun()
 
             st.markdown("---")
@@ -1578,6 +1615,7 @@ if menu == "Kurumsal Dashboard & Özet":
                         ]
                         widgetlari_kaydet(st.session_state.dashboard_widgets)
                         st.success("Grafik widget'ı kaldırıldı!")
+                        st.balloons()
                         st.rerun()
                 else:
                     st.info("Kaldırılacak grafik bulunmuyor.")
@@ -1657,20 +1695,15 @@ elif menu == "Güncel Stok Durumu":
                 excel_data, pdf_data, "asevi_guncel_stok_raporu", "stok_sayfasi"
             )
 
-        depolar = [
-            "Tümü",
-            "Soğuk Hava Deposu +5/+6",
-            "Soğuk Hava Deposu -18",
-            "Sebze Deposu",
-            "Kuru Gıda Deposu",
-        ]
+        depolar = ["Tümü"] + st.session_state.depolar
         secilen_depo = st.selectbox("Depo Konumuna Göre Filtrele", depolar)
 
         benzersiz_urunler = sorted(
             list(set(g["urun"] for g in st.session_state.girisler))
         )
         stok_tablosu = []
-        kritik_urunler = []
+        kritik_urunler_tablosu = []
+        
         for u in benzersiz_urunler:
             toplam_kalan = sum(
                 g["kalan"] for g in st.session_state.girisler if g["urun"] == u
@@ -1716,20 +1749,40 @@ elif menu == "Güncel Stok Durumu":
                     "Eklenme Tarihi": en_son_tarih,
                     "İşlemi Yapan": islem_yapan,
                 })
-            if toplam_kalan <= 10.0 and "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" not in aktif_k_maskeleri:
-                kritik_urunler.append((u, toplam_kalan, birim, depo))
 
-        if kritik_urunler:
-            with st.expander(
-                "⚠️ DİKKAT: Kritik Seviyedeki Veya Tükenen Ürünler!", expanded=False
-            ):
-                for ku, km, kb, kd in kritik_urunler:
-                    st.warning(
-                        f"**{ku}** stoğu azalmıştır! Kalan Miktar: **{km} {kb}** ({kd})"
-                    )
+            # Madde 2: Özel kritik eşik kontrolü
+            ozel_kritik_sinir = st.session_state.kritik_seviyeler.get(u, 10.0)
+            if toplam_kalan <= float(ozel_kritik_sinir) and "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" not in aktif_k_maskeleri:
+                kritik_urunler_tablosu.append({
+                    "Ürün Adı": u,
+                    "Kalan Miktar": f"{toplam_kalan} {birim}",
+                    "Kritik Eşik Sınırı": f"{ozel_kritik_sinir} {birim}",
+                    "Depo Yeri": depo
+                })
 
         st.markdown("### Envanter Listesi")
         ozel_html_tablo_goster(stok_tablosu)
+
+        st.markdown("---")
+        st.markdown("### ⚠️ Kritik Seviyenin Altındaki veya Tükenen Ürünler Tablosu")
+        if kritik_urunler_tablosu:
+            ozel_html_tablo_goster(kritik_urunler_tablosu)
+        else:
+            st.success("Tebrikler! Kritik seviyenin altında ürün bulunmuyor.")
+
+        with st.expander("⚙️ Ürün Bazlı Kritik Eşik Sınırı Belirle"):
+            with st.form("kritik_ayar_form"):
+                secilen_k_urun = st.selectbox("Kritik Eşiği Değiştirilecek Ürün", benzersiz_urunler if benzersiz_urunler else ["Yok"])
+                mevcut_esin = st.session_state.kritik_seviyeler.get(secilen_k_urun, 10.0)
+                yeni_esin_deger = st.number_input("Kritik Miktar Sınırı", min_value=0.0, value=float(mevcut_esin), step=1.0)
+                kritik_kaydet_btn = st.form_submit_button("Kritik Eşiği Güncelle", type="primary")
+
+                if kritik_kaydet_btn and secilen_k_urun != "Yok":
+                    st.session_state.kritik_seviyeler[secilen_k_urun] = yeni_esin_deger
+                    kritik_seviyeleri_kaydet(st.session_state.kritik_seviyeler)
+                    st.success(f"Başarılı! '{secilen_k_urun}' için kritik sınır {yeni_esin_deger} olarak güncellendi.")
+                    st.balloons()
+                    st.rerun()
 
 # 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
@@ -1772,15 +1825,10 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 ],
             )
             birim = st.selectbox("Birim", ["Kg", "Adet", "Lt"])
-            depo = st.selectbox(
-                "Depo Yeri",
-                [
-                    "Soğuk Hava Deposu +5/+6",
-                    "Soğuk Hava Deposu -18",
-                    "Sebze Deposu",
-                    "Kuru Gıda Deposu",
-                ],
-            )
+            
+            # Dinamik depo listesi
+            depo = st.selectbox("Depo Yeri", st.session_state.depolar if st.session_state.depolar else ["Merkez Depo"])
+            
             miktar = st.number_input("Toplam Miktar", min_value=0.1, step=1.0)
             fiyat = st.number_input("Birim Fiyat (TL)", min_value=0.01, step=0.1)
 
@@ -1809,12 +1857,12 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "islem_yapan": islem_yapan_kisi,
                 })
                 verileri_kaydet(st.session_state.girisler)
-                st.success(f"Başarılı! {miktar} miktar {urun} seçilen tarih ({tarih_giris}) ile depoya işlendi.")
+                st.success(f"🎉 Başarılı! {miktar} miktar {urun} depoya eklendi.")
+                st.balloons()
                 st.rerun()
 
         st.markdown("---")
         
-        # Madde 1: Fatura Log Kayıtları Arşivi başlığı, Düzenleme alanı ve Excel/PDF Export butonları
         col_b_fatura, col_indir_fatura = st.columns([2, 2])
         with col_b_fatura:
             st.subheader("📋 Mal Alımı / Fatura Log Kayıtları Arşivi")
@@ -1840,7 +1888,6 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             with col_indir_fatura:
                 ortak_indirme_alani(excel_fatura_data, pdf_fatura_data, "fatura_mal_alimi_arsivi", "fatura_arsiv_sayfasi")
 
-            # Kayıt Düzenleme Alanı (Depo ve Kategori Yanlış Seçildiğinde Düzeltmek İçin)
             with st.expander("✏️ Seçili Fatura / Mal Alım Kaydını Düzenle (Depo veya Kategori Değiştir)"):
                 with st.form("fatura_duzenle_form"):
                     secenekler_fatura_edit = [f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')}, Depo: {g.get('depo', '-')})" for g in st.session_state.girisler]
@@ -1850,7 +1897,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     mevcut_kayit_obj = next((g for g in st.session_state.girisler if g["id"] == hedef_id), None)
                     
                     yeni_kat_sec = st.selectbox("Yeni Kategori", ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"], index=0 if not mevcut_kayit_obj else max(0, ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"].index(mevcut_kayit_obj.get("kategori", "SEBZE")) if mevcut_kayit_obj.get("kategori") in ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"] else 0))
-                    yeni_depo_sec = st.selectbox("Yeni Depo Yeri", ["Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"], index=0)
+                    yeni_depo_sec = st.selectbox("Yeni Depo Yeri", st.session_state.depolar if st.session_state.depolar else ["Merkez Depo"])
                     yeni_fiyat_sec = st.number_input("Güncel Birim Fiyat (TL)", min_value=0.01, value=float(mevcut_kayit_obj.get("fiyat", 1.0)) if mevcut_kayit_obj else 1.0, step=0.1)
                     
                     duzenle_submit_btn = st.form_submit_button("Değişiklikleri Kaydet ve Güncelle", type="primary")
@@ -1859,12 +1906,67 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                         mevcut_kayit_obj["depo"] = yeni_depo_sec
                         mevcut_kayit_obj["fiyat"] = yeni_fiyat_sec
                         verileri_kaydet(st.session_state.girisler)
-                        st.success("Kayıt başarıyla güncellendi!")
+                        st.success("🎉 Başarılı! Kayıt güncellendi.")
+                        st.balloons()
                         st.rerun()
 
             ozel_html_tablo_goster(fatura_log_tablosu)
         else:
             st.info("Kayıtlı mal alımı faturası bulunmuyor.")
+
+# YENİ MENÜ: DEPO YÖNETİMİ (Madde 1)
+elif menu == "Depo Yönetimi":
+    if misafir_modu:
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    else:
+        st.header("🏢 Dinamik Depo Yönetimi")
+        st.markdown("Sisteme yeni depo ekleyebilir veya mevcut bir depoyu silebilirsiniz. Depo silindiğinde o depoda kayıtlı olan tüm ürünler ve loglar sistemden otomatik olarak temizlenir.")
+
+        col_depo_ekle, col_depo_sil = st.columns(2)
+        with col_depo_ekle:
+            with st.form("yeni_depo_ekle_form"):
+                st.markdown("**➕ Yeni Depo Ekle**")
+                yeni_depo_adi = st.text_input("Depo Adı (Örn: Soğuk Hava Deposu -20)").strip()
+                depo_ekle_btn = st.form_submit_button("Depoyu Kaydet", type="primary")
+
+                if depo_ekle_btn and yeni_depo_adi:
+                    if yeni_depo_adi in st.session_state.depolar:
+                        st.error("⚠️ Bu depo zaten mevcut!")
+                    else:
+                        st.session_state.depolar.append(yeni_depo_adi)
+                        depoları_kaydet(st.session_state.depolar)
+                        st.success(f"🎉 Başarılı! '{yeni_depo_adi}' deposu sisteme eklendi.")
+                        st.balloons()
+                        st.rerun()
+
+        with col_depo_sil:
+            with st.form("depo_sil_form"):
+                st.markdown("**🗑️ Depo Sil**")
+                if st.session_state.depolar:
+                    secilen_sil_depo = st.selectbox("Silinecek Depoyu Seçin", st.session_state.depolar)
+                    depo_sil_btn = st.form_submit_button("Seçilen Depoyu ve Bağlı Ürünleri Sil", type="primary")
+
+                    if depo_sil_btn:
+                        if len(st.session_state.depolar) <= 1:
+                            st.error("⚠️ Sistemde en az 1 depo kalmalıdır, tamamen silemezsiniz!")
+                        else:
+                            st.session_state.depolar.remove(secilen_sil_depo)
+                            depoları_kaydet(st.session_state.depolar)
+                            
+                            # Bağlı ürünleri de temizle
+                            st.session_state.girisler = [g for g in st.session_state.girisler if g.get("depo") != secilen_sil_depo]
+                            verileri_kaydet(st.session_state.girisler)
+
+                            st.success(f"🎉 Başarılı! '{secilen_sil_depo}' ve bağlı ürünler silindi.")
+                            st.balloons()
+                            st.rerun()
+                else:
+                    st.info("Silinecek depo bulunmuyor.")
+
+        st.markdown("---")
+        st.subheader("📋 Aktif Depolar Listesi")
+        depo_tablosu = [{"Depo Adı": d} for d in st.session_state.depolar]
+        ozel_html_tablo_goster(depo_tablosu)
 
 # 3. ÜRÜN SİL / DÜZENLE
 elif menu == "Ürün Sil / Düzenle":
@@ -1928,13 +2030,13 @@ elif menu == "Ürün Sil / Düzenle":
                             ]
                             verileri_kaydet(st.session_state.girisler)
                             st.session_state.silme_mesaji = (
-                                f"Başarılı! {silinen_urun_adi} sistemden silindi."
+                                f"🎉 Başarılı! {silinen_urun_adi} sistemden silindi."
                             )
+                            st.balloons()
                             st.rerun()
 
         st.markdown("---")
         
-        # Madde 2: Silinen Ürünler Arşivi için PDF ve Excel butonları
         col_b_silinen, col_indir_silinen = st.columns([2, 2])
         with col_b_silinen:
             st.subheader("📋 Silinen Ürünler Arşivi")
@@ -1970,7 +2072,6 @@ elif menu == "Fire / Zayiat Girişi":
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
         else:
             with st.form("fire_formu"):
-                # Madde 3: Fire tarihi ve saati seçimi
                 col_f_t1, col_f_t2 = st.columns(2)
                 with col_f_t1:
                     fire_tarihi_secim = st.date_input("📅 Fire / Zayiat Tarihi", value=datetime.date.today())
@@ -2036,13 +2137,13 @@ elif menu == "Fire / Zayiat Girişi":
                     })
                     loglari_kaydet(st.session_state.kullanim_loglari)
                     st.success(
-                        f"Fire başarıyla düşüldü ({fire_tarih_str}). Toplam zarar: {toplam_zarar:,.2f} ₺"
+                        f"🎉 Başarılı! Fire düşüldü ({fire_tarih_str}). Toplam zarar: {toplam_zarar:,.2f} ₺"
                     )
+                    st.balloons()
                     st.rerun()
 
         st.markdown("---")
         
-        # Madde 3: Fire / Zayiatlar listesi için Excel ve PDF butonları
         col_b_fire, col_indir_fire = st.columns([2, 2])
         with col_b_fire:
             st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
@@ -2260,8 +2361,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     loglari_kaydet(st.session_state.kullanim_loglari)
                     st.session_state.sepet = []
                     st.success(
-                        f"{uretim_tarih_str} tarihli üretim başarıyla tamamlandı ve arşive kaydedildi!"
+                        f"🎉 Başarılı! {uretim_tarih_str} tarihli üretim arşive kaydedildi."
                     )
+                    st.balloons()
                     st.rerun()
 
             st.markdown("---")
@@ -2293,7 +2395,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
     st.markdown("---")
     
-    # Madde 4: Seçilen Tarihlerdeki Yemek Üretim ve Maliyet Arşivi için başlık ve dışa aktarım
     col_b_arsiv, col_indir_arsiv = st.columns([2, 2])
     with col_b_arsiv:
         if secilen_tarih_str == "TÜMÜ":
@@ -2405,7 +2506,8 @@ elif menu == "Kalori Hesaplama Aracı":
             "miktar": kalori_miktar_input,
             "birim": kalori_birim_input,
         })
-        st.success("Eklendi!")
+        st.success("🎉 Başarılı! Eklendi.")
+        st.balloons()
 
     if st.session_state.kalori_sepeti:
         toplam_kalori = sum(
@@ -2505,7 +2607,8 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                                 "islem_yapan": islem_yapan_kisi,
                             })
                             ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
-                            st.success(f"Başarılı! {yeni_ad} sisteme kaydedildi.")
+                            st.success(f"🎉 Başarılı! {yeni_ad} kaydedildi.")
+                            st.balloons()
                             st.rerun()
 
                 with col_form_sil:
@@ -2543,8 +2646,9 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                                 ]
                                 ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
                                 st.session_state.kisi_silme_mesaji = (
-                                    f"Başarılı! {silinen_isim} sistemden silindi."
+                                    f"🎉 Başarılı! {silinen_isim} silindi."
                                 )
+                                st.balloons()
                                 st.rerun()
                         else:
                             st.info("Silinecek kayıt bulunmuyor.")
@@ -2614,7 +2718,8 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                                 eklenen_sayisi += 1
                         
                         dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
-                        st.success(f"Başarılı! Seçilen {eklenen_sayisi} haneye toplu yemek dağıtımı işlendi.")
+                        st.success(f"🎉 Başarılı! Seçilen {eklenen_sayisi} haneye yemek dağıtımı işlendi.")
+                        st.balloons()
                         st.rerun()
 
             st.markdown("---")
@@ -2850,7 +2955,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                 "izinler": [],
                             })
                             personelleri_kaydet(st.session_state.personeller)
-                            st.success(f"Başarılı! {p_ad} kadroya eklendi.")
+                            st.success(f"🎉 Başarılı! {p_ad} eklendi.")
+                            st.balloons()
                             st.rerun()
 
                 with col_p_sil:
@@ -2884,8 +2990,9 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                 ]
                                 personelleri_kaydet(st.session_state.personeller)
                                 st.session_state.personel_silme_mesaji = (
-                                    f"Başarılı! {silinen_ad} kadrodan silindi."
+                                    f"🎉 Başarılı! {silinen_ad} silindi."
                                 )
+                                st.balloons()
                                 st.rerun()
                         else:
                             st.info("Silinecek personel bulunmuyor.")
@@ -2917,7 +3024,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                     if p["ad_soyad"] == secilen_isim:
                                         p["aktif"] = yeni_durum == "Aktif Çalışıyor"
                                 personelleri_kaydet(st.session_state.personeller)
-                                st.success("Durum başarıyla güncellendi!")
+                                st.success("🎉 Başarılı! Durum güncellendi.")
+                                st.balloons()
                                 st.rerun()
                         else:
                             st.info("Kayıt yok.")
@@ -2996,7 +3104,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                                 "bitis": str(i_bit),
                                             })
                                     personelleri_kaydet(st.session_state.personeller)
-                                    st.success("Yıllık izin başarıyla kaydedildi!")
+                                    st.success("🎉 Başarılı! İzin kaydedildi.")
+                                    st.balloons()
                                     st.rerun()
                         else:
                             st.info("Aktif personel bulunmuyor.")
@@ -3052,7 +3161,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                                 i for i in yilliklar if i != silinecek_hedef
                                             ]
                                     personelleri_kaydet(st.session_state.personeller)
-                                    st.success("Seçilen yıllık izin silindi!")
+                                    st.success("🎉 Başarılı! İzin silindi.")
+                                    st.balloons()
                                     st.rerun()
                         else:
                             st.info("Silinebilecek yıllık izin kaydı bulunmuyor.")
@@ -3148,7 +3258,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                                 ),
                                             })
                                     personelleri_kaydet(st.session_state.personeller)
-                                    st.success("Saatlik izin kaydedildi!")
+                                    st.success("🎉 Başarılı! Saatlik izin kaydedildi.")
+                                    st.balloons()
                                     st.rerun()
                         else:
                             st.info("Aktif personel bulunmuyor.")
@@ -3204,7 +3315,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                                 i for i in saatlikler if i != silinecek_hedef_s
                                             ]
                                     personelleri_kaydet(st.session_state.personeller)
-                                    st.success("Saatlik izin silindi!")
+                                    st.success("🎉 Başarılı! Saatlik izin silindi.")
+                                    st.balloons()
                                     st.rerun()
                         else:
                             st.info("Silinebilecek saatlik izin yok.")
@@ -3296,7 +3408,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                                 "teshis": r_teshis,
                                             })
                                     personelleri_kaydet(st.session_state.personeller)
-                                    st.success("Sağlık raporu kaydedildi!")
+                                    st.success("🎉 Başarılı! Sağlık raporu kaydedildi.")
+                                    st.balloons()
                                     st.rerun()
                         else:
                             st.info("Aktif personel bulunmuyor.")
@@ -3352,7 +3465,8 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                                 i for i in raporlar if i != silinecek_hedef_r
                                             ]
                                     personelleri_kaydet(st.session_state.personeller)
-                                    st.success("Sağlık raporu silindi!")
+                                    st.success("🎉 Başarılı! Rapor silindi.")
+                                    st.balloons()
                                     st.rerun()
                         else:
                             st.info("Silinebilecek sağlık raporu yok.")
@@ -3671,7 +3785,8 @@ elif menu == "Kullanıcı Ayarları":
                                 "salt_okunur": y_salt_okunur,
                             }
                             kullanıcıları_kaydet(st.session_state.kullanicilar)
-                            st.success(f"Başarılı! '{y_k_adi}' kullanıcısı oluşturuldu.")
+                            st.success(f"🎉 Başarılı! '{y_k_adi}' kullanıcısı oluşturuldu.")
+                            st.balloons()
                             st.rerun()
 
             with col_k_sil:
@@ -3691,7 +3806,8 @@ elif menu == "Kullanıcı Ayarları":
                         if k_sil_btn:
                             del st.session_state.kullanicilar[secilen_sil_k]
                             kullanıcıları_kaydet(st.session_state.kullanicilar)
-                            st.success(f"Başarılı! '{secilen_sil_k}' silindi.")
+                            st.success(f"🎉 Başarılı! '{secilen_sil_k}' silindi.")
+                            st.balloons()
                             st.rerun()
                     else:
                         st.info("Silinebilecek başka kullanıcı bulunmuyor.")
@@ -3709,7 +3825,8 @@ elif menu == "Kullanıcı Ayarları":
                 if guncelle_salt_btn:
                     st.session_state.kullanicilar[guncellenecek_k_adi]["salt_okunur"] = yeni_salt_durumu
                     kullanıcıları_kaydet(st.session_state.kullanicilar)
-                    st.success(f"'{guncellenecek_k_adi}' kullanıcısının salt okunur durumu güncellendi!")
+                    st.success(f"🎉 Başarılı! '{guncellenecek_k_adi}' güncellendi.")
+                    st.balloons()
                     st.rerun()
 
         with k_tab2:
@@ -3722,7 +3839,8 @@ elif menu == "Kullanıcı Ayarları":
                 if sifre_degis_btn and yeni_sifre_inp:
                     st.session_state.kullanicilar[s_kullanici]["sifre"] = sifre_hashle(yeni_sifre_inp)
                     kullanıcıları_kaydet(st.session_state.kullanicilar)
-                    st.success(f"'{s_kullanici}' kullanıcısının şifresi başarıyla güncellendi!")
+                    st.success(f"🎉 Başarılı! '{s_kullanici}' şifresi güncellendi.")
+                    st.balloons()
                     st.rerun()
 
         with k_tab3:
@@ -3746,7 +3864,8 @@ elif menu == "Kullanıcı Ayarları":
                         st.session_state.kullanicilar["misafir"]["buton_metni"] = yeni_buton_metni
                         st.session_state.kullanicilar["misafir"]["buton_aktif"] = yeni_buton_durumu
                         kullanıcıları_kaydet(st.session_state.kullanicilar)
-                        st.success("Misafir buton ayarları başarıyla güncellendi!")
+                        st.success("🎉 Başarılı! Misafir buton ayarları güncellendi.")
+                        st.balloons()
                         st.rerun()
 
             st.markdown("---")
@@ -3775,6 +3894,7 @@ elif menu == "Kullanıcı Ayarları":
                         "Personel & Çalışma Süresi Takibi",
                         "Kullanım Takibi",
                         "Kapsamlı Envanter ve Hareket Raporu",
+                        "Depo Yönetimi",
                     ]
                     
                     secilen_yasaklar = []
@@ -3828,7 +3948,8 @@ elif menu == "Kullanıcı Ayarları":
                         st.session_state.kullanicilar[yetki_secilen_k]["yasakli_menuler"] = secilen_yasaklar
                         st.session_state.kullanicilar[yetki_secilen_k]["maskeli_alanlar"] = secilen_maskeler
                         kullanıcıları_kaydet(st.session_state.kullanicilar)
-                        st.success(f"'{yetki_secilen_k}' kullanıcısının yetki ve maskeleme ayarları başarıyla güncellendi!")
+                        st.success(f"🎉 Başarılı! Yetki ayarları güncellendi.")
+                        st.balloons()
                         st.rerun()
 
             st.markdown("---")
@@ -3875,6 +3996,7 @@ elif menu == "Kullanıcı Ayarları":
                         yemek_uretim_arsivini_kaydet([])
 
                         st.success("🎉 Başarılı! Tüm stoklar, faturalar ve log kayıtları tamamen sıfırlandı.")
+                        st.balloons()
                         time.sleep(1)
                         st.rerun()
                     else:
