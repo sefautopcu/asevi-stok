@@ -1783,7 +1783,7 @@ elif menu == "Güncel Stok Durumu":
                     st.balloons()
                     st.rerun()
 
-# 2. YENİ MAL ALIMI / FATURA EKLE (AKILLI ÜRÜN KONTROLÜ İLE)
+# 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
     if salt_okunur_modu:
         st.warning(
@@ -1833,14 +1833,12 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             if submitted and urun:
                 urun_temiz = urun.strip().upper()
                 
-                # AKILLI KONTROL: Eğer aynı isimde ürün zaten varsa, yeni satır açmak yerine mevcut ürüne ekleme yapalım!
                 ayni_isimli_kayit = next((g for g in st.session_state.girisler if g["urun"].strip().upper() == urun_temiz and g["depo"] == depo), None)
 
                 if ayni_isimli_kayit:
-                    # Mevcut kaydın miktarını ve kalanını artır, fiyatı ortalamaya al veya güncel tut
                     ayni_isimli_kayit["miktar"] += miktar
                     ayni_isimli_kayit["kalan"] += miktar
-                    ayni_isimli_kayit["fiyat"] = fiyat # Son güncel birim fiyat
+                    ayni_isimli_kayit["fiyat"] = fiyat
                     ayni_isimli_kayit["tarih"] = tarih_giris
                     if fatura_no_input:
                         ayni_isimli_kayit["fatura_no"] = fatura_no_input
@@ -3704,6 +3702,7 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             ozel_html_tablo_goster(kapsamli_veri_listesi)
         else:
             st.info("Raporlanacak ürün hareketi bulunmuyor.")
+
 # 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_fiy, col_indir_fiy = st.columns([2, 2])
@@ -3726,7 +3725,7 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
                 })
         ozel_html_tablo_goster(fiyat_tablo)
 
-# 11. KULLANICI AYARLARI (SADECE ADMİN)
+# 11. KULLANICI AYARLARI VE PROJE REHBERİ (SADECE ADMİN)
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya yalnızca **Admin** erişebilir.")
@@ -3747,11 +3746,12 @@ elif menu == "Kullanıcı Ayarları":
                 "buton_aktif": True
             }
 
-        k_tab1, k_tab2, k_tab3, k_tab4 = st.tabs([
+        k_tab1, k_tab2, k_tab3, k_tab4, k_tab5 = st.tabs([
             "👤 Kullanıcı Ekle / Sil",
             "🔑 Şifre Değiştir",
             "🛡️ Sayfa Yetki & Sütun Bazlı Maskeleme",
             "🧹 Veritabanı ve Stok Sıfırlama",
+            "📖 Proje ve Sistem Rehberi"
         ])
 
         with k_tab1:
@@ -3997,3 +3997,30 @@ elif menu == "Kullanıcı Ayarları":
                         st.rerun()
                     else:
                         st.error("⚠️ Lütfen sıfırlama işlemini onaylamak için kutucuğu işaretleyin!")
+
+        with k_tab5:
+            st.markdown("### 📖 Aziziye Aşevi - Proje ve Çalışma Mantığı Rehberi")
+            st.markdown("Bu alan yalnızca **Admin** kullanıcısına özeldir. Sistemin mimarisini ve çalışma mantığını buradan inceleyebilirsiniz.")
+            
+            st.markdown("---")
+            st.markdown("""
+            #### 1. Stoka Giriş ve Akıllı Ürün Kontrolü Mantığı
+            * **Fatura Ekleme:** Mal alımı yapılırken aynı isimde bir ürün varsa sistem yeni satır açmaz, mevcut ürünün miktarını ve birim fiyatını otomatik günceller.
+            * **Benzerlik Uyarısı:** Yazım hatalarını önlemek için benzer ürün adları kontrol edilir.
+            
+            #### 2. Stok ve Envanter Yönetimi
+            * **Depo Bazlı Takip:** Ürünler soğuk hava veya kuru gıda depolarında izlenir.
+            * **Kritik Eşikler:** Miktarı kritik sınırın altına düşen ürünler uyarı tablosunda listelenir.
+            
+            #### 3. Fire ve Zayiat Yönetimi
+            * **Zarar Hesabı:** Bozulan malzemeler stoktan düşülür, birim fiyatla çarpılarak toplam zarar loglanır.
+            
+            #### 4. Mutfak Üretimi ve Maliyet Hesabı
+            * **Reçete ve Maliyet:** Yemek üretiminde harcanan malzemeler depodaki ortalama birim fiyatları üzerinden düşülür; toplam ve kişi başı maliyet otomatik hesaplanır.
+            
+            #### 5. İhtiyaç Sahibi ve Dağıtım Takibi
+            * **Güvenli Saklama:** T.C. ve adres gibi hassas veriler Fernet şifreleme ile korunur. Toplu yemek dağıtımları hanelere işlenir.
+            
+            #### 6. Personel ve İşe Devam Takibi
+            * **Net Çalışma Süresi:** Yıllık izinler, saatlik izinler ve sağlık raporları resmi tatillerle harmanlanarak net çalışma günü hesaplanır.
+            """)
