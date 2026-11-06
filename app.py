@@ -757,7 +757,7 @@ gecerli_menuler = [
     "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
     "Personel & Çalışma Süresi Takibi",
     "Kullanım Takibi",
-    "Kapsamlı Envanter ve Hareket Raporu",  # <--- YENİ EKLENEN RAPOR SAYFASI
+    "Kapsamlı Envanter ve Hareket Raporu",
     "Kullanıcı Ayarları",
 ]
 
@@ -1111,7 +1111,7 @@ menu_gruplari = {
     ],
     "📈 Raporlar & Arşiv": [
         ("Kullanım Takibi", ""),
-        ("Kapsamlı Envanter ve Hareket Raporu", ""),  # <--- Raporlar grubunun altına eklendi
+        ("Kapsamlı Envanter ve Hareket Raporu", ""),
     ],
 }
 
@@ -3439,7 +3439,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                             ortak_indirme_alani(
                                 excel_net_data,
                                 pdf_net_data,
-                                f"net_calisma_raporu_{secilen_rapor_p}",
+                                f"net_cal_raporu_{secilen_rapor_p}",
                                 "net_calisma_sayfasi",
                             )
 
@@ -3495,7 +3495,7 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Kullanım veya fire hareketi bulunmuyor.")
 
-# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (YENİ EKLENEN SAYFA)
+# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (GÜNCELLENDİ: DEVREDEN STOK EKLENDİ)
 elif menu == "Kapsamlı Envanter ve Hareket Raporu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -3503,16 +3503,16 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
         col_b_kapsam, col_indir_kapsam = st.columns([2, 2])
         with col_b_kapsam:
             st.header("📊 Kapsamlı Envanter ve Hareket Raporu")
-            st.markdown("Tüm ürünlere ait toplam gelen, devreden/harcanan, fire ve güncel stok durumlarını tek ekranda inceleyin.")
+            st.markdown("Tüm ürünlere ait toplam gelen, harcanan, fire ve sonraki döneme/aya **devreden** stok durumlarını tek ekranda inceleyin.")
 
         # Tüm ürünleri topla
         tum_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
         kapsamli_veri_listesi = []
 
         for u in tum_urunler:
-            # Gelen Toplam Miktar (Faturalardan / Gelişlerden)
+            # Toplam Gelen Miktar
             toplam_gelen = sum(g["miktar"] for g in st.session_state.girisler if g["urun"] == u)
-            # Güncel Kalan Stok
+            # Güncel Kalan Stok (Depoda halihazırda duran)
             guncel_stok = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
             # Birim
             birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
@@ -3531,13 +3531,19 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                 if l.get("urun") == u and l.get("tur", "").startswith("Günlük Kullanım")
             )
 
+            # Devreden Stok Mantığı: 
+            # Eğer ürünün toplam gelenden harcanan ve fireler düşüldükten sonra kalan kısmı 
+            # (veya doğrudan anlık güncel kalan stoku) sonraki aya devreden stoku ifade eder.
+            devreden_stok = guncel_stok
+
             kapsamli_veri_listesi.append({
                 "Ürün Adı": u,
                 "Kategori": kategori,
                 "Birim": birim,
                 "Toplam Gelen": f"{toplam_gelen:,.1f} {birim}",
-                "Toplam Kullanılan": f"{toplam_kullanilan:,.1f} {birim}",
+                "Toplam Harcanan": f"{toplam_kullanilan:,.1f} {birim}",
                 "Toplam Fire": f"{toplam_fire:,.1f} {birim}",
+                "Devreden Stok (Kalan)": f"{devreden_stok:,.1f} {birim}",
                 "Güncel Stok": f"{guncel_stok:,.1f} {birim}",
             })
 
