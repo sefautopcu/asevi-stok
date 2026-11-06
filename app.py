@@ -3531,7 +3531,7 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                 # 3. Bu Ayki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
+                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre):
                 )
                 log_harcanan = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
