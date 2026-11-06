@@ -368,46 +368,6 @@ def urun_kalori_hesapla(urun_adi, miktar, birim):
     return (miktar * carp * birim_kalori) / 100.0
 
 
-varsayilan_girisler = [
-    {
-        "id": "STK-001",
-        "tarih": "2026-09-28 08:30",
-        "fatura_no": "FAT-2026-001",
-        "urun": "KIRMIZI LAHANA",
-        "kategori": "SEBZE",
-        "birim": "Kg",
-        "miktar": 42.8,
-        "kalan": max(0.0, 42.8 - 15.0),
-        "fiyat": 50.0,
-        "depo": "Soğuk Hava Deposu +5/+6",
-        "islem_yapan": "admin",
-    },
-    {
-        "id": "STK-002",
-        "tarih": "2026-09-28 08:35",
-        "fatura_no": "FAT-2026-002",
-        "urun": "ARPA ŞEHRİYE",
-        "kategori": "KURU GIDA",
-        "birim": "Kg",
-        "miktar": 40.0,
-        "kalan": 40.0,
-        "fiyat": 30.0,
-        "depo": "Kuru Gıda Deposu",
-        "islem_yapan": "admin",
-    },
-]
-
-varsayilan_loglar = [
-    {
-        "tarih": "2026-10-05 10:00",
-        "urun": "ISPANAK",
-        "tur": "Fire/Zayiat",
-        "miktar": 60.0,
-        "tutar": 4200.00,
-        "islem_yapan": "admin",
-    },
-]
-
 varsayilan_personeller = [
     {
         "tc": "11111111111",
@@ -549,14 +509,10 @@ def verileri_yukle():
     if os.path.exists(VERI_DOSYASI):
         try:
             with open(VERI_DOSYASI, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for item in data:
-                    if "fatura_no" not in item:
-                        item["fatura_no"] = "BELİRTİLMEMİŞ"
-                return data
+                return json.load(f)
         except Exception:
-            return varsayilan_girisler
-    return varsayilan_girisler
+            return []
+    return []
 
 
 def verileri_kaydet(veri):
@@ -568,12 +524,10 @@ def loglari_yukle():
     if os.path.exists(KULLANIM_LOG_DOSYASI):
         try:
             with open(KULLANIM_LOG_DOSYASI, "r", encoding="utf-8") as f:
-                kayitli_loglar = json.load(f)
-                if kayitli_loglar:
-                    return kayitli_loglar
+                return json.load(f)
         except Exception:
-            pass
-    return varsayilan_loglar
+            return []
+    return []
 
 
 def loglari_kaydet(veri):
@@ -3655,10 +3609,11 @@ elif menu == "Kullanıcı Ayarları":
                 "buton_aktif": True
             }
 
-        k_tab1, k_tab2, k_tab3 = st.tabs([
+        k_tab1, k_tab2, k_tab3, k_tab4 = st.tabs([
             "👤 Kullanıcı Ekle / Sil",
             "🔑 Şifre Değiştir",
-            "🛡️ Sayfa Yetki & Sütun Bazlı Maskeleme Yönetimi",
+            "🛡️ Sayfa Yetki & Sütun Bazlı Maskeleme",
+            "🧹 Veritabanı ve Stok Sıfırlama",
         ])
 
         with k_tab1:
@@ -3868,3 +3823,33 @@ elif menu == "Kullanıcı Ayarları":
             
             if ozet_tablo_listesi:
                 ozel_html_tablo_goster(ozet_tablo_listesi)
+
+        with k_tab4:
+            st.markdown("### 🧹 Veritabanı ve Stok Sıfırlama Paneli")
+            st.warning("⚠️ **DİKKAT:** Bu işlem; tüm stokları, faturaları, kullanım loglarını, fire geçmişini ve yemek üretim arşivini **kalıcı olarak siler** ve sistemi sıfırlar. Personel ve ihtiyaç sahibi kayıtlarınız bu işlemden etkilenmez.")
+
+            with st.form("veritabani_sifirla_yonetim_formu"):
+                onay_kutusu = st.checkbox("Evet, tüm stok ve log verilerini sıfırlamak istesin ve sorumluluğu kabul ediyorum.")
+                sifirla_aksiyon_btn = st.form_submit_button("🔥 Tüm Stok ve Logları Şimdi Sıfırla", type="primary")
+
+                if sifirla_aksiyon_btn:
+                    if onay_kutusu:
+                        # Session state verilerini sıfırla
+                        st.session_state.girisler = []
+                        st.session_state.kullanim_loglari = []
+                        st.session_state.silinen_urun_loglari = []
+                        st.session_state.yemek_uretim_arsivi = []
+                        st.session_state.sepet = []
+                        st.session_state.kalori_sepeti = []
+
+                        # JSON dosyalarını sıfırla
+                        verileri_kaydet([])
+                        loglari_kaydet([])
+                        silinen_urun_loglarini_kaydet([])
+                        yemek_uretim_arsivini_kaydet([])
+
+                        st.success("🎉 Başarılı! Tüm stoklar, faturalar ve log kayıtları tamamen sıfırlandı.")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("⚠️ Lütfen sıfırlama işlemini onaylamak için yukarıdaki kutucuğu işaretleyin!")
