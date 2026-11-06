@@ -15,6 +15,24 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+def ozel_html_tablo_goster(veri_listesi):
+    if not veri_listesi:
+        st.info("Gösterilecek veri bulunmuyor.")
+        return
+    
+    headers = list(veri_listesi[0].keys())
+    html = "<table class='custom-table'><thead><tr>"
+    for h in headers:
+        html += f"<th>{h}</th>"
+    html += "</tr></thead><tbody>"
+    
+    for row in veri_listesi:
+        html += "<tr>"
+        for h in headers:
+            html += f"<td>{row.get(h, '')}</td>"
+        html += "</tr>"
+    html += "</tbody></table>"
+    st.markdown(html, unsafe_allow_html=True)
 # Sayfa Yapılandırması
 st.set_page_config(
     page_title="Aziziye - Aşevi Takip Sistemi",
