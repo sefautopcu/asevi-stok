@@ -481,25 +481,40 @@ def kullanıcıları_yukle():
             with open(KULLANICI_YETKI_DOSYASI, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 
-                # ACİL DURUM: Admin şifresini zorla sıfırla
+                degisiklik_var = False
+                # Admin şifresini otomatik olarak Ss123321 yap ve kaydet
                 if "admin" in data:
-                    data["admin"]["sifre"] = "Ss123321"
+                    if data["admin"]["sifre"] != "Ss123321":
+                        data["admin"]["sifre"] = "Ss123321"
+                        degisiklik_var = True
                 else:
                     data["admin"] = {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False}
+                    degisiklik_var = True
                 
                 for k, v in data.items():
                     if "yasakli_menuler" not in v:
                         v["yasakli_menuler"] = []
+                        degisiklik_var = True
                     if "maskeli_alanlar" not in v:
                         v["maskeli_alanlar"] = []
+                        degisiklik_var = True
                     if "salt_okunur" not in v:
                         v["salt_okunur"] = (k == "yonetim")
-                    elif k == "yonetim":
+                        degisiklik_var = True
+                    elif k == "yonetim" and not v["salt_okunur"]:
                         v["salt_okunur"] = True
+                        degisiklik_var = True
+                
+                # Eğer şifre güncellendiyse dosyaya otomatik kaydet
+                if degisiklik_var:
+                    kullanıcıları_kaydet(data)
+                
                 return data
         except Exception:
             return varsayilan_kullanicilar
-    return varsayilan_kullanicilar
+    else:
+        kullanıcıları_kaydet(varsayilan_kullanicilar)
+        return varsayilan_kullanicilar
 
 
 def kullanıcıları_kaydet(veri):
