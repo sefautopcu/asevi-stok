@@ -4,6 +4,7 @@ import io
 import json
 import os
 import time
+import difflib
 from cryptography.fernet import Fernet
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -497,7 +498,6 @@ def kullanıcıları_yukle():
                     if v.get("sifre") and len(v["sifre"]) != 64 and k != "misafir":
                         v["sifre"] = sifre_hashle(v["sifre"])
                 
-                # Misafir kullanıcısının buton ayarlarının eksik olma ihtimaline karşı güvence
                 if "misafir" not in data:
                     data["misafir"] = varsayilan_kullanicilar["misafir"]
                 else:
@@ -1770,7 +1770,7 @@ elif menu == "Güncel Stok Durumu":
         st.markdown("### Envanter Listesi")
         ozel_html_tablo_goster(stok_tablosu)
 
-# 2. YENİ MAL ALIMI / FATURA EKLE
+# 2. YENİ MAL ALIMI / FATURA EKLE (GÜNCELLENMİŞ AKILLI SEÇİM VE YENİ ÜRÜN EKLEME MANTIĞI)
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
     if salt_okunur_modu:
         st.warning(
@@ -1783,9 +1783,19 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             fatura_no_input = st.text_input(
                 "Fatura No / Belge No (Örn: FAT-2026-105)"
             ).strip().upper()
-            urun = st.text_input(
-                "Ürün Adı (Örn: DOMATES - Büyük Harfle)"
-            ).strip().upper()
+            
+            # Mevcut ürünleri sistemden alalım
+            mevcut_urun_listesi = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+            
+            yeni_urun_secimi = st.checkbox("➕ Listede Olmayan Yepyeni Bir Ürün Ekle")
+            
+            if yeni_urun_secimi or not mevcut_urun_listesi:
+                urun = st.text_input(
+                    "Yeni Ürün Adı (Örn: KIRMIZI MERCİMEK - Büyük Harfle)"
+                ).strip().upper()
+            else:
+                urun = st.selectbox("Mevcut Ürünlerden Seçin", mevcut_urun_listesi)
+
             kategori = st.selectbox(
                 "Kategori",
                 [
@@ -1813,6 +1823,12 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
 
             submitted = st.form_submit_button("Depoya Yeni Ürün / Fatura Ekle")
             if submitted and urun:
+                # Akıllı benzerlik kontrolü (Fuzzy matching)
+                if yeni_urun_secimi and mevcut_urun_listesi:
+                    benzerler = difflib.get_close_matches(urun, mevcut_urun_listesi, n=1, cutoff=0.7)
+                    if benzerler:
+                        st.warning(f"⚠️ Dikkat! Yazdığınız ürün mevcut '{benzerler[0]}' adına çok benziyor. Yanlışlıkla yeni ürün açıyor olabilirsiniz!")
+
                 islem_yapan_kisi = st.session_state.aktif_kullanici
                 fatura_no_degeri = (
                     fatura_no_input if fatura_no_input else "BELİRTİLMEMİŞ"
@@ -3515,11 +3531,11 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                 # 3. Bu Ayki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
+                    if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
                 log_harcanan = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
+                    if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
             else:
                 # 1. Yıllık Devreden Stok
@@ -3535,11 +3551,11 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
                 # 3. Bu Yılki Fire ve Harcamalar
                 toplam_fire = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
+                    if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
                 log_harcanan = sum(
                     l["miktar"] for l in st.session_state.kullanim_loglari 
-                    if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
+                    if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and str(l.get("tarih", "")).startswith(secilen_filtre)
                 )
 
             toplam_gelen_arz = devreden_stok + donem_gelen
