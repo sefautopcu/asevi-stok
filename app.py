@@ -2382,7 +2382,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 
         tab1, tab2, tab3 = st.tabs([
             "📋 İhtiyaç Sahibi Listesi, Ekle ve Sil",
-            "🍲 Yemek Dağıtım Girişi",
+            "🍲 Toplu Yemek Dağıtımı",
             "📊 Dağıtım Sayacı & Raporları",
         ])
 
@@ -2517,12 +2517,67 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
         with tab2:
             col_b_dag, col_indir_dag = st.columns([2, 2])
             with col_b_dag:
-                st.subheader("🍲 Yemek Dağıtım Girişi ve Yönetimi")
+                st.subheader("🍲 Toplu Yemek Dağıtım Girişi ve Yönetimi")
 
             if st.session_state.dagitim_silme_mesaji:
                 st.success(st.session_state.dagitim_silme_mesaji)
                 st.session_state.dagitim_silme_mesaji = ""
 
+            if yonetim_modu:
+                st.info("👀 Yönetim modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
+            elif not st.session_state.ihtiyac_sahipleri:
+                st.warning("Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı yapmalısınız.")
+            else:
+                st.markdown("##### ⚡ Toplu Dağıtım Paneli (Çoklu Seçim)")
+                with st.form("toplu_dagitim_formu"):
+                    menu_adi_toplu = st.text_input(
+                        "Dağıtılacak Ortak Menü / Yemek Adı", "Ispanak Yemeği ve Pilav"
+                    )
+                    st.markdown("---")
+                    st.markdown("**İhtiyaç Sahibi Listesi ve Porsiyon Belirleme**")
+                    
+                    secim_verileri = []
+                    for idx, k in enumerate(st.session_state.ihtiyac_sahipleri):
+                        c1, c2, c3 = st.columns([0.5, 2.5, 1])
+                        with c1:
+                            secili_mi = st.checkbox("Seç", value=True, key=f"toplu_sec_{idx}", label_visibility="collapsed")
+                        with c2:
+                            st.markdown(f"**{k['ad_soyad']}** <span style='font-size:12px; opacity:0.6;'>(Hane/T.C: {k.get('tc_hane', '-')})</span>", unsafe_allow_html=True)
+                        with c3:
+                            varsayilan_porsiyon = int(k.get("birey_sayisi", 1))
+                            pors_val = st.number_input("Porsiyon", min_value=1, value=varsayilan_porsiyon, key=f"toplu_pors_{idx}", label_visibility="collapsed")
+                        
+                        secim_verileri.append({
+                            "kisi": k["ad_soyad"],
+                            "secili": secili_mi,
+                            "porsiyon": pors_val
+                        })
+
+                    st.markdown("---")
+                    toplu_kaydet_btn = st.form_submit_button("🚀 Seçilen Tüm Hanelere Toplu Dağıtımı Onayla ve Kaydet", type="primary")
+
+                    if toplu_kaydet_btn:
+                        d_tarih_saat = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                        eklenen_sayisi = 0
+                        for sv in secim_verileri:
+                            if sv["secili"]:
+                                st.session_state.dagitim_loglari.append({
+                                    "id": f"DAG-{len(st.session_state.dagitim_loglari)+1:03d}",
+                                    "tarih": d_tarih_saat,
+                                    "kisi": sv["kisi"],
+                                    "menu": menu_adi_toplu,
+                                    "porsiyon": sv["porsiyon"],
+                                    "islem_yapan": st.session_state.aktif_kullanici,
+                                })
+                                eklenen_sayisi += 1
+                        
+                        dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
+                        st.success(f"Başarılı! Seçilen {eklenen_sayisi} haneye toplu yemek dağıtımı işlendi.")
+                        st.rerun()
+
+            st.markdown("---")
+            st.subheader("📋 Kayıtlı Yemek Dağıtımları Tablosu")
+            
             dagitim_gosterim_listesi = []
             for idx, d in enumerate(st.session_state.dagitim_loglari):
                 tarih_maskele_d = "🔒 Gizli" if "4. Sayfa: Yemek Dağıtımları - Tarih/Saat" in aktif_k_maskeleri else d.get("tarih", "-")
@@ -2554,75 +2609,6 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                     "dagitim_sayfasi",
                 )
 
-            if yonetim_modu:
-                st.info("👀 Yönetim modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
-            elif not st.session_state.ihtiyac_sahipleri:
-                st.warning("Önce 'İhtiyaç Sahibi Listesi, Ekle ve Sil' sekmesinden kişi kaydı yapmalısınız.")
-            else:
-                col_d_ekle, col_d_sil = st.columns(2)
-                with col_d_ekle:
-                    with st.form("dagitim_formu"):
-                        st.markdown("**➕ Yeni Yemek Dağıtımı Ekle**")
-                        d_tarih_saat = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                        kisi_secenekleri = [
-                            k["ad_soyad"] for k in st.session_state.ihtiyac_sahipleri
-                        ]
-                        secilen_kisi = st.selectbox(
-                            "Yemek Alan Kişi / Hane", kisi_secenekleri
-                        )
-                        menu_adi = st.text_input(
-                            "Verilen Menü / Yemek Adı", "Ispanak Yemeği ve Pilav"
-                        )
-                        porsiyon_mik = st.number_input(
-                            "Verilen Porsiyon / Sefer Tası Miktarı", min_value=1, value=1
-                        )
-
-                        dagitim_ekle_btn = st.form_submit_button("Dağıtımı Kaydet")
-                        if dagitim_ekle_btn:
-                            st.session_state.dagitim_loglari.append({
-                                "id": f"DAG-{len(st.session_state.dagitim_loglari)+1:03d}",
-                                "tarih": d_tarih_saat,
-                                "kisi": secilen_kisi,
-                                "menu": menu_adi,
-                                "porsiyon": porsiyon_mik,
-                                "islem_yapan": st.session_state.aktif_kullanici,
-                            })
-                            dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
-                            st.success("Eklendi")
-                            st.rerun()
-
-                with col_d_sil:
-                    with st.form("dagitim_sil_form"):
-                        st.markdown("**🗑️ Yemek Dağıtım Kaydını Sil**")
-                        if st.session_state.dagitim_loglari:
-                            dagitim_secenekleri = [
-                                f"DAG-{idx:03d} - {d['kisi']} | Menü: {d['menu']} ({d['tarih']})"
-                                for idx, d in enumerate(st.session_state.dagitim_loglari)
-                            ]
-                            secilen_sil_dag = st.selectbox(
-                                "Silinecek Dağıtım Kaydını Seçin", dagitim_secenekleri
-                            )
-                            dag_sil_btn = st.form_submit_button(
-                                "Seçilen Dağıtımı Sil", type="primary"
-                            )
-
-                            if dag_sil_btn:
-                                secilen_idx = int(
-                                    secilen_sil_dag.split(" - ")[0].replace("DAG-", "")
-                                )
-                                silinen_dagitim = st.session_state.dagitim_loglari.pop(
-                                    secilen_idx
-                                )
-                                dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
-                                st.session_state.dagitim_silme_mesaji = (
-                                    f"Başarılı! {silinen_dagitim['kisi']} için yapılan dağıtım kaydı silindi."
-                                )
-                                st.rerun()
-                        else:
-                            st.info("Silinebilecek yemek dağıtım kaydı bulunmuyor.")
-
-            st.markdown("---")
-            st.subheader("📋 Kayıtlı Yemek Dağıtımları Tablosu")
             if dagitim_gosterim_listesi:
                 ozel_html_tablo_goster(dagitim_gosterim_listesi)
             else:
@@ -3834,7 +3820,6 @@ elif menu == "Kullanıcı Ayarları":
 
                 if sifirla_aksiyon_btn:
                     if onay_kutusu:
-                        # Session state verilerini sıfırla
                         st.session_state.girisler = []
                         st.session_state.kullanim_loglari = []
                         st.session_state.silinen_urun_loglari = []
@@ -3842,7 +3827,6 @@ elif menu == "Kullanıcı Ayarları":
                         st.session_state.sepet = []
                         st.session_state.kalori_sepeti = []
 
-                        # JSON dosyalarını sıfırla
                         verileri_kaydet([])
                         loglari_kaydet([])
                         silinen_urun_loglarini_kaydet([])
