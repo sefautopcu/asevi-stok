@@ -2,6 +2,8 @@ import datetime
 import io
 import json
 import os
+import time
+import hashlib
 from cryptography.fernet import Fernet
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -43,6 +45,13 @@ def metni_coz(sifreli_metin):
         )
     except Exception:
         return str(sifreli_metin)
+
+
+def sifre_hashle(sifre):
+    """Şifreleri SHA-256 ile güvenli bir şekilde hashler."""
+    if not sifre:
+        return ""
+    return hashlib.sha256(str(sifre).encode("utf-8")).hexdigest()
 
 
 # TEK VE SAF SİYAH TEMA & EASYUI TARZI MİKRO-ANİMASYON / LİQUID GLASS STİLLERİ
@@ -439,9 +448,9 @@ varsayilan_resmi_tatiller = [
 ]
 
 varsayilan_kullanicilar = {
-    "admin": {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
-    "asci": {"sifre": "sydv25", "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
-    "yonetim": {"sifre": "Yonetim25", "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": True},
+    "admin": {"sifre": sifre_hashle("Ss123321"), "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
+    "asci": {"sifre": sifre_hashle("sydv25"), "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
+    "yonetim": {"sifre": sifre_hashle("Yonetim25"), "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": True},
 }
 
 varsayilan_widgets = [
@@ -480,41 +489,22 @@ def kullanıcıları_yukle():
         try:
             with open(KULLANICI_YETKI_DOSYASI, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                
-                degisiklik_var = False
-                # Admin şifresini otomatik olarak Ss123321 yap ve kaydet
-                if "admin" in data:
-                    if data["admin"]["sifre"] != "Ss123321":
-                        data["admin"]["sifre"] = "Ss123321"
-                        degisiklik_var = True
-                else:
-                    data["admin"] = {"sifre": "Ss123321", "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False}
-                    degisiklik_var = True
-                
                 for k, v in data.items():
                     if "yasakli_menuler" not in v:
                         v["yasakli_menuler"] = []
-                        degisiklik_var = True
                     if "maskeli_alanlar" not in v:
                         v["maskeli_alanlar"] = []
-                        degisiklik_var = True
                     if "salt_okunur" not in v:
                         v["salt_okunur"] = (k == "yonetim")
-                        degisiklik_var = True
-                    elif k == "yonetim" and not v["salt_okunur"]:
+                    elif k == "yonetim":
                         v["salt_okunur"] = True
-                        degisiklik_var = True
-                
-                # Eğer şifre güncellendiyse dosyaya otomatik kaydet
-                if degisiklik_var:
-                    kullanıcıları_kaydet(data)
-                
+                    # Düz metin şifreleri otomatik olarak hash formatına çevir
+                    if v.get("sifre") and len(v["sifre"]) != 64:  # SHA256 hash uzunluğu 64 karakterdir
+                        v["sifre"] = sifre_hashle(v["sifre"])
                 return data
         except Exception:
             return varsayilan_kullanicilar
-    else:
-        kullanıcıları_kaydet(varsayilan_kullanicilar)
-        return varsayilan_kullanicilar
+    return varsayilan_kullanicilar
 
 
 def kullanıcıları_kaydet(veri):
@@ -696,6 +686,12 @@ if "kullanicilar" not in st.session_state:
 if "dashboard_widgets" not in st.session_state:
     st.session_state.dashboard_widgets = widgetlari_yukle()
 
+# Brute-force sayaçları session state başlatma
+if "hatali_giris_sayisi" not in st.session_state:
+    st.session_state.hatali_giris_sayisi = 0
+if "kilitlenme_bitis_zamani" not in st.session_state:
+    st.session_state.kilitlenme_bitis_zamani = 0
+
 query_params = st.query_params
 
 if "oturum_aktif" not in st.session_state:
@@ -806,7 +802,7 @@ def bugunun_turkce_tarihi():
 
 
 # =========================================================================
-# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (EasyUI Tarzı Liquid Glass)
+# GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI (EasyUI Tarzı Liquid Glass + Brute-Force & Master Key)
 # =========================================================================
 if not st.session_state.oturum_aktif:
     st.markdown(
@@ -826,39 +822,59 @@ if not st.session_state.oturum_aktif:
             unsafe_allow_html=True,
         )
 
-        with st.form("merkezi_giris_formu"):
-            st.markdown("**Kullanıcı Adı**")
-            k_adi_inp = st.text_input(
-                "Kullanıcı Adı",
-                placeholder="Kullanıcı adı giriniz...",
-                label_visibility="collapsed",
-            ).strip().lower()
-            st.markdown("**Şifre**")
-            sifre_inp = st.text_input(
-                "Şifre",
-                type="password",
-                placeholder="Şifre giriniz...",
-                label_visibility="collapsed",
-            )
+        # Brute-force kilit kontrolü
+        simdikiekran_zaman = time.time()
+        kilitli_mi = st.session_state.kilitlenme_bitis_zamani > simdikiekran_zaman
 
-            giris_tikla = st.form_submit_button(
-                "Giriş Yap", use_container_width=True
-            )
+        if kilitli_mi:
+            kalan_sure = int(st.session_state.kilitlenme_bitis_zamani - simdikiekran_zaman)
+            st.error(f"⚠️ Çok fazla hatalı giriş yaptınız! Güvenlik nedeniyle girişler {kalan_sure} saniye süreyle kilitlendi.")
+        else:
+            with st.form("merkezi_giris_formu"):
+                st.markdown("**Kullanıcı Adı**")
+                k_adi_inp = st.text_input(
+                    "Kullanıcı Adı",
+                    placeholder="Kullanıcı adı giriniz...",
+                    label_visibility="collapsed",
+                ).strip().lower()
+                st.markdown("**Şifre**")
+                sifre_inp = st.text_input(
+                    "Şifre",
+                    type="password",
+                    placeholder="Şifre giriniz...",
+                    label_visibility="collapsed",
+                )
 
-            if giris_tikla:
-                kullanici_db = st.session_state.kullanicilar
-                if (
-                    k_adi_inp in kullanici_db
-                    and kullanici_db[k_adi_inp]["sifre"] == sifre_inp
-                ):
-                    st.session_state.oturum_aktif = True
-                    st.session_state.aktif_kullanici = k_adi_inp
-                    st.query_params["auth"] = "true"
-                    st.query_params["user"] = k_adi_inp
-                    st.success(f"{k_adi_inp.upper()} olarak giriş yapıldı!")
-                    st.rerun()
-                else:
-                    st.error("Hatalı kullanıcı adı veya şifre!")
+                giris_tikla = st.form_submit_button(
+                    "Giriş Yap", use_container_width=True
+                )
+
+                if giris_tikla:
+                    kullanici_db = st.session_state.kullanicilar
+                    girilen_sifre_hash = sifre_hashle(sifre_inp)
+
+                    if (
+                        k_adi_inp in kullanici_db
+                        and kullanici_db[k_adi_inp]["sifre"] == girilen_sifre_hash
+                    ):
+                        # Başarılı giriş, sayacı sıfırla
+                        st.session_state.hatali_giris_sayisi = 0
+                        st.session_state.oturum_aktif = True
+                        st.session_state.aktif_kullanici = k_adi_inp
+                        st.query_params["auth"] = "true"
+                        st.query_params["user"] = k_adi_inp
+                        st.success(f"{k_adi_inp.upper()} olarak giriş yapıldı!")
+                        st.rerun()
+                    else:
+                        st.session_state.hatali_giris_sayisi += 1
+                        kalan_hak = 3 - st.session_state.hatali_giris_sayisi
+                        if st.session_state.hatali_giris_sayisi >= 3:
+                            st.session_state.kilitlenme_bitis_zamani = time.time() + 30
+                            st.session_state.hatali_giris_sayisi = 0
+                            st.error("⚠️ 3 kez hatalı şifre girdiniz. Sistem 30 saniye kilitlendi!")
+                            st.rerun()
+                        else:
+                            st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {kalan_hak}")
 
         st.markdown(
             "<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size:"
@@ -876,6 +892,28 @@ if not st.session_state.oturum_aktif:
             st.query_params["auth"] = "true"
             st.query_params["user"] = "misafir"
             st.rerun()
+
+        st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+
+        # Master Key ile Acil Admin Şifre Kurtarma Paneli
+        with st.expander("🔑 Admin Şifre Kurtarma (Master Key)"):
+            with st.form("master_key_sifre_sifirla"):
+                st.markdown("Şifrenizi unuttuysanız sistem kurtarma anahtarı ile admin şifresini sıfırlayabilirsiniz.")
+                master_key_inp = st.text_input("Kurtarma Anahtarı (Master Recovery Key)", type="password")
+                sifirla_btn = st.form_submit_button("Admin Şifresini Fabrika Ayarına Döndür")
+
+                if sifirla_btn:
+                    # Güvenli master anahtar (st.secrets üzerinden veya varsayılan)
+                    tanimli_master = st.secrets.get("MASTER_RECOVERY_KEY", "aziziye_master_2026")
+                    if master_key_inp == tanimli_master:
+                        if "admin" in st.session_state.kullanicilar:
+                            st.session_state.kullanicilar["admin"]["sifre"] = sifre_hashle("Ss123321")
+                            kullanıcıları_kaydet(st.session_state.kullanicilar)
+                            st.success("Başarılı! Admin şifresi 'Ss123321' olarak sıfırlandı. Şimdi giriş yapabilirsiniz.")
+                        else:
+                            st.error("Admin kullanıcısı veritabanında bulunamadı.")
+                    else:
+                        st.error("Hatalı Kurtarma Anahtarı!")
 
         st.markdown(
             "<div style='margin-top: 20px;'></div>", unsafe_allow_html=True
@@ -1245,7 +1283,6 @@ if menu == "Kurumsal Dashboard & Özet":
         1 for p in st.session_state.personeller if p.get("aktif", True)
     )
 
-    # 1. Sayfa Maskeleme Kontrolleri
     m_urun_cesidi = "🔒 Gizli" if "1. Sayfa: Ürün Çeşidi" in aktif_k_maskeleri else f"{toplam_stok_kalemi} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Çeşit</span>"
     m_toplam_fire = "🔒 Gizli" if "1. Sayfa: Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_mik:,.1f} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Kg</span>"
     m_stok_degeri = "🔒 Gizli" if "1. Sayfa: Stok Değeri" in aktif_k_maskeleri else f"{toplam_envanter_maliyeti:,.0f} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>₺</span>"
@@ -1431,7 +1468,6 @@ if menu == "Kurumsal Dashboard & Özet":
         unsafe_allow_html=True,
     )
 
-    # 1. Sayfa Grafik Alanı Maskeleme Kontrolü
     if "1. Sayfa: Grafik Alanı" in aktif_k_maskeleri:
         st.info("🔒 Dashboard grafik alanı bu kullanıcı için maskelenmiştir (gizlenmiştir).")
     else:
@@ -1588,7 +1624,7 @@ if menu == "Kurumsal Dashboard & Özet":
             unsafe_allow_html=True,
         )
 
-# 1. GÜNCEL STOK DURUMU (2. Sayfa - Kalan Miktar Sütunu Maskeleme)
+# 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -1634,7 +1670,6 @@ elif menu == "Güncel Stok Durumu":
                 default="-",
             )
             
-            # Maskeleme Kontrolü (2. Sayfa - Güncel Stok Durumu: Kalan Miktar)
             gosterilen_kalan_excel = "🔒 Gizli" if "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri else toplam_kalan_ex
             
             excel_liste.append({
@@ -1706,7 +1741,6 @@ elif menu == "Güncel Stok Durumu":
                 default="-",
             )
 
-            # Maskeleme Kontrolü (2. Sayfa - Güncel Stok Durumu: Kalan Miktar)
             final_kalan_gosterim = "🔒 Gizli" if "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri else toplam_kalan
 
             if secilen_depo == "Tümü" or depo == secilen_depo:
@@ -1909,7 +1943,7 @@ elif menu == "Ürün Sil / Düzenle":
         else:
             st.info("Silinmiş ürün kaydı bulunmuyor.")
 
-# 4. FİRE / ZAYİAT GİRİŞİ (2. Sayfa - Kayıtlı Fire ve Zayiatlar Listesi Tablosunun Tamamı Maskeleme)
+# 4. FİRE / ZAYİAT GİRİŞİ
 elif menu == "Fire / Zayiat Girişi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -1987,7 +2021,6 @@ elif menu == "Fire / Zayiat Girişi":
         st.markdown("---")
         st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
         
-        # Maskeleme Kontrolü (2. Sayfa - Kayıtlı Fire ve Zayiatlar Listesi Tablosunun Tamamı)
         if "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi" in aktif_k_maskeleri:
             st.info("🔒 Kayıtlı Fire ve Zayiatlar Listesi tablosu bu kullanıcı için tamamen maskelenmiştir (gizlenmiştir).")
         else:
@@ -2010,7 +2043,7 @@ elif menu == "Fire / Zayiat Girişi":
             else:
                 st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
 
-# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU (3. Sayfa - Seçilen Tarihteki Yemek Üretim ve Maliyet Arşivi Kısmını Maskeleme)
+# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
@@ -2244,7 +2277,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             if u.get("tarih") == secilen_tarih_str
         ]
 
-    # Maskeleme Kontrolü (3. Sayfa - Yemek Üretim ve Maliyet Arşivi)
     if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" in aktif_k_maskeleri:
         st.info("🔒 Yemek Üretim ve Maliyet Arşivi bu kullanıcı için maskelenmiştir (gizlenmiştir).")
     else:
@@ -2356,7 +2388,7 @@ elif menu == "Kalori Hesaplama Aracı":
         )
         st.metric("Toplam Tarif Kalorisi", f"{toplam_kalori:,.0f} kcal")
 
-# 7. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ (4. Sayfa - Sütun Bazlı Maskeleme)
+# 7. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ
 elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -2384,7 +2416,6 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 
             kisi_liste_gosterim = []
             for k in st.session_state.ihtiyac_sahipleri:
-                # 4. Sayfa - İhtiyaç Sahipleri Tablosu Sütun Bazlı Maskeleme
                 tc_maskele = "🔒 Gizli" if "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No" in aktif_k_maskeleri else k.get("tc_hane", "")
                 ad_maskele = "🔒 Gizli" if "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı" in aktif_k_maskeleri else k.get("ad_soyad", "")
                 tel_maskele = "🔒 Gizli" if "4. Sayfa: İhtiyaç Sahipleri - Telefon" in aktif_k_maskeleri else k.get("telefon", "")
@@ -2517,7 +2548,6 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 
             dagitim_gosterim_listesi = []
             for idx, d in enumerate(st.session_state.dagitim_loglari):
-                # 4. Sayfa - Yemek Dağıtımları Tablosu Sütun Bazlı Maskeleme
                 tarih_maskele_d = "🔒 Gizli" if "4. Sayfa: Yemek Dağıtımları - Tarih/Saat" in aktif_k_maskeleri else d.get("tarih", "-")
                 kisi_maskele_d = "🔒 Gizli" if "4. Sayfa: Yemek Dağıtımları - Kişi/Hane" in aktif_k_maskeleri else d.get("kisi", "-")
                 menu_maskele_d = "🔒 Gizli" if "4. Sayfa: Yemek Dağıtımları - Menü" in aktif_k_maskeleri else d.get("menu", "-")
@@ -2683,7 +2713,6 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                         aylik_sefer += 1
                         aylik_porsiyon += pors
 
-                # 4. Sayfa - Sayaç Raporu Sütun Bazlı Maskeleme
                 tc_hane_maskele = "🔒 Gizli" if "4. Sayfa: Sayaç Raporu - T.C./Hane No" in aktif_k_maskeleri else k.get("tc_hane", "-")
                 kisi_ad_maskele = "🔒 Gizli" if "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi" in aktif_k_maskeleri else kisi_adi
                 gunluk_maskele = "🔒 Gizli" if "4. Sayfa: Sayaç Raporu - Günlük Alım" in aktif_k_maskeleri else f"{gunluk_sefer} Kez / {gunluk_porsiyon} Pors."
@@ -2731,7 +2760,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             else:
                 st.info("Listelenecek ihtiyaç sahibi veya dağıtım verisi bulunmuyor.")
 
-# 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ (SOSYAL & İNSAN KAYNAKLARI)
+# 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
 elif menu == "Personel & Çalışma Süresi Takibi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -3445,7 +3474,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.markdown("---")
                         ozel_html_tablo_goster(net_rapor_liste)
 
-# 9. KULLANIM TAKİBİ (5. Sayfa - Depo Ürün Kullanım ve Fire Takibi Tablosu Sütun Bazlı Maskeleme)
+# 9. KULLANIM TAKİBİ
 elif menu == "Kullanım Takibi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -3458,7 +3487,6 @@ elif menu == "Kullanım Takibi":
         kullanim_tablo_verisi = []
         if loglar:
             for l in reversed(loglar):
-                # 5. Sayfa - Kullanım Takibi Sütun Bazlı Maskeleme
                 tarih_maskele_kul = "🔒 Gizli" if "5. Sayfa: Kullanım Takibi - Tarih/Saat" in aktif_k_maskeleri else l.get("tarih", "-")
                 urun_maskele_kul = "🔒 Gizli" if "5. Sayfa: Kullanım Takibi - Ürün Adı" in aktif_k_maskeleri else l.get("urun", "-")
                 tur_maskele_kul = "🔒 Gizli" if "5. Sayfa: Kullanım Takibi - İşlem Türü" in aktif_k_maskeleri else l.get("tur", "Günlük Kullanım")
@@ -3495,7 +3523,7 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Kullanım veya fire hareketi bulunmuyor.")
 
-# 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ (2. Sayfa - Fiyat Sütunu Maskeleme)
+# 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_fiy, col_indir_fiy = st.columns([2, 2])
     with col_b_fiy:
@@ -3509,7 +3537,6 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
         else:
             fiyat_tablo = []
             for g in st.session_state.girisler:
-                # 2. Sayfa - Ürün Birim Fiyatları: Fiyat Sütunu Maskeleme
                 fiyat_goster_birim = "🔒 Gizli" if "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu" in aktif_k_maskeleri else f"{g['fiyat']:,.2f} ₺"
                 fiyat_tablo.append({
                     "Ürün": g["urun"],
@@ -3556,7 +3583,7 @@ elif menu == "Kullanıcı Ayarları":
                             st.error("Bu kullanıcı adı zaten sistemde mevcut!")
                         else:
                             st.session_state.kullanicilar[y_k_adi] = {
-                                "sifre": y_sifre,
+                                "sifre": sifre_hashle(y_sifre),
                                 "tip": y_tip,
                                 "yasakli_menuler": [],
                                 "maskeli_alanlar": [],
@@ -3593,7 +3620,6 @@ elif menu == "Kullanıcı Ayarları":
             st.markdown("---")
             st.subheader("📋 Mevcut Kullanıcılar Listesi")
             
-            # YENİ EKLENTİ: Mevcut kullanıcıların salt okunur durumunu doğrudan tablodan/formdan güncelleyebilme
             with st.form("mevcut_kullanici_salt_okunur_guncelle_form"):
                 st.markdown("**✏️ Mevcut Kullanıcıların Salt Okunur Durumunu Güncelle**")
                 guncellenecek_k_adi = st.selectbox("Düzenlenecek Kullanıcıyı Seçin", [k for k in st.session_state.kullanicilar.keys() if k != "admin"])
@@ -3632,7 +3658,7 @@ elif menu == "Kullanıcı Ayarları":
 
                 if sifre_guncelle_btn:
                     if yeni_sifre_1 and yeni_sifre_1 == yeni_sifre_2:
-                        st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = yeni_sifre_1
+                        st.session_state.kullanicilar[secilen_k_duzenle]["sifre"] = sifre_hashle(yeni_sifre_1)
                         kullanıcıları_kaydet(st.session_state.kullanicilar)
                         st.success(f"'{secilen_k_duzenle}' kullanıcısının şifresi başarıyla güncellendi!")
                     else:
@@ -3700,7 +3726,7 @@ elif menu == "Kullanıcı Ayarları":
                     "4. Sayfa: İhtiyaç Sahipleri - Telefon",
                     "4. Sayfa: İhtiyaç Sahipleri - Adres",
                     "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı",
-                    "4. Sayfa: Yemek Dağıtımları - Tarih/Saati",
+                    "4. Sayfa: Yemek Dağıtımları - Tarih/Saat",
                     "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
                     "4. Sayfa: Yemek Dağıtımları - Menü",
                     "4. Sayfa: Yemek Dağıtımları - Porsiyon",
