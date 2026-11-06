@@ -57,7 +57,6 @@ st.markdown(
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
     
-    /* Yan Menü Arka Planı ve Çerçevesiz Tasarım */
     .stSidebar { 
         background-color: #000000 !important; 
         padding-top: 10px; 
@@ -68,7 +67,6 @@ st.markdown(
         font-size: 13.5px; 
     }
     
-    /* Yan Menü Expander ve Buton Çerçevelerinin Kaldırılması & Liquid Glass Efekti */
     section[data-testid="stSidebar"] div[data-testid="stExpander"] {
         background: transparent !important;
         border: none !important;
@@ -88,7 +86,6 @@ st.markdown(
         padding: 9px 14px !important;
     }
     
-    /* EasyUI Tarzı Liquid Glass Hover Efekti */
     section[data-testid="stSidebar"] div.stButton > button:hover {
         background: rgba(255, 255, 255, 0.07) !important;
         backdrop-filter: blur(16px) !important;
@@ -99,7 +96,6 @@ st.markdown(
         transform: translateX(5px);
     }
     
-    /* Aktif Menü Butonu Stili */
     section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
         background: rgba(255, 255, 255, 0.1) !important;
         backdrop-filter: blur(16px) !important;
@@ -121,7 +117,6 @@ st.markdown(
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div { display: none !important; }
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] { color: transparent !important; }
 
-    /* Ana Sayfa Butonları */
     div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {
         background-color: #121212 !important;
         color: #ffffff !important;
@@ -147,7 +142,6 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* AÇILIR SEÇİM MENÜLERİ VE TAKVİM İKONLARI (BEYAZ ÇİZGİ / OUTLINE DÖNÜŞÜMÜ) */
     div[data-baseweb="menu"], ul[role="listbox"], div[data-baseweb="popover"], div[data-baseweb="calendar"] {
         background: rgba(12, 12, 12, 0.9) !important;
         backdrop-filter: blur(20px) !important;
@@ -158,7 +152,6 @@ st.markdown(
         border-radius: 16px !important;
     }
     
-    /* Takvim ve Sistem İkonlarının Beyaz Çizgi (Outline) Görünümü */
     .stDateInput svg, div[data-baseweb="calendar"] svg, button svg {
         filter: brightness(0) invert(1) !important;
         opacity: 0.85;
@@ -878,14 +871,12 @@ st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI ")
 st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
 st.markdown("---")
 
-# ----------------- SIDEBAR & AĞAÇ MENÜ BİLEŞENLERİ (Logo + Liquid Glass) -----------------
 kullanici_adi_goruntule = (
     st.session_state.aktif_kullanici.upper()
     if st.session_state.oturum_aktif
     else "MİSAFİR"
 )
 
-# Yan Menünün En Üstüne Kurumsal Logo / Simgesi Eklendi
 st.sidebar.markdown(
     """
     <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 12px;">
@@ -1225,7 +1216,6 @@ if menu == "Kurumsal Dashboard & Özet":
         1 for p in st.session_state.personeller if p.get("aktif", True)
     )
 
-    # Maskeleme Kontrolleri
     m_urun_cesidi = "🔒 Gizli" if "Ürün Çeşidi" in aktif_k_maskeleri else f"{toplam_stok_kalemi} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Çeşit</span>"
     m_toplam_fire = "🔒 Gizli" if "Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_mik:,.1f} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>Kg</span>"
     m_stok_degeri = "🔒 Gizli" if "Stok Değeri" in aktif_k_maskeleri else f"{toplam_envanter_maliyeti:,.0f} <span style='font-size: 13px; font-weight: normal; color: #9ca3af;'>₺</span>"
@@ -1396,7 +1386,6 @@ if menu == "Kurumsal Dashboard & Özet":
             st.query_params["menu"] = "Kalori Hesaplama Aracı"
             st.rerun()
 
-    # DASHBOARD GRAFİK WIDGET ALANI (EasyUI Modern Tasarım Entegrasyonu)
     st.markdown("---")
     st.markdown(
         f"<h3 style='font-size: 18px; font-weight: 700; color:"
@@ -1564,7 +1553,7 @@ if menu == "Kurumsal Dashboard & Özet":
             unsafe_allow_html=True,
         )
 
-# 1. GÜNCEL STOK DURUMU
+# 1. GÜNCEL STOK DURUMU (MASKELENEBİLİR)
 elif menu == "Güncel Stok Durumu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -1609,11 +1598,15 @@ elif menu == "Güncel Stok Durumu":
                 ),
                 default="-",
             )
+            
+            # Maskeleme Kontrolü
+            gosterilen_kalan_excel = "🔒 Gizli" if "Stok Miktarları" in aktif_k_maskeleri else toplam_kalan_ex
+            
             excel_liste.append({
                 "Ürün Adı": u,
                 "Kategori": kategori_ex,
                 "Birim": birim_ex,
-                "Kalan Miktar": toplam_kalan_ex,
+                "Kalan Miktar": gosterilen_kalan_excel,
                 "Depo Yeri": depo_ex,
                 "Eklenme/Güncelleme Tarihi": en_son_tarih_ex,
                 "Son İşlemi Yapan": islem_yapan_ex,
@@ -1678,17 +1671,20 @@ elif menu == "Güncel Stok Durumu":
                 default="-",
             )
 
+            # Maskeleme Kontrolü
+            final_kalan_gosterim = "🔒 Gizli" if "Stok Miktarları" in aktif_k_maskeleri else toplam_kalan
+
             if secilen_depo == "Tümü" or depo == secilen_depo:
                 stok_tablosu.append({
                     "Ürün Adı": u,
                     "Kategori": kategori,
                     "Birim": birim,
-                    "Kalan Miktar": toplam_kalan,
+                    "Kalan Miktar": final_kalan_gosterim,
                     "Depo Yeri": depo,
                     "Eklenme Tarihi": en_son_tarih,
                     "İşlemi Yapan": islem_yapan,
                 })
-            if toplam_kalan <= 10.0:
+            if toplam_kalan <= 10.0 and "Stok Miktarları" not in aktif_k_maskeleri:
                 kritik_urunler.append((u, toplam_kalan, birim, depo))
 
         if kritik_urunler:
@@ -1773,6 +1769,10 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
         if st.session_state.girisler:
             fatura_log_tablosu = []
             for g in reversed(st.session_state.girisler):
+                # Maskeleme Kontrolü
+                fiyat_goster = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{g.get('fiyat', 0):,.2f} ₺"
+                tutar_goster = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{(g.get('miktar', 0) * g.get('fiyat', 0)):,.2f} ₺"
+
                 fatura_log_tablosu.append({
                     "Kayıt ID": g.get("id", "-"),
                     "Eklenme Tarihi / Saati": g.get("tarih", "-"),
@@ -1780,10 +1780,8 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "Ürün Adı": g.get("urun", "-"),
                     "Kategori": g.get("kategori", "-"),
                     "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
-                    "Birim Fiyat": f"{g.get('fiyat', 0):,.2f} ₺",
-                    "Toplam Tutar": (
-                        f"{(g.get('miktar', 0) * g.get('fiyat', 0)):,.2f} ₺"
-                    ),
+                    "Birim Fiyat": fiyat_goster,
+                    "Toplam Tutar": tutar_goster,
                     "Depo Yeri": g.get("depo", "-"),
                     "İşlemi Yapan": g.get("islem_yapan", "admin"),
                 })
@@ -1880,7 +1878,7 @@ elif menu == "Ürün Sil / Düzenle":
         else:
             st.info("Silinmiş ürün kaydı bulunmuyor.")
 
-# 4. FİRE / ZAYİAT GİRİŞİ
+# 4. FİRE / ZAYİAT GİRİŞİ (MASKELENEBİLİR)
 elif menu == "Fire / Zayiat Girişi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -1913,9 +1911,9 @@ elif menu == "Fire / Zayiat Girişi":
                     )
                     en_son_fiyat = en_son_kayit.get("fiyat", 0.0)
 
+                fiyat_bilgi_metni = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{en_son_fiyat:,.2f} ₺"
                 st.info(
-                    f"Mevcut Stok: {toplam_stok} | Güncel (En Son Fatura) Birim Fiyat:"
-                    f" {en_son_fiyat:,.2f} ₺"
+                    f"Mevcut Stok: {toplam_stok} | Güncel Birim Fiyat: {fiyat_bilgi_metni}"
                 )
                 fire_miktari = st.number_input(
                     "Fire Miktarı",
@@ -1951,9 +1949,9 @@ elif menu == "Fire / Zayiat Girişi":
                         "islem_yapan": st.session_state.aktif_kullanici,
                     })
                     loglari_kaydet(st.session_state.kullanim_loglari)
+                    zarar_mesaj_goster = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{toplam_zarar:,.2f} ₺"
                     st.success(
-                        f"Fire başarıyla düşüldü. En son fatura fiyatı ({en_son_fiyat:,.2f}"
-                        f" ₺) üzerinden toplam zarar: {toplam_zarar:,.2f} ₺"
+                        f"Fire başarıyla düşüldü. Toplam zarar: {zarar_mesaj_goster}"
                     )
                     st.rerun()
 
@@ -1967,18 +1965,19 @@ elif menu == "Fire / Zayiat Girişi":
         if fire_loglari:
             fire_tablo_verisi = []
             for f_log in reversed(fire_loglari):
+                tutar_maskele = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{f_log.get('tutar', 0):,.2f} ₺"
                 fire_tablo_verisi.append({
                     "Tarih / Saat": f_log.get("tarih", "-"),
                     "Ürün Adı": f_log.get("urun", "-"),
                     "Fire Miktarı": f"{f_log.get('miktar', 0)} Kg",
-                    "Toplam Tutar": f"{f_log.get('tutar', 0):,.2f} ₺",
+                    "Toplam Tutar": tutar_maskele,
                     "İşlemi Yapan": f_log.get("islem_yapan", "admin"),
                 })
             ozel_html_tablo_goster(fire_tablo_verisi)
         else:
             st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
 
-# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
+# 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU (MASKELENEBİLİR)
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
@@ -2091,7 +2090,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 with c_item_mik:
                     st.markdown(f"Miktar: {istenen}")
                 with c_item_mal:
-                    st.markdown(f"Maliyet: **{item_maliyeti:,.2f} ₺**")
+                    maliyet_goster_item = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{item_maliyeti:,.2f} ₺"
+                    st.markdown(f"Maliyet: **{maliyet_goster_item}**")
                 with c_item_sil:
                     if not salt_okunur_modu:
                         if st.button("❌", key=f"sil_item_{idx}"):
@@ -2100,7 +2100,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 excel_sepet_liste.append({
                     "Malzeme": urun,
                     "Miktar": istenen,
-                    "Maliyet (TL)": round(item_maliyeti, 2),
+                    "Maliyet (TL)": "Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else round(item_maliyeti, 2),
                 })
 
             if silinecek_index is not None:
@@ -2177,9 +2177,11 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
             m1, m2 = st.columns(2)
             with m1:
-                st.metric("Toplam Maliyet", f"{toplam_maliyet:,.2f} ₺")
+                toplam_maliyet_metin = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{toplam_maliyet:,.2f} ₺"
+                st.metric("Toplam Maliyet", toplam_maliyet_metin)
             with m2:
-                st.metric("Kişi Başı Maliyet", f"{kisi_basi_maliyet:,.2f} ₺")
+                kisi_basi_metin = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{kisi_basi_maliyet:,.2f} ₺"
+                st.metric("Kişi Başı Maliyet", kisi_basi_metin)
 
             pdf_data = tablo_to_html_pdf_bytes(
                 f"Yemek Maliyet Raporu - {yemek_adi}", excel_sepet_liste
@@ -2229,13 +2231,14 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 })
             else:
                 for m in u_kayit.get("malzemeler", []):
+                    maliyet_maskele_arsiv = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{m.get('tutar', 0):,.2f} ₺"
                     arsiv_tablo_verisi.append({
                         "Tarih": u_kayit.get("tarih", "-"),
                         "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                         "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                         "Kullanılan Malzeme": m.get("urun", "-"),
                         "Miktar": m.get("miktar", 0),
-                        "Maliyet": f"{m.get('tutar', 0):,.2f} ₺",
+                        "Maliyet": maliyet_maskele_arsiv,
                         "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                     })
                     excel_arsiv_listesi.append({
@@ -2244,7 +2247,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                         "Kullanılan Malzeme": m.get("urun", "-"),
                         "Miktar": m.get("miktar", 0),
-                        "Maliyet (TL)": round(m.get("tutar", 0), 2),
+                        "Maliyet (TL)": "Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else round(m.get("tutar", 0), 2),
                         "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                     })
 
@@ -2320,7 +2323,7 @@ elif menu == "Kalori Hesaplama Aracı":
         )
         st.metric("Toplam Tarif Kalorisi", f"{toplam_kalori:,.0f} kcal")
 
-# 7. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ
+# 7. İHTİYAÇ SAHİBİ & YEMEK DAĞITIM TAKİBİ (SOSYAL & İNSAN KAYNAKLARI - MASKELENEBİLİR)
 elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -2348,12 +2351,17 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
 
             kisi_liste_gosterim = []
             for k in st.session_state.ihtiyac_sahipleri:
+                # Maskeleme Kontrolü (Hassas Kişi Bilgileri)
+                tc_maskele = "🔒 Gizli" if "Hassas Kişi Bilgileri" in aktif_k_maskeleri else k.get("tc_hane", "")
+                tel_maskele = "🔒 Gizli" if "Hassas Kişi Bilgileri" in aktif_k_maskeleri else k.get("telefon", "")
+                adres_maskele = "🔒 Gizli" if "Hassas Kişi Bilgileri" in aktif_k_maskeleri else k.get("adres", "")
+
                 kisi_liste_gosterim.append({
                     "Kayıt No": k["id"],
-                    "T.C. Kimlik No / Hane No": k.get("tc_hane", ""),
+                    "T.C. Kimlik No / Hane No": tc_maskele,
                     "Adı Soyadı": k["ad_soyad"],
-                    "Telefon": k["telefon"],
-                    "Adres": k["adres"],
+                    "Telefon": tel_maskele,
+                    "Adres": adres_maskele,
                     "Birey Sayısı": k["birey_sayisi"],
                     "Eklenme Zamanı": k.get("eklenme_tarihi", "-"),
                     "İşlemi Yapan": k.get("islem_yapan", "admin"),
@@ -2634,8 +2642,10 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                         aylik_sefer += 1
                         aylik_porsiyon += pors
 
+                tc_hane_maskele = "🔒 Gizli" if "Hassas Kişi Bilgileri" in aktif_k_maskeleri else k.get("tc_hane", "-")
+
                 sayac_tablosu.append({
-                    "T.C. / Hane No": k.get("tc_hane", "-"),
+                    "T.C. / Hane No": tc_hane_maskele,
                     "İhtiyaç Sahibi": kisi_adi,
                     "Günlük Alım (Kez / Porsiyon)": (
                         f"{gunluk_sefer} Kez / {gunluk_porsiyon} Pors."
@@ -2649,7 +2659,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 })
 
                 excel_sayac_liste.append({
-                    "T.C. / Hane No": k.get("tc_hane", "-"),
+                    "T.C. / Hane No": tc_hane_maskele,
                     "İhtiyaç Sahibi": kisi_adi,
                     "Günlük Kez": gunluk_sefer,
                     "Günlük Porsiyon": gunluk_porsiyon,
@@ -2681,7 +2691,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             else:
                 st.info("Listelenecek ihtiyaç sahibi veya dağıtım verisi bulunmuyor.")
 
-# 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ
+# 8. PERSONEL & ÇALIŞMA SÜRESİ TAKİBİ (SOSYAL & İNSAN KAYNAKLARI - MASKELENEBİLİR)
 elif menu == "Personel & Çalışma Süresi Takibi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -2725,8 +2735,12 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                     p.get("izinler", []),
                     st.session_state.resmi_tatiller,
                 )
+                
+                # Maskeleme Kontrolü (Hassas Kişi Bilgileri)
+                tc_p_maskele = "🔒 Gizli" if "Hassas Kişi Bilgileri" in aktif_k_maskeleri else p.get("tc", "-")
+
                 p_gosterim.append({
-                    "T.C. No": p.get("tc", "-"),
+                    "T.C. No": tc_p_maskele,
                     "Adı Soyadı": p["ad_soyad"],
                     "Görevi": p["gorev"],
                     "İşe Başlama": bas_tarih_str,
@@ -3394,7 +3408,7 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                         st.markdown("---")
                         ozel_html_tablo_goster(net_rapor_liste)
 
-# 9. KULLANIM TAKİBİ
+# 9. KULLANIM TAKİBİ (MASKELENEBİLİR)
 elif menu == "Kullanım Takibi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -3407,12 +3421,13 @@ elif menu == "Kullanım Takibi":
         kullanim_tablo_verisi = []
         if loglar:
             for l in reversed(loglar):
+                tutar_maskele_kul = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{l.get('tutar', 0):,.2f} ₺"
                 kullanim_tablo_verisi.append({
                     "Tarih / Saat": l.get("tarih", "-"),
                     "Ürün Adı": l.get("urun", "-"),
                     "İşlem Türü": l.get("tur", "Günlük Kullanım"),
                     "Miktar": f"{l.get('miktar', 0)}",
-                    "Tutar": f"{l.get('tutar', 0):,.2f} ₺",
+                    "Tutar": tutar_maskele_kul,
                     "İşlemi Yapan": l.get("islem_yapan", "admin"),
                 })
 
@@ -3436,7 +3451,7 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Kullanım veya fire hareketi bulunmuyor.")
 
-# 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
+# 10. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ (MASKELENEBİLİR)
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_fiy, col_indir_fiy = st.columns([2, 2])
     with col_b_fiy:
@@ -3448,10 +3463,14 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
                 for g in st.session_state.girisler
             ]
         else:
-            fiyat_tablo = [
-                {"Ürün": g["urun"], "Fiyat": g["fiyat"], "Birim": g["birim"]}
-                for g in st.session_state.girisler
-            ]
+            fiyat_tablo = []
+            for g in st.session_state.girisler:
+                fiyat_goster_birim = "🔒 Gizli" if "Fiyat ve Maliyetler" in aktif_k_maskeleri else f"{g['fiyat']:,.2f} ₺"
+                fiyat_tablo.append({
+                    "Ürün": g["urun"],
+                    "Fiyat": fiyat_goster_birim,
+                    "Birim": g["birim"],
+                })
         ozel_html_tablo_goster(fiyat_tablo)
 
 # 11. KULLANICI AYARLARI (SADECE ADMİN)
@@ -3607,13 +3626,16 @@ elif menu == "Kullanıcı Ayarları":
                     "Toplam Fire",
                     "Stok Değeri",
                     "Aktif Personel",
+                    "Stok Miktarları",
+                    "Fiyat ve Maliyetler",
+                    "Hassas Kişi Bilgileri"
                 ]
 
                 secilen_maskeler = []
                 for alan in maskelenebilir_alanlar:
                     mask_durum = alan in mevcut_maskeler
                     if st.checkbox(
-                        f"🔒 Maskele / Gizle: {alan} (Dashboard üzerinde gizle)",
+                        f"🔒 Maskele / Gizle: {alan}",
                         value=mask_durum,
                         key=f"mask_{yetki_verilecek_k}_{alan}",
                     ):
