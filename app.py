@@ -15,24 +15,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-def ozel_html_tablo_goster(veri_listesi):
-    if not veri_listesi:
-        st.info("Gösterilecek veri bulunmuyor.")
-        return
-    
-    headers = list(veri_listesi[0].keys())
-    html = "<table class='custom-table'><thead><tr>"
-    for h in headers:
-        html += f"<th>{h}</th>"
-    html += "</tr></thead><tbody>"
-    
-    for row in veri_listesi:
-        html += "<tr>"
-        for h in headers:
-            html += f"<td>{row.get(h, '')}</td>"
-        html += "</tr>"
-    html += "</tbody></table>"
-    st.markdown(html, unsafe_allow_html=True)
 # Sayfa Yapılandırması
 st.set_page_config(
     page_title="Aziziye - Aşevi Takip Sistemi",
@@ -1238,6 +1220,26 @@ def ortak_indirme_alani(excel_veri, pdf_veri, dosya_adi_koku, unique_key):
             )
 
 
+def ozel_html_tablo_goster(veri_listesi):
+    if not veri_listesi:
+        st.info("Gösterilecek veri bulunmuyor.")
+        return
+    
+    headers = list(veri_listesi[0].keys())
+    html = "<table class='custom-table'><thead><tr>"
+    for h in headers:
+        html += f"<th>{h}</th>"
+    html += "</tr></thead><tbody>"
+    
+    for row in veri_listesi:
+        html += "<tr>"
+        for h in headers:
+            html += f"<td>{row.get(h, '')}</td>"
+        html += "</tr>"
+    html += "</tbody></table>"
+    st.markdown(html, unsafe_allow_html=True)
+
+
 menu = st.session_state.aktif_menu
 
 if not yonetici_modu and menu in yasakli_menuler_listesi:
@@ -1811,7 +1813,12 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 st.rerun()
 
         st.markdown("---")
-        st.subheader("📋 Mal Alımı / Fatura Log Kayıtları Arşivi")
+        
+        # Madde 1: Fatura Log Kayıtları Arşivi başlığı, Düzenleme alanı ve Excel/PDF Export butonları
+        col_b_fatura, col_indir_fatura = st.columns([2, 2])
+        with col_b_fatura:
+            st.subheader("📋 Mal Alımı / Fatura Log Kayıtları Arşivi")
+
         if st.session_state.girisler:
             fatura_log_tablosu = []
             for g in reversed(st.session_state.girisler):
@@ -1827,6 +1834,34 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "Depo Yeri": g.get("depo", "-"),
                     "İşlemi Yapan": g.get("islem_yapan", "admin"),
                 })
+
+            excel_fatura_data = tablo_to_excel_bytes(fatura_log_tablosu, "Aziziye Aşevi - Mal Alımı Fatura Arşivi")
+            pdf_fatura_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Mal Alımı Fatura Arşivi", fatura_log_tablosu)
+            with col_indir_fatura:
+                ortak_indirme_alani(excel_fatura_data, pdf_fatura_data, "fatura_mal_alimi_arsivi", "fatura_arsiv_sayfasi")
+
+            # Kayıt Düzenleme Alanı (Depo ve Kategori Yanlış Seçildiğinde Düzeltmek İçin)
+            with st.expander("✏️ Seçili Fatura / Mal Alım Kaydını Düzenle (Depo veya Kategori Değiştir)"):
+                with st.form("fatura_duzenle_form"):
+                    secenekler_fatura_edit = [f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')}, Depo: {g.get('depo', '-')})" for g in st.session_state.girisler]
+                    secilen_edit_fatura_str = st.selectbox("Düzenlenecek Kaydı Seçin", secenekler_fatura_edit)
+                    
+                    hedef_id = secilen_edit_fatura_str.split(" - ")[0]
+                    mevcut_kayit_obj = next((g for g in st.session_state.girisler if g["id"] == hedef_id), None)
+                    
+                    yeni_kat_sec = st.selectbox("Yeni Kategori", ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"], index=0 if not mevcut_kayit_obj else max(0, ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"].index(mevcut_kayit_obj.get("kategori", "SEBZE")) if mevcut_kayit_obj.get("kategori") in ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"] else 0))
+                    yeni_depo_sec = st.selectbox("Yeni Depo Yeri", ["Soğuk Hava Deposu +5/+6", "Soğuk Hava Deposu -18", "Sebze Deposu", "Kuru Gıda Deposu"], index=0)
+                    yeni_fiyat_sec = st.number_input("Güncel Birim Fiyat (TL)", min_value=0.01, value=float(mevcut_kayit_obj.get("fiyat", 1.0)) if mevcut_kayit_obj else 1.0, step=0.1)
+                    
+                    duzenle_submit_btn = st.form_submit_button("Değişiklikleri Kaydet ve Güncelle", type="primary")
+                    if duzenle_submit_btn and mevcut_kayit_obj:
+                        mevcut_kayit_obj["kategori"] = yeni_kat_sec
+                        mevcut_kayit_obj["depo"] = yeni_depo_sec
+                        mevcut_kayit_obj["fiyat"] = yeni_fiyat_sec
+                        verileri_kaydet(st.session_state.girisler)
+                        st.success("Kayıt başarıyla güncellendi!")
+                        st.rerun()
+
             ozel_html_tablo_goster(fatura_log_tablosu)
         else:
             st.info("Kayıtlı mal alımı faturası bulunmuyor.")
@@ -1898,7 +1933,12 @@ elif menu == "Ürün Sil / Düzenle":
                             st.rerun()
 
         st.markdown("---")
-        st.subheader("📋 Silinen Ürünler Arşivi")
+        
+        # Madde 2: Silinen Ürünler Arşivi için PDF ve Excel butonları
+        col_b_silinen, col_indir_silinen = st.columns([2, 2])
+        with col_b_silinen:
+            st.subheader("📋 Silinen Ürünler Arşivi")
+
         if st.session_state.silinen_urun_loglari:
             silinen_tablo_verisi = [
                 {
@@ -1910,6 +1950,12 @@ elif menu == "Ürün Sil / Düzenle":
                 }
                 for sl in st.session_state.silinen_urun_loglari
             ]
+            
+            excel_silinen_data = tablo_to_excel_bytes(silinen_tablo_verisi, "Aziziye Aşevi - Silinen Ürünler Arşivi")
+            pdf_silinen_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Silinen Ürünler Arşivi", silinen_tablo_verisi)
+            with col_indir_silinen:
+                ortak_indirme_alani(excel_silinen_data, pdf_silinen_data, "silinen_urunler_arsivi", "silinen_arsiv_sayfasi")
+
             ozel_html_tablo_goster(silinen_tablo_verisi)
         else:
             st.info("Silinmiş ürün kaydı bulunmuyor.")
@@ -1924,6 +1970,14 @@ elif menu == "Fire / Zayiat Girişi":
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
         else:
             with st.form("fire_formu"):
+                # Madde 3: Fire tarihi ve saati seçimi
+                col_f_t1, col_f_t2 = st.columns(2)
+                with col_f_t1:
+                    fire_tarihi_secim = st.date_input("📅 Fire / Zayiat Tarihi", value=datetime.date.today())
+                with col_f_t2:
+                    fire_saati_secim = st.time_input("⏰ Fire Saati", value=datetime.datetime.now().time())
+                fire_tarih_str = f"{fire_tarihi_secim.strftime('%Y-%m-%d')} {fire_saati_secim.strftime('%H:%M')}"
+
                 benzersiz_urunler = sorted(
                     list(set(g["urun"] for g in st.session_state.girisler))
                 )
@@ -1973,7 +2027,7 @@ elif menu == "Fire / Zayiat Girişi":
 
                     verileri_kaydet(st.session_state.girisler)
                     st.session_state.kullanim_loglari.append({
-                        "tarih": simdi_tr_str("%Y-%m-%d %H:%M"),
+                        "tarih": fire_tarih_str,
                         "urun": secilen_gercek_urun,
                         "tur": "Fire/Zayiat",
                         "miktar": fire_miktari,
@@ -1982,12 +2036,16 @@ elif menu == "Fire / Zayiat Girişi":
                     })
                     loglari_kaydet(st.session_state.kullanim_loglari)
                     st.success(
-                        f"Fire başarıyla düşüldü. Toplam zarar: {toplam_zarar:,.2f} ₺"
+                        f"Fire başarıyla düşüldü ({fire_tarih_str}). Toplam zarar: {toplam_zarar:,.2f} ₺"
                     )
                     st.rerun()
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
+        
+        # Madde 3: Fire / Zayiatlar listesi için Excel ve PDF butonları
+        col_b_fire, col_indir_fire = st.columns([2, 2])
+        with col_b_fire:
+            st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
         
         if "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi" in aktif_k_maskeleri:
             st.info("🔒 Kayıtlı Fire ve Zayiatlar Listesi tablosu bu kullanıcı için tamamen maskelenmiştir (gizlenmiştir).")
@@ -2007,6 +2065,12 @@ elif menu == "Fire / Zayiat Girişi":
                         "Toplam Tutar": f"{f_log.get('tutar', 0):,.2f} ₺",
                         "İşlemi Yapan": f_log.get("islem_yapan", "admin"),
                     })
+                
+                excel_fire_data = tablo_to_excel_bytes(fire_tablo_verisi, "Aziziye Aşevi - Fire ve Zayiat Raporu")
+                pdf_fire_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fire ve Zayiat Raporu", fire_tablo_verisi)
+                with col_indir_fire:
+                    ortak_indirme_alani(excel_fire_data, pdf_fire_data, "fire_ve_zayiat_listesi", "fire_arsiv_sayfasi")
+
                 ozel_html_tablo_goster(fire_tablo_verisi)
             else:
                 st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
@@ -2228,18 +2292,22 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             st.info("Henüz sepete malzeme eklenmedi.")
 
     st.markdown("---")
-    if secilen_tarih_str == "TÜMÜ":
-        st.subheader("📚 Tüm Zamanların Yemek Üretim ve Maliyet Arşivi")
-        secilen_gun_uretimleri = st.session_state.yemek_uretim_arsivi
-    else:
-        st.subheader(
-            f"📅 Seçilen Tarihteki ({secilen_tarih_str}) Yemek Üretim ve Maliyet Arşivi"
-        )
-        secilen_gun_uretimleri = [
-            u
-            for u in st.session_state.yemek_uretim_arsivi
-            if u.get("tarih") == secilen_tarih_str
-        ]
+    
+    # Madde 4: Seçilen Tarihlerdeki Yemek Üretim ve Maliyet Arşivi için başlık ve dışa aktarım
+    col_b_arsiv, col_indir_arsiv = st.columns([2, 2])
+    with col_b_arsiv:
+        if secilen_tarih_str == "TÜMÜ":
+            st.subheader("📚 Tüm Zamanların Yemek Üretim ve Maliyet Arşivi")
+            secilen_gun_uretimleri = st.session_state.yemek_uretim_arsivi
+        else:
+            st.subheader(
+                f"📅 Seçilen Tarihteki ({secilen_tarih_str}) Yemek Üretim ve Maliyet Arşivi"
+            )
+            secilen_gun_uretimleri = [
+                u
+                for u in st.session_state.yemek_uretim_arsivi
+                if u.get("tarih") == secilen_tarih_str
+            ]
 
     if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" in aktif_k_maskeleri:
         st.info("🔒 Yemek Üretim ve Maliyet Arşivi bu kullanıcı için maskelenmiştir (gizlenmiştir).")
@@ -2280,8 +2348,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
 
-            ozel_html_tablo_goster(arsiv_tablo_verisi)
-
             rapor_adi_etiketi = (
                 "tum_zamanlar_yemek_uretim_raporu"
                 if secilen_tarih_str == "TÜMÜ"
@@ -2298,17 +2364,15 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             )
             pdf_arsiv_data = tablo_to_html_pdf_bytes(baslik_etiketi, excel_arsiv_listesi)
 
-            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-            col_sec_arsiv, col_btn_arsiv = st.columns([2, 2])
-            with col_sec_arsiv:
-                st.markdown(f"**Arşiv Raporunu İndir ({secilen_tarih_str})**")
-            with col_btn_arsiv:
+            with col_indir_arsiv:
                 ortak_indirme_alani(
                     excel_arsiv_data,
                     pdf_arsiv_data,
                     rapor_adi_etiketi,
                     f"arsiv_{secilen_tarih_str}",
                 )
+
+            ozel_html_tablo_goster(arsiv_tablo_verisi)
         else:
             st.info("Seçilen kriterde kayıtlı yemek üretim ve maliyet arşivi bulunmuyor.")
 
