@@ -3447,7 +3447,7 @@ elif menu == "Kullanım Takibi":
                 })
 
         excel_kul_data = tablo_to_excel_bytes(
-            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım dan Fire Takibi Raporu"
+            kullanim_tablo_verisi, "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu"
         )
         pdf_kul_data = tablo_to_html_pdf_bytes(
             "Aziziye Aşevi - Kullanım ve Fire Takibi Raporu", kullanim_tablo_verisi
@@ -3681,11 +3681,13 @@ elif menu == "Kullanıcı Ayarları":
 
                 st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
                 if st.button("Yetki ve Maskeleme Ayarlarını Kaydet", type="primary"):
-                    st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = secilen_yasaklar
-                    st.session_state.kullanicilar[yetki_verilecek_k]["maskeli_alanlar"] = secilen_maskeler
-                    kullanıcıları_kaydet(st.session_state.kullanicilar)
-                    st.success(
-                        f"'{yetki_verilecek_k}' kullanıcısının sayfa ve sütun bazlı maskeleme ayarları başarıyla"
-                        " güncellendi!"
-                    )
-                    st.rerun()
+                    try:
+                        st.session_state.kullanicilar[yetki_verilecek_k]["yasakli_menuler"] = secilen_yasaklar
+                        st.session_state.kullanicilar[yetki_verilecek_k]["maskeli_alanlar"] = secilen_maskeler
+                        kullanıcıları_kaydet(st.session_state.kullanicilar)
+                        st.success(
+                            f"İşlem tamamlanmıştır: '{yetki_verilecek_k}' kullanıcısının yetki ve maskeleme ayarları başarıyla gerçekleştirilmiştir!"
+                        )
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Hata oluştu: Ayarlar kaydedilirken bir sorun yaşandı ({e}).")
