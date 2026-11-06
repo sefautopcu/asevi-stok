@@ -3501,7 +3501,7 @@ elif menu == "Kullanım Takibi":
         else:
             st.info("Kullanım veya fire hareketi bulunmuyor.")
 
-# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (DÖNEMSEL DEVİR MANTIĞIYLA)
+# 9.1 KAPSAMLI ENVANTER VE HAREKET RAPORU (DÖNEMSEL / YILLIK DEVİR MANTIĞIYLA)
 elif menu == "Kapsamlı Envanter ve Hareket Raporu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -3509,14 +3509,23 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
         col_b_kapsam, col_indir_kapsam = st.columns([2, 2])
         with col_b_kapsam:
             st.header("📊 Kapsamlı Envanter ve Hareket Raporu")
-            st.markdown("Seçilen döneme ait devreden (açılış) stoğu, yeni gelen alımları, harcanan, fire ve güncel stok dengesini inceleyin.")
+            st.markdown("Seçilen döneme ait devreden (açılış) stoğu, yeni gelen alımları, harcanan, fire ve güncel stok dengesini aylık veya yıllık olarak inceleyin.")
 
-        # Dönem Seçimi (Örn: Kasım 2026)
-        c_donem1, c_donem2 = st.columns(2)
-        with c_donem1:
-            rapor_ayi = st.selectbox("Rapor Dönemi / Ayı", ["2026-10 (Ekim)", "2026-11 (Kasım)", "2026-12 (Aralık)"], index=1)
+        # Rapor Türü Seçimi (Aylık veya Yıllık)
+        c_tur1, c_tur2 = st.columns(2)
+        with c_tur1:
+            rapor_tipi = st.selectbox("Rapor Periyodu", ["Aylık Rapor", "Yıllık Rapor"])
         
-        secilen_yil_ay = rapor_ayi.split(" ")[0] # Örn: "2026-11"
+        if rapor_tipi == "Aylık Rapor":
+            with c_tur2:
+                rapor_ayi = st.selectbox("Rapor Dönemi / Ayı", ["2026-10 (Ekim)", "2026-11 (Kasım)", "2026-12 (Aralık)"], index=1)
+            secilen_filtre = rapor_ayi.split(" ")[0] # Örn: "2026-11"
+            filtre_turu = "ay"
+        else:
+            with c_tur2:
+                rapor_yili = st.selectbox("Rapor Yılı", ["2026", "2027", "2028"], index=0)
+            secilen_filtre = rapor_yili # Örn: "2026"
+            filtre_turu = "yil"
 
         tum_urunler = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
         kapsamli_veri_listesi = []
@@ -3525,59 +3534,73 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             birim = next((g["birim"] for g in st.session_state.girisler if g["urun"] == u), "Kg")
             kategori = next((g["kategori"] for g in st.session_state.girisler if g["urun"] == u), "GENEL")
 
-            # 1. Devreden Stok (Seçilen ayın başından ÖNCEKİ kalan miktar veya önceki dönemin devri)
-            devreden_stok = sum(
-                g["kalan"] for g in st.session_state.girisler 
-                if g["urun"] == u and g.get("tarih", "2026-01-01")[:7] < secilen_yil_ay
-            )
-            if devreden_stok == 0:
-                ilk_kayit = min((g for g in st.session_state.girisler if g["urun"] == u), key=lambda x: x.get("tarih", ""), default=None)
-                if ilk_kayit and ilk_kayit.get("tarih", "")[:7] == secilen_yil_ay:
-                    devreden_stok = 0.0
+            if filtre_turu == "ay":
+                # 1. Aylık Devreden Stok
+                devreden_stok = sum(
+                    g["kalan"] for g in st.session_state.girisler 
+                    if g["urun"] == u and g.get("tarih", "2026-01-01")[:7] < secilen_filtre
+                )
+                # 2. Bu Ay Gelen
+                donem_gelen = sum(
+                    g["miktar"] for g in st.session_state.girisler 
+                    if g["urun"] == u and g.get("tarih", "")[:7] == secilen_filtre
+                )
+                # 3. Bu Ayki Fire ve Harcamalar
+                toplam_fire = sum(
+                    l["miktar"] for l in st.session_state.kullanim_loglari 
+                    if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_filtre
+                )
+                log_harcanan = sum(
+                    l["miktar"] for l in st.session_state.kullanim_loglari 
+                    if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_filtre
+                )
+            else:
+                # 1. Yıllık Devreden Stok (Seçilen yıldan önceki yıllar)
+                devreden_stok = sum(
+                    g["kalan"] for g in st.session_state.girisler 
+                    if g["urun"] == u and g.get("tarih", "2026-01-01")[:4] < secilen_filtre
+                )
+                # 2. Bu Yıl Gelen
+                donem_gelen = sum(
+                    g["miktar"] for g in st.session_state.girisler 
+                    if g["urun"] == u and g.get("tarih", "")[:4] == secilen_filtre
+                )
+                # 3. Bu Yılki Fire ve Harcamalar
+                toplam_fire = sum(
+                    l["miktar"] for l in st.session_state.kullanim_loglari 
+                    if l.get("urun"] == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:4] == secilen_filtre
+                )
+                log_harcanan = sum(
+                    l["miktar"] for l in st.session_state.kullanim_loglari 
+                    if l.get("urun"] == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:4] == secilen_filtre
+                )
 
-            # 2. Bu Ay Gelen (Seçilen ay içinde yapılan alımlar)
-            bu_ay_gelen = sum(
-                g["miktar"] for g in st.session_state.girisler 
-                if g["urun"] == u and g.get("tarih", "")[:7] == secilen_yil_ay
-            )
-
-            toplam_gelen_arz = devreden_stok + bu_ay_gelen
-
-            # 3. Bu Ayki Fire ve Harcamalar
-            toplam_fire = sum(
-                l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun") == u and l.get("tur") == "Fire/Zayiat" and l.get("tarih", "")[:7] == secilen_yil_ay
-            )
-
-            log_harcanan = sum(
-                l["miktar"] for l in st.session_state.kullanim_loglari 
-                if l.get("urun") == u and ("Kullanım" in l.get("tur", "") or "Yemek" in l.get("tur", "")) and l.get("tarih", "")[:7] == secilen_yil_ay
-            )
-
+            toplam_gelen_arz = devreden_stok + donem_gelen
             hesaplanan_fark = max(0.0, toplam_gelen_arz - sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u) - toplam_fire)
             toplam_harcanan = max(log_harcanan, hesaplanan_fark)
-
             guncel_stok = sum(g["kalan"] for g in st.session_state.girisler if g["urun"] == u)
+
+            baslik_donem_adi = f"Ay ({secilen_filtre})" if filtre_turu == "ay" else f"Yıl ({secilen_filtre})"
 
             kapsamli_veri_listesi.append({
                 "Ürün Adı": u,
                 "Kategori": kategori,
                 "Birim": birim,
                 "Devreden Stok (Açılış)": f"{devreden_stok:,.1f} {birim}",
-                "Bu Ay Gelen": f"{bu_ay_gelen:,.1f} {birim}",
+                f"Dönem Gelen ({baslik_donem_adi})": f"{donem_gelen:,.1f} {birim}",
                 "Toplam Harcanan": f"{toplam_harcanan:,.1f} {birim}",
                 "Toplam Fire": f"{toplam_fire:,.1f} {birim}",
                 "Güncel Stok": f"{guncel_stok:,.1f} {birim}",
             })
 
-        excel_kapsam_data = tablo_to_excel_bytes(kapsamli_veri_listesi, f"Aziziye Aşevi - Envanter Raporu ({secilen_yil_ay})")
-        pdf_kapsam_data = tablo_to_html_pdf_bytes(f"Aziziye Aşevi - Envanter Raporu ({secilen_yil_ay})", kapsamli_veri_listesi)
+        excel_kapsam_data = tablo_to_excel_bytes(kapsamli_veri_listesi, f"Aziziye Aşevi - Envanter Raporu ({secilen_filtre})")
+        pdf_kapsam_data = tablo_to_html_pdf_bytes(f"Aziziye Aşevi - Envanter Raporu ({secilen_filtre})", kapsamli_veri_listesi)
 
         with col_indir_kapsam:
             ortak_indirme_alani(
                 excel_kapsam_data,
                 pdf_kapsam_data,
-                f"envanter_raporu_{secilen_yil_ay}",
+                f"envanter_raporu_{secilen_filtre}",
                 "kapsamli_rapor_sayfasi",
             )
 
@@ -3761,7 +3784,7 @@ elif menu == "Kullanıcı Ayarları":
                     "4. Sayfa: Sayaç Raporu - T.C./Hane No",
                     "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi",
                     "4. Sayfa: Sayaç Raporu - Günlük Alım",
-                    "4. Sayfa: Sayaç Raporu - Haftalık Alım",
+                    "4.Sayfa: Sayaç Raporu - Haftalık Alım",
                     "4. Sayfa: Sayaç Raporu - Aylık Alım",
                     "5. Sayfa: Kullanım Takibi - Tarih/Saat",
                     "5. Sayfa: Kullanım Takibi - Ürün Adı",
