@@ -435,6 +435,7 @@ misafir_yasaklar_varsayilan = [
     "Yeni Mal Alımı / Fatura Ekle",
     "Ürün Sil / Düzenle",
     "Fire / Zayiat Girişi",
+    "Toplu Stok Düşümü & Sarfiyat",
     "Ürün Birim Fiyatları & Ay Analizi",
     "Günlük Yemek Üretimi & Maliyet Raporu",
     "Kalori Hesaplama Aracı",
@@ -690,6 +691,7 @@ gecerli_menuler = [
     "Yeni Mal Alımı / Fatura Ekle",
     "Ürün Sil / Düzenle",
     "Fire / Zayiat Girişi",
+    "Toplu Stok Düşümü & Sarfiyat",
     "Ürün Birim Fiyatları & Ay Analizi",
     "Günlük Yemek Üretimi & Maliyet Raporu",
     "Kalori Hesaplama Aracı",
@@ -1042,6 +1044,7 @@ menu_gruplari = {
         ("Yeni Mal Alımı / Fatura Ekle", ""),
         ("Ürün Sil / Düzenle", ""),
         ("Fire / Zayiat Girişi", ""),
+        ("Toplu Stok Düşümü & Sarfiyat", ""),
         ("Ürün Birim Fiyatları & Ay Analizi", ""),
         ("Depo Yönetimi", str(len(st.session_state.depolar))),
     ],
@@ -1076,6 +1079,7 @@ for grup_adi, alt_menuler in menu_gruplari.items():
             "Güncel Stok Durumu",
             "Ürün Sil / Düzenle",
             "Fire / Zayiat Girişi",
+            "Toplu Stok Düşümü & Sarfiyat",
             "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
             "Personel & Çalışma Süresi Takibi",
             "Kullanım Takibi",
@@ -2204,6 +2208,91 @@ elif menu == "Fire / Zayiat Girişi":
             else:
                 st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
 
+# YENİ EKLENEN: TOPLU STOK DÜŞÜMÜ & SARFİYAT
+elif menu == "Toplu Stok Düşümü & Sarfiyat":
+    if misafir_modu:
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    else:
+        st.header("🔄 Toplu Stok Düşümü ve Kullanılan Ürünler")
+        st.markdown("Geçmiş yemek tarifleri seçmek zorunda kalmadan, kullanılan malzemeleri ve miktarlarını seçerek doğrudan stoktan düşürebilir ve kullanılan ürünler listesine ekleyebilirsiniz.")
+        
+        if salt_okunur_modu:
+            st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda toplu stok düşümü yapamazsınız.")
+        else:
+            col_form1, col_form2 = st.columns(2)
+            
+            with col_form1:
+                st.subheader("Malzeme Çıkış Formu")
+                benzersiz_urunler_toplu = sorted(list(set(g["urun"] for g in st.session_state.girisler)))
+                
+                if benzersiz_urunler_toplu:
+                    selected_item = st.selectbox("Malzeme Seçin", benzersiz_urunler_toplu)
+                    
+                    # Seçilen malzemenin toplam stok miktarını ve birimini bulma
+                    ilgili_girisler_toplu = [g for g in st.session_state.girisler if g["urun"] == selected_item and g["kalan"] > 0]
+                    current_stock = sum(g["kalan"] for g in ilgili_girisler_toplu)
+                    unit = ilgili_girisler_toplu[0].get("birim", "Kg") if ilgili_girisler_toplu else "Kg"
+                    
+                    st.info(f"Mevcut Stok: {current_stock} {unit}")
+                    
+                    used_amount = st.number_input(f"Kullanılan Miktar ({unit})", min_value=0.1, max_value=float(current_stock) if current_stock > 0 else 1.0, value=1.0, step=0.5)
+                    description = st.text_input("Açıklama / Not (Örn: Kazan yemeği, günlük dağıtım vb.)", "Günlük Aşevi Üretimi")
+                    
+                    if st.button("Stoktan Düş ve Kullanılanlara Ekle", type="primary"):
+                        kalan_dusulecek = used_amount
+                        harcanan_tutar = 0.0
+                        
+                        for g in ilgili_girisler_toplu:
+                            if kalan_dusulecek <= 0:
+                                break
+                            if g["kalan"] >= kalan_dusulecek:
+                                g["kalan"] -= kalan_dusulecek
+                                harcanan_tutar += kalan_dusulecek * g["fiyat"]
+                                kalan_dusulecek = 0
+                            else:
+                                dusulen = g["kalan"]
+                                g["kalan"] = 0
+                                harcanan_tutar += dusulen * g["fiyat"]
+                                kalan_dusulecek -= dusulen
+                        
+                        verileri_kaydet(st.session_state.girisler)
+                        
+                        # Kullanılan ürünler geçmişine / loglara ekleme
+                        islem_tarihi_str = simdi_tr_str("%Y-%m-%d %H:%M")
+                        st.session_state.kullanim_loglari.append({
+                            "tarih": islem_tarihi_str,
+                            "urun": selected_item,
+                            "tur": f"Toplu Sarfiyat ({description})",
+                            "miktar": used_amount,
+                            "tutar": harcanan_tutar,
+                            "islem_yapan": st.session_state.aktif_kullanici,
+                        })
+                        loglari_kaydet(st.session_state.kullanim_loglari)
+                        
+                        st.success(f"🎉 Başarılı! {used_amount} {unit} {selected_item} stoktan düşüldü ve loglara eklendi!")
+                        st.balloons()
+                        st.rerun()
+                else:
+                    st.info("Depoda kayıtlı ürün bulunmuyor.")
+
+            with col_form2:
+                st.subheader("Geçmişte Kullanılan Ürünler (Sarfiyat Logu)")
+                toplu_sarfiyat_loglari = [l for l in st.session_state.kullanim_loglari if "Toplu Sarfiyat" in l.get("tur", "")]
+                if toplu_sarfiyat_loglari:
+                    tablo_sarf = []
+                    for s_log in reversed(toplu_sarfiyat_loglari):
+                        tablo_sarf.append({
+                            "Tarih / Saat": s_log.get("tarih", "-"),
+                            "Malzeme": s_log.get("urun", "-"),
+                            "Miktar": f"{s_log.get('miktar', 0)}",
+                            "Tutar": f"{s_log.get('tutar', 0):,.2f} ₺",
+                            "Açıklama": s_log.get("tur", "-"),
+                            "İşlemi Yapan": s_log.get("islem_yapan", "-"),
+                        })
+                    ozel_html_tablo_goster(tablo_sarf)
+                else:
+                    st.info("Henüz toplu stok düşümü yapılmadı.")
+
 # 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
@@ -2691,7 +2780,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
         with tab2:
             col_b_dag, col_indir_dag = st.columns([2, 2])
             with col_b_dag:
-                st.subheader("🍲 Toplu Yemek Dağıtım Girişi ve Yönetimi")
+                st.subheader("🍲 Toplu Yemek Dağıtımı Girişi ve Yönetimi")
 
             if st.session_state.dagitim_silme_mesaji:
                 st.success(st.session_state.dagitim_silme_mesaji)
@@ -3742,6 +3831,7 @@ elif menu == "Kullanıcı Ayarları":
                 "Yeni Mal Alımı / Fatura Ekle",
                 "Ürün Sil / Düzenle",
                 "Fire / Zayiat Girişi",
+                "Toplu Stok Düşümü & Sarfiyat",
                 "Ürün Birim Fiyatları & Ay Analizi",
                 "Günlük Yemek Üretimi & Maliyet Raporu",
                 "Kalori Hesaplama Aracı",
