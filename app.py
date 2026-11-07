@@ -2199,16 +2199,16 @@ elif menu == "Ürün Sil / Düzenle":
         else:
             st.info("Silinmiş ürün kaydı bulunmuyor.")
 
-# 4. FİRE / ZAYİAT GİRİŞİ
-elif menu == "Fire / Zayiat Girişi":
-    if misafir_modu:
+        # 4. FİRE / ZAYİAT GİRİŞİ
+        elif menu == "Fire / Zayiat Girişi":
+        if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
-    else:
+        else:
        # 4. FİRE / ZAYİAT GİRİŞİ (DÜZELTİLMİŞ VE SENRONİZE EDİLMİŞ VERSİYON)
-elif menu == "Fire / Zayiat Girişi":
-    if misafir_modu:
+        elif menu == "Fire / Zayiat Girişi":
+        if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
-    else:
+        else:
         st.header("🗑️ Fire / Zayiat Bildirimi")
         if salt_okunur_modu:
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
