@@ -1300,7 +1300,7 @@ if menu == "Kurumsal Dashboard & Özet":
 
     m_urun_cesidi = "🔒 Gizli" if "1. Sayfa: Ürün Çeşidi" in aktif_k_maskeleri else f"{toplam_stok_kalemi} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Çeşit</span>"
     m_toplam_fire = "🔒 Gizli" if "1. Sayfa: Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_mik:,.1f} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Kg</span>"
-    m_stok_degeri = "🔒 Gizli" if "1. Sayfa: Stok Değeri" in aktif_k_maskeleri else f"{toplam_envanter_maliyeti:,.0f} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>₺</span>"
+    m_stok_degeri = "🔒 Gizli" if "1. Sayfa: Stok Değeri" in aktif_k_maskeleri else f"{toplam_envanter_maliyeti:..0f} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>₺</span>"
     m_aktif_personel = "🔒 Gizli" if "1. Sayfa: Aktif Personel" in aktif_k_maskeleri else f"{aktif_calisan_personel_sayisi} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Kişi</span>"
 
     st.markdown(
