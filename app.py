@@ -2208,7 +2208,7 @@ elif menu == "Fire / Zayiat Girişi":
             else:
                 st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
 
-# YENİ EKLENEN: TOPLU STOK DÜŞÜMÜ & SARFİYAT
+# TOPLU STOK DÜŞÜMÜ & SARFİYAT
 elif menu == "Toplu Stok Düşümü & Sarfiyat":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
@@ -2228,7 +2228,6 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                 if benzersiz_urunler_toplu:
                     selected_item = st.selectbox("Malzeme Seçin", benzersiz_urunler_toplu)
                     
-                    # Seçilen malzemenin toplam stok miktarını ve birimini bulma
                     ilgili_girisler_toplu = [g for g in st.session_state.girisler if g["urun"] == selected_item and g["kalan"] > 0]
                     current_stock = sum(g["kalan"] for g in ilgili_girisler_toplu)
                     unit = ilgili_girisler_toplu[0].get("birim", "Kg") if ilgili_girisler_toplu else "Kg"
@@ -2257,7 +2256,6 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                         
                         verileri_kaydet(st.session_state.girisler)
                         
-                        # Kullanılan ürünler geçmişine / loglara ekleme
                         islem_tarihi_str = simdi_tr_str("%Y-%m-%d %H:%M")
                         st.session_state.kullanim_loglari.append({
                             "tarih": islem_tarihi_str,
@@ -3805,8 +3803,64 @@ elif menu == "Kullanıcı Ayarları":
         st.warning("⚠️ Bu sayfaya yalnızca **Admin** kullanıcısı erişebilir.")
     else:
         st.header("⚙️ Kullanıcı Yetkileri, Menü Yasaklama ve Alan Maskeleme")
-        st.markdown("Sistemdeki kullanıcıların şifrelerini güncelleyebilir, hangi menüleri göremeyeceklerini (yasaklı menüler) ve hangi alanların maskeleneceğini (gizleneceğini) kolayca yapılandırabilirsiniz.")
+        
+        # 📌 Bilgilendirme Metni
+        st.markdown(
+            f"""
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); padding: 16px 20px; border-radius: 14px; margin-bottom: 20px; color: {text_color}; font-size: 13.5px;">
+                <b>ℹ️ Bilgilendirme ve Rehber:</b> Bu sayfadan sistemdeki kullanıcıların şifrelerini güncelleyebilir, yeni kullanıcılar ekleyebilir, gereksiz hesapları silebilir, salt okunur yetkilerini ayarlayabilir ve hangi menüleri görüp göremeyeceklerini (yasaklı menüler) ya da hangi hassas alanların gizleneceğini (maskeli alanlar) yapılandırabilirsiniz.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
+        # ➕ Kullanıcı Ekleme / Silme Paneli
+        with st.expander("➕ Yeni Kullanıcı Ekle veya Mevcut Kullanıcıyı Sil"):
+            col_k_ekle_p, col_k_sil_p = st.columns(2)
+            
+            with col_k_ekle_p:
+                with st.form("yeni_kullanici_olustur_form"):
+                    st.markdown("**Yeni Kullanıcı Tanımla**")
+                    yeni_k_adi = st.text_input("Kullanıcı Adı (Küçük harf)", "").strip().lower()
+                    yeni_k_sifre = st.text_input("Şifre", type="password")
+                    yeni_k_tipi = st.selectbox("Kullanıcı Rolü", ["personel", "admin"])
+                    yeni_k_ekle_btn = st.form_submit_button("Yeni Kullanıcıyı Kaydet")
+
+                    if yeni_k_ekle_btn and yeni_k_adi:
+                        if yeni_k_adi in st.session_state.kullanicilar:
+                            st.error("⚠️ Bu kullanıcı adı zaten sistemde kayıtlı!")
+                        else:
+                            st.session_state.kullanicilar[yeni_k_adi] = {
+                                "sifre": sifre_hashle(yeni_k_sifre),
+                                "tip": yeni_k_tipi,
+                                "yasakli_menuler": [],
+                                "maskeli_alanlar": [],
+                                "salt_okunur": (yeni_k_tipi == "personel")
+                            }
+                            kullanıcıları_kaydet(st.session_state.kullanicilar)
+                            st.success(f"🎉 Başarılı! '{yeni_k_adi}' kullanıcısı oluşturuldu.")
+                            st.balloons()
+                            st.rerun()
+
+            with col_k_sil_p:
+                with st.form("kullanici_sil_form_panel"):
+                    st.markdown("**Kullanıcı Hesabı Sil**")
+                    silinebilir_kullanicilar = [k for k in st.session_state.kullanicilar.keys() if k not in ["admin", "misafir"]]
+                    if silinebilir_kullanicilar:
+                        secilen_sil_k = st.selectbox("Silinecek Kullanıcıyı Seçin", silinebilir_kullanicilar)
+                        k_sil_btn = st.form_submit_button("Seçilen Kullanıcıyı Sil", type="primary")
+
+                        if k_sil_btn:
+                            del st.session_state.kullanicilar[secilen_sil_k]
+                            kullanıcıları_kaydet(st.session_state.kullanicilar)
+                            st.success(f"🎉 Başarılı! '{secilen_sil_k}' hesabı silindi.")
+                            st.balloons()
+                            st.rerun()
+                    else:
+                        st.info("Silinebilecek ek kullanıcı bulunmuyor (Admin ve Misafir silinemez).")
+
+        st.markdown("---")
+        
         kullanici_secimi_ayar = st.selectbox(
             "Düzenlenecek Kullanıcıyı Seçin",
             list(st.session_state.kullanicilar.keys())
@@ -3815,15 +3869,24 @@ elif menu == "Kullanıcı Ayarları":
         secilen_k_obj = st.session_state.kullanicilar[kullanici_secimi_ayar]
 
         with st.form("kullanici_ayar_formu"):
-            st.markdown(f"**Kullanıcı Adı:** `{kullanici_secimi_ayar}`")
+            st.markdown(f"**Seçilen Hesap:** `{kullanici_secimi_ayar}`")
             
             yeni_sifre_inp = st.text_input(
                 "Yeni Şifre (Değiştirmek istemiyorsanız boş bırakın)",
                 type="password"
             )
 
+            # 🔒 Salt Okunur Özelliği
             st.markdown("---")
-            st.markdown("**🔒 Yasaklı Menüler (Seçilen menüler kullanıcı menüsünde gizlenir)**")
+            st.markdown("**🔒 Erişim Türü / Kısıtlamaları**")
+            mevcut_salt_okunur = secilen_k_obj.get("salt_okunur", False)
+            yeni_salt_okunur_val = st.checkbox(
+                "Salt Okunur Mod (Kullanıcı verileri değiştiremez, yalnızca gözlem yapabilir)",
+                value=mevcut_salt_okunur
+            )
+
+            st.markdown("---")
+            st.markdown("**🚫 Yasaklı Menüler (Seçilen menüler kullanıcı menüsünde gizlenir)**")
             
             tum_menuler_secenek = [
                 "Kurumsal Dashboard & Özet",
@@ -3898,12 +3961,13 @@ elif menu == "Kullanıcı Ayarları":
             if kaydet_ayar_btn:
                 if yeni_sifre_inp:
                     secilen_k_obj["sifre"] = sifre_hashle(yeni_sifre_inp)
+                secilen_k_obj["salt_okunur"] = yeni_salt_okunur_val
                 secilen_k_obj["yasakli_menuler"] = secilen_yasaklar
                 secilen_k_obj["maskeli_alanlar"] = secilen_maskeler
                 
                 st.session_state.kullanicilar[kullanici_secimi_ayar] = secilen_k_obj
                 kullanıcıları_kaydet(st.session_state.kullanicilar)
-                st.success("🎉 Başarılı! Kullanıcı yetki ve ayarları güncellendi.")
+                st.success("🎉 Başarılı! Kullanıcı yetki, salt okunur ve ayarları güncellendi.")
                 st.balloons()
                 st.rerun()
 
