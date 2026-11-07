@@ -3797,192 +3797,217 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     else:
         st.info("Fiyat analizi için ürün kaydı bulunmuyor.")
 
-# 12. KULLANICI AYARLARI (Yalnızca Admin)
+# 12. KULLANICI AYARLARI (Yalnızca Admin) - 3 Alt Sekmeye Bölünmüş Hali
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya yalnızca **Admin** kullanıcısı erişebilir.")
     else:
-        st.header("⚙️ Kullanıcı Yetkileri, Menü Yasaklama ve Alan Maskeleme")
+        st.header("⚙️ Sistem & Kullanıcı Ayarları Paneli")
         
-        # 📌 Bilgilendirme Metni
-        st.markdown(
-            f"""
-            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); padding: 16px 20px; border-radius: 14px; margin-bottom: 20px; color: {text_color}; font-size: 13.5px;">
-                <b>ℹ️ Bilgilendirme ve Rehber:</b> Bu sayfadan sistemdeki kullanıcıların şifrelerini güncelleyebilir, yeni kullanıcılar ekleyebilir, gereksiz hesapları silebilir, salt okunur yetkilerini ayarlayabilir ve hangi menüleri görüp göremeyeceklerini (yasaklı menüler) ya da hangi hassas alanların gizleneceğini (maskeli alanlar) yapılandırabilirsiniz.
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        # 3 Alt Sekme (Sayfa) Yapısı
+        ayar_tab1, ayar_tab2, ayar_tab3 = st.tabs([
+            "👁️ 1. Giriş & Misafir Sayfası",
+            "👥 2. Kullanıcı & Şifre Yönetimi",
+            "📖 3. Proje Özeti & Bilgilendirme"
+        ])
 
-        # ➕ Kullanıcı Ekleme / Silme Paneli
-        with st.expander("➕ Yeni Kullanıcı Ekle veya Mevcut Kullanıcıyı Sil"):
-            col_k_ekle_p, col_k_sil_p = st.columns(2)
-            
-            with col_k_ekle_p:
-                with st.form("yeni_kullanici_olustur_form"):
-                    st.markdown("**Yeni Kullanıcı Tanımla**")
-                    yeni_k_adi = st.text_input("Kullanıcı Adı (Küçük harf)", "").strip().lower()
-                    yeni_k_sifre = st.text_input("Şifre", type="password")
-                    yeni_k_tipi = st.selectbox("Kullanıcı Rolü", ["personel", "admin"])
-                    yeni_k_ekle_btn = st.form_submit_button("Yeni Kullanıcıyı Kaydet")
+        with ayar_tab1:
+            st.subheader("Giriş Sayfası Görünürlükleri ve Misafir Ayarları")
+            st.markdown("Bu ekranda, sistemdeki kullanıcıların hangi sayfalara (menülere) erişebildiğini görüntüleyebilir ve giriş ekranındaki misafir butonunu özelleştirebilirsiniz.")
 
-                    if yeni_k_ekle_btn and yeni_k_adi:
-                        if yeni_k_adi in st.session_state.kullanicilar:
-                            st.error("⚠️ Bu kullanıcı adı zaten sistemde kayıtlı!")
-                        else:
-                            st.session_state.kullanicilar[yeni_k_adi] = {
-                                "sifre": sifre_hashle(yeni_k_sifre),
-                                "tip": yeni_k_tipi,
-                                "yasakli_menuler": [],
-                                "maskeli_alanlar": [],
-                                "salt_okunur": (yeni_k_tipi == "personel")
-                            }
-                            kullanıcıları_kaydet(st.session_state.kullanicilar)
-                            st.success(f"🎉 Başarılı! '{yeni_k_adi}' kullanıcısı oluşturuldu.")
-                            st.balloons()
-                            st.rerun()
-
-            with col_k_sil_p:
-                with st.form("kullanici_sil_form_panel"):
-                    st.markdown("**Kullanıcı Hesabı Sil**")
-                    silinebilir_kullanicilar = [k for k in st.session_state.kullanicilar.keys() if k not in ["admin", "misafir"]]
-                    if silinebilir_kullanicilar:
-                        secilen_sil_k = st.selectbox("Silinecek Kullanıcıyı Seçin", silinebilir_kullanicilar)
-                        k_sil_btn = st.form_submit_button("Seçilen Kullanıcıyı Sil", type="primary")
-
-                        if k_sil_btn:
-                            del st.session_state.kullanicilar[secilen_sil_k]
-                            kullanıcıları_kaydet(st.session_state.kullanicilar)
-                            st.success(f"🎉 Başarılı! '{secilen_sil_k}' hesabı silindi.")
-                            st.balloons()
-                            st.rerun()
-                    else:
-                        st.info("Silinebilecek ek kullanıcı bulunmuyor (Admin ve Misafir silinemez).")
-
-        st.markdown("---")
-        
-        kullanici_secimi_ayar = st.selectbox(
-            "Düzenlenecek Kullanıcıyı Seçin",
-            list(st.session_state.kullanicilar.keys())
-        )
-
-        secilen_k_obj = st.session_state.kullanicilar[kullanici_secimi_ayar]
-
-        with st.form("kullanici_ayar_formu"):
-            st.markdown(f"**Seçilen Hesap:** `{kullanici_secimi_ayar}`")
-            
-            yeni_sifre_inp = st.text_input(
-                "Yeni Şifre (Değiştirmek istemiyorsanız boş bırakın)",
-                type="password"
-            )
-
-            # 🔒 Salt Okunur Özelliği
-            st.markdown("---")
-            st.markdown("**🔒 Erişim Türü / Kısıtlamaları**")
-            mevcut_salt_okunur = secilen_k_obj.get("salt_okunur", False)
-            yeni_salt_okunur_val = st.checkbox(
-                "Salt Okunur Mod (Kullanıcı verileri değiştiremez, yalnızca gözlem yapabilir)",
-                value=mevcut_salt_okunur
-            )
-
-            st.markdown("---")
-            st.markdown("**🚫 Yasaklı Menüler (Seçilen menüler kullanıcı menüsünde gizlenir)**")
-            
-            tum_menuler_secenek = [
-                "Kurumsal Dashboard & Özet",
-                "Güncel Stok Durumu",
-                "Yeni Mal Alımı / Fatura Ekle",
-                "Ürün Sil / Düzenle",
-                "Fire / Zayiat Girişi",
-                "Toplu Stok Düşümü & Sarfiyat",
-                "Ürün Birim Fiyatları & Ay Analizi",
-                "Günlük Yemek Üretimi & Maliyet Raporu",
-                "Kalori Hesaplama Aracı",
-                "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
-                "Personel & Çalışma Süresi Takibi",
-                "Kullanım Takibi",
-                "Kapsamlı Envanter ve Hareket Raporu",
-                "Depo Yönetimi",
+            st.markdown("##### 📋 Kullanıcıların Sayfa Erişim Durumları")
+            kullanici_erisim_ozeti = []
+            tum_tanimli_menuler = [
+                "Kurumsal Dashboard & Özet", "Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle",
+                "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", "Toplu Stok Düşümü & Sarfiyat",
+                "Ürün Birim Fiyatları & Ay Analizi", "Günlük Yemek Üretimi & Maliyet Raporu",
+                "Kalori Hesaplama Aracı", "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
+                "Personel & Çalışma Süresi Takibi", "Kullanım Takibi",
+                "Kapsamlı Envanter ve Hareket Raporu", "Depo Yönetimi"
             ]
-
-            mevcut_yasaklar = secilen_k_obj.get("yasakli_menuler", [])
-            secilen_yasaklar = []
-            for m_sec in tum_menuler_secenek:
-                chk = st.checkbox(
-                    f"Yasakla: {m_sec}",
-                    value=(m_sec in mevcut_yasaklar),
-                    key=f"yasak_{kullanici_secimi_ayar}_{m_sec}"
-                )
-                if chk:
-                    secilen_yasaklar.append(m_sec)
+            for k_adi, k_val in st.session_state.kullanicilar.items():
+                yasaklar = k_val.get("yasakli_menuler", [])
+                erisilebilen_sayi = len(tum_tanimli_menuler) - len(yasaklar)
+                kullanici_erisim_ozeti.append({
+                    "Kullanıcı": k_adi.upper(),
+                    "Rol / Tip": k_val.get("tip", "personel"),
+                    "Salt Okunur": "Evet" if k_val.get("salt_okunur", False) else "Hayır",
+                    "Erişebildiği Sayfa Sayısı": f"{erisilebilen_sayi} / {len(tum_tanimli_menuler)}",
+                    "Yasaklı Sayfa Sayısı": len(yasaklar)
+                })
+            ozel_html_tablo_goster(kullanici_erisim_ozeti)
 
             st.markdown("---")
-            st.markdown("**🕵️‍♂️ Maskelenecek / Gizlenecek Hassas Alanlar**")
-            
-            tum_maske_secenekleri = [
-                "1. Sayfa: Toplam Fire",
-                "1. Sayfa: Stok Değeri",
-                "1. Sayfa: Aktif Personel",
-                "1. Sayfa: Ürün Çeşidi",
-                "1. Sayfa: Grafik Alanı",
-                "2. Sayfa: Güncel Stok Durumu - Kalan Miktar",
-                "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi",
-                "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
-                "3. Sayfa: Yemek Üretim ve Maliyet Arşivi",
-                "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No",
-                "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı",
-                "4. Sayfa: İhtiyaç Sahipleri - Telefon",
-                "4. Sayfa: İhtiyaç Sahipleri - Adres",
-                "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı",
-                "4. Sayfa: Yemek Dağıtımları - Tarih/Saat",
-                "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
-                "4. Sayfa: Yemek Dağıtımları - Menü",
-                "4. Sayfa: Yemek Dağıtımları - Porsiyon",
-                "4. Sayfa: Sayaç Raporu - T.C./Hane No",
-                "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi",
-                "4. Sayfa: Sayaç Raporu - Günlük Alım",
-                "4. Sayfa: Sayaç Raporu - Haftalık Alım",
-                "4. Sayfa: Sayaç Raporu - Aylık Alım",
-            ]
-
-            mevcut_maskeler = secilen_k_obj.get("maskeli_alanlar", [])
-            secilen_maskeler = []
-            for mask_sec in tum_maske_secenekleri:
-                chk_m = st.checkbox(
-                    f"Maskele: {mask_sec}",
-                    value=(mask_sec in mevcut_maskeler),
-                    key=f"maske_{kullanici_secimi_ayar}_{mask_sec}"
-                )
-                if chk_m:
-                    secilen_maskeler.append(mask_sec)
-
-            kaydet_ayar_btn = st.form_submit_button("Yetki ve Ayarları Kaydet", type="primary")
-
-            if kaydet_ayar_btn:
-                if yeni_sifre_inp:
-                    secilen_k_obj["sifre"] = sifre_hashle(yeni_sifre_inp)
-                secilen_k_obj["salt_okunur"] = yeni_salt_okunur_val
-                secilen_k_obj["yasakli_menuler"] = secilen_yasaklar
-                secilen_k_obj["maskeli_alanlar"] = secilen_maskeler
-                
-                st.session_state.kullanicilar[kullanici_secimi_ayar] = secilen_k_obj
-                kullanıcıları_kaydet(st.session_state.kullanicilar)
-                st.success("🎉 Başarılı! Kullanıcı yetki, salt okunur ve ayarları güncellendi.")
-                st.balloons()
-                st.rerun()
-
-        if kullanici_secimi_ayar == "misafir":
-            st.markdown("---")
-            st.markdown("### 👁️ Misafir Buton Özelleştirme Ayarları")
-            with st.form("misafir_buton_ayar_form"):
-                mis_buton_metni_inp = st.text_input("Misafir Giriş Butonu Metni", value=secilen_k_obj.get("buton_metni", "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)"))
-                mis_buton_aktif_inp = st.checkbox("Misafir Giriş Butonunu Giriş Ekranında Aktif Et", value=secilen_k_obj.get("buton_aktif", True))
-                mis_buton_kaydet = st.form_submit_button("Misafir Butonunu Güncelle")
+            st.markdown("##### 👁️ Misafir Girişi Buton Özelleştirme")
+            misafir_obj = st.session_state.kullanicilar.get("misafir", {})
+            with st.form("misafir_buton_ayar_form_3"):
+                mis_buton_metni_inp = st.text_input("Misafir Giriş Butonu Metni", value=misafir_obj.get("buton_metni", "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)"))
+                mis_buton_aktif_inp = st.checkbox("Misafir Giriş Butonunu Giriş Ekranında Aktif Et", value=misafir_obj.get("buton_aktif", True))
+                mis_buton_kaydet = st.form_submit_button("Misafir Butonu Ayarlarını Kaydet", type="primary")
 
                 if mis_buton_kaydet:
-                    secilen_k_obj["buton_metni"] = mis_buton_metni_inp
-                    secilen_k_obj["buton_aktif"] = mis_buton_aktif_inp
-                    st.session_state.kullanicilar["misafir"] = secilen_k_obj
+                    misafir_obj["buton_metni"] = mis_buton_metni_inp
+                    misafir_obj["buton_aktif"] = mis_buton_aktif_inp
+                    st.session_state.kullanicilar["misafir"] = misafir_obj
                     kullanıcıları_kaydet(st.session_state.kullanicilar)
                     st.success("🎉 Misafir buton ayarları güncellendi.")
                     st.rerun()
+
+        with ayar_tab2:
+            st.subheader("Kullanıcı Ekle, Çıkar, Şifre ve Salt Okunur Yönetimi")
+            st.markdown("Bu ekrandan yeni personel ekleyebilir, mevcut kullanıcıları silebilir, şifrelerini güncelleyebilir ve salt okunur özelliklerini ayarlayabilirsiniz.")
+
+            with st.expander("➕ Yeni Kullanıcı Ekle veya Mevcut Kullanıcıyı Sil", expanded=True):
+                col_k_ekle_p, col_k_sil_p = st.columns(2)
+                
+                with col_k_ekle_p:
+                    with st.form("yeni_kullanici_olustur_form"):
+                        st.markdown("**Yeni Kullanıcı Tanımla**")
+                        yeni_k_adi = st.text_input("Kullanıcı Adı (Küçük harf)", "").strip().lower()
+                        yeni_k_sifre = st.text_input("Şifre", type="password")
+                        yeni_k_tipi = st.selectbox("Kullanıcı Rolü", ["personel", "admin"])
+                        yeni_k_ekle_btn = st.form_submit_button("Yeni Kullanıcıyı Kaydet")
+
+                        if yeni_k_ekle_btn and yeni_k_adi:
+                            if yeni_k_adi in st.session_state.kullanicilar:
+                                st.error("⚠️ Bu kullanıcı adı zaten sistemde kayıtlı!")
+                            else:
+                                st.session_state.kullanicilar[yeni_k_adi] = {
+                                    "sifre": sifre_hashle(yeni_k_sifre),
+                                    "tip": yeni_k_tipi,
+                                    "yasakli_menuler": [],
+                                    "maskeli_alanlar": [],
+                                    "salt_okunur": (yeni_k_tipi == "personel")
+                                }
+                                kullanıcıları_kaydet(st.session_state.kullanicilar)
+                                st.success(f"🎉 Başarılı! '{yeni_k_adi}' kullanıcısı oluşturuldu.")
+                                st.balloons()
+                                st.rerun()
+
+                with col_k_sil_p:
+                    with st.form("kullanici_sil_form_panel"):
+                        st.markdown("**Kullanıcı Hesabı Sil**")
+                        silinebilir_kullanicilar = [k for k in st.session_state.kullanicilar.keys() if k not in ["admin", "misafir"]]
+                        if silinebilir_kullanicilar:
+                            secilen_sil_k = st.selectbox("Silinecek Kullanıcıyı Seçin", silinebilir_kullanicilar)
+                            k_sil_btn = st.form_submit_button("Seçilen Kullanıcıyı Sil", type="primary")
+
+                            if k_sil_btn:
+                                del st.session_state.kullanicilar[secilen_sil_k]
+                                kullanıcıları_kaydet(st.session_state.kullanicilar)
+                                st.success(f"🎉 Başarılı! '{secilen_sil_k}' hesabı silindi.")
+                                st.balloons()
+                                st.rerun()
+                        else:
+                            st.info("Silinebilecek ek kullanıcı bulunmuyor (Admin ve Misafir silinemez).")
+
+            st.markdown("---")
+            kullanici_secimi_ayar = st.selectbox(
+                "Şifre, Salt Okunur ve Yetkileri Düzenlenecek Kullanıcıyı Seçin",
+                list(st.session_state.kullanicilar.keys())
+            )
+
+            secilen_k_obj = st.session_state.kullanicilar[kullanici_secimi_ayar]
+
+            with st.form("kullanici_ayar_formu"):
+                st.markdown(f"**Seçilen Hesap:** `{kullanici_secimi_ayar}`")
+                
+                yeni_sifre_inp = st.text_input(
+                    "Yeni Şifre (Değiştirmek istemiyorsanız boş bırakın)",
+                    type="password"
+                )
+
+                st.markdown("---")
+                st.markdown("**🔒 Salt Okunur Özelliği**")
+                mevcut_salt_okunur = secilen_k_obj.get("salt_okunur", False)
+                yeni_salt_okunur_val = st.checkbox(
+                    "Salt Okunur Mod (Kullanıcı verileri değiştiremez, yalnızca gözlem yapabilir)",
+                    value=mevcut_salt_okunur
+                )
+
+                st.markdown("---")
+                st.markdown("**🚫 Yasaklı Menüler**")
+                tum_menuler_secenek = [
+                    "Kurumsal Dashboard & Özet", "Güncel Stok Durumu", "Yeni Mal Alımı / Fatura Ekle",
+                    "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", "Toplu Stok Düşümü & Sarfiyat",
+                    "Ürün Birim Fiyatları & Ay Analizi", "Günlük Yemek Üretimi & Maliyet Raporu",
+                    "Kalori Hesaplama Aracı", "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
+                    "Personel & Çalışma Süresi Takibi", "Kullanım Takibi",
+                    "Kapsamlı Envanter ve Hareket Raporu", "Depo Yönetimi",
+                ]
+
+                mevcut_yasaklar = secilen_k_obj.get("yasakli_menuler", [])
+                secilen_yasaklar = []
+                for m_sec in tum_menuler_secenek:
+                    chk = st.checkbox(
+                        f"Yasakla: {m_sec}",
+                        value=(m_sec in mevcut_yasaklar),
+                        key=f"yasak_{kullanici_secimi_ayar}_{m_sec}"
+                    )
+                    if chk:
+                        secilen_yasaklar.append(m_sec)
+
+                st.markdown("---")
+                st.markdown("**🕵️‍♂️ Maskelenecek / Gizlenecek Hassas Alanlar**")
+                tum_maske_secenekleri = [
+                    "1. Sayfa: Toplam Fire", "1. Sayfa: Stok Değeri", "1. Sayfa: Aktif Personel",
+                    "1. Sayfa: Ürün Çeşidi", "1. Sayfa: Grafik Alanı", "2. Sayfa: Güncel Stok Durumu - Kalan Miktar",
+                    "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi", "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
+                    "3. Sayfa: Yemek Üretim ve Maliyet Arşivi", "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No",
+                    "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı", "4. Sayfa: İhtiyaç Sahipleri - Telefon",
+                    "4. Sayfa: İhtiyaç Sahipleri - Adres", "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı",
+                    "4. Sayfa: Yemek Dağıtımları - Tarih/Saat", "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
+                    "4. Sayfa: Yemek Dağıtımları - Menü", "4. Sayfa: Yemek Dağıtımları - Porsiyon",
+                    "4. Sayfa: Sayaç Raporu - T.C./Hane No", "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi",
+                    "4. Sayfa: Sayaç Raporu - Günlük Alım", "4. Sayfa: Sayaç Raporu - Haftalık Alım",
+                    "4. Sayfa: Sayaç Raporu - Aylık Alım",
+                ]
+
+                mevcut_maskeler = secilen_k_obj.get("maskeli_alanlar", [])
+                secilen_maskeler = []
+                for mask_sec in tum_maske_secenekleri:
+                    chk_m = st.checkbox(
+                        f"Maskele: {mask_sec}",
+                        value=(mask_sec in mevcut_maskeler),
+                        key=f"maske_{kullanici_secimi_ayar}_{mask_sec}"
+                    )
+                    if chk_m:
+                        secilen_maskeler.append(mask_sec)
+
+                kaydet_ayar_btn = st.form_submit_button("Yetki ve Ayarları Kaydet", type="primary")
+
+                if kaydet_ayar_btn:
+                    if yeni_sifre_inp:
+                        secilen_k_obj["sifre"] = sifre_hashle(yeni_sifre_inp)
+                    secilen_k_obj["salt_okunur"] = yeni_salt_okunur_val
+                    secilen_k_obj["yasakli_menuler"] = secilen_yasaklar
+                    secilen_k_obj["maskeli_alanlar"] = secilen_maskeler
+                    
+                    st.session_state.kullanicilar[kullanici_secimi_ayar] = secilen_k_obj
+                    kullanıcıları_kaydet(st.session_state.kullanicilar)
+                    st.success("🎉 Başarılı! Kullanıcı ayarları güncellendi.")
+                    st.balloons()
+                    st.rerun()
+
+        with ayar_tab3:
+            st.subheader("📖 Proje Özeti & Bilgilendirme Rehberi")
+            st.markdown(
+                f"""
+                <div style="background: {card_bg}; border: 1px solid {border_color}; padding: 28px; border-radius: 18px; line-height: 1.6;">
+                    <h3 style="margin-top:0; color: #6366f1;">🍲 Aziziye Aşevi Yönetim & Takip Sistemi</h3>
+                    <p>Bu uygulama, sosyal yardımlaşma vakıfları ve aşevlerinin operasyonel süreçlerini (stok takibi, yemek üretimi, kişi bazlı dağıtım, personel izin ve puantaj takibi) dijital ortamda yönetmek üzere geliştirilmiş kapsamlı bir web uygulamasıdır.</p>
+                    
+                    <h4 style="margin-top: 20px;">🔑 Temel Modüller ve Özellikler:</h4>
+                    <ul>
+                        <li><b>Depo & Stok Yönetimi:</b> Fatura bazlı ürün girişi, kritik stok eşikleri, fire/zayiat takibi, toplu sarfiyat düşümü ve birim fiyat analizleri.</li>
+                        <li><b>Mutfak & Üretim:</b> Günlük yemek üretimi, reçete/malzeme sarfiyatı, kişi başı maliyet hesaplama ve otomatik kalori hesaplayıcı.</li>
+                        <li><b>Sosyal Yardımlar:</b> İhtiyaç sahibi hane/kişi kayıtları (T.C., telefon, adres şifreleme korumalı), çoklu toplu yemek dağıtımı ve günlük/haftalık/aylık alım sayaç raporları.</li>
+                        <li><b>İnsan Kaynakları:</b> Personel kadro takibi, yıllık izinler, saatlik izinler, sağlık raporları, resmi tatiller hesaba katılarak net çalışma günü hesaplama.</li>
+                        <li><b>Güvenlik & Rol Yönetimi:</b> Şifrelenmiş veriler (Fernet & SHA-256), rol tabanlı yetkilendirme (Admin, Personel, Yönetim, Misafir), menü yasaklama ve hassas alan maskeleme.</li>
+                    </ul>
+                    
+                    <p style="margin-top: 20px; font-size: 13px; color: {subtext_color};">Geliştirici: <b>Sefa Ünal Topçu</b> | Bulut Veritabanı: <b>Supabase</b> | Arayüz Çatı: <b>Streamlit</b></p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
