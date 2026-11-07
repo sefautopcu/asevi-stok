@@ -3959,8 +3959,7 @@ elif menu == "Kullanıcı Ayarları":
                     "4. Sayfa: Yemek Dağıtımları - Tarih/Saat", "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
                     "4. Sayfa: Yemek Dağıtımları - Menü", "4. Sayfa: Yemek Dağıtımları - Porsiyon",
                     "4. Sayfa: Sayaç Raporu - T.C./Hane No", "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi",
-                    "4. Sayfa: Sayaç Raporu - Günlük Alım", "4. Sayfa: Sayaç Raporu - Haftalık Alım",
-                    "4. Sayfa: Sayaç Raporu - Aylık Alım",
+                    "4. Sayfa: Sayaç Raporu - Günlük Alım", "4. Sayfa: Haftalık Alım", "4. Sayfa: Sayaç Raporu - Aylık Alım",
                 ]
 
                 mevcut_maskeler = secilen_k_obj.get("maskeli_alanlar", [])
@@ -3992,7 +3991,7 @@ elif menu == "Kullanıcı Ayarları":
         with ayar_tab3:
             st.subheader("📖 Proje Özeti & Bilgilendirme Rehberi")
             
-            # Düzgün render edilen profesyonel Proje Tanıtım Alanı
+            # Düzgün render edilen profesyonel Proje Tanıtım Alanı (Saf Streamlit ve St.markdown uyumlu)
             st.markdown(
                 f"""
                 <div style="background: {card_bg}; border: 1px solid {border_color}; padding: 32px; border-radius: 20px; line-height: 1.7; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.08);">
