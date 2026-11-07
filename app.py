@@ -2204,11 +2204,10 @@ elif menu == "Ürün Sil / Düzenle":
         if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
         else:
-       # 4. FİRE / ZAYİAT GİRİŞİ (DÜZELTİLMİŞ VE SENRONİZE EDİLMİŞ VERSİYON)
-        elif menu == "Fire / Zayiat Girişi":
-        if misafir_modu:
+       elif menu == "Fire / Zayiat Girişi":
+    if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
-        else:
+    else:
         st.header("🗑️ Fire / Zayiat Bildirimi")
         if salt_okunur_modu:
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
@@ -2229,21 +2228,17 @@ elif menu == "Ürün Sil / Düzenle":
                     "Fire Düşülecek Ürünü Seçin", benzersiz_urunler if benzersiz_urunler else ["Yok"]
                 )
                 
-                # 'Güncel Stok Durumu' ile birebir aynı hesaplama mantığı:
+                # 'Güncel Stok Durumu' ile birebir aynı kümülatif toplama mantığı (127 kg gerçek toplamı alır):
                 ilgili_girisler = [
                     g
                     for g in st.session_state.girisler
                     if g.get("urun", "").strip().upper() == secilen_gercek_urun.strip().upper()
                 ]
-                
-                # Gerçek toplam kalan stok (Güncel Stok sayfasındaki mantık)
                 toplam_stok = sum(g.get("kalan", 0) for g in ilgili_girisler)
                 aktif_ilgili_girisler = [g for g in ilgili_girisler if g.get("kalan", 0) > 0]
 
-                # Doğru birim fiyat (Güncel stok sayfasındaki ortalama/son fiyat mantığı)
                 en_son_fiyat = 0.0
                 if ilgili_girisler:
-                    # En güncel faturadaki birim fiyat veya ağırlıklı ortalama
                     en_son_kayit = max(
                         ilgili_girisler, key=lambda x: x.get("tarih", "")
                     )
@@ -2266,7 +2261,6 @@ elif menu == "Ürün Sil / Düzenle":
                     else:
                         kalan_dusulecek = fire_miktari
 
-                        # Fatura bazlı FIFO düşüşü (birden fazla alım varsa eskiden yeniye doğru düşer)
                         for g in aktif_ilgili_girisler:
                             if kalan_dusulecek <= 0:
                                 break
