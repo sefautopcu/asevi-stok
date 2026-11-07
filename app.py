@@ -3991,22 +3991,40 @@ elif menu == "Kullanıcı Ayarları":
 
         with ayar_tab3:
             st.subheader("📖 Proje Özeti & Bilgilendirme Rehberi")
+            
+            # Düzgün render edilen profesyonel Proje Tanıtım Alanı
             st.markdown(
                 f"""
-                <div style="background: {card_bg}; border: 1px solid {border_color}; padding: 28px; border-radius: 18px; line-height: 1.6;">
-                    <h3 style="margin-top:0; color: #6366f1;">🍲 Aziziye Aşevi Yönetim & Takip Sistemi</h3>
-                    <p>Bu uygulama, sosyal yardımlaşma vakıfları ve aşevlerinin operasyonel süreçlerini (stok takibi, yemek üretimi, kişi bazlı dağıtım, personel izin ve puantaj takibi) dijital ortamda yönetmek üzere geliştirilmiş kapsamlı bir web uygulamasıdır.</p>
+                <div style="background: {card_bg}; border: 1px solid {border_color}; padding: 32px; border-radius: 20px; line-height: 1.7; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.08);">
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
+                        <div style="background: rgba(99, 102, 241, 0.15); color: #6366f1; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid rgba(99, 102, 241, 0.3);">
+                            🍲
+                        </div>
+                        <div>
+                            <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: {text_color};">Aziziye Aşevi Yönetim & Takip Sistemi</h2>
+                            <p style="margin: 2px 0 0 0; color: {subtext_color}; font-size: 13.5px;">Kurumsal Sosyal Yardımlaşma ve Operasyonel Takip Platformu</p>
+                        </div>
+                    </div>
                     
-                    <h4 style="margin-top: 20px;">🔑 Temel Modüller ve Özellikler:</h4>
-                    <ul>
-                        <li><b>Depo & Stok Yönetimi:</b> Fatura bazlı ürün girişi, kritik stok eşikleri, fire/zayiat takibi, toplu sarfiyat düşümü ve birim fiyat analizleri.</li>
-                        <li><b>Mutfak & Üretim:</b> Günlük yemek üretimi, reçete/malzeme sarfiyatı, kişi başı maliyet hesaplama ve otomatik kalori hesaplayıcı.</li>
-                        <li><b>Sosyal Yardımlar:</b> İhtiyaç sahibi hane/kişi kayıtları (T.C., telefon, adres şifreleme korumalı), çoklu toplu yemek dağıtımı ve günlük/haftalık/aylık alım sayaç raporları.</li>
-                        <li><b>İnsan Kaynakları:</b> Personel kadro takibi, yıllık izinler, saatlik izinler, sağlık raporları, resmi tatiller hesaba katılarak net çalışma günü hesaplama.</li>
-                        <li><b>Güvenlik & Rol Yönetimi:</b> Şifrelenmiş veriler (Fernet & SHA-256), rol tabanlı yetkilendirme (Admin, Personel, Yönetim, Misafir), menü yasaklama ve hassas alan maskeleme.</li>
+                    <p style="font-size: 14.5px; color: {text_color}; opacity: 0.95; margin-bottom: 20px;">
+                        Bu uygulama; sosyal yardımlaşma vakıfları, dernekler ve aşevlerinin tüm operasyonel süreçlerini (stok takibi, yemek üretimi, kişi bazlı hane dağıtımları, personel izin ve puantaj yönetimi) dijital ortamda şeffaf, güvenli ve hatasız biçimde yönetmek üzere geliştirilmiş kapsamlı bir web uygulamasıdır.
+                    </p>
+
+                    <h4 style="font-size: 16px; font-weight: 700; color: #6366f1; margin-top: 24px; margin-bottom: 12px;">🔑 Temel Modüller ve Öne Çıkan Özellikler:</h4>
+                    
+                    <ul style="padding-left: 20px; color: {subtext_color}; font-size: 14px; display: flex; flex-direction: column; gap: 8px;">
+                        <li><b>Depo & Stok Yönetimi:</b> Fatura bazlı ürün alımları, çoklu depo yapısı, kritik stok eşikleri, fire/zayiat takibi ve birim fiyat maliyet analizleri.</li>
+                        <li><b>Mutfak & Üretim Modülü:</b> Günlük yemek üretimi planlama, malzeme sarfiyatı düşümü, kişi başı maliyet hesaplama ve otomatik kalori hesaplayıcı.</li>
+                        <li><b>Sosyal Yardım & Dağıtım:</b> İhtiyaç sahibi hane kayıtları (T.C., telefon ve adres bilgileri Fernet şifreleme ile korumalı), çoklu toplu yemek dağıtımı ve günlük/haftalık/aylık alım sayaç raporları.</li>
+                        <li><b>İnsan Kaynakları & Personel:</b> Kadro yönetimi, yıllık izinler, saatlik izinler, sağlık raporları ve resmi tatiller hesaba katılarak yapılan net çalışma günü hesaplama.</li>
+                        <li><b>Güvenlik & Rol Yönetimi:</b> SHA-256 şifreleme, rol tabanlı yetkilendirme (Admin, Personel, Yönetim, Misafir), menü yasaklama ve hassas alan maskeleme.</li>
                     </ul>
                     
-                    <p style="margin-top: 20px; font-size: 13px; color: {subtext_color};">Geliştirici: <b>Sefa Ünal Topçu</b> | Bulut Veritabanı: <b>Supabase</b> | Arayüz Çatı: <b>Streamlit</b></p>
+                    <div style="margin-top: 30px; padding-top: 16px; border-top: 1px solid {border_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 13px; color: {subtext_color};">
+                        <div>Geliştirici: <b style="color: {text_color};">Sefa Ünal Topçu</b></div>
+                        <div>Bulut Veritabanı: <b style="color: {text_color};">Supabase</b></div>
+                        <div>Arayüz Çatı: <b style="color: {text_color};">Streamlit</b></div>
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True
