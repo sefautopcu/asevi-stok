@@ -1852,7 +1852,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                  """,
                  unsafe_allow_html=True
                  )
-                 st.balloons()
+                st.balloons()
                 time.sleep(3)  # 3 saniye ekranda kalır
                 st.rerun()
                 else:
