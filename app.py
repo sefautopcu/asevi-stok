@@ -2243,7 +2243,7 @@ elif menu == "Fire / Zayiat Girişi":
                 fire_miktari = st.number_input(
                     "Fire Miktarı",
                     min_value=0.0,
-                    max_value=float(toplam_stok) if toplam_stok > 0 else 1.0,
+                    value=1.0,
                     step=0.1,
                 )
 
@@ -2340,7 +2340,7 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                     
                     st.info(f"Mevcut Stok: {current_stock} {unit}")
                     
-                    used_amount = st.number_input(f"Kullanılan Miktar ({unit})", min_value=0.1, max_value=float(current_stock) if current_stock > 0 else 1.0, value=1.0, step=0.5)
+                    used_amount = st.number_input(f"Kullanılan Miktar ({unit})", min_value=0.1, value=1.0, step=0.5)
                     description = st.text_input("Açıklama / Not (Örn: Kazan yemeği, günlük dağıtım vb.)", "Günlük Aşevi Üretimi")
                     
                     if st.button("Stoktan Düş ve Kullanılanlara Ekle", type="primary"):
@@ -2460,14 +2460,14 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 kullanilacak_miktar = st.number_input(
                     f"Miktar (Stok: {stok_max})",
                     min_value=0.0,
-                    max_value=float(stok_max) if stok_max > 0 else 0.1,
+                    value=1.0,
                     step=0.1,
                     key="yemek_miktar",
                 )
             with col3:
                 st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
                 if st.button("Sepete Ekle", use_container_width=True):
-                    if kullanilacak_miktar > 0 and kullanilacak_miktar <= stok_max:
+                    if kullanilacak_miktar > 0:
                         st.session_state.sepet.append(
                             {"urun": secilen_urun, "miktar": kullanilacak_miktar}
                         )
