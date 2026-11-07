@@ -1844,7 +1844,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     if fatura_no_input:
                         ayni_isimli_kayit["fatura_no"] = fatura_no_input
                     
-                 st.markdown(
+            st.markdown(
                  f"""
                  <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 14px 18px; border-radius: 14px; margin: 16px 0; font-weight: 600; font-size: 15px;">
                 🎉 Başarılı! '{urun_temiz}' ürününden depoda zaten mevcuttu. Miktar otomatik olarak {miktar} {birim} artırıldı.
