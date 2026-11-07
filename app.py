@@ -2204,6 +2204,11 @@ elif menu == "Fire / Zayiat Girişi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
+       # 4. FİRE / ZAYİAT GİRİŞİ (DÜZELTİLMİŞ VE SENRONİZE EDİLMİŞ VERSİYON)
+elif menu == "Fire / Zayiat Girişi":
+    if misafir_modu:
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    else:
         st.header("🗑️ Fire / Zayiat Bildirimi")
         if salt_okunur_modu:
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
@@ -2224,24 +2229,28 @@ elif menu == "Fire / Zayiat Girişi":
                     "Fire Düşülecek Ürünü Seçin", benzersiz_urunler if benzersiz_urunler else ["Yok"]
                 )
                 
-                # HATA GİDERİLDİ: Seçilen ürüne ait TÜM kayıtlar taranarak toplam stok doğru şekilde hesaplanıyor
+                # 'Güncel Stok Durumu' ile birebir aynı hesaplama mantığı:
                 ilgili_girisler = [
                     g
                     for g in st.session_state.girisler
                     if g.get("urun", "").strip().upper() == secilen_gercek_urun.strip().upper()
                 ]
+                
+                # Gerçek toplam kalan stok (Güncel Stok sayfasındaki mantık)
                 toplam_stok = sum(g.get("kalan", 0) for g in ilgili_girisler)
                 aktif_ilgili_girisler = [g for g in ilgili_girisler if g.get("kalan", 0) > 0]
 
+                # Doğru birim fiyat (Güncel stok sayfasındaki ortalama/son fiyat mantığı)
                 en_son_fiyat = 0.0
                 if ilgili_girisler:
+                    # En güncel faturadaki birim fiyat veya ağırlıklı ortalama
                     en_son_kayit = max(
                         ilgili_girisler, key=lambda x: x.get("tarih", "")
                     )
                     en_son_fiyat = en_son_kayit.get("fiyat", 0.0)
 
                 st.info(
-                    f"Güncel Toplam Stok ({secilen_gercek_urun}): {toplam_stok} | En Son Birim Fiyat: {en_son_fiyat:,.2f} ₺"
+                    f"Güncel Toplam Stok ({secilen_gercek_urun}): {toplam_stok} | Baz Alınan Birim Fiyat: {en_son_fiyat:,.2f} ₺"
                 )
                 fire_miktari = st.number_input(
                     "Fire Miktarı",
@@ -2253,10 +2262,11 @@ elif menu == "Fire / Zayiat Girişi":
                 submitted_fire = st.form_submit_button("Fireyi Düş ve Kaydet")
                 if submitted_fire and fire_miktari > 0:
                     if fire_miktari > toplam_stok:
-                        st.error(f"⚠️ Hata: Girilen fire miktarı ({fire_miktari}), mevcut toplam stoktan ({toplam_stok}) büyük olamaz!")
+                        st.error(f"⚠️ Hata: Girilen fire miktarı ({fire_miktari}), güncel toplam stoktan ({toplam_stok}) büyük olamaz!")
                     else:
                         kalan_dusulecek = fire_miktari
 
+                        # Fatura bazlı FIFO düşüşü (birden fazla alım varsa eskiden yeniye doğru düşer)
                         for g in aktif_ilgili_girisler:
                             if kalan_dusulecek <= 0:
                                 break
@@ -2306,7 +2316,7 @@ elif menu == "Fire / Zayiat Girişi":
                     fire_tablo_verisi.append({
                         "Tarih / Saat": f_log.get("tarih", "-"),
                         "Ürün Adı": f_log.get("urun", "-"),
-                        "Fire Miktarı": f"{f_log.get('miktar', 0)} Kg",
+                        "Fire Miktarı": f"{f_log.get('miktar', 0)}",
                         "Toplam Tutar": f"{f_log.get('tutar', 0):,.2f} ₺",
                         "İşlemi Yapan": f_log.get("islem_yapan", "admin"),
                     })
