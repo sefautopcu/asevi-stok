@@ -2200,7 +2200,7 @@ elif menu == "Ürün Sil / Düzenle":
             st.info("Silinmiş ürün kaydı bulunmuyor.")
 
         # 4. FİRE / ZAYİAT GİRİŞİ
-        elif menu == "Fire / Zayiat Girişi":
+        if menu == "Fire / Zayiat Girişi":
         if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
         else:
