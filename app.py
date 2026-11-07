@@ -2208,6 +2208,11 @@ elif menu == "Fire / Zayiat Girişi":
         if salt_okunur_modu:
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
         else:
+            # HATA KÖKTEN GİDERİLDİ: Ürün listesi benzersiz olarak alınıp selectbox'a verildi ve anlık durum formu içinde dinamik hesaplatıldı
+            benzersiz_urunler = sorted(
+                list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
+            )
+            
             with st.form("fire_formu"):
                 col_f_t1, col_f_t2 = st.columns(2)
                 with col_f_t1:
@@ -2216,14 +2221,11 @@ elif menu == "Fire / Zayiat Girişi":
                     fire_saati_secim = st.time_input("⏰ Fire Saati", value=datetime.datetime.now().time())
                 fire_tarih_str = f"{fire_tarihi_secim.strftime('%Y-%m-%d')} {fire_saati_secim.strftime('%H:%M')}"
 
-                benzersiz_urunler = sorted(
-                    list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
-                )
                 secilen_gercek_urun = st.selectbox(
                     "Fire Düşülecek Ürünü Seçin", benzersiz_urunler if benzersiz_urunler else ["Yok"]
                 )
                 
-                # HATA GİDERİLDİ: Toplu Stok Düşümü ile aynı mantıkta, seçilen ürünün tüm giriş kayıtlarındaki kalan miktarı toplanıyor
+                # Seçilen ürüne ait kayıtlar doğru şekilde filtreleniyor
                 ilgili_girisler = [
                     g
                     for g in st.session_state.girisler
@@ -2239,7 +2241,7 @@ elif menu == "Fire / Zayiat Girişi":
                     en_son_fiyat = en_son_kayit.get("fiyat", 0.0)
 
                 st.info(
-                    f"Güncel Stok: {toplam_stok} | En Son Birim Fiyat: {en_son_fiyat:,.2f} ₺"
+                    f"Güncel Stok ({secilen_gercek_urun}): {toplam_stok} | En Son Birim Fiyat: {en_son_fiyat:,.2f} ₺"
                 )
                 fire_miktari = st.number_input(
                     "Fire Miktarı",
@@ -2276,7 +2278,7 @@ elif menu == "Fire / Zayiat Girişi":
                     })
                     loglari_kaydet(st.session_state.kullanim_loglari)
                     st.success(
-                        f"🎉 Başarılı! Fire düşüldü ({fire_tarih_str}). Toplam zarar: {toplam_zarar:,.2f} ₺"
+                        f"🎉 Başarılı! {secilen_gercek_urun} için fire düşüldü ({fire_tarih_str}). Toplam zarar: {toplam_zarar:,.2f} ₺"
                     )
                     st.balloons()
                     st.rerun()
@@ -2333,13 +2335,13 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                 benzersiz_urunler_toplu = sorted(list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun"))))
                 
                 if benzersiz_urunler_toplu:
-                    selected_item = st.selectbox("Malzeme Seçin", benzersiz_urunler_toplu)
+                    selected_item = st.selectbox("Malzeme Seçin", benzersiz_urunler_toplu, key="toplu_malzeme_selectbox")
                     
                     ilgili_girisler_toplu = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == selected_item.strip().upper() and g.get("kalan", 0) > 0]
                     current_stock = sum(g.get("kalan", 0) for g in ilgili_girisler_toplu)
                     unit = ilgili_girisler_toplu[0].get("birim", "Kg") if ilgili_girisler_toplu else "Kg"
                     
-                    st.info(f"Mevcut Stok: {current_stock} {unit}")
+                    st.info(f"Mevcut Stok ({selected_item}): {current_stock} {unit}")
                     
                     used_amount = st.number_input(f"Kullanılan Miktar ({unit})", min_value=0.1, value=1.0, step=0.5)
                     description = st.text_input("Açıklama / Not (Örn: Kazan yemeği, günlük dağıtım vb.)", "Günlük Aşevi Üretimi")
