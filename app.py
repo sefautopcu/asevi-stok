@@ -2223,6 +2223,7 @@ elif menu == "Fire / Zayiat Girişi":
                     "Fire Düşülecek Ürünü Seçin", benzersiz_urunler if benzersiz_urunler else ["Yok"]
                 )
                 
+                # HATA DÜZELTME NOKTASI: Ürün filtresi büyük/küçük harf ve boşluk duyarlılığından arındırıldı
                 ilgili_girisler = [
                     g
                     for g in st.session_state.girisler
