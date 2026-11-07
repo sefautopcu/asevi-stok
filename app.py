@@ -1824,7 +1824,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
         )
     else:
         st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
-        st.markdown("Her yeni mal alımı ayrı bir kayıt olarak depoya eklenir; böylece geçmiş alım fiyatlarınız ve tarihçeniz korunur.")
+        st.markdown("Her yeni mal alımı ayrı bir kayıt olarak depoya eklenir; böylece aynı ürün eklendiğinde stoğunuz artar ve geçmiş alım fiyatlarınız/tarihçeniz korunur.")
         with st.form("fatura_formu"):
             fatura_tarihi_secim = st.date_input("📅 Fatura / Alım Tarihi", value=datetime.date.today())
             fatura_saati_secim = st.time_input("⏰ Alım Saati", value=datetime.datetime.now().time())
@@ -1894,7 +1894,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 st.markdown(
                 """
                 <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 14px 18px; border-radius: 14px; margin: 16px 0; font-weight: 600; font-size: 15px;">
-                🎉 Başarılı! Yeni mal alımı faturası ve ürün ayrı bir kayıt olarak depoya eklendi (Fiyat geçmişi korundu).
+                🎉 Başarılı! Yeni mal alımı faturası ve ürün depoya eklendi (Güncel stok artırıldı, fiyat geçmişi korundu).
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -4131,7 +4131,7 @@ elif menu == "Kullanıcı Ayarları":
                     st.rerun()
 
         with ayar_tab3:
-            st.subheader("📖 Proje Özeti & Bilgilendirme Rehberi")
+            st.subheader("Proje Özeti & Bilgilendirme Rehberi")
             
             st.markdown(
                 f"""
@@ -4150,7 +4150,7 @@ elif menu == "Kullanıcı Ayarları":
                         Bu uygulama; sosyal yardımlaşma vakıfları, dernekler ve aşevlerinin tüm operasyonel süreçlerini (stok takibi, yemek üretimi, kişi bazlı hane dağıtımları, demirbaş takibi, personel izin ve puantaj yönetimi) dijital ortamda şeffaf, güvenli ve hatasız biçimde yönetmek üzere geliştirilmiştir.
                     </p>
 
-                    <h4 style="font-size: 16px; font-weight: 700; color: #6366f1; margin-top: 24px; margin-bottom: 12px;">🔑 Temel Modüller ve Öne Çıkan Özellikler:</h4>
+                    <h4 style="font-size: 16px; font-weight: 700; color: #6366f1; margin-top: 24px; margin-bottom: 12px;">Temel Modüller ve Öne Çıkan Özellikler:</h4>
                     
                     <ul style="padding-left: 20px; color: {subtext_color}; font-size: 14px; display: flex; flex-direction: column; gap: 8px;">
                         <li><b>Depo & Stok Yönetimi:</b> Fatura bazlı ürün alımları (fiyat geçmişi korumalı), çoklu depo yapısı, kritik stok eşikleri, fire/zayiat takibi ve birim fiyat maliyet analizleri.</li>
@@ -4162,9 +4162,9 @@ elif menu == "Kullanıcı Ayarları":
                     </ul>
                     
                     <div style="margin-top: 30px; padding-top: 16px; border-top: 1px solid {border_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 13px; color: {subtext_color};">
-                        <div>Geliştirici: <b style="color: {text_color};">Sefa Ünal Topçu</b></div>
-                        <div>Bulut Veritabanı: <b style="color: {text_color};">Supabase</b></div>
-                        <div>Arayüz Çatı: <b style="color: {text_color};">Streamlit</b></div>
+                        <div>Geliştirici: <b>Sefa Ünal Topçu</b></div>
+                        <div>Bulut Veritabanı: <b>Supabase</b></div>
+                        <div>Arayüz Çatı: <b>Streamlit</b></div>
                     </div>
                 </div>
                 """,
