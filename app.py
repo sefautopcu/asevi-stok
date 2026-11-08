@@ -3897,7 +3897,7 @@ elif menu == "Kullanıcı Ayarları":
         # Tab yapısı
         tab_liste, tab_ekle = st.tabs(["📋 Kullanıcı Listesi ve Yetki Matrisi", "➕ Yeni Kullanıcı Ekle"])
 
-      # 11. KULLANICI AYARLARI (TEK SAYFA - KESİNLİKLE TAKILMAYAN NET YAPI)
+      # 11. KULLANICI AYARLARI (TEK PARÇA - EKSİKSİZ VE DOĞRUDAN ÇALIŞAN YAPI)
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
@@ -3907,7 +3907,7 @@ elif menu == "Kullanıcı Ayarları":
             "Sistem kullanıcılarını yönetebilir, yeni kullanıcı ekleyebilir, mevcut kullanıcıları silebilir ve hassas veri maskeleme kurallarını yönetebilirsiniz."
         )
 
-        # Güvenlik kontrolü
+        # Güvenlik ve veri sözlüğü kontrolü
         if "kullanicilar" not in st.session_state:
             st.session_state.kullanicilar = {}
 
@@ -3944,12 +3944,12 @@ elif menu == "Kullanıcı Ayarları":
         yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
 
         if yonetilebilir_kullanicilar:
-            secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_duzenle_final")
+            secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_duzenle_kesin")
             
             if secilen_k_adi and secilen_k_adi in kullanici_db:
                 k_obj = kullanici_db[secilen_k_adi]
 
-                with st.form(f"form_duzenle_final_{secilen_k_adi}"):
+                with st.form(f"form_duzenle_kesin_{secilen_k_adi}"):
                     col_d1, col_d2 = st.columns(2)
                     with col_d1:
                         mevcut_rol = k_obj.get("rol", "Personel")
@@ -3982,7 +3982,7 @@ elif menu == "Kullanıcı Ayarları":
                         
                         for idx, sutun in enumerate(sutunlar):
                             with s_cols[idx]:
-                                is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"f_mask_{secilen_k_adi}_{sayfa_adi}_{idx}")
+                                is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"kesin_mask_{secilen_k_adi}_{sayfa_adi}_{idx}")
                                 if is_masked:
                                     secilen_sutunlar.append(sutun)
                         
@@ -4004,7 +4004,7 @@ elif menu == "Kullanıcı Ayarları":
                     m_cols = st.columns(2)
                     for idx, m_item in enumerate(tum_menu_ogeleri):
                         with m_cols[idx % 2]:
-                            yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"f_yasak_{secilen_k_adi}_{idx}")
+                            yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"kesin_yasak_{secilen_k_adi}_{idx}")
                             if yasakli_mi:
                                 yeni_yasaklar.append(m_item)
 
@@ -4029,7 +4029,7 @@ elif menu == "Kullanıcı Ayarları":
         st.markdown("---")
         st.subheader("➕ 3. Yeni Sistem Kullanıcısı Ekle")
         
-        with st.form("yeni_kullanici_ekle_final_form"):
+        with st.form("yeni_kullanici_ekle_kesin_form"):
             y_col1, y_col2 = st.columns(2)
             with y_col1:
                 yeni_k_adi = st.text_input("Kullanıcı Adı (Benzersiz)")
