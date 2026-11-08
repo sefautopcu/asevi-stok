@@ -2221,23 +2221,24 @@ elif menu == "Fire / Zayiat Girişi":
                 fire_tarih_str = f"{fire_tarihi_secim.strftime('%Y-%m-%d')} {fire_saati_secim.strftime('%H:%M')}"
 
                 secilen_gercek_urun = st.selectbox(
-                    "Fire Düşülecek Ürünü Seçin", benzersiz_urunler if benzersiz_urunler else ["Yok"]
+                    "Fire Düşülecek Ürünü Seçin", benzersiz_urunler if benzersiz_urunler else ["Yok"], key="fire_urun_secim_box"
                 )
                 
+                # Doğru ürün filtresi burada sağlanıyor:
                 ilgili_girisler = [
                     g
                     for g in st.session_state.girisler
-                    if g.get("urun", "").strip().upper() == secilen_gercek_urun.strip().upper()
+                    if str(g.get("urun", "")).strip().upper() == str(secilen_gercek_urun).strip().upper()
                 ]
-                toplam_stok = sum(g.get("kalan", 0) for g in ilgili_girisler)
-                aktif_ilgili_girisler = [g for g in ilgili_girisler if g.get("kalan", 0) > 0]
+                toplam_stok = sum(float(g.get("kalan", 0)) for g in ilgili_girisler)
+                aktif_ilgili_girisler = [g for g in ilgili_girisler if float(g.get("kalan", 0)) > 0]
 
                 en_son_fiyat = 0.0
                 if ilgili_girisler:
                     en_son_kayit = max(
-                        ilgili_girisler, key=lambda x: x.get("tarih", "")
+                        ilgili_girisler, key=lambda x: str(x.get("tarih", ""))
                     )
-                    en_son_fiyat = en_son_kayit.get("fiyat", 0.0)
+                    en_son_fiyat = float(en_son_kayit.get("fiyat", 0.0))
 
                 st.info(
                     f"Güncel Toplam Stok ({secilen_gercek_urun}): {toplam_stok} | Baz Alınan Birim Fiyat: {en_son_fiyat:,.2f} ₺"
@@ -2259,12 +2260,12 @@ elif menu == "Fire / Zayiat Girişi":
                         for g in aktif_ilgili_girisler:
                             if kalan_dusulecek <= 0:
                                 break
-                            if g["kalan"] >= kalan_dusulecek:
-                                g["kalan"] -= kalan_dusulecek
+                            if float(g["kalan"]) >= kalan_dusulecek:
+                                g["kalan"] = float(g["kalan"]) - kalan_dusulecek
                                 kalan_dusulecek = 0
                             else:
-                                dusulen = g["kalan"]
-                                g["kalan"] = 0
+                                dusulen = float(g["kalan"])
+                                g["kalan"] = 0.0
                                 kalan_dusulecek -= dusulen
 
                         toplam_zarar = fire_miktari * en_son_fiyat
@@ -2284,41 +2285,6 @@ elif menu == "Fire / Zayiat Girişi":
                         )
                         st.balloons()
                         st.rerun()
-
-        st.markdown("---")
-        
-        col_b_fire, col_indir_fire = st.columns([2, 2])
-        with col_b_fire:
-            st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
-        
-        if "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi" in aktif_k_maskeleri:
-            st.info("🔒 Kayıtlı Fire ve Zayiatlar Listesi tablosu bu kullanıcı için tamamen maskelenmiştir (gizlenmiştir).")
-        else:
-            fire_loglari = [
-                l
-                for l in st.session_state.kullanim_loglari
-                if l.get("tur") == "Fire/Zayiat"
-            ]
-            if fire_loglari:
-                fire_tablo_verisi = []
-                for f_log in reversed(fire_loglari):
-                    fire_tablo_verisi.append({
-                        "Tarih / Saat": f_log.get("tarih", "-"),
-                        "Ürün Adı": f_log.get("urun", "-"),
-                        "Fire Miktarı": f"{f_log.get('miktar', 0)}",
-                        "Toplam Tutar": f"{f_log.get('tutar', 0):,.2f} ₺",
-                        "İşlemi Yapan": f_log.get("islem_yapan", "admin"),
-                    })
-                
-                excel_fire_data = tablo_to_excel_bytes(fire_tablo_verisi, "Aziziye Aşevi - Fire ve Zayiat Raporu")
-                pdf_fire_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fire ve Zayiat Raporu", fire_tablo_verisi)
-                with col_indir_fire:
-                    ortak_indirme_alani(excel_fire_data, pdf_fire_data, "fire_ve_zayiat_listesi", "fire_arsiv_sayfasi")
-
-                ozel_html_tablo_goster(fire_tablo_verisi)
-            else:
-                st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
-
 # TOPLU STOK DÜŞÜMÜ & SARFİYAT
 elif menu == "Toplu Stok Düşümü & Sarfiyat":
     if misafir_modu:
