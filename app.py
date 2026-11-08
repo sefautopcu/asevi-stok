@@ -2209,7 +2209,7 @@ elif menu == "Fire / Zayiat Girişi":
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
         else:
             benzersiz_urunler = sorted(
-                list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
+                list(set(str(g.get("urun", "")).strip().upper() for g in st.session_state.girisler if g.get("urun")))
             )
             
             with st.form("fire_formu"):
@@ -2224,7 +2224,7 @@ elif menu == "Fire / Zayiat Girişi":
                     "Fire Düşülecek Ürünü Seçin", benzersiz_urunler if benzersiz_urunler else ["Yok"], key="fire_urun_secim_box"
                 )
                 
-                # Doğru ürün filtresi burada sağlanıyor:
+                # Seçilen ürüne ait kayıtları ve stoğu doğru filtreleme
                 ilgili_girisler = [
                     g
                     for g in st.session_state.girisler
@@ -2240,9 +2240,11 @@ elif menu == "Fire / Zayiat Girişi":
                     )
                     en_son_fiyat = float(en_son_kayit.get("fiyat", 0.0))
 
+                # DÜZELTME: Artık seçilen ürün adı dinamik olarak yansıtılıyor
                 st.info(
                     f"Güncel Toplam Stok ({secilen_gercek_urun}): {toplam_stok} | Baz Alınan Birim Fiyat: {en_son_fiyat:,.2f} ₺"
                 )
+                
                 fire_miktari = st.number_input(
                     "Fire Miktarı",
                     min_value=0.0,
@@ -2285,6 +2287,7 @@ elif menu == "Fire / Zayiat Girişi":
                         )
                         st.balloons()
                         st.rerun()
+                        
 # TOPLU STOK DÜŞÜMÜ & SARFİYAT
 elif menu == "Toplu Stok Düşümü & Sarfiyat":
     if misafir_modu:
