@@ -3884,7 +3884,7 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             else:
                 st.info("Gösterilecek envanter hareketi bulunmuyor.")
 
-# 11. KULLANICI AYARLARI (TEK PARÇA VE ÇAKIŞMASIZ KESİN ÇÖZÜM)
+# 11. KULLANICI AYARLARI (TİP HATASINI GİDEREN KESİN ÇÖZÜM)
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
@@ -3894,9 +3894,16 @@ elif menu == "Kullanıcı Ayarları":
             "Sistem kullanıcılarını yönetebilir, yeni kullanıcı ekleyebilir, mevcut kullanıcıları silebilir ve hassas veri maskeleme kurallarını yönetebilirsiniz."
         )
 
-        # Veri tabanı kontrolü
+        # Veritabanı ve tip güvenliği kontrolü
         if "kullanicilar" not in st.session_state:
             st.session_state.kullanicilar = {}
+
+        # Veri bütünlüğünü koruma (Eski kayıtlar string kalmışsa sözlüğe çevir)
+        for k_key, k_val in st.session_state.kullanicilar.items():
+            if not isinstance(k_val.get("maskeli_alanlar"), dict):
+                k_val["maskeli_alanlar"] = {}
+            if not isinstance(k_val.get("yasakli_menuler"), list):
+                k_val["yasakli_menuler"] = []
 
         st.markdown("---")
         st.subheader("📋 1. Aktif Kullanıcılar ve Yetki Matrisi")
@@ -3908,9 +3915,10 @@ elif menu == "Kullanıcı Ayarları":
             for k_adi, k_obj in kullanici_db.items():
                 gizli_alanlar = k_obj.get("maskeli_alanlar", {})
                 gizlenen_ozet = []
-                for sayfa, sutunlar in gizli_alanlar.items():
-                    if sutunlar:
-                        gizlenen_ozet.append(f"{sayfa}: {', '.join(sutunlar)}")
+                if isinstance(gizli_alanlar, dict):
+                    for sayfa, sutunlar in gizli_alanlar.items():
+                        if sutunlar:
+                            gizlenen_ozet.append(f"{sayfa}: {', '.join(sutunlar)}")
                         
                 table_rows.append({
                     "Kullanıcı Adı": k_adi,
@@ -3931,21 +3939,20 @@ elif menu == "Kullanıcı Ayarları":
         yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
 
         if yonetilebilir_kullanicilar:
-            secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_temiz_cozum")
+            secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_tip_guvenli")
             
             if secilen_k_adi and secilen_k_adi in kullanici_db:
                 k_obj = kullanici_db[secilen_k_adi]
 
-                # Doğrudan akış (Form kullanılmamıştır, takılma yapmaz)
                 col_d1, col_d2 = st.columns(2)
                 with col_d1:
                     mevcut_rol = k_obj.get("rol", "Personel")
                     rol_secenekleri = ["Personel", "Yönetim", "Misafir"]
                     rol_index = rol_secenekleri.index(mevcut_rol) if mevcut_rol in rol_secenekleri else 0
-                    yeni_rol = st.selectbox("Kullanıcı Rolü", rol_secenekleri, index=rol_index, key=f"rol_temiz_{secilen_k_adi}")
-                    yeni_salt_okunur = st.checkbox("Salt Okunur Özelliği (Veri Değiştiremez)", value=k_obj.get("salt_okunur", False), key=f"ro_temiz_{secilen_k_adi}")
+                    yeni_rol = st.selectbox("Kullanıcı Rolü", rol_secenekleri, index=rol_index, key=f"rol_tip_{secilen_k_adi}")
+                    yeni_salt_okunur = st.checkbox("Salt Okunur Özelliği (Veri Değiştiremez)", value=k_obj.get("salt_okunur", False), key=f"ro_tip_{secilen_k_adi}")
                 with col_d2:
-                    kullaniciyi_sil = st.checkbox("⚠️ Bu kullanıcıyı sistemden kalıcı olarak çıkar / sil", value=False, key=f"sil_temiz_{secilen_k_adi}")
+                    kullaniciyi_sil = st.checkbox("⚠️ Bu kullanıcıyı sistemden kalıcı olarak çıkar / sil", value=False, key=f"sil_tip_{secilen_k_adi}")
 
                 st.markdown("---")
                 st.markdown("### 🔒 Sayfa ve Sütun Bazlı Hassas Veri Maskeleme")
@@ -3959,6 +3966,9 @@ elif menu == "Kullanıcı Ayarları":
                 }
 
                 mevcut_maskeler = k_obj.get("maskeli_alanlar", {})
+                if not isinstance(mevcut_maskeler, dict):
+                    mevcut_maskeler = {}
+
                 yeni_maskeli_alanlar = {}
 
                 for sayfa_adi, sutunlar in hassas_alanlar_yapisi.items():
@@ -3967,10 +3977,12 @@ elif menu == "Kullanıcı Ayarları":
                     s_cols = st.columns(len(sutunlar))
                     
                     mevcut_sayfa_yasaklari = mevcut_maskeler.get(sayfa_adi, [])
+                    if not isinstance(mevcut_sayfa_yasaklari, list):
+                        mevcut_sayfa_yasaklari = []
                     
                     for idx, sutun in enumerate(sutunlar):
                         with s_cols[idx]:
-                            is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"temiz_mask_{secilen_k_adi}_{sayfa_adi}_{idx}")
+                            is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"tip_mask_{secilen_k_adi}_{sayfa_adi}_{idx}")
                             if is_masked:
                                 secilen_sutunlar.append(sutun)
                     
@@ -3987,17 +3999,20 @@ elif menu == "Kullanıcı Ayarları":
                 ]
                 
                 mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
+                if not isinstance(mevcut_yasaklar, list):
+                    mevcut_yasaklar = []
+
                 yeni_yasaklar = []
                 
                 m_cols = st.columns(2)
                 for idx, m_item in enumerate(tum_menu_ogeleri):
                     with m_cols[idx % 2]:
-                        yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"temiz_yasak_{secilen_k_adi}_{idx}")
+                        yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"tip_yasak_{secilen_k_adi}_{idx}")
                         if yasakli_mi:
                             yeni_yasaklar.append(m_item)
 
                 st.markdown("")
-                if st.button("Değişiklikleri Kaydet / Uygula", type="primary", key=f"btn_temiz_kaydet_{secilen_k_adi}"):
+                if st.button("Değişiklikleri Kaydet / Uygula", type="primary", key=f"btn_tip_kaydet_{secilen_k_adi}"):
                     if kullaniciyi_sil:
                         del st.session_state.kullanicilar[secilen_k_adi]
                         st.toast(f"🗑️ '{secilen_k_adi}' kullanıcısı sistemden silindi!", icon="✅")
@@ -4016,17 +4031,17 @@ elif menu == "Kullanıcı Ayarları":
         st.markdown("---")
         st.subheader("➕ 3. Yeni Sistem Kullanıcısı Ekle")
         
-        yeni_k_adi = st.text_input("Kullanıcı Adı (Benzersiz)", key="yeni_k_adi_input_temiz")
-        yeni_sifre = st.text_input("Şifre", type="password", key="yeni_sifre_input_temiz")
+        yeni_k_adi = st.text_input("Kullanıcı Adı (Benzersiz)", key="yeni_k_adi_input_tip")
+        yeni_sifre = st.text_input("Şifre", type="password", key="yeni_sifre_input_tip")
         
         y_col1, y_col2 = st.columns(2)
         with y_col1:
-            yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="yeni_rol_select_temiz")
+            yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="yeni_rol_select_tip")
         with y_col2:
-            yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False, key="yeni_salt_chk_temiz")
+            yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False, key="yeni_salt_chk_tip")
 
         st.markdown("")
-        if st.button("Yeni Kullanıcıyı Sisteme Ekle", type="secondary", key="btn_temiz_yeni_ekle"):
+        if st.button("Yeni Kullanıcıyı Sisteme Ekle", type="secondary", key="btn_tip_yeni_ekle"):
             if yeni_k_adi and yeni_sifre:
                 if yeni_k_adi in st.session_state.kullanicilar:
                     st.error("Bu kullanıcı adı zaten sistemde mevcut!")
