@@ -3897,20 +3897,31 @@ elif menu == "Kullanıcı Ayarları":
         # Tab yapısı
         tab_liste, tab_ekle = st.tabs(["📋 Kullanıcı Listesi ve Yetki Matrisi", "➕ Yeni Kullanıcı Ekle"])
 
-      # 11. KULLANICI AYARLARI (DETAYLI SAYFA VE SÜTUN/ALAN MASKELEME ÖZELLİKLİ)
+      # 11. KULLANICI AYARLARI (STABİL TABLO VE HASSAS ALAN MASKELEME YÖNETİMİ)
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
         st.header("⚙️ Kullanıcı Yetkileri, Menü Kısıtlamaları ve Hassas Alan Maskeleme")
         st.markdown(
-            "Sistem kullanıcılarını yönetebilir, yeni kullanıcı ekleyebilir, mevcut kullanıcıları silebilir; ayrıca hangi sayfalarda hangi hassas verilerin (T.C., Telefon, Adres vb.) maskeleneceğini (gizleneceğini) detaylıca belirleyebilirsiniz."
+            "Sistem kullanıcılarını yönetebilir, yeni kullanıcı ekleyebilir, mevcut kullanıcıları silebilir; ayrıca hangi sayfalarda hangi hassas verilerin maskeleneceğini detaylıca belirleyebilirsiniz."
         )
 
-        tab_liste, tab_ekle = st.tabs(["📋 Kullanıcı Listesi ve Maskeleme Matrisi", "➕ Yeni Kullanıcı Ekle"])
+        # Session state güvenlik kontrolü
+        if "kullanicilar" not in st.session_state:
+            st.session_state.kullanicilar = {}
 
-        # TAB 1: KULLANICI LİSTESİ VE MASKELEME MATRİSİ
-        with tab_liste:
+        # Sekme geçişi için radio buton (st.tabs yerine takılmaları önler)
+        islem_turu = st.radio(
+            "İşlem Türü Seçin",
+            ["📋 Kullanıcı Listesi ve Maskeleme Matrisi", "➕ Yeni Kullanıcı Ekle"],
+            horizontal=True
+        )
+        
+        st.markdown("---")
+
+        # 1. KULLANICI LİSTESİ VE MASKELEME MATRİSİ
+        if islem_turu == "📋 Kullanıcı Listesi ve Maskeleme Matrisi":
             st.subheader("Aktif Kullanıcılar ve Detaylı Yetki/Maskeleme Tablosu")
             
             kullanici_db = st.session_state.kullanicilar
@@ -3943,24 +3954,25 @@ elif menu == "Kullanıcı Ayarları":
             yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
 
             if yonetilebilir_kullanicilar:
-                secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="select_k_degistir_detay")
+                secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_duzenle_ana")
                 
-                if secilen_k_adi:
+                if secilen_k_adi and secilen_k_adi in kullanici_db:
                     k_obj = kullanici_db[secilen_k_adi]
 
-                    with st.form(f"form_duzenle_{secilen_k_adi}"):
+                    with st.form(f"form_duzenle_stabil_{secilen_k_adi}"):
                         col_d1, col_d2 = st.columns(2)
                         with col_d1:
-                            yeni_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], index=["Personel", "Yönetim", "Misafir"].index(k_obj.get("rol", "Personel")) if k_obj.get("rol", "Personel") in ["Personel", "Yönetim", "Misafir"] else 0)
+                            mevcut_rol = k_obj.get("rol", "Personel")
+                            rol_index = ["Personel", "Yönetim", "Misafir"].index(mevcut_rol) if mevcut_rol in ["Personel", "Yönetim", "Misafir"] else 0
+                            yeni_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], index=rol_index)
                             yeni_salt_okunur = st.checkbox("Salt Okunur Özelliği (Veri Değiştiremez)", value=k_obj.get("salt_okunur", False))
                         with col_d2:
                             kullaniciyi_sil = st.checkbox("⚠️ Bu kullanıcıyı sistemden kalıcı olarak çıkar / sil", value=False)
 
                         st.markdown("---")
                         st.markdown("### 🔒 Sayfa ve Sütun Bazlı Hassas Veri Maskeleme Ayarları")
-                        st.markdown("Aşağıdaki alanlardan hangilerinin bu kullanıcı için **maskelenmesini (yıldızlanarak gizlenmesini)** istiyorsanız işaretleyin:")
+                        st.markdown("Aşağıdaki alanlardan hangilerinin bu kullanıcı için **maskelenmesini (gizlenmesini)** istiyorsanız işaretleyin:")
 
-                        # Tanımlı sayfalar ve bu sayfalardaki hassas sütunlar
                         hassas_alanlar_yapisi = {
                             "Sosyal Yardımlar": ["T.C. Kimlik Numarası", "Telefon Numarası", "Ev Adresi", "Hane Gelir Bilgisi"],
                             "İnsan Kaynakları": ["Personel T.C. Kimlik", "Personel Telefon", "Maaş Bilgisi", "Özlük Dosyası"],
@@ -3980,7 +3992,7 @@ elif menu == "Kullanıcı Ayarları":
                             
                             for idx, sutun in enumerate(sutunlar):
                                 with s_cols[idx]:
-                                    is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"mask_{secilen_k_adi}_{sayfa_adi}_{sutun}")
+                                    is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"chk_mask_{secilen_k_adi}_{sayfa_adi}_{idx}")
                                     if is_masked:
                                         secilen_sutunlar.append(sutun)
                             
@@ -4002,7 +4014,7 @@ elif menu == "Kullanıcı Ayarları":
                         m_cols = st.columns(2)
                         for idx, m_item in enumerate(tum_menu_ogeleri):
                             with m_cols[idx % 2]:
-                                yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"yasak_{secilen_k_adi}_{m_item}")
+                                yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"chk_yasak_{secilen_k_adi}_{idx}")
                                 if yasakli_mi:
                                     yeni_yasaklar.append(m_item)
 
@@ -4019,23 +4031,23 @@ elif menu == "Kullanıcı Ayarları":
                                 st.session_state.kullanicilar[secilen_k_adi]["maskeli_alanlar"] = yeni_maskeli_alanlar
                                 st.session_state.kullanicilar[secilen_k_adi]["yasakli_menuler"] = yeni_yasaklar
                                 
-                                st.toast(f"✅ '{secilen_k_adi}' kullanıcısının maskeleme ve yetki ayarları güncellendi!", icon="🎉")
+                                st.toast(f"✅ '{secilen_k_adi}' kullanıcısının ayarları güncellendi!", icon="🎉")
                                 st.rerun()
             else:
-                st.warning("Düzenlenebilecek ek kullanıcı bulunmuyor.")
+                        st.info("Düzenlenebilecek ek kullanıcı bulunmuyor.")
 
-        # TAB 2: YENİ KULLANICI EKLE
-        with tab_ekle:
+        # 2. YENİ KULLANICI EKLE
+        elif islem_turu == "➕ Yeni Kullanıcı Ekle":
             st.subheader("Sisteme Yeni Kullanıcı Tanımla")
             
-            with st.form("yeni_kullanici_ekle_form_detay"):
+            with st.form("yeni_kullanici_ekle_stabil_form"):
                 y_col1, y_col2 = st.columns(2)
                 with y_col1:
                     yeni_k_adi = st.text_input("Kullanıcı Adı (Benzersiz)")
                     yeni_sifre = st.text_input("Şifre", type="password")
                 with y_col2:
-                    yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="y_rol_yeni_detay")
-                    yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False, key="y_salt_yeni_detay")
+                    yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"])
+                    yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False)
 
                 y_ekle_btn = st.form_submit_button("Yeni Kullanıcıyı Ekle")
                 if y_ekle_btn:
