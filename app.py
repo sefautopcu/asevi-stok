@@ -3884,17 +3884,17 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             else:
                 st.info("Gösterilecek envanter hareketi bulunmuyor.")
 
-# 11. KULLANICI AYARLARI (GÜNCELLENMİŞ VERSİYON)
+# 11. KULLANICI AYARLARI (MASKELEME VE TOAST POP-UP ÖZELLİKLİ)
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
-        st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcına aittir.")
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
         st.header("⚙️ Kullanıcı Yetkileri, Menü Kısıtlamaları ve Alan Maskeleme")
         st.markdown(
-            "Sistem kullanıcılarını yönetebilir, yeni kullanıcı ekleyebilir, mevcut kullanıcıları silebilir, **salt okunur** veya **tam yetki** atayarak sayfa izinleri ile maskeleme kurallarını yönetebilirsiniz."
+            "Sistem kullanıcılarını yönetebilir, yeni kullanıcı ekleyebilir, mevcut kullanıcıları silebilir, **salt okunur** veya **tam yetki** atayarak sayfa izinleri ile hassas veri maskeleme kurallarını yönetebilirsiniz."
         )
 
-        # Tab yapısı ile düzenli görünüm
+        # Tab yapısı
         tab_liste, tab_ekle = st.tabs(["📋 Kullanıcı Listesi ve Yetki Matrisi", "➕ Yeni Kullanıcı Ekle"])
 
         # TAB 1: KULLANICI LİSTESİ VE YETKİ MATRİSİ
@@ -3910,7 +3910,7 @@ elif menu == "Kullanıcı Ayarları":
                         "Kullanıcı Adı": k_adi,
                         "Rol / Tür": "Admin" if k_adi == "admin" else k_obj.get("rol", "Personel"),
                         "Salt Okunur": "Evet" if k_obj.get("salt_okunur", False) else "Hayır",
-                        "Maskeleme": "Aktif" if k_obj.get("maskeleme", True) else "Pasif",
+                        "Hassas Veri Maskeleme": "Aktif (Gizli)" if k_obj.get("maskeleme", True) else "Pasif (Açık)",
                         "Yasaklı Menüler / Kısıtlar": ", ".join(k_obj.get("yasakli_menuler", [])) if k_obj.get("yasakli_menuler") else "Yok (Tam Yetki)"
                     })
                 
@@ -3922,7 +3922,6 @@ elif menu == "Kullanıcı Ayarları":
             st.markdown("---")
             st.subheader("🛠️ Kullanıcı Düzenle, Yetki Ver / Kaldır veya Sil")
 
-            # Admin dışındaki yönetilebilir kullanıcılar
             yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
 
             if yonetilebilir_kullanicilar:
@@ -3937,7 +3936,8 @@ elif menu == "Kullanıcı Ayarları":
                             yeni_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], index=["Personel", "Yönetim", "Misafir"].index(k_obj.get("rol", "Personel")) if k_obj.get("rol", "Personel") in ["Personel", "Yönetim", "Misafir"] else 0)
                             yeni_salt_okunur = st.checkbox("Salt Okunur Özelliği (Veri Değiştiremez)", value=k_obj.get("salt_okunur", False))
                         with col_d2:
-                            yeni_maskeleme = st.checkbox("Hassas Veri Maskelemesini Aktif Et", value=k_obj.get("maskeleme", True))
+                            # MASKELEME ÖZELLİĞİ BURADA AKTİF EDİLDİ
+                            yeni_maskeleme = st.checkbox("Hassas Veri Maskelemesini Aktif Et (TC / Telefon gizle)", value=k_obj.get("maskeleme", True))
                             kullaniciyi_sil = st.checkbox("⚠️ Bu kullanıcıyı sistemden kalıcı olarak çıkar / sil", value=False)
 
                         st.markdown("**Sayfa / Menü Kısıtlamaları (İşaretlenenler Engellenir):**")
@@ -3959,17 +3959,19 @@ elif menu == "Kullanıcı Ayarları":
                                     yeni_yasaklar.append(m_item)
 
                         kaydet_btn = st.form_submit_button("Değişiklikleri Kaydet / Uygula")
+                        
                         if kaydet_btn:
-                            if kullanıcıyi_sil:
+                            if kullaniciyi_sil:
                                 del st.session_state.kullanicilar[secilen_k_adi]
-                                st.success(f"'{secilen_k_adi}' kullanıcısı sistemden başarıyla silindi!")
+                                st.toast(f"🗑️ '{secilen_k_adi}' kullanıcısı sistemden başarıyla silindi!", icon="✅")
                                 st.rerun()
                             else:
                                 st.session_state.kullanicilar[secilen_k_adi]["rol"] = yeni_rol
                                 st.session_state.kullanicilar[secilen_k_adi]["salt_okunur"] = yeni_salt_okunur
                                 st.session_state.kullanicilar[secilen_k_adi]["maskeleme"] = yeni_maskeleme
                                 st.session_state.kullanicilar[secilen_k_adi]["yasakli_menuler"] = yeni_yasaklar
-                                st.success(f"'{secilen_k_adi}' kullanıcısının yetkileri güncellendi!")
+                                # 3 saniye ekranda kalacak başarı bildirimi (Streamlit Toast)
+                                st.toast(f"✅ '{secilen_k_adi}' kullanıcısının yetkileri başarıyla güncellendi!", icon="🎉")
                                 st.rerun()
             else:
                 st.warning("Düzenlenebilecek ek kullanıcı bulunmuyor.")
@@ -3986,6 +3988,7 @@ elif menu == "Kullanıcı Ayarları":
                 with y_col2:
                     yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="y_rol_yeni")
                     yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False, key="y_salt_yeni")
+                    yeni_k_mask = st.checkbox("Hassas Veri Maskelemesini Etkinleştir", value=True, key="y_mask_yeni")
 
                 y_ekle_btn = st.form_submit_button("Yeni Kullanıcıyı Ekle")
                 if y_ekle_btn:
@@ -3997,10 +4000,10 @@ elif menu == "Kullanıcı Ayarları":
                                 "sifre": yeni_sifre,
                                 "rol": yeni_k_rol,
                                 "salt_okunur": yeni_k_salt,
-                                "maskeleme": True,
+                                "maskeleme": yeni_k_mask,
                                 "yasakli_menuler": []
                             }
-                            st.success(f"'{yeni_k_adi}' kullanıcısı başarıyla eklendi!")
+                            st.toast(f"🎉 Yeni kullanıcı '{yeni_k_adi}' başarıyla oluşturuldu!", icon="✨")
                             st.rerun()
                     else:
                         st.error("Lütfen kullanıcı adı ve şifre alanlarını doldurun.")
