@@ -3897,7 +3897,7 @@ elif menu == "Kullanıcı Ayarları":
         # Tab yapısı
         tab_liste, tab_ekle = st.tabs(["📋 Kullanıcı Listesi ve Yetki Matrisi", "➕ Yeni Kullanıcı Ekle"])
 
-      # 11. KULLANICI AYARLARI (TEK PARÇA - EKSİKSİZ VE DOĞRUDAN ÇALIŞAN YAPI)
+      # 11. KULLANICI AYARLARI (FORM KULLANMAYAN - %100 ÇALIŞAN STABİL YAPI)
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
@@ -3944,114 +3944,114 @@ elif menu == "Kullanıcı Ayarları":
         yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
 
         if yonetilebilir_kullanicilar:
-            secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_duzenle_kesin")
+            secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_stabil_net")
             
             if secilen_k_adi and secilen_k_adi in kullanici_db:
                 k_obj = kullanici_db[secilen_k_adi]
 
-                with st.form(f"form_duzenle_kesin_{secilen_k_adi}"):
-                    col_d1, col_d2 = st.columns(2)
-                    with col_d1:
-                        mevcut_rol = k_obj.get("rol", "Personel")
-                        rol_index = ["Personel", "Yönetim", "Misafir"].index(mevcut_rol) if mevcut_rol in ["Personel", "Yönetim", "Misafir"] else 0
-                        yeni_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], index=rol_index)
-                        yeni_salt_okunur = st.checkbox("Salt Okunur Özelliği (Veri Değiştiremez)", value=k_obj.get("salt_okunur", False))
-                    with col_d2:
-                        kullaniciyi_sil = st.checkbox("⚠️ Bu kullanıcıyı sistemden kalıcı olarak çıkar / sil", value=False)
+                # Form yerine doğrudan akış (Takılmaları önler)
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    mevcut_rol = k_obj.get("rol", "Personel")
+                    rol_secenekleri = ["Personel", "Yönetim", "Misafir"]
+                    rol_index = rol_secenekleri.index(mevcut_rol) if mevcut_rol in rol_secenekleri else 0
+                    yeni_rol = st.selectbox("Kullanıcı Rolü", rol_secenekleri, index=rol_index, key=f"rol_{secilen_k_adi}")
+                    yeni_salt_okunur = st.checkbox("Salt Okunur Özelliği (Veri Değiştiremez)", value=k_obj.get("salt_okunur", False), key=f"ro_{secilen_k_adi}")
+                with col_d2:
+                    kullaniciyi_sil = st.checkbox("⚠️ Bu kullanıcıyı sistemden kalıcı olarak çıkar / sil", value=False, key=f"sil_{secilen_k_adi}")
 
-                    st.markdown("---")
-                    st.markdown("### 🔒 Sayfa ve Sütun Bazlı Hassas Veri Maskeleme")
-                    st.markdown("Kullanıcının görmesini istemediğiniz hassas sütunları/alanları aşağıdan işaretleyerek gizleyin:")
+                st.markdown("---")
+                st.markdown("### 🔒 Sayfa ve Sütun Bazlı Hassas Veri Maskeleme")
+                st.markdown("Kullanıcının görmesini istemediğiniz hassas sütunları/alanları aşağıdan işaretleyerek gizleyin:")
 
-                    hassas_alanlar_yapisi = {
-                        "Sosyal Yardımlar": ["T.C. Kimlik Numarası", "Telefon Numarası", "Ev Adresi", "Hane Gelir Bilgisi"],
-                        "İnsan Kaynakları": ["Personel T.C. Kimlik", "Personel Telefon", "Maaş Bilgisi", "Özlük Dosyası"],
-                        "Depo & Stok": ["Tedarikçi Firma Telefonu", "Birim Maliyet / Fiyat"],
-                        "Raporlar": ["Hassas Kişisel Bilgiler", "Mali Toplamlar"]
-                    }
+                hassas_alanlar_yapisi = {
+                    "Sosyal Yardımlar": ["T.C. Kimlik Numarası", "Telefon Numarası", "Ev Adresi", "Hane Gelir Bilgisi"],
+                    "İnsan Kaynakları": ["Personel T.C. Kimlik", "Personel Telefon", "Maaş Bilgisi", "Özlük Dosyası"],
+                    "Depo & Stok": ["Tedarikçi Firma Telefonu", "Birim Maliyet / Fiyat"],
+                    "Raporlar": ["Hassas Kişisel Bilgiler", "Mali Toplamlar"]
+                }
 
-                    mevcut_maskeler = k_obj.get("maskeli_alanlar", {})
-                    yeni_maskeli_alanlar = {}
+                mevcut_maskeler = k_obj.get("maskeli_alanlar", {})
+                yeni_maskeli_alanlar = {}
 
-                    for sayfa_adi, sutunlar in hassas_alanlar_yapisi.items():
-                        st.markdown(f"**📂 {sayfa_adi} Sayfası Hassas Alanları:**")
-                        secilen_sutunlar = []
-                        s_cols = st.columns(len(sutunlar))
-                        
-                        mevcut_sayfa_yasaklari = mevcut_maskeler.get(sayfa_adi, [])
-                        
-                        for idx, sutun in enumerate(sutunlar):
-                            with s_cols[idx]:
-                                is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"kesin_mask_{secilen_k_adi}_{sayfa_adi}_{idx}")
-                                if is_masked:
-                                    secilen_sutunlar.append(sutun)
-                        
-                        if secilen_sutunlar:
-                            yeni_maskeli_alanlar[sayfa_adi] = secilen_sutunlar
-
-                    st.markdown("---")
-                    st.markdown("### 🚫 Sayfa / Menü Erişim Kısıtlamaları")
-                    tum_menu_ogeleri = [
-                        "Güncel Stok Durumu", "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", 
-                        "Toplu Stok Düşümü & Sarfiyat", "İhtiyaç Sahibi & Yemek Dağıtım Takibi", 
-                        "Personel & Çalışma Süresi Takibi", "Kullanım Takibi", 
-                        "Kapsamlı Envanter ve Hareket Raporu", "Depo Yönetimi", "Demirbaş Yönetimi"
-                    ]
+                for sayfa_adi, sutunlar in hassas_alanlar_yapisi.items():
+                    st.markdown(f"**📂 {sayfa_adi} Sayfası Hassas Alanları:**")
+                    secilen_sutunlar = []
+                    s_cols = st.columns(len(sutunlar))
                     
-                    mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
-                    yeni_yasaklar = []
+                    mevcut_sayfa_yasaklari = mevcut_maskeler.get(sayfa_adi, [])
                     
-                    m_cols = st.columns(2)
-                    for idx, m_item in enumerate(tum_menu_ogeleri):
-                        with m_cols[idx % 2]:
-                            yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"kesin_yasak_{secilen_k_adi}_{idx}")
-                            if yasakli_mi:
-                                yeni_yasaklar.append(m_item)
+                    for idx, sutun in enumerate(sutunlar):
+                        with s_cols[idx]:
+                            is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"net_mask_{secilen_k_adi}_{sayfa_adi}_{idx}")
+                            if is_masked:
+                                secilen_sutunlar.append(sutun)
+                    
+                    if secilen_sutunlar:
+                        yeni_maskeli_alanlar[sayfa_adi] = secilen_sutunlar
 
-                    kaydet_btn = st.form_submit_button("Değişiklikleri Kaydet / Uygula")
-                    
-                    if kaydet_btn:
-                        if kullaniciyi_sil:
-                            del st.session_state.kullanicilar[secilen_k_adi]
-                            st.toast(f"🗑️ '{secilen_k_adi}' kullanıcısı sistemden silindi!", icon="✅")
-                            st.rerun()
-                        else:
-                            st.session_state.kullanicilar[secilen_k_adi]["rol"] = yeni_rol
-                            st.session_state.kullanicilar[secilen_k_adi]["salt_okunur"] = yeni_salt_okunur
-                            st.session_state.kullanicilar[secilen_k_adi]["maskeli_alanlar"] = yeni_maskeli_alanlar
-                            st.session_state.kullanicilar[secilen_k_adi]["yasakli_menuler"] = yeni_yasaklar
-                            
-                            st.toast(f"✅ '{secilen_k_adi}' kullanıcısının ayarları kaydedildi!", icon="🎉")
-                            st.rerun()
+                st.markdown("---")
+                st.markdown("### 🚫 Sayfa / Menü Erişim Kısıtlamaları")
+                tum_menu_ogeleri = [
+                    "Güncel Stok Durumu", "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", 
+                    "Toplu Stok Düşümü & Sarfiyat", "İhtiyaç Sahibi & Yemek Dağıtım Takibi", 
+                    "Personel & Çalışma Süresi Takibi", "Kullanım Takibi", 
+                    "Kapsamlı Envanter ve Hareket Raporu", "Depo Yönetimi", "Demirbaş Yönetimi"
+                ]
+                
+                mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
+                yeni_yasaklar = []
+                
+                m_cols = st.columns(2)
+                for idx, m_item in enumerate(tum_menu_ogeleri):
+                    with m_cols[idx % 2]:
+                        yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"net_yasak_{secilen_k_adi}_{idx}")
+                        if yasakli_mi:
+                            yeni_yasaklar.append(m_item)
+
+                st.markdown("")
+                if st.button("Değişiklikleri Kaydet / Uygula", type="primary", key=f"btn_kaydet_{secilen_k_adi}"):
+                    if kullaniciyi_sil:
+                        del st.session_state.kullanicilar[secilen_k_adi]
+                        st.toast(f"🗑️ '{secilen_k_adi}' kullanıcısı sistemden silindi!", icon="✅")
+                        st.rerun()
+                    else:
+                        st.session_state.kullanicilar[secilen_k_adi]["rol"] = yeni_rol
+                        st.session_state.kullanicilar[secilen_k_adi]["salt_okunur"] = yeni_salt_okunur
+                        st.session_state.kullanicilar[secilen_k_adi]["maskeli_alanlar"] = yeni_maskeli_alanlar
+                        st.session_state.kullanicilar[secilen_k_adi]["yasakli_menuler"] = yeni_yasaklar
+                        
+                        st.toast(f"✅ '{secilen_k_adi}' kullanıcısının ayarları kaydedildi!", icon="🎉")
+                        st.rerun()
         else:
             st.info("Düzenlenebilecek ek kullanıcı bulunmuyor.")
 
         st.markdown("---")
         st.subheader("➕ 3. Yeni Sistem Kullanıcısı Ekle")
         
-        with st.form("yeni_kullanici_ekle_kesin_form"):
-            y_col1, y_col2 = st.columns(2)
-            with y_col1:
-                yeni_k_adi = st.text_input("Kullanıcı Adı (Benzersiz)")
-                yeni_sifre = st.text_input("Şifre", type="password")
-            with y_col2:
-                yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"])
-                yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False)
+        yeni_k_adi = st.text_input("Kullanıcı Adı (Benzersiz)", key="yeni_k_adi_input_net")
+        yeni_sifre = st.text_input("Şifre", type="password", key="yeni_sifre_input_net")
+        
+        y_col1, y_col2 = st.columns(2)
+        with y_col1:
+            yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="yeni_rol_select_net")
+        with y_col2:
+            yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False, key="yeni_salt_chk_net")
 
-            y_ekle_btn = st.form_submit_button("Yeni Kullanıcıyı Sisteme Ekle")
-            if y_ekle_btn:
-                if yeni_k_adi and yeni_sifre:
-                    if yeni_k_adi in st.session_state.kullanicilar:
-                        st.error("Bu kullanıcı adı zaten sistemde mevcut!")
-                    else:
-                        st.session_state.kullanicilar[yeni_k_adi] = {
-                            "sifre": yeni_sifre,
-                            "rol": yeni_k_rol,
-                            "salt_okunur": yeni_k_salt,
-                            "maskeli_alanlar": {},
-                            "yasakli_menuler": []
-                        }
-                        st.toast(f"🎉 Yeni kullanıcı '{yeni_k_adi}' eklendi!", icon="✨")
-                        st.rerun()
+        st.markdown("")
+        if st.button("Yeni Kullanıcıyı Sisteme Ekle", type="secondary", key="btn_yeni_ekle_net"):
+            if yeni_k_adi and yeni_sifre:
+                if yeni_k_adi in st.session_state.kullanicilar:
+                    st.error("Bu kullanıcı adı zaten sistemde mevcut!")
                 else:
-                    st.error("Lütfen kullanıcı adı ve şifre alanlarını doldurun.")
+                    st.session_state.kullanicilar[yeni_k_adi] = {
+                        "sifre": yeni_sifre,
+                        "rol": yeni_k_rol,
+                        "salt_okunur": yeni_k_salt,
+                        "maskeli_alanlar": {},
+                        "yasakli_menuler": []
+                    }
+                    st.toast(f"🎉 Yeni kullanıcı '{yeni_k_adi}' eklendi!", icon="✨")
+                    st.rerun()
+            else:
+                st.error("Lütfen kullanıcı adı ve şifre alanlarını doldurun.")
