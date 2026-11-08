@@ -1,8 +1,10 @@
 import datetime
 import hashlib
+import hmac
 import io
 import json
 import os
+import secrets
 import time
 import difflib
 import zoneinfo
@@ -109,6 +111,85 @@ def supabase_veri_kaydet(kayit_id, veri_objesi):
         requests.post(url, headers=headers, json=payload, timeout=5)
     except Exception:
         pass
+
+
+# =========================================================================
+# OTURUM GÜVENLİĞİ
+# =========================================================================
+OTURUM_SURESI_SN = 8 * 60 * 60  # 8 saat
+MAKS_HATALI_GIRIS = 3
+KILIT_SURESI_SN = 30
+
+
+def _token_hashle(token):
+    return hashlib.sha256(str(token).encode("utf-8")).hexdigest()
+
+
+def oturum_olustur(kullanici_adi):
+    """Rastgele token üretir; veritabanında yalnızca hash'ini saklar."""
+    token = secrets.token_urlsafe(32)
+    simdi = time.time()
+    bitis = simdi + OTURUM_SURESI_SN
+    oturumlar = supabase_veri_oku("aktif_oturumlar", {})
+    oturumlar = {h: o for h, o in oturumlar.items() if o.get("bitis", 0) > simdi}
+    oturumlar[_token_hashle(token)] = {"kullanici": kullanici_adi, "bitis": bitis}
+    supabase_veri_kaydet("aktif_oturumlar", oturumlar)
+    return token, bitis
+
+
+def oturum_dogrula(token):
+    if not token:
+        return None
+    oturumlar = supabase_veri_oku("aktif_oturumlar", {})
+    kayit = oturumlar.get(_token_hashle(token))
+    if kayit and kayit.get("bitis", 0) > time.time():
+        return kayit
+    return None
+
+
+def oturum_sil(token):
+    if not token:
+        return
+    oturumlar = supabase_veri_oku("aktif_oturumlar", {})
+    h = _token_hashle(token)
+    if h in oturumlar:
+        del oturumlar[h]
+        supabase_veri_kaydet("aktif_oturumlar", oturumlar)
+
+
+def oturumu_baslat(kullanici_adi):
+    token, bitis = oturum_olustur(kullanici_adi)
+    st.session_state.oturum_aktif = True
+    st.session_state.aktif_kullanici = kullanici_adi
+    st.session_state.oturum_token = token
+    st.session_state.oturum_bitis = bitis
+    st.query_params["token"] = token
+
+
+def giris_kilit_kalan(anahtar):
+    kayitlar = supabase_veri_oku("giris_denemeleri", {})
+    return max(0, int(kayitlar.get(anahtar, {}).get("kilit_bitis", 0) - time.time()))
+
+
+def hatali_giris_kaydet(anahtar):
+    """(kalan_hak, kilitlendi_mi) döndürür."""
+    kayitlar = supabase_veri_oku("giris_denemeleri", {})
+    kayit = kayitlar.get(anahtar, {"sayi": 0, "kilit_bitis": 0})
+    kayit["sayi"] = kayit.get("sayi", 0) + 1
+    kilitlendi = kayit["sayi"] >= MAKS_HATALI_GIRIS
+    if kilitlendi:
+        kayit["sayi"] = 0
+        kayit["kilit_bitis"] = time.time() + KILIT_SURESI_SN
+    kayitlar[anahtar] = kayit
+    supabase_veri_kaydet("giris_denemeleri", kayitlar)
+    return MAKS_HATALI_GIRIS - kayit["sayi"], kilitlendi
+
+
+def giris_denemesini_sifirla(anahtar):
+    kayitlar = supabase_veri_oku("giris_denemeleri", {})
+    if anahtar in kayitlar:
+        del kayitlar[anahtar]
+        supabase_veri_kaydet("giris_denemeleri", kayitlar)
 
 
 # Tema Durumu Yönetimi
@@ -702,13 +783,38 @@ if "kilitlenme_bitis_zamani" not in st.session_state:
 
 query_params = st.query_params
 
+# Eski, güvensiz parametreleri URL'den temizle
+for _eski in ("auth", "user"):
+    if _eski in query_params:
+        del query_params[_eski]
+
 if "oturum_aktif" not in st.session_state:
-    if "auth" in query_params and query_params["auth"] == "true" and "user" in query_params:
+    st.session_state.oturum_aktif = False
+    st.session_state.aktif_kullanici = "misafir"
+    st.session_state.oturum_token = ""
+    st.session_state.oturum_bitis = 0
+
+    url_token = query_params.get("token", "")
+    kayit = oturum_dogrula(url_token)
+    if kayit and kayit.get("kullanici") in st.session_state.kullanicilar:
         st.session_state.oturum_aktif = True
-        st.session_state.aktif_kullanici = query_params["user"]
-    else:
-        st.session_state.oturum_aktif = False
-        st.session_state.aktif_kullanici = "misafir"
+        st.session_state.aktif_kullanici = kayit["kullanici"]
+        st.session_state.oturum_token = url_token
+        st.session_state.oturum_bitis = kayit["bitis"]
+    elif url_token:
+        del query_params["token"]
+
+# Her çalışmada: süre dolmuş veya kullanıcı silinmişse oturumu kapat
+if st.session_state.oturum_aktif and (
+    st.session_state.aktif_kullanici not in st.session_state.kullanicilar
+    or time.time() > st.session_state.oturum_bitis
+):
+    oturum_sil(st.session_state.oturum_token)
+    st.session_state.oturum_aktif = False
+    st.session_state.aktif_kullanici = "misafir"
+    st.session_state.oturum_token = ""
+    if "token" in st.query_params:
+        del st.query_params["token"]
 
 gecerli_menuler = [
     "Kurumsal Dashboard & Özet",
@@ -862,29 +968,29 @@ if not st.session_state.oturum_aktif:
 
                 if giris_tikla:
                     kullanici_db = st.session_state.kullanicilar
-                    girilen_sifre_hash = sifre_hashle(sifre_inp)
+                    anahtar = k_adi_inp if k_adi_inp in kullanici_db else "_bilinmeyen"
+                    kalan_kilit = giris_kilit_kalan(anahtar)
 
-                    if (
-                        k_adi_inp in kullanici_db
-                        and kullanici_db[k_adi_inp]["sifre"] == girilen_sifre_hash
-                    ):
-                        st.session_state.hatali_giris_sayisi = 0
-                        st.session_state.oturum_aktif = True
-                        st.session_state.aktif_kullanici = k_adi_inp
-                        st.query_params["auth"] = "true"
-                        st.query_params["user"] = k_adi_inp
-                        st.success(f"{k_adi_inp.upper()} olarak giriş yapıldı!")
-                        st.rerun()
+                    if kalan_kilit > 0:
+                        st.error(f"⚠️ Çok fazla hatalı deneme. Lütfen {kalan_kilit} saniye sonra tekrar deneyin.")
                     else:
-                        st.session_state.hatali_giris_sayisi += 1
-                        kalan_hak = 3 - st.session_state.hatali_giris_sayisi
-                        if st.session_state.hatali_giris_sayisi >= 3:
-                            st.session_state.kilitlenme_bitis_zamani = time.time() + 30
+                        girilen_hash = sifre_hashle(sifre_inp)
+                        kayitli_hash = str(kullanici_db.get(k_adi_inp, {}).get("sifre", ""))
+
+                        if k_adi_inp in kullanici_db and hmac.compare_digest(kayitli_hash, girilen_hash):
                             st.session_state.hatali_giris_sayisi = 0
-                            st.error("⚠️ 3 kez hatalı şifre girdiniz. Sistem 30 saniye kilitlendi!")
+                            giris_denemesini_sifirla(anahtar)
+                            oturumu_baslat(k_adi_inp)
                             st.rerun()
                         else:
-                            st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {kalan_hak}")
+                            kalan_hak, kilitlendi = hatali_giris_kaydet(anahtar)
+                            st.session_state.hatali_giris_sayisi += 1
+                            if kilitlendi or st.session_state.hatali_giris_sayisi >= MAKS_HATALI_GIRIS:
+                                st.session_state.kilitlenme_bitis_zamani = time.time() + KILIT_SURESI_SN
+                                st.session_state.hatali_giris_sayisi = 0
+                                st.rerun()
+                            else:
+                                st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {max(kalan_hak, 0)}")
 
         st.markdown(
             f"<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size: 13px; color: {subtext_color};'>veya</div>",
@@ -901,10 +1007,7 @@ if not st.session_state.oturum_aktif:
                 use_container_width=True,
                 type="secondary",
             ):
-                st.session_state.oturum_aktif = True
-                st.session_state.aktif_kullanici = "misafir"
-                st.query_params["auth"] = "true"
-                st.query_params["user"] = "misafir"
+                oturumu_baslat("misafir")
                 st.rerun()
 
         st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
@@ -1153,8 +1256,10 @@ st.sidebar.markdown("---")
 if st.sidebar.button(
     "Oturumu Kapat", use_container_width=True, type="secondary"
 ):
+    oturum_sil(st.session_state.get("oturum_token", ""))
     st.session_state.oturum_aktif = False
     st.session_state.aktif_kullanici = "misafir"
+    st.session_state.oturum_token = ""
     st.query_params.clear()
     st.rerun()
 
@@ -2326,7 +2431,8 @@ elif menu == "Fire / Zayiat Girişi":
 
                 ozel_html_tablo_goster(fire_tablo_verisi)
             else:
-                st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")                        
+                st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
+
 # TOPLU STOK DÜŞÜMÜ & SARFİYAT
 elif menu == "Toplu Stok Düşümü & Sarfiyat":
     if misafir_modu:
