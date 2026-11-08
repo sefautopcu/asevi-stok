@@ -3,3 +3,5 @@ openpyxl
 plotly
 pandas
 cryptography
+requests
+bcrypt
