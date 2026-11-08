@@ -3553,3 +3553,540 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                             )
 
                             if s_sil_btn:
+                                secilen_item = next(
+                                    (
+                                        item
+                                        for item in tum_saatlik_izinler
+                                        if item["ozet"] == secilen_sil_s_str
+                                    ),
+                                    None,
+                                )
+                                if secilen_item:
+                                    for p in st.session_state.personeller:
+                                        if p["ad_soyad"] == secilen_item["personel"]:
+                                            saatlikler = [
+                                                i
+                                                for i in p["izinler"]
+                                                if i.get("tur") == "Saatlik İzin"
+                                            ]
+                                            digerleri = [
+                                                i
+                                                for i in p["izinler"]
+                                                if i.get("tur") != "Saatlik İzin"
+                                            ]
+                                            silinecek_hedef_s = saatlikler[secilen_item["idx"]]
+                                            p["izinler"] = digerleri + [
+                                                i for i in saatlikler if i != silinecek_hedef_s
+                                            ]
+                                    personelleri_kaydet(st.session_state.personeller)
+                                    st.success("🎉 Başarılı! Saatlik izin silindi.")
+                                    st.balloons()
+                                    st.rerun()
+                        else:
+                            st.info("Silinebilecek saatlik izin kaydı bulunmuyor.")
+
+            st.markdown("---")
+            st.subheader("📋 Kayıtlı Tüm Saatlik İzinler Tablosu")
+            if saatlik_tablo_listesi:
+                ozel_html_tablo_goster(saatlik_tablo_listesi)
+            else:
+                st.info("Kayıtlı saatlik izin bulunmuyor.")
+
+        with p_tab4:
+            col_b_rap, col_indir_rap = st.columns([2, 2])
+            with col_b_rap:
+                st.subheader("🏥 Sağlık Raporları Yönetimi (Ekle & Sil)")
+
+            rapor_tablo_listesi = []
+            for p in st.session_state.personeller:
+                for iz in p.get("izinler", []):
+                    if iz.get("tur") == "Sağlık Raporu":
+                        rapor_tablo_listesi.append({
+                            "Personel": p["ad_soyad"],
+                            "İzin Türü": "Sağlık Raporu",
+                            "Başlangıç": iz.get("baslangic", "-"),
+                            "Bitiş": iz.get("bitis", "-"),
+                        })
+
+            excel_rap_data = tablo_to_excel_bytes(
+                rapor_tablo_listesi, "Aziziye Aşevi - Sağlık Raporları"
+            )
+            pdf_rap_data = tablo_to_html_pdf_bytes(
+                "Aziziye Aşevi - Sağlık Raporları", rapor_tablo_listesi
+            )
+
+            with col_indir_rap:
+                ortak_indirme_alani(
+                    excel_rap_data,
+                    pdf_rap_data,
+                    "saglik_raporlari_raporu",
+                    "saglik_rapor_sayfasi",
+                )
+
+            if yonetim_modu:
+                st.info("👀 Yönetim modundasınız. Bu ekranda sağlık raporu ekleyemez veya silemezsiniz.")
+            elif not yonetici_modu:
+                st.warning("⚠️ Sağlık raporu işlemleri yalnızca **Admin** tarafından yapılabilir.")
+            else:
+                col_r_ekle, col_r_sil = st.columns(2)
+                with col_r_ekle:
+                    with st.form("saglik_rapor_form"):
+                        st.markdown("**➕ Sağlık Raporu Ekle**")
+                        p_rapor_secenekleri = [
+                            p["ad_soyad"]
+                            for p in st.session_state.personeller
+                            if p.get("aktif", True)
+                        ]
+                        if p_rapor_secenekleri:
+                            secilen_p_rapor = st.selectbox(
+                                "Personel Seçin", p_rapor_secenekleri, key="rap_p"
+                            )
+                            r_bas = st.date_input("Rapor Başlangıç Tarihi", key="rap_bas")
+                            r_bit = st.date_input("Rapor Bitiş Tarihi", key="rap_bit")
+                            rapor_submit = st.form_submit_button("Sağlık Raporunu Kaydet")
+
+                            if rapor_submit:
+                                if r_bas > r_bit:
+                                    st.error("Başlangıç tarihi bitiş tarihinden sonra olamaz!")
+                                else:
+                                    for p in st.session_state.personeller:
+                                        if p["ad_soyad"] == secilen_p_rapor:
+                                            if "izinler" not in p:
+                                                p["izinler"] = []
+                                            p["izinler"].append({
+                                                "tur": "Sağlık Raporu",
+                                                "baslangic": str(r_bas),
+                                                "bitis": str(r_bit),
+                                            })
+                                    personelleri_kaydet(st.session_state.personeller)
+                                    st.success("🎉 Başarılı! Sağlık raporu kaydedildi.")
+                                    st.balloons()
+                                    st.rerun()
+                        else:
+                            st.info("Aktif personel bulunmuyor.")
+
+                with col_r_sil:
+                    with st.form("saglik_rapor_sil_form"):
+                        st.markdown("**🗑️ Sağlık Raporu Sil**")
+                        tum_saglik_raporlari = []
+                        for p in st.session_state.personeller:
+                            for idx, iz in enumerate(p.get("izinler", [])):
+                                if iz.get("tur") == "Sağlık Raporu":
+                                    tum_saglik_raporlari.append({
+                                        "personel": p["ad_soyad"],
+                                        "idx": idx,
+                                        "ozet": (
+                                            f"{p['ad_soyad']} | Başlangıç: {iz['baslangic']} - Bitiş: {iz['bitis']}"
+                                        ),
+                                    })
+
+                        if tum_saglik_raporlari:
+                            secenek_sil_r = [item["ozet"] for item in tum_saglik_raporlari]
+                            secilen_sil_r_str = st.selectbox(
+                                "Silinecek Raporu Seçin", secenek_sil_r
+                            )
+                            r_sil_btn = st.form_submit_button(
+                                "Seçilen Sağlık Raporunu Sil", type="primary"
+                            )
+
+                            if r_sil_btn:
+                                secilen_item = next(
+                                    (
+                                        item
+                                        for item in tum_saglik_raporlari
+                                        if item["ozet"] == secilen_sil_r_str
+                                    ),
+                                    None,
+                                )
+                                if secilen_item:
+                                    for p in st.session_state.personeller:
+                                        if p["ad_soyad"] == secilen_item["personel"]:
+                                            raporlar = [
+                                                i
+                                                for i in p["izinler"]
+                                                if i.get("tur") == "Sağlık Raporu"
+                                            ]
+                                            digerleri = [
+                                                i
+                                                for i in p["izinler"]
+                                                if i.get("tur") != "Sağlık Raporu"
+                                            ]
+                                            silinecek_hedef_r = raporlar[secilen_item["idx"]]
+                                            p["izinler"] = digerleri + [
+                                                i for i in raporlar if i != silinecek_hedef_r
+                                            ]
+                                    personelleri_kaydet(st.session_state.personeller)
+                                    st.success("🎉 Başarılı! Sağlık raporu silindi.")
+                                    st.balloons()
+                                    st.rerun()
+                        else:
+                            st.info("Silinebilecek sağlık raporu kaydı bulunmuyor.")
+
+            st.markdown("---")
+            st.subheader("📋 Kayıtlı Tüm Sağlık Raporları Tablosu")
+            if rapor_tablo_listesi:
+                ozel_html_tablo_goster(rapor_tablo_listesi)
+            else:
+                st.info("Kayıtlı sağlık raporu bulunmuyor.")
+
+        with p_tab5:
+            col_b_net, col_indir_net = st.columns([2, 2])
+            with col_b_net:
+                st.subheader("📊 Net Çalışma Süresi ve İzin / Rapor Özeti Raporu")
+
+            col_ay1, col_ay2 = st.columns(2)
+            with col_ay1:
+                baslangic_filtresi = st.date_input(
+                    "Rapor Başlangıç Tarihi",
+                    value=datetime.date(datetime.date.today().year, 1, 1),
+                )
+            with col_ay2:
+                bitis_filtresi = st.date_input(
+                    "Rapor Bitiş Tarihi", value=datetime.date.today()
+                )
+
+            net_rapor_listesi = []
+            excel_net_listesi = []
+            for p in st.session_state.personeller:
+                bas_str = p.get("baslama", "2026-01-01")
+                try:
+                    p_bas_dt = datetime.datetime.strptime(bas_str, "%Y-%m-%d").date()
+                except:
+                    p_bas_dt = datetime.date(2026, 1, 1)
+
+                efektif_bas = max(baslangic_filtresi, p_bas_dt)
+                efektif_bit = bitis_filtresi
+
+                net_gun, izin_gunu, rapor_gunu, saatlik_izin_saat = (
+                    net_calisma_gunu_hesapla(
+                        efektif_bas,
+                        efektif_bit,
+                        p.get("izinler", []),
+                        st.session_state.resmi_tatiller,
+                    )
+                )
+
+                net_rapor_listesi.append({
+                    "T.C. No": p.get("tc", "-"),
+                    "Personel": p["ad_soyad"],
+                    "Görevi": p["gorev"],
+                    "Net Çalışılan Gün": f"{net_gun} Gün",
+                    "Yıllık / Tam Gün İzin": f"{izin_gunu} Gün",
+                    "Sağlık Raporu": f"{rapor_gunu} Gün",
+                    "Saatlik İzin": f"{saatlik_izin_saat} Saat",
+                })
+
+                excel_net_listesi.append({
+                    "T.C. No": p.get("tc", "-"),
+                    "Personel": p["ad_soyad"],
+                    "Görevi": p["gorev"],
+                    "Net Çalışılan Gün": net_gun,
+                    "Yıllık / Tam Gün İzin Gün": izin_gunu,
+                    "Sağlık Raporu Gün": rapor_gunu,
+                    "Saatlik İzin Saat": saatlik_izin_saat,
+                })
+
+            excel_net_data = tablo_to_excel_bytes(
+                excel_net_listesi, "Aziziye Aşevi - Net Çalışma Raporu"
+            )
+            pdf_net_data = tablo_to_html_pdf_bytes(
+                "Aziziye Aşevi - Net Çalışma Raporu", excel_net_listesi
+            )
+
+            with col_indir_net:
+                ortak_indirme_alani(
+                    excel_net_data,
+                    pdf_net_data,
+                    "net_calisma_suresi_raporu",
+                    "net_calisma_sayfasi",
+                )
+
+            if net_rapor_listesi:
+                ozel_html_tablo_goster(net_rapor_listesi)
+            else:
+                st.info("Raporlanacak personel verisi bulunmuyor.")
+
+# 9. KULLANIM TAKİBİ
+elif menu == "Kullanım Takibi":
+    if misafir_modu:
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    else:
+        col_b_kullanim, col_indir_kullanim = st.columns([2, 2])
+        with col_b_kullanim:
+            st.header("📈 Tüm Sistem Kullanım Logları ve Hareket Arşivi")
+
+        if st.session_state.kullanim_loglari:
+            log_tablosu = []
+            for log in reversed(st.session_state.kullanim_loglari):
+                log_tablosu.append({
+                    "Tarih / Saat": log.get("tarih", "-"),
+                    "İşlem Türü / Açıklama": log.get("tur", "-"),
+                    "Ürün / Malzeme": log.get("urun", "-"),
+                    "Miktar": f"{log.get('miktar', 0)}",
+                    "Tutar": f"{log.get('tutar', 0):,.2f} ₺",
+                    "İşlemi Yapan": log.get("islem_yapan", "admin"),
+                })
+
+            excel_log_data = tablo_to_excel_bytes(
+                log_tablosu, "Aziziye Aşevi - Sistem Kullanım Logları"
+            )
+            pdf_log_data = tablo_to_html_pdf_bytes(
+                "Aziziye Aşevi - Sistem Kullanım Logları", log_tablosu
+            )
+
+            with col_indir_kullanim:
+                ortak_indirme_alani(
+                    excel_log_data,
+                    pdf_log_data,
+                    "sistem_kullanim_loglari_arsivi",
+                    "kullanim_sayfasi",
+                )
+
+            ozel_html_tablo_goster(log_tablosu)
+        else:
+            st.info("Henüz sistemde kayıtlı kullanım logu bulunmuyor.")
+
+# 10. KAPSAMLI ENVANTER VE HAREKET RAPORU
+elif menu == "Kapsamlı Envanter ve Hareket Raporu":
+    if misafir_modu:
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    else:
+        col_b_env, col_indir_env = st.columns([2, 2])
+        with col_b_env:
+            st.header("📋 Kapsamlı Envanter ve Hareket Raporu")
+
+        kapsamli_liste = []
+        for g in st.session_state.girisler:
+            kapsamli_liste.append({
+                "Kayıt ID": g.get("id", "-"),
+                "Tarih": g.get("tarih", "-"),
+                "Fatura No": g.get("fatura_no", "-"),
+                "Ürün Adı": g.get("urun", "-"),
+                "Kategori": g.get("kategori", "-"),
+                "Depo": g.get("depo", "-"),
+                "Alınan Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
+                "Kalan Miktar": f"{g.get('kalan', 0)} {g.get('birim', 'Kg')}",
+                "Birim Fiyat": f"{g.get('fiyat', 0):,.2f} ₺",
+                "Toplam Değer": f"{(g.get('kalan', 0) * g.get('fiyat', 0)):,.2f} ₺",
+                "İşlemi Yapan": g.get("islem_yapan", "admin"),
+            })
+
+        excel_kapsamli_data = tablo_to_excel_bytes(
+            kapsamli_liste, "Aziziye Aşevi - Kapsamlı Envanter ve Hareket Raporu"
+        )
+        pdf_kapsamli_data = tablo_to_html_pdf_bytes(
+            "Aziziye Aşevi - Kapsamlı Envanter ve Hareket Raporu", kapsamli_liste
+        )
+
+        with col_indir_env:
+            ortak_indirme_alani(
+                excel_kapsamli_data,
+                pdf_kapsamli_data,
+                "kapsamli_envanter_ve_hareket_raporu",
+                "kapsamli_envanter_sayfasi",
+            )
+
+        if kapsamli_liste:
+            ozel_html_tablo_goster(kapsamli_liste)
+        else:
+            st.info("Kapsamlı rapor için kayıt bulunmuyor.")
+
+# 11. ÜRÜN BİRİM FİYATLARI & AY ANALİZİ
+elif menu == "Ürün Birim Fiyatları & Ay Analizi":
+    col_b_fiy, col_indir_fiy = st.columns([2, 2])
+    with col_b_fiy:
+        st.header("💰 Ürün Birim Fiyatları ve Ay Bazlı Maliyet Analizi")
+
+    benzersiz_urunler_fiyat = sorted(
+        list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
+    )
+
+    if benzersiz_urunler_fiyat:
+        secilen_fiyat_urun = st.selectbox(
+            "Analiz Edilecek Ürünü Seçin", benzersiz_urunler_fiyat
+        )
+        urun_kayitlari = [
+            g
+            for g in st.session_state.girisler
+            if g.get("urun", "").strip().upper() == secilen_fiyat_urun.strip().upper()
+        ]
+
+        fiyat_analiz_tablosu = []
+        excel_fiyat_analiz = []
+        for g in urun_kayitlari:
+            fiyat_degeri = g.get("fiyat", 0)
+            gosterilen_fiyat = "🔒 Gizli" if "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu" in aktif_k_maskeleri else f"{fiyat_degeri:,.2f} ₺"
+            fiyat_analiz_tablosu.append({
+                "Alım Tarihi": g.get("tarih", "-"),
+                "Fatura No": g.get("fatura_no", "-"),
+                "Depo": g.get("depo", "-"),
+                "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
+                "Birim Fiyat": gosterilen_fiyat,
+                "İşlemi Yapan": g.get("islem_yapan", "admin"),
+            })
+            excel_fiyat_analiz.append({
+                "Alım Tarihi": g.get("tarih", "-"),
+                "Fatura No": g.get("fatura_no", "-"),
+                "Depo": g.get("depo", "-"),
+                "Miktar": g.get("miktar", 0),
+                "Birim Fiyat (TL)": fiyat_degeri,
+                "İşlemi Yapan": g.get("islem_yapan", "admin"),
+            })
+
+        excel_fiy_data = tablo_to_excel_bytes(
+            excel_fiyat_analiz, f"Aziziye Aşevi - {secilen_fiyat_urun} Fiyat Analizi"
+        )
+        pdf_fiy_data = tablo_to_html_pdf_bytes(
+            f"Aziziye Aşevi - {secilen_fiyat_urun} Fiyat Analizi", excel_fiyat_analiz
+        )
+
+        with col_indir_fiy:
+            ortak_indirme_alani(
+                excel_fiy_data,
+                pdf_fiy_data,
+                f"urun_fiyat_analizi_{secilen_fiyat_urun.lower()}",
+                "fiyat_analiz_sayfasi",
+            )
+
+        ozel_html_tablo_goster(fiyat_analiz_tablosu)
+    else:
+        st.info("Analiz edilecek ürün kaydı bulunmuyor.")
+
+# 12. KULLANICI AYARLARI
+elif menu == "Kullanıcı Ayarları":
+    if not yonetici_modu:
+        st.warning("⚠️ Bu sayfaya yalnızca **Admin** kullanıcısı erişebilir.")
+    else:
+        st.header("⚙️ Kullanıcı Yetkileri, Menü Kısıtlamaları ve Alan Maskeleme")
+        st.markdown(
+            "Sistemdeki kullanıcıların (asci, yonetim, misafir vb.) hangi menülere erişebileceğini, hangi hassas alanların (T.C., fiyat, stoğun kalan miktarı vb.) gizleneceğini buradan yönetebilirsiniz."
+        )
+
+        with st.form("yeni_kullanici_olustur_form"):
+            st.markdown("**➕ Yeni Kullanıcı / Personel Hesabı Oluştur**")
+            yeni_k_adi = st.text_input("Yeni Kullanıcı Adı (Örn: depo_sorumlusu)").strip().lower()
+            yeni_k_sifre = st.text_input("Kullanıcı Şifresi", type="password")
+            yeni_k_tipi = st.selectbox("Kullanıcı Rolü", ["personel", "admin"])
+            yeni_k_salt = st.checkbox("Salt Okunur Modu (Sadece Gözlem, İşlem Yapamaz)")
+            yeni_k_olustur_btn = st.form_submit_button("Yeni Kullanıcıyı Kaydet", type="primary")
+
+            if yeni_k_olustur_btn and yeni_k_adi and yeni_k_sifre:
+                if yeni_k_adi in st.session_state.kullanicilar:
+                    st.error("⚠️ Bu kullanıcı adı zaten mevcut!")
+                else:
+                    st.session_state.kullanicilar[yeni_k_adi] = {
+                        "sifre": sifre_hashle(yeni_k_sifre),
+                        "tip": yeni_k_tipi,
+                        "yasakli_menuler": [],
+                        "maskeli_alanlar": [],
+                        "salt_okunur": yeni_k_salt
+                    }
+                    kullanıcıları_kaydet(st.session_state.kullanicilar)
+                    st.success(f"🎉 Başarılı! '{yeni_k_adi}' kullanıcısı oluşturuldu.")
+                    st.balloons()
+                    st.rerun()
+
+        st.markdown("---")
+        st.subheader("🔑 Mevcut Kullanıcı Yetki ve Kısıtlama Ayarları")
+
+        secilen_ayar_kullanici = st.selectbox(
+            "Yetkileri Düzenlenecek Kullanıcıyı Seçin",
+            list(st.session_state.kullanicilar.keys())
+        )
+
+        if secilen_ayar_kullanici:
+            k_obj = st.session_state.kullanicilar[secilen_ayar_kullanici]
+            
+            with st.form(f"yetki_duzenle_form_{secilen_ayar_kullanici}"):
+                st.markdown(f"**👤 {secilen_ayar_kullanici.upper()} Kullanıcısının Kısıtlamaları**")
+                
+                yeni_salt_okunur = st.checkbox(
+                    "Salt Okunur Modu (Veri ekleyemez, silemez, düzenleyemez)",
+                    value=k_obj.get("salt_okunur", False)
+                )
+
+                if secilen_ayar_kullanici == "misafir":
+                    st.markdown("---")
+                    st.markdown("**Misafir Girişi Buton Ayarları**")
+                    misafir_buton_metni_input = st.text_input(
+                        "Misafir Giriş Butonu Metni",
+                        value=k_obj.get("buton_metni", "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)")
+                    )
+                    misafir_buton_aktif_input = st.checkbox(
+                        "Giriş Ekranında Misafir Butonu Aktif Olsun",
+                        value=k_obj.get("buton_aktif", True)
+                    )
+
+                st.markdown("---")
+                st.markdown("**Yasaklı / Erişilemeyen Menüler**")
+                mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
+                secilen_yasaklar = []
+                for m in gecerli_menuler:
+                    if m == "Kullanıcı Ayarları" and secilen_ayar_kullanici == "admin":
+                        continue
+                    chk = st.checkbox(f"Yasakla: {m}", value=(m in mevcut_yasaklar), key=f"yasak_{secilen_ayar_kullanici}_{m}")
+                    if chk:
+                        secilen_yasaklar.append(m)
+
+                st.markdown("---")
+                st.markdown("**Maskelenen / Gizlenen Hassas Alanlar**")
+                maskelenebilir_alanlar = [
+                    "1. Sayfa: Ürün Çeşidi",
+                    "1. Sayfa: Toplam Fire",
+                    "1. Sayfa: Stok Değeri",
+                    "1. Sayfa: Aktif Personel",
+                    "1. Sayfa: Grafik Alanı",
+                    "2. Sayfa: Güncel Stok Durumu - Kalan Miktar",
+                    "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi",
+                    "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
+                    "3. Sayfa: Yemek Üretim ve Maliyet Arşivi",
+                    "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No",
+                    "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı",
+                    "4. Sayfa: İhtiyaç Sahipleri - Telefon",
+                    "4. Sayfa: İhtiyaç Sahipleri - Adres",
+                    "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı",
+                    "4. Sayfa: Yemek Dağıtımları - Tarih/Saat",
+                    "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
+                    "4. Sayfa: Yemek Dağıtımları - Menü",
+                    "4. Sayfa: Yemek Dağıtımları - Porsiyon",
+                    "4. Sayfa: Sayaç Raporu - T.C./Hane No",
+                    "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi",
+                    "4. Sayfa: Sayaç Raporu - Günlük Alım",
+                    "4. Sayfa: Haftalık Alım",
+                    "4. Sayfa: Sayaç Raporu - Aylık Alım",
+                ]
+                mevcut_maskeler = k_obj.get("maskeli_alanlar", [])
+                secilen_maskeler = []
+                for ma in maskelenebilir_alanlar:
+                    chk_m = st.checkbox(f"Maskele/Gizle: {ma}", value=(ma in mevcut_maskeler), key=f"mask_{secilen_ayar_kullanici}_{ma}")
+                    if chk_m:
+                        secilen_maskeler.append(ma)
+
+                st.markdown("---")
+                yeni_sifre_guncelle = st.text_input("Şifreyi Değiştir (Boş bırakırsanız değişmez)", type="password", key=f"sifre_degis_{secilen_ayar_kullanici}")
+
+                kaydet_yetki_btn = st.form_submit_button("Yetkileri ve Ayarları Kaydet", type="primary")
+
+                if kaydet_yetki_btn:
+                    k_obj["yasakli_menuler"] = secilen_yasaklar
+                    k_obj["maskeli_alanlar"] = secilen_maskeler
+                    k_obj["salt_okunur"] = yeni_salt_okunur
+                    if secilen_ayar_kullanici == "misafir":
+                        k_obj["buton_metni"] = misafir_buton_metni_input
+                        k_obj["buton_aktif"] = misafir_buton_aktif_input
+                    if yeni_sifre_guncelle:
+                        k_obj["sifre"] = sifre_hashle(yeni_sifre_guncelle)
+                    
+                    st.session_state.kullanicilar[secilen_ayar_kullanici] = k_obj
+                    kullanıcıları_kaydet(st.session_state.kullanicilar)
+                    st.success("🎉 Başarılı! Kullanıcı yetkileri ve ayarları güncellendi.")
+                    st.balloons()
+                    st.rerun()
+
+        if secilen_ayar_kullanici != "admin":
+            st.markdown("---")
+            if st.button(f"🗑️ '{secilen_ayar_kullanici}' Kullanıcısını Sil", type="primary"):
+                del st.session_state.kullanicilar[secilen_ayar_kullanici]
+                kullanıcıları_kaydet(st.session_state.kullanicilar)
+                st.success("Kullanıcı başarıyla silindi!")
+                st.rerun()
