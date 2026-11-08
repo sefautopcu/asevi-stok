@@ -3884,108 +3884,123 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
             else:
                 st.info("Gösterilecek envanter hareketi bulunmuyor.")
 
-# 11. KULLANICI AYARLARI
+# 11. KULLANICI AYARLARI (GÜNCELLENMİŞ VERSİYON)
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
-        st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcına aittir.")
     else:
         st.header("⚙️ Kullanıcı Yetkileri, Menü Kısıtlamaları ve Alan Maskeleme")
         st.markdown(
-            "Personel veya misafir kullanıcıların hangi sayfalara erişemeyeceğini (yasaklı menüler) ve hangi hassas alanları göremeyeceğini (maskeleme) buradan yapılandırabilirsiniz."
+            "Sistem kullanıcılarını yönetebilir, yeni kullanıcı ekleyebilir, mevcut kullanıcıları silebilir, **salt okunur** veya **tam yetki** atayarak sayfa izinleri ile maskeleme kurallarını yönetebilirsiniz."
         )
 
-        kullanici_db = st.session_state.kullanicilar
-        secilen_k_adi = st.selectbox(
-            "Yönetilecek Kullanıcıyı Seçin",
-            [k for k in kullanici_db.keys() if k != "admin"],
-        )
+        # Tab yapısı ile düzenli görünüm
+        tab_liste, tab_ekle = st.tabs(["📋 Kullanıcı Listesi ve Yetki Matrisi", "➕ Yeni Kullanıcı Ekle"])
 
-        if secilen_k_adi:
-            k_obj = kullanici_db[secilen_k_adi]
+        # TAB 1: KULLANICI LİSTESİ VE YETKİ MATRİSİ
+        with tab_liste:
+            st.subheader("Aktif Kullanıcılar ve Yetki Tablosu")
+            
+            kullanici_db = st.session_state.kullanicilar
+            
+            if len(kullanici_db) > 0:
+                table_rows = []
+                for k_adi, k_obj in kullanici_db.items():
+                    table_rows.append({
+                        "Kullanıcı Adı": k_adi,
+                        "Rol / Tür": "Admin" if k_adi == "admin" else k_obj.get("rol", "Personel"),
+                        "Salt Okunur": "Evet" if k_obj.get("salt_okunur", False) else "Hayır",
+                        "Maskeleme": "Aktif" if k_obj.get("maskeleme", True) else "Pasif",
+                        "Yasaklı Menüler / Kısıtlar": ", ".join(k_obj.get("yasakli_menuler", [])) if k_obj.get("yasakli_menuler") else "Yok (Tam Yetki)"
+                    })
+                
+                df_kullanicilar = pd.DataFrame(table_rows)
+                st.dataframe(df_kullanicilar, use_container_width=True, hide_index=True)
+            else:
+                st.info("Sistemde kayıtlı kullanıcı bulunmuyor.")
 
-            with st.form("kullanici_ayar_formu"):
-                st.subheader(f"Yetkileri Düzenleniyor: {secilen_k_adi.upper()}")
+            st.markdown("---")
+            st.subheader("🛠️ Kullanıcı Düzenle, Yetki Ver / Kaldır veya Sil")
 
-                if secilen_k_adi == "misafir":
-                    st.markdown("**Misafir Giriş Butonu Ayarları**")
-                    yeni_misafir_buton_metni = st.text_input(
-                        "Misafir Giriş Buton Metni",
-                        k_obj.get("buton_metni", "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)"),
-                    )
-                    yeni_misafir_buton_aktif = st.checkbox(
-                        "Misafir Giriş Butonu Aktif mi?",
-                        k_obj.get("buton_aktif", True),
-                    )
-                    st.markdown("---")
+            # Admin dışındaki yönetilebilir kullanıcılar
+            yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
 
-                st.markdown("**🚫 Yasaklı Menüler (Kullanıcının Göremeyeceği Sayfalar)**")
-                yasakli_secimler = []
-                for m in gecerli_menuler:
-                    if m == "Kullanıcı Ayarları":
-                        continue
-                    secili_mi = m in k_obj.get("yasakli_menuler", [])
-                    if st.checkbox(m, value=secili_mi, key=f"yasak_{secilen_k_adi}_{m}"):
-                        yasakli_secimler.append(m)
+            if yonetilebilir_kullanicilar:
+                secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="select_k_degistir")
+                
+                if secilen_k_adi:
+                    k_obj = kullanici_db[secilen_k_adi]
 
-                st.markdown("---")
-                st.markdown("**🔒 Maskelenen Alanlar (Gizlenecek Hassas Veriler)**")
+                    with st.form(f"form_duzenle_{secilen_k_adi}"):
+                        col_d1, col_d2 = st.columns(2)
+                        with col_d1:
+                            yeni_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], index=["Personel", "Yönetim", "Misafir"].index(k_obj.get("rol", "Personel")) if k_obj.get("rol", "Personel") in ["Personel", "Yönetim", "Misafir"] else 0)
+                            yeni_salt_okunur = st.checkbox("Salt Okunur Özelliği (Veri Değiştiremez)", value=k_obj.get("salt_okunur", False))
+                        with col_d2:
+                            yeni_maskeleme = st.checkbox("Hassas Veri Maskelemesini Aktif Et", value=k_obj.get("maskeleme", True))
+                            kullaniciyi_sil = st.checkbox("⚠️ Bu kullanıcıyı sistemden kalıcı olarak çıkar / sil", value=False)
 
-                tum_maske_secenekleri = [
-                    "1. Sayfa: Ürün Çeşidi",
-                    "1. Sayfa: Toplam Fire",
-                    "1. Sayfa: Stok Değeri",
-                    "1. Sayfa: Aktif Personel",
-                    "1. Sayfa: Grafik Alanı",
-                    "2. Sayfa: Güncel Stok Durumu - Kalan Miktar",
-                    "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi",
-                    "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
-                    "3. Sayfa: Yemek Üretim ve Maliyet Arşivi",
-                    "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No",
-                    "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı",
-                    "4. Sayfa: İhtiyaç Sahipleri - Telefon",
-                    "4. Sayfa: İhtiyaç Sahipleri - Adres",
-                    "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı",
-                    "4. Sayfa: Yemek Dağıtımları - Tarih/Saat",
-                    "4. Sayfa: Yemek Dağıtımları - Kişi/Hane",
-                    "4. Sayfa: Yemek Dağıtımları - Menü",
-                    "4. Sayfa: Yemek Dağıtımları - Porsiyon",
-                    "4. Sayfa: Sayaç Raporu - T.C./Hane No",
-                    "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi",
-                    "4. Sayfa: Sayaç Raporu - Günlük Alım",
-                    "4. Sayfa: Haftalık Alım",
-                    "4. Sayfa: Sayaç Raporu - Aylık Alım",
-                    "5. Sayfa: Personel Raporu - T.C. No",
-                    "5. Sayfa: Personel Raporu - Adı Soyadı",
-                    "5. Sayfa: Kullanım ve Log Takibi",
-                    "6. Sayfa: Kapsamlı Envanter Raporu",
-                ]
+                        st.markdown("**Sayfa / Menü Kısıtlamaları (İşaretlenenler Engellenir):**")
+                        tum_menu_ogeleri = [
+                            "Güncel Stok Durumu", "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", 
+                            "Toplu Stok Düşümü & Sarfiyat", "İhtiyaç Sahibi & Yemek Dağıtım Takibi", 
+                            "Personel & Çalışma Süresi Takibi", "Kullanım Takibi", 
+                            "Kapsamlı Envanter ve Hareket Raporu", "Depo Yönetimi", "Demirbaş Yönetimi"
+                        ]
+                        
+                        mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
+                        yeni_yasaklar = []
+                        
+                        m_cols = st.columns(2)
+                        for idx, m_item in enumerate(tum_menu_ogeleri):
+                            with m_cols[idx % 2]:
+                                yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"yasak_{secilen_k_adi}_{m_item}")
+                                if yasakli_mi:
+                                    yeni_yasaklar.append(m_item)
 
-                maskeli_secimler = []
-                for ms in tum_maske_secenekleri:
-                    secili_m = ms in k_obj.get("maskeli_alanlar", [])
-                    if st.checkbox(ms, value=secili_m, key=f"mask_{secilen_k_adi}_{ms}"):
-                        maskeli_secimler.append(ms)
+                        kaydet_btn = st.form_submit_button("Değişiklikleri Kaydet / Uygula")
+                        if kaydet_btn:
+                            if kullanıcıyi_sil:
+                                del st.session_state.kullanicilar[secilen_k_adi]
+                                st.success(f"'{secilen_k_adi}' kullanıcısı sistemden başarıyla silindi!")
+                                st.rerun()
+                            else:
+                                st.session_state.kullanicilar[secilen_k_adi]["rol"] = yeni_rol
+                                st.session_state.kullanicilar[secilen_k_adi]["salt_okunur"] = yeni_salt_okunur
+                                st.session_state.kullanicilar[secilen_k_adi]["maskeleme"] = yeni_maskeleme
+                                st.session_state.kullanicilar[secilen_k_adi]["yasakli_menuler"] = yeni_yasaklar
+                                st.success(f"'{secilen_k_adi}' kullanıcısının yetkileri güncellendi!")
+                                st.rerun()
+            else:
+                st.warning("Düzenlenebilecek ek kullanıcı bulunmuyor.")
 
-                st.markdown("---")
-                st.markdown("**🔑 Şifre Değiştirme**")
-                yeni_sifre_inp = st.text_input(
-                    "Yeni Şifre (Boş bırakırsanız değişmez)", type="password", key=f"sifre_degis_{secilen_k_adi}"
-                )
+        # TAB 2: YENİ KULLANICI EKLE
+        with tab_ekle:
+            st.subheader("Sisteme Yeni Kullanıcı Tanımla")
+            
+            with st.form("yeni_kullanici_ekle_form"):
+                y_col1, y_col2 = st.columns(2)
+                with y_col1:
+                    yeni_k_adi = st.text_input("Kullanıcı Adı (Benzersiz)")
+                    yeni_sifre = st.text_input("Şifre", type="password")
+                with y_col2:
+                    yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="y_rol_yeni")
+                    yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False, key="y_salt_yeni")
 
-                kaydet_btn = st.form_submit_button(
-                    "Yetkileri ve Ayarları Kaydet", type="primary"
-                )
-
-                if kaydet_btn:
-                    k_obj["yasakli_menuler"] = yasakli_secimler
-                    k_obj["maskeli_alanlar"] = maskeli_secimler
-                    if secilen_k_adi == "misafir":
-                        k_obj["buton_metni"] = yeni_misafir_buton_metni
-                        k_obj["buton_aktif"] = yeni_misafir_buton_aktif
-                    if yeni_sifre_inp:
-                        k_obj["sifre"] = sifre_hashle(yeni_sifre_inp)
-
-                    kullanıcıları_kaydet(kullanici_db)
-                    st.success("🎉 Başarılı! Kullanıcı yetkileri ve ayarları güncellendi.")
-                    st.balloons()
-                    st.rerun()
+                y_ekle_btn = st.form_submit_button("Yeni Kullanıcıyı Ekle")
+                if y_ekle_btn:
+                    if yeni_k_adi and yeni_sifre:
+                        if yeni_k_adi in st.session_state.kullanicilar:
+                            st.error("Bu kullanıcı adı zaten sistemde mevcut!")
+                        else:
+                            st.session_state.kullanicilar[yeni_k_adi] = {
+                                "sifre": yeni_sifre,
+                                "rol": yeni_k_rol,
+                                "salt_okunur": yeni_k_salt,
+                                "maskeleme": True,
+                                "yasakli_menuler": []
+                            }
+                            st.success(f"'{yeni_k_adi}' kullanıcısı başarıyla eklendi!")
+                            st.rerun()
+                    else:
+                        st.error("Lütfen kullanıcı adı ve şifre alanlarını doldurun.")
