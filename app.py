@@ -804,9 +804,16 @@ if "oturum_aktif" not in st.session_state:
     elif url_token:
         del query_params["token"]
 
-# Her çalışmada: süre dolmuş veya kullanıcı silinmişse oturumu kapat
+# Eski sürümden kalan oturumlarda eksik anahtarları tamamla
+if "oturum_token" not in st.session_state:
+    st.session_state.oturum_token = ""
+if "oturum_bitis" not in st.session_state:
+    st.session_state.oturum_bitis = 0
+
+# Her çalışmada: token'sız (eski), süresi dolmuş veya kullanıcısı silinmiş oturumu kapat
 if st.session_state.oturum_aktif and (
-    st.session_state.aktif_kullanici not in st.session_state.kullanicilar
+    not st.session_state.oturum_token
+    or st.session_state.aktif_kullanici not in st.session_state.kullanicilar
     or time.time() > st.session_state.oturum_bitis
 ):
     oturum_sil(st.session_state.oturum_token)
