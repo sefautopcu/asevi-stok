@@ -2783,7 +2783,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 st.markdown(
                 """
                 <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 14px 18px; border-radius: 14px; margin: 16px 0; font-weight: 600; font-size: 15px;">
-                🎉 Başarılı! Yeni mal alımı faturası ve ürün depoya eklendi (Güncel stok artırıldı, fiyat geçmişi korundu).
+                🎉 Başarılı! Yeni mal alımı faturası ve ürün depoya eklendi.
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -2798,7 +2798,6 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             st.subheader("📋 Mal Alımı / Fatura Log Kayıtları Arşivi (Tüm Geçmiş Fiyatlar)")
 
         if st.session_state.girisler:
-            # Kategoriye Göre Filtreleme
             kategoriler_filtre = ["Tümü", "SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"]
             secilen_kat_filtre = st.selectbox("📂 Kategoriye Göre Arşiv Filtrele", kategoriler_filtre, key="fatura_kat_filtre_box")
 
@@ -2825,7 +2824,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             with col_indir_fatura:
                 ortak_indirme_alani(excel_fatura_data, pdf_fatura_data, "fatura_mal_alimi_arsivi", "fatura_arsiv_sayfasi")
 
-            with st.expander("✏️ Seçili Fatura / Mal Alım Kaydını Düzenle (Kategori, Depo veya Fiyat Değiştir)"):
+            with st.expander("✏️ Seçili Fatura / Mal Alım Kaydını Düzenle (Ürün Adı, Kategori, Depo veya Fiyat Değiştir)"):
                 secenekler_fatura_edit = [
                     f"{g.get('id')} - {g.get('urun')} (Tarih: {g.get('tarih')}, Kat: {g.get('kategori', '-')}, Fatura: {g.get('fatura_no', '-')}, Fiyat: {g.get('fiyat')} TL)" 
                     for g in st.session_state.girisler
@@ -2839,23 +2838,37 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 mevcut_kat = mevcut_kayit_obj.get("kategori", "SEBZE") if mevcut_kayit_obj else "SEBZE"
                 kat_idx = kat_listesi.index(mevcut_kat) if mevcut_kat in kat_listesi else 0
 
+                depo_listesi = st.session_state.depolar if st.session_state.depolar else ["Merkez Depo"]
+                mevcut_depo = mevcut_kayit_obj.get("depo", "Merkez Depo") if mevcut_kayit_obj else "Merkez Depo"
+                depo_idx = depo_listesi.index(mevcut_depo) if mevcut_depo in depo_listesi else 0
+
                 with st.form("fatura_duzenle_form"):
+                    yeni_urun_adi_input = st.text_input("Ürün Adı", value=str(mevcut_kayit_obj.get("urun", ""))).strip().upper()
                     yeni_kat_sec = st.selectbox("Yeni Kategori", kat_listesi, index=kat_idx)
-                    
-                    depo_listesi = st.session_state.depolar if st.session_state.depolar else ["Merkez Depo"]
-                    mevcut_depo = mevcut_kayit_obj.get("depo", "Merkez Depo") if mevcut_kayit_obj else "Merkez Depo"
-                    depo_idx = depo_listesi.index(mevcut_depo) if mevcut_depo in depo_listesi else 0
                     yeni_depo_sec = st.selectbox("Yeni Depo Yeri", depo_listesi, index=depo_idx)
-                    
                     yeni_fiyat_sec = st.number_input("Güncel Birim Fiyat (TL)", min_value=0.01, value=float(mevcut_kayit_obj.get("fiyat", 1.0)) if mevcut_kayit_obj else 1.0, step=0.1)
+                    
+                    tum_kayitlari_guncelle = st.checkbox("🔄 Bu ürüne ait tüm geçmiş alım kayıtlarının kategorisini ve adını da güncelle", value=True)
                     
                     duzenle_submit_btn = st.form_submit_button("Değişiklikleri Kaydet ve Güncelle", type="primary")
                     if duzenle_submit_btn and mevcut_kayit_obj:
-                        mevcut_kayit_obj["kategori"] = yeni_kat_sec
-                        mevcut_kayit_obj["depo"] = yeni_depo_sec
-                        mevcut_kayit_obj["fiyat"] = yeni_fiyat_sec
+                        eski_urun_adi = mevcut_kayit_obj.get("urun", "")
+                        
+                        if tum_kayitlari_guncelle:
+                            for g in st.session_state.girisler:
+                                if g.get("urun", "").strip().upper() == eski_urun_adi.strip().upper():
+                                    g["urun"] = yeni_urun_adi_input
+                                    g["kategori"] = yeni_kat_sec
+                            mevcut_kayit_obj["depo"] = yeni_depo_sec
+                            mevcut_kayit_obj["fiyat"] = yeni_fiyat_sec
+                        else:
+                            mevcut_kayit_obj["urun"] = yeni_urun_adi_input
+                            mevcut_kayit_obj["kategori"] = yeni_kat_sec
+                            mevcut_kayit_obj["depo"] = yeni_depo_sec
+                            mevcut_kayit_obj["fiyat"] = yeni_fiyat_sec
+
                         verileri_kaydet(st.session_state.girisler)
-                        st.success("🎉 Başarılı! Fatura kaydının kategorisi, deposu ve fiyatı güncellendi.")
+                        st.success("🎉 Başarılı! Kayıt güncellendi ve ilgili ürünün kategorisi tüm sistemde senkronize edildi.")
                         st.balloons()
                         st.rerun()
 
