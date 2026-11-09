@@ -76,3 +76,4 @@ uvicorn==0.54.0
 watchdog==7.1.0
 websockets==15.0.1
 yarl==1.25.1
+streamlit-cookies-controller==0.0.4
