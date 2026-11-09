@@ -27,6 +27,117 @@ st.set_page_config(
     layout="wide",
 )
 
+def baglanti_tanilama_goster():
+    """?tani=1 adresinde çalışır. Gizli değerleri GÖSTERMEZ; yalnızca ayarların görünüp
+    görünmediğini ve Supabase bağlantısının veri döndürüp döndürmediğini denetler."""
+    st.markdown("## 🔧 Bağlantı Tanılama")
+    st.caption(
+        "Bu sayfa şifre/anahtar değerlerini göstermez. Sorun çözülünce `?tani=1` adresini kullanmayı bırakın."
+    )
+    try:
+        ust_anahtarlar = list(st.secrets.keys())
+    except Exception as e:
+        st.error(
+            f"Secrets okunamadı ({type(e).__name__}). Secrets metnindeki biçimi kontrol edin: "
+            'her satır `ADI = "değer"` şeklinde ve DÜZ çift tırnaklı olmalı (“ ” gibi kıvrık tırnak olmaz).'
+        )
+        return
+    bolumler = {}
+    for k in ust_anahtarlar:
+        try:
+            if hasattr(st.secrets[k], "keys"):
+                bolumler[k] = list(st.secrets[k].keys())
+        except Exception:
+            pass
+
+    st.markdown("### 1) Secrets ayarları")
+    for ad in ("SUPABASE_URL", "SUPABASE_KEY", "FERNET_KEY", "MASTER_RECOVERY_KEY"):
+        if ad in ust_anahtarlar and ad not in bolumler:
+            deger = str(st.secrets.get(ad, ""))
+            if deger.strip() == "":
+                st.warning(f"**{ad}**: tanımlı ama BOŞ.")
+            elif deger != deger.strip():
+                st.warning(f"**{ad}**: değerin başında/sonunda boşluk veya satır sonu var; silin.")
+            elif any(c in deger for c in "“”‘’"):
+                st.warning(f"**{ad}**: değerde kıvrık tırnak karakteri var; düz tırnak kullanın.")
+            else:
+                st.success(f"**{ad}**: görünüyor.")
+        else:
+            yerler = [b for b, alt in bolumler.items() if ad in alt]
+            if yerler:
+                st.error(
+                    f"**{ad}**: bir `[{yerler[0]}]` bölümünün İÇİNDE kalmış, bu yüzden uygulama göremiyor. "
+                    f"Secrets metninde bu satırı, ilk `[bölüm]` başlığından ÖNCEKİ en üst kısma taşıyın."
+                )
+            else:
+                st.error(f"**{ad}**: bulunamadı (ad büyük/küçük harfe duyarlıdır, tam olarak bu yazılmalı).")
+    if bolumler:
+        st.info("Secrets içinde bölüm başlıkları var: " + ", ".join(f"[{b}]" for b in bolumler))
+    st.caption("Secrets'ta görünen en üst düzey ad sayısı: " + str(len([k for k in ust_anahtarlar if k not in bolumler])))
+
+    st.markdown("### 2) Supabase bağlantısı")
+    url = str(st.secrets.get("SUPABASE_URL", "") or "")
+    anahtar = str(st.secrets.get("SUPABASE_KEY", "") or "")
+    if not url or not anahtar:
+        st.error("SUPABASE_URL veya SUPABASE_KEY görünmüyor; uygulama yerel (geçici) modda çalışır ve hiçbir veri kaydedilmez.")
+        return
+    if not url.startswith("https://") or "/rest/" in url or url.endswith("/"):
+        st.warning("SUPABASE_URL biçimi şöyle olmalı: `https://PROJEKODU.supabase.co` (sonunda `/` ve `/rest/v1` OLMADAN).")
+    rol = "bilinmiyor"
+    if anahtar.startswith("sb_publishable"):
+        rol = "anon"
+    elif anahtar.startswith("sb_secret"):
+        rol = "service_role"
+    else:
+        try:
+            parca = anahtar.split(".")[1]
+            parca += "=" * (-len(parca) % 4)
+            rol = str(json.loads(base64.urlsafe_b64decode(parca)).get("role", "bilinmiyor"))
+        except Exception:
+            rol = "bilinmiyor"
+    if rol == "anon":
+        st.warning("Kullanılan anahtar **anon / publishable** türünde. RLS açıksa bu anahtar tablodan veri OKUYAMAZ ve YAZAMAZ. `service_role` (secret) anahtarına geçin.")
+    elif rol == "service_role":
+        st.success("Kullanılan anahtar **service_role / secret** türünde (doğru).")
+    else:
+        st.info("Anahtarın türü belirlenemedi. Anahtarı Supabase > Project Settings > API bölümünden yeniden kopyalayın.")
+
+    basliklar = {"apikey": anahtar}
+    if not anahtar.startswith("sb_"):
+        basliklar["Authorization"] = f"Bearer {anahtar}"
+    try:
+        r = requests.get(
+            f"{url}/rest/v1/asevi_veritabani", headers=basliklar,
+            params={"select": "id", "limit": "50"}, timeout=10,
+        )
+    except Exception as e:
+        st.error(f"Supabase'e ulaşılamadı ({type(e).__name__}). SUPABASE_URL yanlış olabilir.")
+        return
+    try:
+        govde = r.json()
+    except Exception:
+        govde = None
+    if r.status_code == 200:
+        satirlar = govde if isinstance(govde, list) else []
+        if satirlar:
+            st.success(f"Bağlantı ve okuma ÇALIŞIYOR. Tabloda görünen kayıt sayısı: {len(satirlar)} ({', '.join(str(x.get('id')) for x in satirlar[:8])}...)")
+        elif rol == "anon":
+            st.error("Okuma HTTP 200 döndü ama 0 satır görünüyor. Anon anahtar + RLS birleşiminde Supabase hata vermez, satırları sessizce GİZLER. Asıl sorun budur: `service_role` anahtarına geçin.")
+        else:
+            st.warning("Bağlantı çalışıyor ama tablo boş görünüyor. Uygulama ilk açılışta kayıtları kendisi oluşturur; ilk kayıttan sonra tablo dolar. Dolmuyorsa yazma yetkisini kontrol edin.")
+    elif r.status_code in (401, 403):
+        st.error(f"HTTP {r.status_code}: anahtar geçersiz veya yetkisiz. Anahtarı yeniden kopyalayın (başında/sonunda boşluk olmasın).")
+    elif r.status_code == 404:
+        st.error("HTTP 404: `asevi_veritabani` tablosu bulunamadı veya SUPABASE_URL yanlış. Tabloyu kontrol edin (id: text, veri: jsonb).")
+    else:
+        mesaj = govde.get("message") if isinstance(govde, dict) else ""
+        st.error(f"HTTP {r.status_code}: {mesaj}")
+
+
+if str(st.query_params.get("tani", "")) == "1":
+    baglanti_tanilama_goster()
+    st.stop()
+
 # Şifreleme Anahtarı ve Motoru
 # FERNET_KEY tanımlı değilse uygulama BİLEREK durdurulur: her açılışta rastgele
 # anahtar üretmek, kaydedilen T.C./telefon/adres verilerini okunamaz hâle getirir.
@@ -173,7 +284,9 @@ YEDEK_ANAHTARLARI = [k for k in KAYIT_ESLEME if k != "kullanici_yetkileri"]
 
 
 def _supa_basliklar(ekstra=None):
-    h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+    h = {"apikey": SUPABASE_KEY}
+    if not str(SUPABASE_KEY).startswith("sb_"):  # sb_secret_/sb_publishable_ anahtarları JWT değildir
+        h["Authorization"] = f"Bearer {SUPABASE_KEY}"
     if ekstra:
         h.update(ekstra)
     return h
@@ -1540,7 +1653,8 @@ if not st.session_state.oturum_aktif:
             if not tanimli_master:
                 st.info(
                     "Şifre kurtarma devre dışı. Etkinleştirmek için `secrets` ayarlarına "
-                    "güçlü bir `MASTER_RECOVERY_KEY` ekleyin."
+                    "güçlü bir `MASTER_RECOVERY_KEY` ekleyin. Eklediğiniz hâlde bu mesajı görüyorsanız "
+                    "adres çubuğundaki adrese `?tani=1` ekleyip Bağlantı Tanılama sayfasına bakın."
                 )
             else:
                 with st.form("master_key_sifre_sifirla"):
@@ -4736,7 +4850,7 @@ elif menu == "Kullanıcı Ayarları":
         if str(st.secrets.get("MASTER_RECOVERY_KEY", "") or ""):
             st.success("MASTER_RECOVERY_KEY tanımlı.")
         else:
-            st.info("MASTER_RECOVERY_KEY tanımlı değil: şifre kurtarma devre dışı (güvenli varsayılan).")
+            st.info("MASTER_RECOVERY_KEY tanımlı değil: şifre kurtarma devre dışı. Ekledim diyorsanız adrese `?tani=1` ekleyip kontrol edin.")
         _zayif = [
             k for k, v in kullanici_db.items()
             if v.get("sifre_degistirilmeli") or v.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
