@@ -2429,7 +2429,8 @@ if menu == "Kurumsal Dashboard & Özet":
                                 yaxis=dict(showgrid=True, gridcolor="rgba(100,100,100,0.1)", linecolor=border_color),
                                 legend=dict(bgcolor=card_bg, bordercolor=border_color, borderwidth=1)
                             )
-                            st.plotly_chart(fig, use_container_width=True)
+                            # Benzersiz key eklendi
+                            st.plotly_chart(fig, use_container_width=True, key=f"chart_{w['id']}")
                     else:
                         st.info("Grafik için yeterli veri bulunmuyor.")
                 elif w["tur"] == "Çizgi Grafik":
@@ -2456,7 +2457,8 @@ if menu == "Kurumsal Dashboard & Özet":
                                 xaxis=dict(showgrid=False, linecolor=border_color),
                                 yaxis=dict(showgrid=True, gridcolor="rgba(100,100,100,0.1)", linecolor=border_color),
                             )
-                            st.plotly_chart(fig2, use_container_width=True)
+                            # Benzersiz key eklendi
+                            st.plotly_chart(fig2, use_container_width=True, key=f"chart_{w['id']}")
                     else:
                         st.info("Trend grafiği için yeterli log kaydı bulunmuyor.")
                 elif w["tur"] == "Pasta Grafik (Dağılım)":
@@ -2477,76 +2479,12 @@ if menu == "Kurumsal Dashboard & Özet":
                             legend=dict(bgcolor=card_bg, bordercolor=border_color, borderwidth=1)
                         )
                         fig3.update_traces(textinfo="percent+label", marker=dict(line=dict(color=card_bg, width=2)))
-                        st.plotly_chart(fig3, use_container_width=True)
+                        # Benzersiz key eklendi
+                        st.plotly_chart(fig3, use_container_width=True, key=f"chart_{w['id']}")
                 st.markdown("</div>", unsafe_allow_html=True)
         else:
             st.info("Görüntülenecek aktif grafik widget'ı bulunmuyor.")
-
-    if yonetici_modu:
-        with st.expander(
-            "➕ Admin Özel: Dashboard'a Yeni Grafik / Widget Ekle veya Kaldır",
-            expanded=False,
-        ):
-            with st.form("yeni_widget_ekle_form"):
-                st.markdown("**Dashboard'a Yeni Grafik Ekle**")
-                w_baslik = st.text_input("Grafik Başlığı", "Örn: Depo Doluluk Oranı")
-                w_tur = st.selectbox(
-                    "Grafik Türü",
-                    ["Sütun Grafik", "Çizgi Grafik", "Pasta Grafik (Dağılım)"],
-                )
-                w_ekle_btn = st.form_submit_button("Grafik Widget'ını Ekle")
-
-                if w_ekle_btn and w_baslik:
-                    st.session_state.dashboard_widgets.append({
-                        "id": yeni_id_uret("w-", st.session_state.dashboard_widgets, genislik=1),
-                        "baslik": w_baslik,
-                        "tur": w_tur,
-                        "aktif": True,
-                    })
-                    widgetlari_kaydet(st.session_state.dashboard_widgets)
-                    st.success("Yeni grafik başarıyla eklendi!")
-                    st.balloons()
-                    st.rerun()
-
-            st.markdown("---")
-            with st.form("widget_sil_form"):
-                st.markdown("**🗑️ Mevcut Grafik Widget'ını Kaldır**")
-                if st.session_state.dashboard_widgets:
-                    w_secenekleri = [
-                        f"{w['id']} - {w['baslik']} ({w['tur']})"
-                        for w in st.session_state.dashboard_widgets
-                    ]
-                    secilen_w_sil = st.selectbox(
-                        "Kaldırılacak Grafiği Seçin", w_secenekleri
-                    )
-                    onay_w_sil_btn = silme_onay_kutusu("onay_widget_sil")
-                    w_sil_btn = st.form_submit_button(
-                        "Seçilen Grafiği Kaldır", type="primary"
-                    )
-
-                    if w_sil_btn and not onay_w_sil_btn:
-
-                        st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
-
-                    elif w_sil_btn:
-                        wid = secilen_w_sil.split(" - ")[0]
-                        st.session_state.dashboard_widgets = [
-                            w
-                            for w in st.session_state.dashboard_widgets
-                            if w["id"] != wid
-                        ]
-                        widgetlari_kaydet(st.session_state.dashboard_widgets)
-                        st.success("Grafik widget'ı kaldırıldı!")
-                        st.balloons()
-                        st.rerun()
-                else:
-                    st.info("Kaldırılacak grafik bulunmuyor.")
-    else:
-        st.markdown(
-            f"<p style='font-size: 12px; color: {subtext_color}; font-style: italic;'>🔒 Dashboard sayfasına yeni grafik ekleme / kaldırma yetkisi yalnızca <b>Admin</b> kullanıcısına özeldir.</p>",
-            unsafe_allow_html=True,
-        )
-
+            
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
     if misafir_modu:
