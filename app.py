@@ -3259,6 +3259,14 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                 benzersiz_urunler_toplu = sorted(list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun"))))
                 
                 if benzersiz_urunler_toplu:
+                    # Tarih ve Saat seçim alanları
+                    col_t1, col_t2 = st.columns(2)
+                    with col_t1:
+                        toplu_tarih_secim = st.date_input("📅 Sarfiyat Tarihi", value=datetime.date.today(), key="toplu_tarih_inp")
+                    with col_t2:
+                        toplu_saat_secim = st.time_input("⏰ Sarfiyat Saati", value=datetime.datetime.now().time(), key="toplu_saat_inp")
+                    toplu_tarih_str = f"{toplu_tarih_secim.strftime('%Y-%m-%d')} {toplu_saat_secim.strftime('%H:%M')}"
+
                     selected_item = st.selectbox("Malzeme Seçin", benzersiz_urunler_toplu, key="toplu_malzeme_selectbox")
                     
                     ilgili_girisler_toplu = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == selected_item.strip().upper()]
@@ -3294,9 +3302,8 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                             
                             verileri_kaydet(st.session_state.girisler)
                             
-                            islem_tarihi_str = simdi_tr_str("%Y-%m-%d %H:%M")
                             st.session_state.kullanim_loglari.append({
-                                "tarih": islem_tarihi_str,
+                                "tarih": toplu_tarih_str,
                                 "urun": selected_item,
                                 "tur": f"Toplu Sarfiyat ({description})",
                                 "miktar": used_amount,
@@ -3305,7 +3312,7 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                             })
                             loglari_kaydet(st.session_state.kullanim_loglari)
                             
-                            st.success(f"🎉 Başarılı! {used_amount} {unit} {selected_item} stoktan düşüldü ve loglara eklendi!")
+                            st.success(f"🎉 Başarılı! {toplu_tarih_str} tarihli {used_amount} {unit} {selected_item} stoktan düşüldü ve loglara eklendi!")
                             st.balloons()
                             st.rerun()
                 else:
@@ -3328,7 +3335,7 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                     ozel_html_tablo_goster(tablo_sarf)
                 else:
                     st.info("Henüz toplu stok düşümü yapılmadı.")
-
+                    
 # 5. GÜNLÜK YEMEK ÜRETİMİ & MALİYET RAPORU
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
