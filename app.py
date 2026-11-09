@@ -1,11 +1,14 @@
+import base64
 import datetime
 import hashlib
 import hmac
 import io
 import json
 import os
+import re
 import secrets
 import time
+from html import escape as html_escape
 import difflib
 import zoneinfo
 import requests
@@ -25,16 +28,31 @@ st.set_page_config(
 )
 
 # Şifreleme Anahtarı ve Motoru
+# FERNET_KEY tanımlı değilse uygulama BİLEREK durdurulur: her açılışta rastgele
+# anahtar üretmek, kaydedilen T.C./telefon/adres verilerini okunamaz hâle getirir.
 try:
-    gizli_anahtar = st.secrets["FERNET_KEY"].encode("utf-8")
+    gizli_anahtar = str(st.secrets["FERNET_KEY"]).encode("utf-8")
     fernet_motoru = Fernet(gizli_anahtar)
 except Exception:
-    fernet_motoru = Fernet(Fernet.generate_key())
+    st.error(
+        "🔐 **FERNET_KEY tanımlı değil veya geçersiz.** Güvenlik ve veri kaybını önlemek için "
+        "uygulama durduruldu. Aşağıdaki komutla bir anahtar üretip `secrets` ayarlarınıza "
+        "`FERNET_KEY = \"...\"` olarak ekleyin ve anahtarı güvenli bir yerde YEDEKLEYİN:"
+    )
+    st.code(
+        'python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"',
+        language="bash",
+    )
+    st.stop()
 
 
 def metni_sifrele(duz_metin):
     if not duz_metin:
         return ""
+    # Zaten şifreli (Fernet) gelen değer tekrar şifrelenmez; aksi hâlde anahtar
+    # uyuşmazlığında veri katman katman şifrelenip geri dönülmez hâle gelir.
+    if str(duz_metin).startswith("gAAAAA"):
+        return str(duz_metin)
     try:
         return fernet_motoru.encrypt(str(duz_metin).encode("utf-8")).decode("utf-8")
     except Exception:
@@ -55,10 +73,68 @@ def metni_coz(sifreli_metin):
 
 
 def sifre_hashle(sifre):
-    """Şifreleri SHA-256 ile güvenli bir şekilde hashler."""
+    """ESKİ yöntem (tuzsuz SHA-256). Yalnızca eski kayıtları doğrulamak için tutulur."""
     if not sifre:
         return ""
     return hashlib.sha256(str(sifre).encode("utf-8")).hexdigest()
+
+
+# Eski sürümlerde kodda açıkça yazılı olan varsayılan şifrelerin SHA-256 hash'leri.
+# Bu hash'lerle kayıtlı hesaplar ilk girişte şifre değiştirmeye zorlanır.
+ESKI_VARSAYILAN_HASHLER = {
+    "8110e127a1ea6d6e6b10122673400c15d112802259aeb48783b7ae3c795937c4",
+    "f6595d11049c9b69670c7ce640632b5131e93032aad76a5796bfc4506c6afd65",
+    "eeed6b32b495d07ee61434679ddd7640024cb7b0a7d53561bf847b11b2405a56",
+}
+
+_SCRYPT_N = 2 ** 14
+_SCRYPT_R = 8
+_SCRYPT_P = 1
+_SCRYPT_MAXMEM = 64 * 1024 * 1024
+
+
+def sifre_hashle_yeni(sifre):
+    """Her şifre için rastgele tuzlu, yavaş (scrypt) hash üretir: s1$tuz$hash"""
+    tuz = secrets.token_bytes(16)
+    dk = hashlib.scrypt(
+        str(sifre).encode("utf-8"), salt=tuz, n=_SCRYPT_N, r=_SCRYPT_R,
+        p=_SCRYPT_P, dklen=32, maxmem=_SCRYPT_MAXMEM,
+    )
+    return f"s1${tuz.hex()}${dk.hex()}"
+
+
+def sifre_dogrula(girilen, kayitli):
+    """Hem yeni (scrypt) hem eski (SHA-256) kayıtları sabit zamanlı karşılaştırır."""
+    girilen = str(girilen or "")
+    kayitli = str(kayitli or "")
+    if kayitli == "":
+        return girilen == ""
+    if kayitli.startswith("s1$"):
+        try:
+            _, tuz_hex, hash_hex = kayitli.split("$")
+            dk = hashlib.scrypt(
+                girilen.encode("utf-8"), salt=bytes.fromhex(tuz_hex), n=_SCRYPT_N,
+                r=_SCRYPT_R, p=_SCRYPT_P, dklen=32, maxmem=_SCRYPT_MAXMEM,
+            )
+            return hmac.compare_digest(dk.hex(), hash_hex)
+        except Exception:
+            return False
+    return hmac.compare_digest(sifre_hashle(girilen), kayitli)
+
+
+def sifre_yukseltilmeli_mi(kayitli):
+    """Kayıtlı hash eski biçimdeyse (SHA-256) True döner."""
+    return bool(kayitli) and not str(kayitli).startswith("s1$")
+
+
+def sifre_politika_hatasi(sifre):
+    """Şifre kurallara uymuyorsa hata metni, uyuyorsa None döner."""
+    sifre = str(sifre or "")
+    if len(sifre) < 10:
+        return "Şifre en az 10 karakter olmalıdır."
+    if not re.search(r"[A-Za-zÇĞİÖŞÜçğıöşü]", sifre) or not re.search(r"\d", sifre):
+        return "Şifre en az bir harf ve en az bir rakam içermelidir."
+    return None
 
 
 def simdi_tr_str(format_str="%Y-%m-%d %H:%M"):
@@ -75,50 +151,304 @@ def simdi_tr_str(format_str="%Y-%m-%d %H:%M"):
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "")
 
-def supabase_veri_oku(kayit_id, varsayilan_deger):
+# Kayıt kimliği -> session_state anahtarı. Bu veriler için "çakışma denetimi" yapılır:
+# başka bir oturum veriyi değiştirdiyse, eski kopyayla üzerine yazmak engellenir.
+KAYIT_ESLEME = {
+    "girisler": "girisler",
+    "kullanim_loglari": "kullanim_loglari",
+    "silinen_urun_loglari": "silinen_urun_loglari",
+    "ihtiyac_sahipleri": "ihtiyac_sahipleri",
+    "dagitim_loglari": "dagitim_loglari",
+    "personeller": "personeller",
+    "resmi_tatiller": "resmi_tatiller",
+    "yemek_uretim_arsivi": "yemek_uretim_arsivi",
+    "depolar_listesi": "depolar",
+    "demirbaslar_listesi": "demirbaslar",
+    "kritik_seviyeler": "kritik_seviyeler",
+    "kullanici_yetkileri": "kullanicilar",
+    "dashboard_widgets": "dashboard_widgets",
+}
+# Yedeğe giren veriler (kullanıcı/şifre bilgileri, oturum ve deneme kayıtları yedeğe girmez)
+YEDEK_ANAHTARLARI = [k for k in KAYIT_ESLEME if k != "kullanici_yetkileri"]
+
+
+def _supa_basliklar(ekstra=None):
+    h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+    if ekstra:
+        h.update(ekstra)
+    return h
+
+
+def supabase_anahtar_rolu():
+    """Kullanılan Supabase anahtarının rolü: 'anon', 'service_role' veya 'bilinmiyor'."""
+    anahtar = str(SUPABASE_KEY or "")
+    if anahtar.startswith("sb_publishable"):
+        return "anon"
+    if anahtar.startswith("sb_secret"):
+        return "service_role"
+    try:
+        parca = anahtar.split(".")[1]
+        parca += "=" * (-len(parca) % 4)
+        return str(json.loads(base64.urlsafe_b64decode(parca)).get("role", "bilinmiyor"))
+    except Exception:
+        return "bilinmiyor"
+
+
+def _veri_hash(veri):
+    return hashlib.sha256(
+        json.dumps(veri, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
+    ).hexdigest()
+
+
+def _supabase_ham_oku(kayit_id):
+    """('ok', veri) | ('yok', None) | ('hata', mesaj). Oturum durumunu DEĞİŞTİRMEZ."""
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/asevi_veritabani",
+            headers=_supa_basliklar(),
+            params={"id": f"eq.{kayit_id}", "select": "veri"},
+            timeout=10,
+        )
+    except Exception as e:
+        return "hata", f"Bağlantı hatası: {type(e).__name__}"
+    if r.status_code != 200:
+        return "hata", f"HTTP {r.status_code}"
+    try:
+        data = r.json()
+    except Exception:
+        return "hata", "Geçersiz yanıt"
+    if data and data[0].get("veri") is not None:
+        return "ok", data[0]["veri"]
+    return "yok", None
+
+
+def _taban_hashler():
+    if "_db_hash" not in st.session_state:
+        st.session_state["_db_hash"] = {}
+    return st.session_state["_db_hash"]
+
+
+def _veritabani_hatasi_dur(mesaj):
+    st.error(
+        f"⚠️ **Veritabanı hatası:** {mesaj}. Verilerinizin bozulmaması için işlem durduruldu. "
+        "Bağlantıyı/ayarları kontrol edip sayfayı yenileyin."
+    )
+    st.stop()
+
+
+def supabase_veri_oku(kayit_id, varsayilan_deger, kritik=True):
+    """Veriyi okur. Bulunamazsa varsayılanı döndürür. Hata olursa (kritik=True ise)
+    boş veri DÖNDÜRMEK yerine işlemi durdurur; aksi hâlde sonraki kayıt veritabanını
+    boşla ezebilirdi."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         return varsayilan_deger
-    url = f"{SUPABASE_URL}/rest/v1/asevi_veritabani?id=eq.{kayit_id}&select=veri"
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}"
-    }
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            if data and len(data) > 0:
-                return data[0].get("veri", varsayilan_deger)
-    except Exception:
-        pass
-    return varsayilan_deger
+    durum, veri = _supabase_ham_oku(kayit_id)
+    if durum == "hata":
+        if kritik:
+            _veritabani_hatasi_dur(f"'{kayit_id}' okunamadı ({veri})")
+        return varsayilan_deger
+    if kayit_id in KAYIT_ESLEME:
+        _taban_hashler()[kayit_id] = _veri_hash(veri) if durum == "ok" else "__yok__"
+    return veri if durum == "ok" else varsayilan_deger
 
-def supabase_veri_kaydet(kayit_id, veri_objesi):
+
+def _cakisma_ve_dur():
+    for sk in set(KAYIT_ESLEME.values()):
+        st.session_state.pop(sk, None)
+    st.session_state.pop("_db_hash", None)
+    st.error(
+        "⚠️ **Kayıt YAPILMADI – veri çakışması.** Siz çalışırken başka bir kullanıcı/oturum "
+        "bu veriyi değiştirdi. Onun değişikliğinin silinmemesi için işleminiz iptal edildi. "
+        "Aşağıdaki düğmeyle güncel verileri yükleyip işlemi tekrar yapın."
+    )
+    if st.button("🔄 Verileri Yenile", key="cakisma_yenile_btn"):
+        st.rerun()
+    st.stop()
+
+
+def supabase_veri_kaydet(kayit_id, veri_objesi, zorla=False):
+    """Veriyi kaydeder. Çakışma varsa ve kayıt başarısız olursa işlemi durdurur
+    (hata artık sessizce yutulmaz)."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         return
-    url = f"{SUPABASE_URL}/rest/v1/asevi_veritabani"
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates"
-    }
-    payload = {
-        "id": kayit_id,
-        "veri": veri_objesi
-    }
+    if kayit_id in KAYIT_ESLEME and not zorla:
+        durum, mevcut = _supabase_ham_oku(kayit_id)
+        if durum == "hata":
+            _veritabani_hatasi_dur(f"'{kayit_id}' doğrulanamadı ({mevcut})")
+        guncel = _veri_hash(mevcut) if durum == "ok" else "__yok__"
+        taban = _taban_hashler().get(kayit_id)
+        if taban is not None and taban != guncel:
+            _cakisma_ve_dur()
     try:
-        requests.post(url, headers=headers, json=payload, timeout=5)
-    except Exception:
-        pass
+        r = requests.post(
+            f"{SUPABASE_URL}/rest/v1/asevi_veritabani",
+            headers=_supa_basliklar({
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates,return=representation",
+            }),
+            json={"id": kayit_id, "veri": veri_objesi},
+            timeout=10,
+        )
+    except Exception as e:
+        _veritabani_hatasi_dur(f"'{kayit_id}' kaydedilemedi (Bağlantı hatası: {type(e).__name__})")
+    if r.status_code not in (200, 201):
+        _veritabani_hatasi_dur(f"'{kayit_id}' kaydedilemedi (HTTP {r.status_code})")
+    if kayit_id in KAYIT_ESLEME:
+        try:
+            _taban_hashler()[kayit_id] = _veri_hash(r.json()[0]["veri"])
+        except Exception:
+            _taban_hashler().pop(kayit_id, None)
+
+
+# =========================================================================
+# YEDEKLEME / GERİ YÜKLEME
+# =========================================================================
+def yedek_paketi_olustur():
+    """Veritabanındaki ham veriyi (şifreli alanlar şifreli kalır) paketler. Hata olursa None."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+    veri = {}
+    for anahtar in YEDEK_ANAHTARLARI:
+        durum, icerik = _supabase_ham_oku(anahtar)
+        if durum == "hata":
+            return None
+        if durum == "ok":
+            veri[anahtar] = icerik
+    return {
+        "_meta": {
+            "zaman": simdi_tr_str("%Y-%m-%d %H:%M:%S"),
+            "surum": 1,
+            "olusturan": st.session_state.get("aktif_kullanici", ""),
+        },
+        "veri": veri,
+    }
+
+
+def otomatik_yedek_al(neden):
+    """Silme gibi geri dönüşsüz işlemlerden önce tek seviyelik otomatik yedek alır."""
+    paket = yedek_paketi_olustur()
+    if paket is None:
+        return False
+    paket["_meta"]["neden"] = str(neden)[:200]
+    supabase_veri_kaydet("otomatik_yedek", paket)
+    return True
+
+
+def yedek_geri_yukle(paket):
+    """Yedek paketini veritabanına yazar. (basarili, mesaj) döndürür."""
+    if not isinstance(paket, dict) or not isinstance(paket.get("veri"), dict):
+        return False, "Geçersiz yedek dosyası."
+    yazilacak = {k: v for k, v in paket["veri"].items() if k in YEDEK_ANAHTARLARI}
+    if not yazilacak:
+        return False, "Yedek dosyasında geri yüklenecek bölüm bulunamadı."
+    for k, v in yazilacak.items():
+        beklenen = dict if k == "kritik_seviyeler" else list
+        if not isinstance(v, beklenen):
+            return False, f"'{k}' bölümü hatalı biçimde, geri yükleme iptal edildi."
+    otomatik_yedek_al("Geri yükleme öncesi otomatik yedek")
+    for k, v in yazilacak.items():
+        supabase_veri_kaydet(k, v, zorla=True)
+    for sk in set(KAYIT_ESLEME.values()):
+        st.session_state.pop(sk, None)
+    st.session_state.pop("_db_hash", None)
+    return True, f"{len(yazilacak)} bölüm geri yüklendi."
 
 
 # =========================================================================
 # OTURUM GÜVENLİĞİ
 # =========================================================================
 OTURUM_SURESI_SN = 8 * 60 * 60  # 8 saat
-MAKS_HATALI_GIRIS = 3
-KILIT_SURESI_SN = 30
+MAKS_HATALI_GIRIS = 3           # kullanıcı + IP başına
+KILIT_SURESI_SN = 30            # ilk kilit süresi (her kilitte ikiye katlanır, en çok 15 dk)
+IP_MAKS_HATALI_GIRIS = 10       # yalnızca IP başına (kullanıcı adı denemelerine karşı)
+IP_KILIT_SURESI_SN = 60
+COOKIE_ADI = "aziziye_oturum"
+
+# Çerez desteği: `streamlit-cookies-controller` paketi kuruluysa token adres çubuğu yerine
+# çerezde tutulur. Kurulu değilse eski yönteme (adreste token) güvenli şekilde geri düşer.
+try:
+    from streamlit_cookies_controller import CookieController
+except Exception:
+    CookieController = None
+
+cerez_kontrol = None
+if CookieController is not None:
+    try:
+        cerez_kontrol = CookieController(key="aziziye_cerez")
+    except TypeError:
+        try:
+            cerez_kontrol = CookieController()
+        except Exception:
+            cerez_kontrol = None
+    except Exception:
+        cerez_kontrol = None
+
+
+def cerez_oku():
+    if cerez_kontrol is None:
+        return ""
+    try:
+        return str(cerez_kontrol.get(COOKIE_ADI) or "")
+    except Exception:
+        return ""
+
+
+def cerez_yaz(token):
+    if cerez_kontrol is None:
+        return
+    try:
+        cerez_kontrol.set(COOKIE_ADI, token, max_age=OTURUM_SURESI_SN, same_site="strict")
+    except TypeError:
+        try:
+            cerez_kontrol.set(COOKIE_ADI, token)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
+def cerez_sil():
+    if cerez_kontrol is None:
+        return
+    try:
+        cerez_kontrol.remove(COOKIE_ADI)
+    except Exception:
+        pass
+
+
+def istemci_ip_bilgisi():
+    """(kilit için kullanılan IP, tam X-Forwarded-For). Kilitte EN SAĞDAKİ adres kullanılır:
+    istemci tarafından sahte eklenen adresler soldadır, en sağdakini ise sunucuya en yakın
+    güvenilir vekil ekler. Böylece sahte başlıkla kilit atlatılamaz."""
+    try:
+        basliklar = st.context.headers
+        xff = str(basliklar.get("X-Forwarded-For", "") or "")
+        if xff:
+            ip = xff.split(",")[-1].strip()
+        else:
+            ip = str(basliklar.get("X-Real-Ip", "") or "").strip()
+        return (ip or "bilinmiyor"), xff[:200]
+    except Exception:
+        return "bilinmiyor", ""
+
+
+def giris_logla(kullanici, durum):
+    """Giriş/çıkış/yönetim olaylarını (kim, ne zaman, hangi IP) kaydeder. Şifre KAYDEDİLMEZ."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return
+    d, mevcut = _supabase_ham_oku("giris_loglari")
+    if d == "hata":
+        return
+    kayitlar = mevcut if d == "ok" and isinstance(mevcut, list) else []
+    ip, xff = istemci_ip_bilgisi()
+    kayitlar.append({
+        "zaman": simdi_tr_str("%Y-%m-%d %H:%M:%S"),
+        "kullanici": str(kullanici)[:50],
+        "durum": str(durum)[:80],
+        "ip": ip,
+        "xff": xff,
+    })
+    supabase_veri_kaydet("giris_loglari", kayitlar[-1000:])
 
 
 def _token_hashle(token):
@@ -131,6 +461,8 @@ def oturum_olustur(kullanici_adi):
     simdi = time.time()
     bitis = simdi + OTURUM_SURESI_SN
     oturumlar = supabase_veri_oku("aktif_oturumlar", {})
+    if not isinstance(oturumlar, dict):
+        oturumlar = {}
     oturumlar = {h: o for h, o in oturumlar.items() if o.get("bitis", 0) > simdi}
     oturumlar[_token_hashle(token)] = {"kullanici": kullanici_adi, "bitis": bitis}
     supabase_veri_kaydet("aktif_oturumlar", oturumlar)
@@ -140,7 +472,9 @@ def oturum_olustur(kullanici_adi):
 def oturum_dogrula(token):
     if not token:
         return None
-    oturumlar = supabase_veri_oku("aktif_oturumlar", {})
+    oturumlar = supabase_veri_oku("aktif_oturumlar", {}, kritik=False)
+    if not isinstance(oturumlar, dict):
+        return None
     kayit = oturumlar.get(_token_hashle(token))
     if kayit and kayit.get("bitis", 0) > time.time():
         return kayit
@@ -151,10 +485,23 @@ def oturum_sil(token):
     if not token:
         return
     oturumlar = supabase_veri_oku("aktif_oturumlar", {})
+    if not isinstance(oturumlar, dict):
+        return
     h = _token_hashle(token)
     if h in oturumlar:
         del oturumlar[h]
         supabase_veri_kaydet("aktif_oturumlar", oturumlar)
+
+
+def kullanici_oturumlarini_kapat(kullanici, haric_token=None):
+    """Bir kullanıcının tüm açık oturumlarını (isteğe bağlı biri hariç) sonlandırır."""
+    oturumlar = supabase_veri_oku("aktif_oturumlar", {})
+    if not isinstance(oturumlar, dict):
+        return
+    haric = _token_hashle(haric_token) if haric_token else None
+    yeni = {h: o for h, o in oturumlar.items() if o.get("kullanici") != kullanici or h == haric}
+    if len(yeni) != len(oturumlar):
+        supabase_veri_kaydet("aktif_oturumlar", yeni)
 
 
 def oturumu_baslat(kullanici_adi):
@@ -163,31 +510,85 @@ def oturumu_baslat(kullanici_adi):
     st.session_state.aktif_kullanici = kullanici_adi
     st.session_state.oturum_token = token
     st.session_state.oturum_bitis = bitis
-    st.query_params["token"] = token
+    if kullanici_adi != "misafir":
+        st.session_state.pop("ilk_kurulum_sifreleri", None)
+    if cerez_kontrol is not None:
+        cerez_yaz(token)
+        time.sleep(1.0)  # tarayıcı bileşeninin çerezi yazabilmesi için kısa bekleme
+    else:
+        st.query_params["token"] = token
+
+
+def oturumu_kapat():
+    """Oturumu sunucuda iptal eder, çerezi ve oturum durumunu temizler."""
+    kullanici = st.session_state.get("aktif_kullanici", "misafir")
+    token = st.session_state.get("oturum_token", "")
+    giris_logla(kullanici, "çıkış")
+    oturum_sil(token)
+    if cerez_kontrol is not None:
+        cerez_sil()
+        time.sleep(0.6)
+    st.session_state.oturum_aktif = False
+    st.session_state.aktif_kullanici = "misafir"
+    st.session_state.oturum_token = ""
+    st.session_state.oturum_bitis = 0
+    st.query_params.clear()
+
+
+def sifre_degistir(kullanici, yeni_sifre, haric_token=None, zorunlu=False):
+    """Şifreyi yeni (scrypt) biçimde kaydeder ve kullanıcının diğer oturumlarını kapatır."""
+    k = st.session_state.kullanicilar[kullanici]
+    k["sifre"] = sifre_hashle_yeni(yeni_sifre)
+    if zorunlu:
+        k["sifre_degistirilmeli"] = True
+    else:
+        k.pop("sifre_degistirilmeli", None)
+    kullanıcıları_kaydet(st.session_state.kullanicilar)
+    kullanici_oturumlarini_kapat(kullanici, haric_token)
+    giris_logla(kullanici, "şifre değiştirildi")
 
 
 def giris_kilit_kalan(anahtar):
-    kayitlar = supabase_veri_oku("giris_denemeleri", {})
+    kayitlar = supabase_veri_oku("giris_denemeleri", {}, kritik=False)
+    if not isinstance(kayitlar, dict):
+        return 0
     return max(0, int(kayitlar.get(anahtar, {}).get("kilit_bitis", 0) - time.time()))
 
 
-def hatali_giris_kaydet(anahtar):
-    """(kalan_hak, kilitlendi_mi) döndürür."""
+def hatali_giris_kaydet(anahtar, maks=MAKS_HATALI_GIRIS, taban_sn=KILIT_SURESI_SN):
+    """(kalan_hak, kilitlendi_mi) döndürür. Her ardışık kilitte süre ikiye katlanır (en çok 15 dk)."""
+    simdi = time.time()
     kayitlar = supabase_veri_oku("giris_denemeleri", {})
-    kayit = kayitlar.get(anahtar, {"sayi": 0, "kilit_bitis": 0})
-    kayit["sayi"] = kayit.get("sayi", 0) + 1
-    kilitlendi = kayit["sayi"] >= MAKS_HATALI_GIRIS
-    if kilitlendi:
+    if not isinstance(kayitlar, dict):
+        kayitlar = {}
+    kayitlar = {
+        k: v for k, v in kayitlar.items()
+        if v.get("kilit_bitis", 0) > simdi or simdi - v.get("son", 0) < 3600
+    }
+    kayit = kayitlar.get(anahtar, {"sayi": 0, "kilit_sayisi": 0, "kilit_bitis": 0, "son": 0})
+    if simdi - kayit.get("son", 0) > 3600:
         kayit["sayi"] = 0
-        kayit["kilit_bitis"] = time.time() + KILIT_SURESI_SN
+        kayit["kilit_sayisi"] = 0
+    kayit["sayi"] = kayit.get("sayi", 0) + 1
+    kayit["son"] = simdi
+    kilitlendi = kayit["sayi"] >= maks
+    if kilitlendi:
+        kayit["kilit_sayisi"] = kayit.get("kilit_sayisi", 0) + 1
+        sure = min(taban_sn * (2 ** (kayit["kilit_sayisi"] - 1)), 900)
+        kayit["kilit_bitis"] = simdi + sure
+        kayit["sayi"] = 0
     kayitlar[anahtar] = kayit
     supabase_veri_kaydet("giris_denemeleri", kayitlar)
-    return MAKS_HATALI_GIRIS - kayit["sayi"], kilitlendi
+    return max(maks - kayit["sayi"], 0), kilitlendi
 
 
-def giris_denemesini_sifirla(anahtar):
+def giris_denemesini_sifirla(anahtar=None):
+    """anahtar verilirse yalnızca onu, verilmezse tüm kilitleri temizler."""
+    if anahtar is None:
+        supabase_veri_kaydet("giris_denemeleri", {})
+        return
     kayitlar = supabase_veri_oku("giris_denemeleri", {})
-    if anahtar in kayitlar:
+    if isinstance(kayitlar, dict) and anahtar in kayitlar:
         del kayitlar[anahtar]
         supabase_veri_kaydet("giris_denemeleri", kayitlar)
 
@@ -413,6 +814,40 @@ st.markdown(
 )
 
 
+def yeni_id_uret(onek, liste, genislik=3, anahtar="id"):
+    """Mevcut en büyük numaranın bir fazlasını üretir (kayıt silinse bile kimlik tekrarlanmaz)."""
+    en_buyuk = 0
+    for oge in liste:
+        m = re.search(r"(\d+)$", str(oge.get(anahtar, "")))
+        if m:
+            en_buyuk = max(en_buyuk, int(m.group(1)))
+    return f"{onek}{en_buyuk + 1:0{genislik}d}"
+
+
+def idleri_benzersiz_yap(liste, onek, genislik=3, anahtar="id"):
+    """Eski sürümlerde (kayıt sayısına göre üretildiği için) tekrarlanmış kimlikleri düzeltir."""
+    sayac = 0
+    for oge in liste:
+        m = re.search(r"(\d+)$", str(oge.get(anahtar, "")))
+        if m:
+            sayac = max(sayac, int(m.group(1)))
+    gorulen = set()
+    for oge in liste:
+        kid = oge.get(anahtar)
+        if not kid or kid in gorulen:
+            sayac += 1
+            kid = f"{onek}{sayac:0{genislik}d}"
+            oge[anahtar] = kid
+        gorulen.add(kid)
+    return liste
+
+
+def silme_onay_kutusu(anahtar):
+    return st.checkbox(
+        "⚠️ Bu işlemin geri alınamayacağını anlıyorum, silmeyi onaylıyorum.", key=anahtar
+    )
+
+
 KALORI_TABLOSU = {
     "PİRİNÇ": 130,
     "BALDO PİRİNÇ": 130,
@@ -547,20 +982,52 @@ misafir_maskeler_varsayilan = [
     "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu",
 ]
 
-varsayilan_kullanicilar = {
-    "admin": {"sifre": sifre_hashle("Ss123321"), "tip": "admin", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
-    "asci": {"sifre": sifre_hashle("sydv25"), "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": False},
-    "yonetim": {"sifre": sifre_hashle("Yonetim25"), "tip": "personel", "yasakli_menuler": [], "maskeli_alanlar": [], "salt_okunur": True},
-    "misafir": {
-        "sifre": "", 
-        "tip": "misafir", 
-        "yasakli_menuler": misafir_yasaklar_varsayilan, 
-        "maskeli_alanlar": misafir_maskeler_varsayilan, 
+def varsayilan_misafir_kaydi():
+    return {
+        "sifre": "",
+        "tip": "misafir",
+        "yasakli_menuler": list(misafir_yasaklar_varsayilan),
+        "maskeli_alanlar": list(misafir_maskeler_varsayilan),
         "salt_okunur": True,
         "buton_metni": "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)",
-        "buton_aktif": True
-    },
-}
+        "buton_aktif": True,
+    }
+
+
+def varsayilan_kullanicilar_olustur():
+    """İlk kurulumda kullanıcıları oluşturur. Kodda sabit şifre YOKTUR:
+    şifre `secrets` içinde (ADMIN_INITIAL_PASSWORD vb.) verilmişse o kullanılır,
+    verilmemişse rastgele üretilir, giriş ekranında BİR KEZ gösterilir ve ilk girişte
+    değiştirilmesi zorunlu tutulur."""
+    kayit = {}
+    uretilenler = {}
+    for ad, tip, salt_okunur, secret_adi in (
+        ("admin", "admin", False, "ADMIN_INITIAL_PASSWORD"),
+        ("asci", "personel", False, "ASCI_INITIAL_PASSWORD"),
+        ("yonetim", "personel", True, "YONETIM_INITIAL_PASSWORD"),
+    ):
+        try:
+            sifre = str(st.secrets.get(secret_adi, "") or "")
+        except Exception:
+            sifre = ""
+        rastgele = not sifre
+        if rastgele:
+            sifre = secrets.token_urlsafe(9)
+            uretilenler[ad] = sifre
+        kayit[ad] = {
+            "sifre": sifre_hashle_yeni(sifre),
+            "tip": tip,
+            "yasakli_menuler": [],
+            "maskeli_alanlar": [],
+            "salt_okunur": salt_okunur,
+        }
+        if rastgele:
+            kayit[ad]["sifre_degistirilmeli"] = True
+    kayit["misafir"] = varsayilan_misafir_kaydi()
+    if uretilenler:
+        st.session_state["ilk_kurulum_sifreleri"] = uretilenler
+    return kayit
+
 
 varsayilan_widgets = [
     {
@@ -611,7 +1078,10 @@ def kritik_seviyeleri_kaydet(veri):
 
 
 def kullanıcıları_yukle():
-    data = supabase_veri_oku("kullanici_yetkileri", varsayilan_kullanicilar)
+    data = supabase_veri_oku("kullanici_yetkileri", None)
+    ilk_kurulum = (not isinstance(data, dict)) or (not data)
+    if ilk_kurulum:
+        data = varsayilan_kullanicilar_olustur()
     for k, v in data.items():
         if "yasakli_menuler" not in v:
             v["yasakli_menuler"] = []
@@ -621,18 +1091,25 @@ def kullanıcıları_yukle():
             v["salt_okunur"] = (k in ["yonetim", "misafir"])
         elif k in ["yonetim", "misafir"]:
             v["salt_okunur"] = True
-        
+
         if k == "misafir":
             if not v["yasakli_menuler"]:
                 v["yasakli_menuler"] = misafir_yasaklar_varsayilan
             if not v["maskeli_alanlar"]:
                 v["maskeli_alanlar"] = misafir_maskeler_varsayilan
 
-        if v.get("sifre") and len(v["sifre"]) != 64 and k != "misafir":
-            v["sifre"] = sifre_hashle(v["sifre"])
-    
+        # Düz metin gelen şifre (eski sürümlerden kalma) yeni biçimde hash'lenir.
+        sifre_deger = v.get("sifre", "")
+        if (
+            sifre_deger
+            and k != "misafir"
+            and not str(sifre_deger).startswith("s1$")
+            and len(str(sifre_deger)) != 64
+        ):
+            v["sifre"] = sifre_hashle_yeni(sifre_deger)
+
     if "misafir" not in data:
-        data["misafir"] = varsayilan_kullanicilar["misafir"]
+        data["misafir"] = varsayilan_misafir_kaydi()
     else:
         if "buton_metni" not in data["misafir"]:
             data["misafir"]["buton_metni"] = "👁️ Misafir Girişi İçin Tıklayın (Gözlemci)"
@@ -643,6 +1120,8 @@ def kullanıcıları_yukle():
         if not data["misafir"]["maskeli_alanlar"]:
             data["misafir"]["maskeli_alanlar"] = misafir_maskeler_varsayilan
 
+    if ilk_kurulum:
+        kullanıcıları_kaydet(data)
     return data
 
 
@@ -744,15 +1223,15 @@ def yemek_uretim_arsivini_kaydet(veri):
 
 
 if "girisler" not in st.session_state:
-    st.session_state.girisler = verileri_yukle()
+    st.session_state.girisler = idleri_benzersiz_yap(verileri_yukle(), "FAT-")
 if "kullanim_loglari" not in st.session_state:
     st.session_state.kullanim_loglari = loglari_yukle()
 if "silinen_urun_loglari" not in st.session_state:
     st.session_state.silinen_urun_loglari = silinen_urun_loglarini_yukle()
 if "ihtiyac_sahipleri" not in st.session_state:
-    st.session_state.ihtiyac_sahipleri = ihtiyac_sahiplerini_yukle()
+    st.session_state.ihtiyac_sahipleri = idleri_benzersiz_yap(ihtiyac_sahiplerini_yukle(), "IHT-")
 if "dagitim_loglari" not in st.session_state:
-    st.session_state.dagitim_loglari = dagitim_loglarini_yukle()
+    st.session_state.dagitim_loglari = idleri_benzersiz_yap(dagitim_loglarini_yukle(), "DAG-")
 if "personeller" not in st.session_state:
     st.session_state.personeller = personelleri_yukle()
 if "resmi_tatiller" not in st.session_state:
@@ -762,7 +1241,7 @@ if "yemek_uretim_arsivi" not in st.session_state:
 if "depolar" not in st.session_state:
     st.session_state.depolar = depoları_yukle()
 if "demirbaslar" not in st.session_state:
-    st.session_state.demirbaslar = demirbasları_yukle()
+    st.session_state.demirbaslar = idleri_benzersiz_yap(demirbasları_yukle(), "DEM-")
 if "kritik_seviyeler" not in st.session_state:
     st.session_state.kritik_seviyeler = kritik_seviyeleri_yukle()
 if "kalori_sepeti" not in st.session_state:
@@ -791,24 +1270,32 @@ for _eski in ("auth", "user"):
 if "oturum_aktif" not in st.session_state:
     st.session_state.oturum_aktif = False
     st.session_state.aktif_kullanici = "misafir"
-    st.session_state.oturum_token = ""
-    st.session_state.oturum_bitis = 0
-
-    url_token = query_params.get("token", "")
-    kayit = oturum_dogrula(url_token)
-    if kayit and kayit.get("kullanici") in st.session_state.kullanicilar:
-        st.session_state.oturum_aktif = True
-        st.session_state.aktif_kullanici = kayit["kullanici"]
-        st.session_state.oturum_token = url_token
-        st.session_state.oturum_bitis = kayit["bitis"]
-    elif url_token:
-        del query_params["token"]
-
 # Eski sürümden kalan oturumlarda eksik anahtarları tamamla
-if "oturum_token" not in st.session_state:
-    st.session_state.oturum_token = ""
-if "oturum_bitis" not in st.session_state:
-    st.session_state.oturum_bitis = 0
+for _anahtar, _deger in (("oturum_token", ""), ("oturum_bitis", 0)):
+    if _anahtar not in st.session_state:
+        st.session_state[_anahtar] = _deger
+
+# Giriş yapılmamışsa: çerezdeki (çerez desteği yoksa adresteki) token ile oturumu geri yüklemeyi dene
+if not st.session_state.oturum_aktif:
+    if cerez_kontrol is not None:
+        aday_token = cerez_oku()
+        if "token" in query_params:
+            del query_params["token"]
+    else:
+        aday_token = str(query_params.get("token", ""))
+    if aday_token:
+        kayit = oturum_dogrula(aday_token)
+        if kayit and kayit.get("kullanici") in st.session_state.kullanicilar:
+            st.session_state.oturum_aktif = True
+            st.session_state.aktif_kullanici = kayit["kullanici"]
+            st.session_state.oturum_token = aday_token
+            st.session_state.oturum_bitis = kayit["bitis"]
+        elif cerez_kontrol is None:
+            if "token" in query_params:
+                del query_params["token"]
+        elif not st.session_state.get("_cerez_temizlendi"):
+            cerez_sil()  # geçersiz/eski çerezi bir kez temizle
+            st.session_state["_cerez_temizlendi"] = True
 
 # Her çalışmada: token'sız (eski), süresi dolmuş veya kullanıcısı silinmiş oturumu kapat
 if st.session_state.oturum_aktif and (
@@ -947,6 +1434,15 @@ if not st.session_state.oturum_aktif:
             unsafe_allow_html=True,
         )
 
+        if st.session_state.get("ilk_kurulum_sifreleri"):
+            _satirlar = "\n".join(
+                f"- **{ad}** → `{sf}`" for ad, sf in st.session_state["ilk_kurulum_sifreleri"].items()
+            )
+            st.warning(
+                "🔑 **İlk kurulum şifreleri** (yalnızca burada, bir kez gösterilir; şimdi not edin). "
+                "İlk girişte yeni şifre belirlemeniz istenecek:\n\n" + _satirlar
+            )
+
         simdikiekran_zaman = time.time()
         kilitli_mi = st.session_state.kilitlenme_bitis_zamani > simdikiekran_zaman
 
@@ -975,24 +1471,43 @@ if not st.session_state.oturum_aktif:
 
                 if giris_tikla:
                     kullanici_db = st.session_state.kullanicilar
-                    anahtar = k_adi_inp if k_adi_inp in kullanici_db else "_bilinmeyen"
-                    kalan_kilit = giris_kilit_kalan(anahtar)
+                    istemci_ip, _xff = istemci_ip_bilgisi()
+                    kullanici_var = k_adi_inp in kullanici_db
+                    log_adi = k_adi_inp if kullanici_var else "(bilinmeyen kullanıcı)"
+                    u_anahtar = f"u|{k_adi_inp if kullanici_var else '_bilinmeyen'}|{istemci_ip}"
+                    ip_anahtar = f"ip|{istemci_ip}"
+                    kalan_kilit = max(giris_kilit_kalan(u_anahtar), giris_kilit_kalan(ip_anahtar))
 
                     if kalan_kilit > 0:
+                        giris_logla(log_adi, "kilitliyken deneme")
                         st.error(f"⚠️ Çok fazla hatalı deneme. Lütfen {kalan_kilit} saniye sonra tekrar deneyin.")
                     else:
-                        girilen_hash = sifre_hashle(sifre_inp)
                         kayitli_hash = str(kullanici_db.get(k_adi_inp, {}).get("sifre", ""))
+                        if kullanici_var:
+                            # Boş şifre yalnızca 'misafir' hesabı için geçerlidir.
+                            gecerli = (kayitli_hash != "" or k_adi_inp == "misafir") and sifre_dogrula(sifre_inp, kayitli_hash)
+                        else:
+                            sifre_dogrula(sifre_inp, sifre_hashle_yeni("sahte"))  # zamanlama farkını gizle
+                            gecerli = False
 
-                        if k_adi_inp in kullanici_db and hmac.compare_digest(kayitli_hash, girilen_hash):
+                        if gecerli:
+                            if sifre_yukseltilmeli_mi(kayitli_hash):
+                                # Eski SHA-256 kayıt: giriş anında yeni biçime yükselt
+                                if kayitli_hash in ESKI_VARSAYILAN_HASHLER:
+                                    kullanici_db[k_adi_inp]["sifre_degistirilmeli"] = True
+                                kullanici_db[k_adi_inp]["sifre"] = sifre_hashle_yeni(sifre_inp)
+                                kullanıcıları_kaydet(kullanici_db)
                             st.session_state.hatali_giris_sayisi = 0
-                            giris_denemesini_sifirla(anahtar)
+                            giris_denemesini_sifirla(u_anahtar)
+                            giris_logla(k_adi_inp, "başarılı giriş")
                             oturumu_baslat(k_adi_inp)
                             st.rerun()
                         else:
-                            kalan_hak, kilitlendi = hatali_giris_kaydet(anahtar)
+                            kalan_hak, kilit_u = hatali_giris_kaydet(u_anahtar, MAKS_HATALI_GIRIS, KILIT_SURESI_SN)
+                            _, kilit_ip = hatali_giris_kaydet(ip_anahtar, IP_MAKS_HATALI_GIRIS, IP_KILIT_SURESI_SN)
+                            giris_logla(log_adi, "hatalı giriş")
                             st.session_state.hatali_giris_sayisi += 1
-                            if kilitlendi or st.session_state.hatali_giris_sayisi >= MAKS_HATALI_GIRIS:
+                            if kilit_u or kilit_ip:
                                 st.session_state.kilitlenme_bitis_zamani = time.time() + KILIT_SURESI_SN
                                 st.session_state.hatali_giris_sayisi = 0
                                 st.rerun()
@@ -1014,28 +1529,48 @@ if not st.session_state.oturum_aktif:
                 use_container_width=True,
                 type="secondary",
             ):
+                giris_logla("misafir", "misafir girişi")
                 oturumu_baslat("misafir")
                 st.rerun()
 
         st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
         with st.expander("🔑 Admin Şifre Kurtarma (Master Key)"):
-            with st.form("master_key_sifre_sifirla"):
-                st.markdown("Şifrenizi unuttuysanız sistem kurtarma anahtarı ile admin şifresini sıfırlayabilirsiniz.")
-                master_key_inp = st.text_input("Kurtarma Anahtarı (Master Recovery Key)", type="password")
-                sifirla_btn = st.form_submit_button("Admin Şifresini Fabrika Ayarına Döndür")
+            tanimli_master = str(st.secrets.get("MASTER_RECOVERY_KEY", "") or "")
+            if not tanimli_master:
+                st.info(
+                    "Şifre kurtarma devre dışı. Etkinleştirmek için `secrets` ayarlarına "
+                    "güçlü bir `MASTER_RECOVERY_KEY` ekleyin."
+                )
+            else:
+                with st.form("master_key_sifre_sifirla"):
+                    st.markdown("Şifrenizi unuttuysanız kurtarma anahtarı ile admin için geçici bir şifre üretebilirsiniz.")
+                    master_key_inp = st.text_input("Kurtarma Anahtarı (Master Recovery Key)", type="password")
+                    sifirla_btn = st.form_submit_button("Admin Şifresini Sıfırla")
 
-                if sifirla_btn:
-                    tanimli_master = st.secrets.get("MASTER_RECOVERY_KEY", "aziziye_master_2026")
-                    if master_key_inp == tanimli_master:
-                        if "admin" in st.session_state.kullanicilar:
-                            st.session_state.kullanicilar["admin"]["sifre"] = sifre_hashle("Ss123321")
-                            kullanıcıları_kaydet(st.session_state.kullanicilar)
-                            st.success("Başarılı! Admin şifresi 'Ss123321' olarak sıfırlandı. Şimdi giriş yapabilirsiniz.")
+                    if sifirla_btn:
+                        m_ip, _ = istemci_ip_bilgisi()
+                        m_anahtar = f"master|{m_ip}"
+                        m_kalan = giris_kilit_kalan(m_anahtar)
+                        if m_kalan > 0:
+                            st.error(f"⚠️ Çok fazla hatalı deneme. {m_kalan} saniye sonra tekrar deneyin.")
+                        elif hmac.compare_digest(master_key_inp.encode("utf-8"), tanimli_master.encode("utf-8")):
+                            if "admin" in st.session_state.kullanicilar:
+                                gecici_sifre = secrets.token_urlsafe(10)
+                                st.session_state.kullanicilar["admin"]["sifre"] = sifre_hashle_yeni(gecici_sifre)
+                                st.session_state.kullanicilar["admin"]["sifre_degistirilmeli"] = True
+                                kullanıcıları_kaydet(st.session_state.kullanicilar)
+                                kullanici_oturumlarini_kapat("admin")
+                                giris_denemesini_sifirla()
+                                giris_logla("admin", "şifre master key ile sıfırlandı")
+                                st.success("Admin için geçici şifre üretildi. Şimdi not edin; girişte değiştirmeniz istenecek:")
+                                st.code(gecici_sifre)
+                            else:
+                                st.error("Admin kullanıcısı veritabanında bulunamadı.")
                         else:
-                            st.error("Admin kullanıcısı veritabanında bulunamadı.")
-                    else:
-                        st.error("Hatalı Kurtarma Anahtarı!")
+                            hatali_giris_kaydet(m_anahtar, 5, 120)
+                            giris_logla("(master key)", "hatalı kurtarma anahtarı")
+                            st.error("Hatalı Kurtarma Anahtarı!")
 
         st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
         if st.button(
@@ -1043,6 +1578,44 @@ if not st.session_state.oturum_aktif:
         ):
             st.info("📩 İletişim için **sefaunaltopcu@gmail.com** mail adresi ile iletişime geçebilirsiniz.")
 
+    st.stop()
+
+# =========================================================================
+# ZORUNLU ŞİFRE DEĞİŞİMİ (ilk kurulum / eski varsayılan şifre / sıfırlanmış şifre)
+# =========================================================================
+_aktif_kb = st.session_state.kullanicilar.get(st.session_state.aktif_kullanici, {})
+if st.session_state.aktif_kullanici != "misafir" and (
+    _aktif_kb.get("sifre_degistirilmeli") or _aktif_kb.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
+):
+    _z1, _z2, _z3 = st.columns([1, 1.6, 1])
+    with _z2:
+        st.markdown("### 🔐 Şifrenizi değiştirmeniz gerekiyor")
+        st.info(
+            "Güvenlik nedeniyle devam etmeden önce yeni bir şifre belirlemelisiniz "
+            "(en az 10 karakter, en az bir harf ve bir rakam)."
+        )
+        with st.form("zorunlu_sifre_formu"):
+            z_yeni1 = st.text_input("Yeni Şifre", type="password")
+            z_yeni2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
+            z_kaydet = st.form_submit_button("Şifreyi Kaydet", use_container_width=True)
+            if z_kaydet:
+                z_hata = sifre_politika_hatasi(z_yeni1)
+                if z_hata:
+                    st.error(z_hata)
+                elif z_yeni1 != z_yeni2:
+                    st.error("Şifreler aynı değil.")
+                elif sifre_dogrula(z_yeni1, _aktif_kb.get("sifre", "")):
+                    st.error("Yeni şifre eskisiyle aynı olamaz.")
+                else:
+                    sifre_degistir(
+                        st.session_state.aktif_kullanici, z_yeni1,
+                        haric_token=st.session_state.oturum_token,
+                    )
+                    st.success("Şifreniz güncellendi.")
+                    st.rerun()
+        if st.button("Oturumu Kapat", key="zorunlu_cikis_btn"):
+            oturumu_kapat()
+            st.rerun()
     st.stop()
 
 # =========================================================================
@@ -1057,6 +1630,7 @@ kullanici_adi_goruntule = (
     if st.session_state.oturum_aktif
     else "MİSAFİR"
 )
+kullanici_adi_goruntule = html_escape(kullanici_adi_goruntule)
 
 st.sidebar.markdown(
     f"""
@@ -1263,11 +1837,7 @@ st.sidebar.markdown("---")
 if st.sidebar.button(
     "Oturumu Kapat", use_container_width=True, type="secondary"
 ):
-    oturum_sil(st.session_state.get("oturum_token", ""))
-    st.session_state.oturum_aktif = False
-    st.session_state.aktif_kullanici = "misafir"
-    st.session_state.oturum_token = ""
-    st.query_params.clear()
+    oturumu_kapat()
     st.rerun()
 
 st.sidebar.markdown("---")
@@ -1319,6 +1889,8 @@ def tablo_to_excel_bytes(veri_listesi, baslik_str):
         for col_idx, h in enumerate(headers, 1):
             val = item.get(h, "")
             c = ws.cell(row=row_idx, column=col_idx, value=val)
+            if c.data_type == "f":
+                c.data_type = "s"
             c.font = regular_font
             c.border = thin_border
         row_idx += 1
@@ -1336,7 +1908,7 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
     <html>
     <head>
         <meta charset="utf-8">
-        <title>{baslik}</title>
+        <title>{html_escape(str(baslik))}</title>
         <style>
             body {{ font-family: 'Plus Jakarta Sans', sans-serif; margin: 30px; color: {text_color}; background: {bg_color}; }}
             h2 {{ color: {text_color}; margin-bottom: 5px; }}
@@ -1348,7 +1920,7 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
         </style>
     </head>
     <body>
-        <h2>{baslik}</h2>
+        <h2>{html_escape(str(baslik))}</h2>
         <p>Rapor Tarihi ve Saati: {tr_zaman}</p>
         <hr style="border: 0; border-top: 1px solid {border_color};"/>
     """
@@ -1356,12 +1928,12 @@ def tablo_to_html_pdf_bytes(baslik, veri_listesi):
         headers = list(veri_listesi[0].keys())
         html += "<table><tr>"
         for h in headers:
-            html += f"<th>{h}</th>"
+            html += f"<th>{html_escape(str(h))}</th>"
         html += "</tr>"
         for item in veri_listesi:
             html += "<tr>"
             for h in headers:
-                html += f"<td>{item.get(h, '')}</td>"
+                html += f"<td>{html_escape(str(item.get(h, '')))}</td>"
             html += "</tr>"
         html += "</table>"
     else:
@@ -1408,17 +1980,24 @@ def ozel_html_tablo_goster(veri_listesi):
     headers = list(veri_listesi[0].keys())
     html = "<table class='custom-table'><thead><tr>"
     for h in headers:
-        html += f"<th>{h}</th>"
+        html += f"<th>{html_escape(str(h))}</th>"
     html += "</tr></thead><tbody>"
     
     for row in veri_listesi:
         html += "<tr>"
         for h in headers:
-            html += f"<td>{row.get(h, '')}</td>"
+            html += f"<td>{html_escape(str(row.get(h, '')))}</td>"
         html += "</tr>"
     html += "</tbody></table>"
     st.markdown(html, unsafe_allow_html=True)
 
+
+if yonetici_modu and SUPABASE_URL and supabase_anahtar_rolu() == "anon":
+    st.warning(
+        "🛡️ **Güvenlik uyarısı:** Supabase için herkese açık (anon) anahtar kullanıyorsunuz. "
+        "Veritabanını RLS ile kilitleyip `secrets` içinde `service_role` anahtarını kullanın "
+        "(adımlar için `supabase_guvenlik.sql` dosyasına bakın)."
+    )
 
 menu = st.session_state.aktif_menu
 
@@ -1726,7 +2305,7 @@ if menu == "Kurumsal Dashboard & Özet":
 
                 if w_ekle_btn and w_baslik:
                     st.session_state.dashboard_widgets.append({
-                        "id": f"w-{len(st.session_state.dashboard_widgets)+1}",
+                        "id": yeni_id_uret("w-", st.session_state.dashboard_widgets, genislik=1),
                         "baslik": w_baslik,
                         "tur": w_tur,
                         "aktif": True,
@@ -1747,11 +2326,16 @@ if menu == "Kurumsal Dashboard & Özet":
                     secilen_w_sil = st.selectbox(
                         "Kaldırılacak Grafiği Seçin", w_secenekleri
                     )
+                    onay_w_sil_btn = silme_onay_kutusu("onay_widget_sil")
                     w_sil_btn = st.form_submit_button(
                         "Seçilen Grafiği Kaldır", type="primary"
                     )
 
-                    if w_sil_btn:
+                    if w_sil_btn and not onay_w_sil_btn:
+
+                        st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                    elif w_sil_btn:
                         wid = secilen_w_sil.split(" - ")[0]
                         st.session_state.dashboard_widgets = [
                             w
@@ -1988,7 +2572,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 fatura_no_degeri = (
                     fatura_no_input if fatura_no_input else "BELİRTİLMEMİŞ"
                 )
-                yeni_kayit_id = f"FAT-{len(st.session_state.girisler)+1:03d}"
+                yeni_kayit_id = yeni_id_uret("FAT-", st.session_state.girisler)
                 st.session_state.girisler.append({
                     "id": yeni_kayit_id,
                     "tarih": tarih_giris,
@@ -2098,12 +2682,18 @@ elif menu == "Depo Yönetimi":
                 st.markdown("**🗑️ Depo Sil**")
                 if st.session_state.depolar:
                     secilen_sil_depo = st.selectbox("Silinecek Depoyu Seçin", st.session_state.depolar)
+                    onay_depo_sil_btn = silme_onay_kutusu("onay_depo_sil")
                     depo_sil_btn = st.form_submit_button("Seçilen Depoyu ve Bağlı Ürünleri Sil", type="primary")
 
-                    if depo_sil_btn:
+                    if depo_sil_btn and not onay_depo_sil_btn:
+
+                        st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                    elif depo_sil_btn:
                         if len(st.session_state.depolar) <= 1:
                             st.error("⚠️ Sistemde en az 1 depo kalmalıdır, tamamen silemezsiniz!")
                         else:
+                            otomatik_yedek_al("Depo silme: " + str(secilen_sil_depo))
                             st.session_state.depolar.remove(secilen_sil_depo)
                             depoları_kaydet(st.session_state.depolar)
                             
@@ -2177,7 +2767,7 @@ elif menu == "Demirbaş Yönetimi":
 
                     dem_ekle_btn = st.form_submit_button("Demirbaş Kaydet", type="primary")
                     if dem_ekle_btn and d_ad:
-                        yeni_d_id = f"DEM-{len(st.session_state.demirbaslar)+1:03d}"
+                        yeni_d_id = yeni_id_uret("DEM-", st.session_state.demirbaslar)
                         st.session_state.demirbaslar.append({
                             "id": yeni_d_id,
                             "ad": d_ad,
@@ -2198,9 +2788,15 @@ elif menu == "Demirbaş Yönetimi":
                     if st.session_state.demirbaslar:
                         dem_secenekleri = [f"{d['id']} - {d['ad']} ({d['kategori']})" for d in st.session_state.demirbaslar]
                         secilen_sil_dem = st.selectbox("Silinecek Demirbaşı Seçin", dem_secenekleri)
+                        onay_dem_sil_btn = silme_onay_kutusu("onay_demirbas_sil")
                         dem_sil_btn = st.form_submit_button("Seçilen Demirbaş Kaydını Sil", type="primary")
 
-                        if dem_sil_btn:
+                        if dem_sil_btn and not onay_dem_sil_btn:
+
+                            st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                        elif dem_sil_btn:
+                            otomatik_yedek_al("Demirbaş silme: " + str(secilen_sil_dem))
                             sil_id = secilen_sil_dem.split(" - ")[0]
                             st.session_state.demirbaslar = [d for d in st.session_state.demirbaslar if d["id"] != sil_id]
                             demirbasları_kaydet(st.session_state.demirbaslar)
@@ -2245,17 +2841,23 @@ elif menu == "Ürün Sil / Düzenle":
                     silme_nedeni_input = st.text_input(
                         "Silme Nedeni / Gerekçesi", "Örn: Yanlış giriş"
                     )
+                    onay_sil_onay_btn = silme_onay_kutusu("onay_urun_sil")
                     sil_onay_btn = st.form_submit_button(
                         "Seçilen Kaydı Kalıcı Olarak Sil", type="primary"
                     )
 
-                    if sil_onay_btn:
+                    if sil_onay_btn and not onay_sil_onay_btn:
+
+                        st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                    elif sil_onay_btn:
                         secilen_id = secilen_kayit_str.split(" - ")[0]
                         ilgili_oge = next(
                             (g for g in st.session_state.girisler if g["id"] == secilen_id),
                             None,
                         )
                         if ilgili_oge:
+                            otomatik_yedek_al("Kayıt silme: " + str(ilgili_oge.get("id")))
                             silinen_urun_adi = ilgili_oge["urun"]
                             st.session_state.silinen_urun_loglari.append({
                                 "tarih": simdi_tr_str("%Y-%m-%d %H:%M"),
@@ -2979,7 +3581,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                             islem_tarihi_str = simdi_tr_str("%Y-%m-%d %H:%M")
                             islem_yapan_kisi = st.session_state.aktif_kullanici
                             st.session_state.ihtiyac_sahipleri.append({
-                                "id": f"IHT-{len(st.session_state.ihtiyac_sahipleri)+1:03d}",
+                                "id": yeni_id_uret("IHT-", st.session_state.ihtiyac_sahipleri),
                                 "tc_hane": yeni_tc_hane,
                                 "ad_soyad": yeni_ad,
                                 "telefon": yeni_tel,
@@ -3005,11 +3607,17 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                             secilen_silinecek = st.selectbox(
                                 "Silinecek Kişiyi / Haneyi Seçin", kisi_secenekleri_sil
                             )
+                            onay_sil_btn = silme_onay_kutusu("onay_ihtiyac_sil")
                             sil_btn = st.form_submit_button(
                                 "Seçilen Kişiyi Sistemden Sil", type="primary"
                             )
 
-                            if sil_btn:
+                            if sil_btn and not onay_sil_btn:
+
+                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                            elif sil_btn:
+                                otomatik_yedek_al("İhtiyaç sahibi silme: " + str(secilen_silinecek))
                                 silinecek_id = secilen_silinecek.split(" - ")[0]
                                 silinen_kisi_obj = next(
                                     (
@@ -3073,7 +3681,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                         with c1:
                             secili_mi = st.checkbox("Seç", value=True, key=f"toplu_sec_{idx}", label_visibility="collapsed")
                         with c2:
-                            st.markdown(f"**{k['ad_soyad']}** <span style='font-size:12px; opacity:0.6;'>(Hane/T.C: {k.get('tc_hane', '-')})</span>", unsafe_allow_html=True)
+                            st.markdown(f"**{html_escape(str(k['ad_soyad']))}** <span style='font-size:12px; opacity:0.6;'>(Hane/T.C: {html_escape(str(k.get('tc_hane', '-')))})</span>", unsafe_allow_html=True)
                         with c3:
                             varsayilan_porsiyon = int(k.get("birey_sayisi", 1))
                             pors_val = st.number_input("Porsiyon", min_value=1, value=varsayilan_porsiyon, key=f"toplu_pors_{idx}", label_visibility="collapsed")
@@ -3093,7 +3701,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                         for sv in secim_verileri:
                             if sv["secili"]:
                                 st.session_state.dagitim_loglari.append({
-                                    "id": f"DAG-{len(st.session_state.dagitim_loglari)+1:03d}",
+                                    "id": yeni_id_uret("DAG-", st.session_state.dagitim_loglari),
                                     "tarih": d_tarih_saat,
                                     "kisi": sv["kisi"],
                                     "menu": menu_adi_toplu,
@@ -3118,7 +3726,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 porsiyon_maskele_d = "🔒 Gizli" if "4. Sayfa: Yemek Dağıtımları - Porsiyon" in aktif_k_maskeleri else d.get("porsiyon", 1)
 
                 dagitim_gosterim_listesi.append({
-                    "Kayıt No": f"DAG-{idx:03d}",
+                    "Kayıt No": d.get("id", f"DAG-{idx+1:03d}"),
                     "Tarih / Saat": tarih_maskele_d,
                     "Kişi / Hane": kisi_maskele_d,
                     "Menü": menu_maskele_d,
@@ -3353,11 +3961,17 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                                 for p in st.session_state.personeller
                             ]
                             secilen_sil_p = st.selectbox("Silinecek Personel", p_sil_secenekleri)
+                            onay_p_sil_btn = silme_onay_kutusu("onay_personel_sil")
                             p_sil_btn = st.form_submit_button(
                                 "Personeli Kadrodan Sil", type="primary"
                             )
 
-                            if p_sil_btn:
+                            if p_sil_btn and not onay_p_sil_btn:
+
+                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                            elif p_sil_btn:
+                                otomatik_yedek_al("Personel silme: " + str(secilen_sil_p))
                                 sil_tc = secilen_sil_p.split(" - ")[0]
                                 silinen_obj = next(
                                     (
@@ -3515,11 +4129,16 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                             secilen_sil_y_str = st.selectbox(
                                 "Silinecek İzni Seçin", secenek_sil_y
                             )
+                            onay_y_sil_btn = silme_onay_kutusu("onay_yillik_izin_sil")
                             y_sil_btn = st.form_submit_button(
                                 "Seçilen İzni Sil", type="primary"
                             )
 
-                            if y_sil_btn:
+                            if y_sil_btn and not onay_y_sil_btn:
+
+                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                            elif y_sil_btn:
                                 secilen_item = next(
                                     (
                                         item
@@ -3669,11 +4288,16 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                             secilen_sil_s_str = st.selectbox(
                                 "Silinecek Saatlik İzni Seçin", secenek_sil_s
                             )
+                            onay_s_sil_btn = silme_onay_kutusu("onay_saatlik_izin_sil")
                             s_sil_btn = st.form_submit_button(
                                 "Seçilen Saatlik İzni Sil", type="primary"
                             )
 
-                            if s_sil_btn:
+                            if s_sil_btn and not onay_s_sil_btn:
+
+                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                            elif s_sil_btn:
                                 secilen_item = next(
                                     (
                                         item
@@ -3806,11 +4430,16 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                             secilen_sil_r_str = st.selectbox(
                                 "Silinecek Raporu Seçin", secenek_sil_r
                             )
+                            onay_r_sil_btn = silme_onay_kutusu("onay_rapor_sil")
                             r_sil_btn = st.form_submit_button(
                                 "Seçilen Sağlık Raporunu Sil", type="primary"
                             )
 
-                            if r_sil_btn:
+                            if r_sil_btn and not onay_r_sil_btn:
+
+                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+
+                            elif r_sil_btn:
                                 secilen_item = next(
                                     (
                                         item
@@ -4073,63 +4702,119 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     else:
         st.info("Analiz edilecek ürün kaydı bulunmuyor.")
 
-# 11. KULLANICI AYARLARI VE DETAYLI HASSAS ALAN MASKELEME YÖNETİMİ
+# 12. KULLANICI YÖNETİMİ, GÜVENLİK DURUMU, GİRİŞ KAYITLARI VE YEDEKLEME
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
-        st.header("⚙️ Kullanıcı Yetkileri, Menü Kısıtlamaları ve Hassas Alan Maskeleme")
-        st.markdown(
-            "Sistem kullanıcılarını yönetebilir, yeni kullanıcı ekleyebilir, mevcut kullanıcıları silebilir; belirttiğiniz kritik sayfalar ve metrikler üzerinde hassas alan maskeleme kurallarını yönetebilirsiniz."
-        )
-
-        # Veritabanı ve tip güvenliği kontrolü
-        if "kullanicilar" not in st.session_state:
-            st.session_state.kullanicilar = {}
-
-        for k_key, k_val in st.session_state.kullanicilar.items():
-            if not isinstance(k_val.get("maskeli_alanlar"), dict):
-                k_val["maskeli_alanlar"] = {}
-            if not isinstance(k_val.get("yasakli_menuler"), list):
-                k_val["yasakli_menuler"] = []
-
-        st.markdown("---")
-        st.subheader("📋 1. Aktif Kullanıcılar ve Yetki Matrisi")
-        
+        st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
         kullanici_db = st.session_state.kullanicilar
-        
-        if len(kullanici_db) > 0:
-            table_rows = []
-            for k_adi, k_obj in kullanici_db.items():
-                gizli_alanlar = k_obj.get("maskeli_alanlar", {})
-                gizlenen_ozet = []
-                if isinstance(gizli_alanlar, dict):
-                    for sayfa, sutunlar in gizli_alanlar.items():
-                        if sutunlar:
-                            gizlenen_ozet.append(f"{sayfa}: {', '.join(sutunlar)}")
-                        
-                table_rows.append({
-                    "Kullanıcı Adı": k_adi,
-                    "Rol": "Admin" if k_adi == "admin" else k_obj.get("rol", "Personel"),
-                    "Salt Okunur": "Evet" if k_obj.get("salt_okunur", False) else "Hayır",
-                    "Maskelenen Hassas Alanlar": " | ".join(gizlenen_ozet) if gizlenen_ozet else "Yok",
-                    "Yasaklı Menüler": ", ".join(k_obj.get("yasakli_menuler", [])) if k_obj.get("yasakli_menuler") else "Yok"
-                })
-            
-            df_kullanicilar = pd.DataFrame(table_rows)
-            st.dataframe(df_kullanicilar, use_container_width=True, hide_index=True)
+
+        # Tip güvenliği: maskeler ve yasaklı menüler düz liste olmalıdır
+        for _kk, _kv in kullanici_db.items():
+            if not isinstance(_kv.get("maskeli_alanlar"), list):
+                _kv["maskeli_alanlar"] = []
+            if not isinstance(_kv.get("yasakli_menuler"), list):
+                _kv["yasakli_menuler"] = []
+
+        # ------------------------------------------------ Güvenlik durumu
+        st.subheader("🛡️ Güvenlik Durumu")
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            st.warning("Supabase bağlı değil: veriler kalıcı olarak saklanmıyor ve yedek/giriş kaydı çalışmıyor.")
         else:
-            st.info("Sistemde kayıtlı kullanıcı bulunmuyor.")
+            _rol = supabase_anahtar_rolu()
+            if _rol == "anon":
+                st.warning("Supabase'de herkese açık (anon) anahtar kullanılıyor. RLS'yi açın ve `service_role` anahtarına geçin (`supabase_guvenlik.sql`).")
+            elif _rol == "service_role":
+                st.success("Supabase anahtarı: service_role (doğru). RLS'nin açık olduğundan emin olun.")
+            else:
+                st.info("Supabase anahtarının rolü belirlenemedi; panelden RLS'nin açık olduğunu kontrol edin.")
+        if cerez_kontrol is not None:
+            st.success("Oturum anahtarı çerezde tutuluyor (adres çubuğunda görünmez).")
+        else:
+            st.info("Oturum anahtarı hâlâ adres çubuğunda. Çerez desteği için `requirements.txt` dosyasına `streamlit-cookies-controller` ekleyin.")
+        if str(st.secrets.get("MASTER_RECOVERY_KEY", "") or ""):
+            st.success("MASTER_RECOVERY_KEY tanımlı.")
+        else:
+            st.info("MASTER_RECOVERY_KEY tanımlı değil: şifre kurtarma devre dışı (güvenli varsayılan).")
+        _zayif = [
+            k for k, v in kullanici_db.items()
+            if v.get("sifre_degistirilmeli") or v.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
+        ]
+        if _zayif:
+            st.warning("Şifresini değiştirmesi beklenen hesaplar: " + ", ".join(_zayif))
+        else:
+            st.success("Eski varsayılan şifreyle kalan hesap yok.")
 
-        st.markdown("---")
-        st.subheader("🛠️ 2. Kullanıcı Düzenle, Yetki Ver ve Hassas Alan Maskele")
+        sekme_k, sekme_s, sekme_l, sekme_y = st.tabs([
+            "👤 Kullanıcılar", "🔑 Şifrem", "📜 Giriş Kayıtları", "💾 Yedekleme",
+        ])
 
-        yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
+        # ------------------------------------------------ Kullanıcılar
+        with sekme_k:
+            st.subheader("📋 Aktif Kullanıcılar ve Yetki Matrisi")
+            if len(kullanici_db) > 0:
+                tablo_satirlari = []
+                for k_adi, k_obj in kullanici_db.items():
+                    tablo_satirlari.append({
+                        "Kullanıcı Adı": k_adi,
+                        "Rol": "Admin" if k_adi == "admin" else k_obj.get("rol", "Personel"),
+                        "Salt Okunur": "Evet" if k_obj.get("salt_okunur", False) else "Hayır",
+                        "Maskelenen Alan Sayısı": len(k_obj.get("maskeli_alanlar", [])),
+                        "Yasaklı Menüler": ", ".join(k_obj.get("yasakli_menuler", [])) or "Yok",
+                        "Şifre Durumu": "Değişmesi gerekiyor" if (
+                            k_obj.get("sifre_degistirilmeli") or k_obj.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
+                        ) else "Tamam",
+                    })
+                st.dataframe(pd.DataFrame(tablo_satirlari), use_container_width=True, hide_index=True)
 
-        if yonetilebilir_kullanicilar:
-            secilen_k_adi = st.selectbox("İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_ozel_mask")
-            
-            if secilen_k_adi and secilen_k_adi in kullanici_db:
+            st.markdown("---")
+            st.subheader("🛠️ Kullanıcı Düzenle, Yetki Ver ve Alan Maskele")
+
+            MASKE_SECENEKLERI = {
+                "Kurumsal Dashboard": [
+                    ("Ürün Çeşidi", "1. Sayfa: Ürün Çeşidi"),
+                    ("Toplam Fire", "1. Sayfa: Toplam Fire"),
+                    ("Stok Değeri", "1. Sayfa: Stok Değeri"),
+                    ("Aktif Personel", "1. Sayfa: Aktif Personel"),
+                    ("Grafik Alanı", "1. Sayfa: Grafik Alanı"),
+                ],
+                "Güncel Stok / Fire / Fiyat": [
+                    ("Stok - Kalan Miktar", "2. Sayfa: Güncel Stok Durumu - Kalan Miktar"),
+                    ("Kayıtlı Fire ve Zayiat Listesi", "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi"),
+                    ("Birim Fiyat Sütunu", "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu"),
+                ],
+                "Günlük Yemek Üretimi": [
+                    ("Üretim ve Maliyet Arşivi", "3. Sayfa: Yemek Üretim ve Maliyet Arşivi"),
+                ],
+                "İhtiyaç Sahipleri Listesi": [
+                    ("T.C./Hane No", "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No"),
+                    ("Adı Soyadı", "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı"),
+                    ("Telefon", "4. Sayfa: İhtiyaç Sahipleri - Telefon"),
+                    ("Adres", "4. Sayfa: İhtiyaç Sahipleri - Adres"),
+                    ("Birey Sayısı", "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı"),
+                ],
+                "Yemek Dağıtımları": [
+                    ("Tarih/Saat", "4. Sayfa: Yemek Dağıtımları - Tarih/Saat"),
+                    ("Kişi/Hane", "4. Sayfa: Yemek Dağıtımları - Kişi/Hane"),
+                    ("Menü", "4. Sayfa: Yemek Dağıtımları - Menü"),
+                    ("Porsiyon", "4. Sayfa: Yemek Dağıtımları - Porsiyon"),
+                ],
+                "Dağıtım Sayaç Raporu": [
+                    ("T.C./Hane No", "4. Sayfa: Sayaç Raporu - T.C./Hane No"),
+                    ("İhtiyaç Sahibi", "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi"),
+                    ("Günlük Alım", "4. Sayfa: Sayaç Raporu - Günlük Alım"),
+                    ("Haftalık Alım", "4. Sayfa: Haftalık Alım"),
+                    ("Aylık Alım", "4. Sayfa: Sayaç Raporu - Aylık Alım"),
+                ],
+            }
+            _bilinen_maskeler = {a for liste in MASKE_SECENEKLERI.values() for _, a in liste}
+
+            yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
+            if yonetilebilir_kullanicilar:
+                secilen_k_adi = st.selectbox(
+                    "İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_ozel_mask"
+                )
                 k_obj = kullanici_db[secilen_k_adi]
 
                 col_d1, col_d2 = st.columns(2)
@@ -4138,113 +4823,226 @@ elif menu == "Kullanıcı Ayarları":
                     rol_secenekleri = ["Personel", "Yönetim", "Misafir"]
                     rol_index = rol_secenekleri.index(mevcut_rol) if mevcut_rol in rol_secenekleri else 0
                     yeni_rol = st.selectbox("Kullanıcı Rolü", rol_secenekleri, index=rol_index, key=f"rol_ozel_{secilen_k_adi}")
-                    yeni_salt_okunur = st.checkbox("Salt Okunur Özelliği (Veri Değiştiremez)", value=k_obj.get("salt_okunur", False), key=f"ro_ozel_{secilen_k_adi}")
+                    yeni_salt_okunur = st.checkbox("Salt Okunur (veri değiştiremez)", value=k_obj.get("salt_okunur", False), key=f"ro_ozel_{secilen_k_adi}")
                 with col_d2:
-                    kullaniciyi_sil = st.checkbox("⚠️ Bu kullanıcıyı sistemden kalıcı olarak çıkar / sil", value=False, key=f"sil_ozel_{secilen_k_adi}")
+                    yeni_sifre_k = st.text_input("Yeni şifre belirle (boş bırakılırsa değişmez)", type="password", key=f"ysifre_{secilen_k_adi}")
+                    sifre_zorunlu_k = st.checkbox("Bir sonraki girişte şifre değiştirmek zorunda olsun", value=True, key=f"szor_{secilen_k_adi}")
+                kullaniciyi_sil = st.checkbox(
+                    "⚠️ Bu kullanıcıyı KALICI olarak sil (işaretlemezseniz silinmez)", value=False, key=f"sil_ozel_{secilen_k_adi}"
+                )
 
-                st.markdown("---")
-                st.markdown("### 🔒 Sizin Belirttiğiniz Kritik Sayfa ve Alanlar (Maskelenecekleri İşaretleyin)")
-                st.markdown("Aşağıdaki alanların bu kullanıcı tarafından **gizlenmesini / yıldızlanmasını** istiyorsanız seçin:")
+                st.markdown("##### 🔒 Gizlenecek (maskelenecek) alanlar")
+                mevcut_maskeler = k_obj.get("maskeli_alanlar", [])
+                secilen_maskeler = []
+                for g_idx, (grup_adi, secenekler) in enumerate(MASKE_SECENEKLERI.items()):
+                    st.markdown(f"**📂 {grup_adi}**")
+                    m_cols = st.columns(3)
+                    for o_idx, (etiket, anahtar) in enumerate(secenekler):
+                        with m_cols[o_idx % 3]:
+                            if st.checkbox(etiket, value=(anahtar in mevcut_maskeler), key=f"mask_{secilen_k_adi}_{g_idx}_{o_idx}"):
+                                secilen_maskeler.append(anahtar)
+                yeni_maskeler = [m for m in mevcut_maskeler if m not in _bilinen_maskeler] + secilen_maskeler
 
-                # Sizin belirttiğiniz 6 özel alan listesi
-                hassas_alanlar_yapisi = {
-                    "Kurumsal Dashboard": ["Ürün Çeşidi", "Toplam Fire", "Stok Değeri", "Aktif Personel"],
-                    "Güncel Stok": ["Kalan Miktar Sütunu"],
-                    "Ürün Sil": ["Silinen Ürünler Arşivi"],
-                    "Fire / Zayiat": ["Kayıtlı Fire ve Zayiatları Listesi"],
-                    "Ürün Birim Fiyatları": ["Birim Fiyat Sütunu"],
-                    "Günlük Yemek Üretimi": ["Maliyet Sütunu"]
-                }
-
-                mevcut_maskeler = k_obj.get("maskeli_alanlar", {})
-                if not isinstance(mevcut_maskeler, dict):
-                    mevcut_maskeler = {}
-
-                yeni_maskeli_alanlar = {}
-
-                for sayfa_adi, sutunlar in hassas_alanlar_yapisi.items():
-                    st.markdown(f"**📂 Sayfa: {sayfa_adi}**")
-                    secilen_sutunlar = []
-                    s_cols = st.columns(len(sutunlar))
-                    
-                    mevcut_sayfa_yasaklari = mevcut_maskeler.get(sayfa_adi, [])
-                    if not isinstance(mevcut_sayfa_yasaklari, list):
-                        mevcut_sayfa_yasaklari = []
-                    
-                    for idx, sutun in enumerate(sutunlar):
-                        with s_cols[idx]:
-                            is_masked = st.checkbox(sutun, value=(sutun in mevcut_sayfa_yasaklari), key=f"ozel_mask_{secilen_k_adi}_{sayfa_adi}_{idx}")
-                            if is_masked:
-                                secilen_sutunlar.append(sutun)
-                    
-                    if secilen_sutunlar:
-                        yeni_maskeli_alanlar[sayfa_adi] = secilen_sutunlar
-
-                st.markdown("---")
-                st.markdown("### 🚫 Sayfa / Menü Erişim Kısıtlamaları")
-                tum_menu_ogeleri = [
-                    "Güncel Stok Durumu", "Ürün Sil / Düzenle", "Fire / Zayiat Girişi", 
-                    "Toplu Stok Düşümü & Sarfiyat", "İhtiyaç Sahibi & Yemek Dağıtım Takibi", 
-                    "Personel & Çalışma Süresi Takibi", "Kullanım Takibi", 
-                    "Kapsamlı Envanter ve Hareket Raporu", "Depo Yönetimi", "Demirbaş Yönetimi"
-                ]
-                
+                st.markdown("##### 🚫 Sayfa / Menü Erişim Kısıtlamaları")
+                tum_menu_ogeleri = [m for m in gecerli_menuler if m != "Kullanıcı Ayarları"]
                 mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
-                if not isinstance(mevcut_yasaklar, list):
-                    mevcut_yasaklar = []
-
-                yeni_yasaklar = []
-                
-                m_cols = st.columns(2)
+                yeni_yasaklar = [m for m in mevcut_yasaklar if m not in tum_menu_ogeleri]
+                y_cols = st.columns(2)
                 for idx, m_item in enumerate(tum_menu_ogeleri):
-                    with m_cols[idx % 2]:
-                        yasakli_mi = st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"ozel_yasak_{secilen_k_adi}_{idx}")
-                        if yasakli_mi:
+                    with y_cols[idx % 2]:
+                        if st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"ozel_yasak_{secilen_k_adi}_{idx}"):
                             yeni_yasaklar.append(m_item)
 
-                st.markdown("")
                 if st.button("Değişiklikleri Kaydet / Uygula", type="primary", key=f"btn_ozel_kaydet_{secilen_k_adi}"):
                     if kullaniciyi_sil:
-                        del st.session_state.kullanicilar[secilen_k_adi]
-                        st.toast(f"🗑️ '{secilen_k_adi}' kullanıcısı sistemden silindi!", icon="✅")
+                        del kullanici_db[secilen_k_adi]
+                        kullanıcıları_kaydet(kullanici_db)
+                        kullanici_oturumlarini_kapat(secilen_k_adi)
+                        giris_logla("admin", f"kullanıcı silindi: {secilen_k_adi}")
+                        st.toast(f"🗑️ '{secilen_k_adi}' kullanıcısı silindi!", icon="✅")
                         st.rerun()
                     else:
-                        st.session_state.kullanicilar[secilen_k_adi]["rol"] = yeni_rol
-                        st.session_state.kullanicilar[secilen_k_adi]["salt_okunur"] = yeni_salt_okunur
-                        st.session_state.kullanicilar[secilen_k_adi]["maskeli_alanlar"] = yeni_maskeli_alanlar
-                        st.session_state.kullanicilar[secilen_k_adi]["yasakli_menuler"] = yeni_yasaklar
-                        
-                        st.toast(f"✅ '{secilen_k_adi}' kullanıcısının hassas alan ayarları kaydedildi!", icon="🎉")
-                        st.rerun()
-        else:
-            st.info("Düzenlenebilecek ek kullanıcı bulunmuyor.")
+                        sifre_hata = sifre_politika_hatasi(yeni_sifre_k) if yeni_sifre_k else None
+                        if sifre_hata:
+                            st.error(sifre_hata)
+                        else:
+                            k_obj["rol"] = yeni_rol
+                            k_obj["salt_okunur"] = yeni_salt_okunur
+                            k_obj["maskeli_alanlar"] = yeni_maskeler
+                            k_obj["yasakli_menuler"] = yeni_yasaklar
+                            if yeni_sifre_k:
+                                sifre_degistir(secilen_k_adi, yeni_sifre_k, zorunlu=sifre_zorunlu_k)
+                            else:
+                                kullanıcıları_kaydet(kullanici_db)
+                            giris_logla("admin", f"kullanıcı ayarları güncellendi: {secilen_k_adi}")
+                            st.toast(f"✅ '{secilen_k_adi}' ayarları kaydedildi!", icon="🎉")
+                            st.rerun()
+            else:
+                st.info("Düzenlenebilecek ek kullanıcı bulunmuyor.")
 
-        st.markdown("---")
-        st.subheader("➕ 3. Yeni Sistem Kullanıcısı Ekle")
-        
-        yeni_k_adi = st.text_input("Kullanıcı Adı (Benzersiz)", key="yeni_k_adi_input_ozel")
-        yeni_sifre = st.text_input("Şifre", type="password", key="yeni_sifre_input_ozel")
-        
-        y_col1, y_col2 = st.columns(2)
-        with y_col1:
-            yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="yeni_rol_select_ozel")
-        with y_col2:
-            yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı Yap", value=False, key="yeni_salt_chk_ozel")
+            st.markdown("---")
+            st.subheader("➕ Yeni Sistem Kullanıcısı Ekle")
+            yeni_k_adi = st.text_input("Kullanıcı Adı (3-30 karakter: harf, rakam, . _ -)", key="yeni_k_adi_input_ozel").strip().lower()
+            yeni_sifre = st.text_input("Şifre (en az 10 karakter, harf ve rakam)", type="password", key="yeni_sifre_input_ozel")
+            y_col1, y_col2, y_col3 = st.columns(3)
+            with y_col1:
+                yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="yeni_rol_select_ozel")
+            with y_col2:
+                yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı", value=False, key="yeni_salt_chk_ozel")
+            with y_col3:
+                yeni_k_zorunlu = st.checkbox("İlk girişte şifre değiştirsin", value=True, key="yeni_zorunlu_chk_ozel")
 
-        st.markdown("")
-        if st.button("Yeni Kullanıcıyı Sisteme Ekle", type="secondary", key="btn_ozel_yeni_ekle"):
-            if yeni_k_adi and yeni_sifre:
-                if yeni_k_adi in st.session_state.kullanicilar:
+            if st.button("Yeni Kullanıcıyı Sisteme Ekle", type="secondary", key="btn_ozel_yeni_ekle"):
+                if not re.fullmatch(r"[a-z0-9_.\-]{3,30}", yeni_k_adi or ""):
+                    st.error("Kullanıcı adı 3-30 karakter olmalı; yalnızca küçük harf, rakam, nokta, alt çizgi ve tire içerebilir.")
+                elif yeni_k_adi in kullanici_db:
                     st.error("Bu kullanıcı adı zaten sistemde mevcut!")
+                elif sifre_politika_hatasi(yeni_sifre):
+                    st.error(sifre_politika_hatasi(yeni_sifre))
                 else:
-                    st.session_state.kullanicilar[yeni_k_adi] = {
-                        "sifre": yeni_sifre,
+                    kullanici_db[yeni_k_adi] = {
+                        "sifre": sifre_hashle_yeni(yeni_sifre),
                         "rol": yeni_k_rol,
                         "salt_okunur": yeni_k_salt,
-                        "maskeli_alanlar": {},
-                        "yasakli_menuler": []
+                        "maskeli_alanlar": [],
+                        "yasakli_menuler": [],
+                        "sifre_degistirilmeli": yeni_k_zorunlu,
                     }
+                    kullanıcıları_kaydet(kullanici_db)
+                    giris_logla("admin", f"kullanıcı eklendi: {yeni_k_adi}")
                     st.toast(f"🎉 Yeni kullanıcı '{yeni_k_adi}' eklendi!", icon="✨")
                     st.rerun()
+
+        # ------------------------------------------------ Kendi şifrem
+        with sekme_s:
+            st.subheader("🔑 Kendi Şifrenizi Değiştirin")
+            with st.form("admin_sifre_degistir_formu"):
+                eski_s = st.text_input("Mevcut Şifre", type="password")
+                yeni_s1 = st.text_input("Yeni Şifre", type="password")
+                yeni_s2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
+                if st.form_submit_button("Şifremi Değiştir", type="primary"):
+                    _ben = st.session_state.aktif_kullanici
+                    if not sifre_dogrula(eski_s, kullanici_db.get(_ben, {}).get("sifre", "")):
+                        st.error("Mevcut şifre hatalı.")
+                    elif sifre_politika_hatasi(yeni_s1):
+                        st.error(sifre_politika_hatasi(yeni_s1))
+                    elif yeni_s1 != yeni_s2:
+                        st.error("Yeni şifreler aynı değil.")
+                    elif yeni_s1 == eski_s:
+                        st.error("Yeni şifre eskisiyle aynı olamaz.")
+                    else:
+                        sifre_degistir(_ben, yeni_s1, haric_token=st.session_state.oturum_token)
+                        st.success("Şifreniz değiştirildi. Diğer cihazlardaki oturumlarınız kapatıldı.")
+
+        # ------------------------------------------------ Giriş kayıtları
+        with sekme_l:
+            st.subheader("📜 Giriş ve Güvenlik Kayıtları (son 200)")
+            if not SUPABASE_URL or not SUPABASE_KEY:
+                st.info("Kayıtlar için Supabase bağlantısı gerekir.")
             else:
-                st.error("Lütfen kullanıcı adı ve şifre alanlarını doldurun.")
+                giris_kayitlari = supabase_veri_oku("giris_loglari", [], kritik=False)
+                if not isinstance(giris_kayitlari, list):
+                    giris_kayitlari = []
+                log_satirlari = [
+                    {
+                        "Zaman": g.get("zaman", "-"),
+                        "Kullanıcı": g.get("kullanici", "-"),
+                        "Olay": g.get("durum", "-"),
+                        "IP": g.get("ip", "-"),
+                        "X-Forwarded-For": g.get("xff", ""),
+                    }
+                    for g in reversed(giris_kayitlari[-200:])
+                ]
+                if log_satirlari:
+                    ortak_indirme_alani(
+                        tablo_to_excel_bytes(log_satirlari, "Aziziye Aşevi - Giriş Kayıtları"),
+                        tablo_to_html_pdf_bytes("Aziziye Aşevi - Giriş Kayıtları", log_satirlari),
+                        "giris_kayitlari", "giris_kayit_sayfasi",
+                    )
+                    ozel_html_tablo_goster(log_satirlari)
+                else:
+                    st.info("Henüz giriş kaydı yok.")
+
+                st.markdown("---")
+                st.markdown("**🔓 Kilitleri Temizle** – Hatalı girişlerden kalan tüm geçici kilitleri kaldırır.")
+                if st.button("Tüm Giriş Kilitlerini Temizle", key="kilit_temizle_btn"):
+                    giris_denemesini_sifirla()
+                    giris_logla("admin", "giriş kilitleri temizlendi")
+                    st.success("Kilitler temizlendi.")
+
+        # ------------------------------------------------ Yedekleme
+        with sekme_y:
+            st.subheader("💾 Yedekleme ve Geri Yükleme")
+            if st.session_state.get("yedek_mesaj"):
+                st.success(st.session_state.pop("yedek_mesaj"))
+            if not SUPABASE_URL or not SUPABASE_KEY:
+                st.info("Yedekleme için Supabase bağlantısı gerekir.")
+            else:
+                st.caption(
+                    "Yedek dosyası kayıtlı kişilere ait bilgiler (ad-soyad, personel, stok vb.) içerir; "
+                    "T.C./telefon/adres alanları şifreli kalır. Kullanıcı şifreleri yedeğe GİRMEZ. "
+                    "Dosyayı güvenli bir yerde saklayın."
+                )
+                if st.button("📦 Tüm Veriyi Yedekle", key="yedek_hazirla_btn"):
+                    paket = yedek_paketi_olustur()
+                    if paket is None:
+                        st.error("Yedek alınamadı: veritabanına ulaşılamadı.")
+                    else:
+                        st.session_state["yedek_bytes"] = json.dumps(paket, ensure_ascii=False, indent=1).encode("utf-8")
+                        st.session_state["yedek_adi"] = f"asevi_yedek_{simdi_tr_str('%Y%m%d_%H%M')}.json"
+                        giris_logla("admin", "yedek alındı")
+                if st.session_state.get("yedek_bytes"):
+                    st.download_button(
+                        "⬇️ Yedek Dosyasını İndir",
+                        data=st.session_state["yedek_bytes"],
+                        file_name=st.session_state.get("yedek_adi", "asevi_yedek.json"),
+                        mime="application/json",
+                        key="yedek_indir_btn",
+                    )
+
+                st.markdown("---")
+                st.markdown("**♻️ Yedekten Geri Yükle** – Mevcut veriler yedekteki verilerle DEĞİŞTİRİLİR. İşlemden önce otomatik bir yedek alınır.")
+                yuklenen_yedek = st.file_uploader("Yedek dosyası (.json)", type=["json"], key="yedek_yukle_dosya")
+                geri_yukle_onay = st.checkbox("⚠️ Mevcut verilerin yedekle değiştirileceğini anlıyorum, onaylıyorum.", key="yedek_onay_chk")
+                if st.button("Yedeği Geri Yükle", type="primary", key="yedek_geri_yukle_btn"):
+                    if yuklenen_yedek is None:
+                        st.error("Önce bir yedek dosyası seçin.")
+                    elif not geri_yukle_onay:
+                        st.error("Geri yüklemek için onay kutusunu işaretleyin.")
+                    elif yuklenen_yedek.size > 25 * 1024 * 1024:
+                        st.error("Dosya çok büyük (en fazla 25 MB).")
+                    else:
+                        try:
+                            paket = json.loads(yuklenen_yedek.getvalue().decode("utf-8"))
+                        except Exception:
+                            paket = None
+                        basarili, mesaj = yedek_geri_yukle(paket)
+                        if basarili:
+                            giris_logla("admin", "yedekten geri yüklendi")
+                            st.session_state["yedek_mesaj"] = mesaj
+                            st.rerun()
+                        else:
+                            st.error(mesaj)
+
+                st.markdown("---")
+                st.markdown("**⏪ Son Otomatik Yedek** – Silme ve geri yükleme işlemlerinden hemen önce otomatik alınır (yalnızca en son yedek tutulur).")
+                oto_durum, oto_paket = _supabase_ham_oku("otomatik_yedek")
+                if oto_durum == "ok" and isinstance(oto_paket, dict):
+                    _meta = oto_paket.get("_meta", {})
+                    st.info(f"Zaman: {_meta.get('zaman', '-')} | Neden: {_meta.get('neden', '-')}")
+                    oto_onay = st.checkbox("⚠️ Otomatik yedeğe dönmeyi onaylıyorum.", key="oto_yedek_onay_chk")
+                    if st.button("Son Otomatik Yedeğe Dön", key="oto_yedek_geri_btn"):
+                        if not oto_onay:
+                            st.error("Onay kutusunu işaretleyin.")
+                        else:
+                            basarili, mesaj = yedek_geri_yukle(oto_paket)
+                            if basarili:
+                                giris_logla("admin", "otomatik yedeğe dönüldü")
+                                st.session_state["yedek_mesaj"] = mesaj
+                                st.rerun()
+                            else:
+                                st.error(mesaj)
+                elif oto_durum == "hata":
+                    st.error("Otomatik yedek bilgisi okunamadı.")
+                else:
+                    st.caption("Henüz otomatik yedek alınmadı.")
