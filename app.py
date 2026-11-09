@@ -32,7 +32,7 @@ def baglanti_tanilama_goster():
     görünmediğini ve Supabase bağlantısının veri döndürüp döndürmediğini denetler."""
     st.markdown("## 🔧 Bağlantı Tanılama")
     st.caption(
-        "Bu sayfa şifre/anahtar değerlerini göstermez. Sorun çözülünce `?tani=1` adresini kullanmayı bırakın."
+        "Bu sayfa şifre/anahtar değerlerini göstermez. Sorun çözülünce secrets içindeki `TANI_MODU` satırını silin."
     )
     try:
         ust_anahtarlar = list(st.secrets.keys())
@@ -134,7 +134,18 @@ def baglanti_tanilama_goster():
         st.error(f"HTTP {r.status_code}: {mesaj}")
 
 
-if str(st.query_params.get("tani", "")) == "1":
+def _tani_acik_mi():
+    """Tanılama sayfası varsayılan olarak KAPALIDIR. Açmak için hem adreste ?tani=1 hem de
+    secrets içinde TANI_MODU = "1" bulunmalıdır. İşiniz bitince TANI_MODU satırını silin."""
+    if str(st.query_params.get("tani", "")) != "1":
+        return False
+    try:
+        return str(st.secrets.get("TANI_MODU", "")).strip().lower() in ("1", "true", "evet")
+    except Exception:
+        return False
+
+
+if _tani_acik_mi():
     baglanti_tanilama_goster()
     st.stop()
 
@@ -476,6 +487,17 @@ KILIT_SURESI_SN = 30            # ilk kilit süresi (her kilitte ikiye katlanır
 IP_MAKS_HATALI_GIRIS = 10       # yalnızca IP başına (kullanıcı adı denemelerine karşı)
 IP_KILIT_SURESI_SN = 60
 COOKIE_ADI = "aziziye_oturum"
+OTURUM_DOGRULAMA_ARALIGI_SN = 60  # açık oturum bu aralıkla veritabanından yeniden doğrulanır
+
+
+def bosta_kalma_suresi_sn():
+    """Etkinlik olmadığında oturumun kapanacağı süre. Varsayılan 30 dk;
+    secrets içinde BOSTA_KALMA_DAKIKA ile 5-480 dk arasında değiştirilebilir."""
+    try:
+        dk = int(str(st.secrets.get("BOSTA_KALMA_DAKIKA", 30)))
+    except Exception:
+        dk = 30
+    return max(5, min(dk, 480)) * 60
 
 # Çerez desteği: `streamlit-cookies-controller` paketi kuruluysa token adres çubuğu yerine
 # çerezde tutulur. Kurulu değilse eski yönteme (adreste token) güvenli şekilde geri düşer.
@@ -623,6 +645,8 @@ def oturumu_baslat(kullanici_adi):
     st.session_state.aktif_kullanici = kullanici_adi
     st.session_state.oturum_token = token
     st.session_state.oturum_bitis = bitis
+    st.session_state["son_etkinlik"] = time.time()
+    st.session_state["_oturum_son_dogrulama"] = time.time()
     if kullanici_adi != "misafir":
         st.session_state.pop("ilk_kurulum_sifreleri", None)
     if cerez_kontrol is not None:
@@ -646,6 +670,23 @@ def oturumu_kapat():
     st.session_state.oturum_token = ""
     st.session_state.oturum_bitis = 0
     st.query_params.clear()
+
+
+def oturumu_zorla_kapat(mesaj, log_durumu):
+    """Sunucu/süre/boşta kalma nedeniyle oturumu kapatır; giriş ekranında mesaj gösterilir."""
+    kullanici = st.session_state.get("aktif_kullanici", "misafir")
+    token = st.session_state.get("oturum_token", "")
+    giris_logla(kullanici, log_durumu)
+    oturum_sil(token)
+    if cerez_kontrol is not None:
+        cerez_sil()
+    st.session_state.oturum_aktif = False
+    st.session_state.aktif_kullanici = "misafir"
+    st.session_state.oturum_token = ""
+    st.session_state.oturum_bitis = 0
+    st.session_state["oturum_mesaji"] = mesaj
+    if "token" in st.query_params:
+        del st.query_params["token"]
 
 
 def sifre_degistir(kullanici, yeni_sifre, haric_token=None, zorunlu=False):
@@ -1403,6 +1444,8 @@ if not st.session_state.oturum_aktif:
             st.session_state.aktif_kullanici = kayit["kullanici"]
             st.session_state.oturum_token = aday_token
             st.session_state.oturum_bitis = kayit["bitis"]
+            st.session_state["son_etkinlik"] = time.time()
+            st.session_state["_oturum_son_dogrulama"] = time.time()
         elif cerez_kontrol is None:
             if "token" in query_params:
                 del query_params["token"]
@@ -1422,6 +1465,39 @@ if st.session_state.oturum_aktif and (
     st.session_state.oturum_token = ""
     if "token" in st.query_params:
         del st.query_params["token"]
+
+# Boşta kalma: Streamlit yalnızca kullanıcı işlem yapınca çalıştığı için, her çalışma bir etkinliktir.
+if st.session_state.oturum_aktif:
+    _simdi = time.time()
+    if _simdi - st.session_state.get("son_etkinlik", _simdi) > bosta_kalma_suresi_sn():
+        oturumu_zorla_kapat(
+            "Uzun süre işlem yapılmadığı için oturumunuz güvenlik nedeniyle kapatıldı. Lütfen yeniden giriş yapın.",
+            "boşta kalma nedeniyle oturum kapandı",
+        )
+    else:
+        st.session_state["son_etkinlik"] = _simdi
+
+# Açık oturumu belirli aralıkla veritabanından yeniden doğrula ve kullanıcı yetkilerini tazele:
+# silinen/şifresi değişen/yetkisi kısıtlanan kullanıcı 8 saat beklemeden en geç 1 dk içinde etkilenir.
+# Geçici veritabanı hatasında oturum AÇIK bırakılır (ağ kesintisi herkesi dışarı atmasın).
+if st.session_state.oturum_aktif and SUPABASE_URL and SUPABASE_KEY:
+    _simdi = time.time()
+    if _simdi - st.session_state.get("_oturum_son_dogrulama", 0) > OTURUM_DOGRULAMA_ARALIGI_SN:
+        st.session_state["_oturum_son_dogrulama"] = _simdi
+        _d, _oturumlar = _supabase_ham_oku("aktif_oturumlar")
+        if _d in ("ok", "yok"):
+            _kayit = (_oturumlar or {}).get(_token_hashle(st.session_state.oturum_token)) if isinstance(_oturumlar, dict) else None
+            if not _kayit or _kayit.get("bitis", 0) <= _simdi:
+                oturumu_zorla_kapat(
+                    "Oturumunuz sonlandırıldı (başka bir yerden kapatıldı, şifreniz değişti veya süre doldu). Lütfen yeniden giriş yapın.",
+                    "oturum sunucuda geçersiz, kapatıldı",
+                )
+        if st.session_state.oturum_aktif:
+            _kd, _ = _supabase_ham_oku("kullanici_yetkileri")
+            if _kd == "ok":
+                st.session_state.kullanicilar = kullanıcıları_yukle()
+                if st.session_state.aktif_kullanici not in st.session_state.kullanicilar:
+                    oturumu_zorla_kapat("Hesabınız bulunamadı. Lütfen yöneticiyle iletişime geçin.", "hesap silinmiş, oturum kapandı")
 
 gecerli_menuler = [
     "Kurumsal Dashboard & Özet",
@@ -1547,6 +1623,9 @@ if not st.session_state.oturum_aktif:
             unsafe_allow_html=True,
         )
 
+        if st.session_state.get("oturum_mesaji"):
+            st.warning(st.session_state.pop("oturum_mesaji"))
+
         if st.session_state.get("ilk_kurulum_sifreleri"):
             _satirlar = "\n".join(
                 f"- **{ad}** → `{sf}`" for ad, sf in st.session_state["ilk_kurulum_sifreleri"].items()
@@ -1654,7 +1733,7 @@ if not st.session_state.oturum_aktif:
                 st.info(
                     "Şifre kurtarma devre dışı. Etkinleştirmek için `secrets` ayarlarına "
                     "güçlü bir `MASTER_RECOVERY_KEY` ekleyin. Eklediğiniz hâlde bu mesajı görüyorsanız "
-                    "adres çubuğundaki adrese `?tani=1` ekleyip Bağlantı Tanılama sayfasına bakın."
+                    "secrets'a `TANI_MODU = \"1\"` ekleyip adres sonuna `?tani=1` yazarak Bağlantı Tanılama sayfasına bakın."
                 )
             else:
                 with st.form("master_key_sifre_sifirla"):
@@ -2792,33 +2871,36 @@ elif menu == "Depo Yönetimi":
                         st.rerun()
 
         with col_depo_sil:
-            with st.form("depo_sil_form"):
-                st.markdown("**🗑️ Depo Sil**")
-                if st.session_state.depolar:
-                    secilen_sil_depo = st.selectbox("Silinecek Depoyu Seçin", st.session_state.depolar)
-                    onay_depo_sil_btn = silme_onay_kutusu("onay_depo_sil")
-                    depo_sil_btn = st.form_submit_button("Seçilen Depoyu ve Bağlı Ürünleri Sil", type="primary")
+            if not yonetici_modu:
+                st.info("🗑️ Depo silme yetkisi yalnızca Admin'e aittir.")
+            else:
+                with st.form("depo_sil_form"):
+                    st.markdown("**🗑️ Depo Sil**")
+                    if st.session_state.depolar:
+                        secilen_sil_depo = st.selectbox("Silinecek Depoyu Seçin", st.session_state.depolar)
+                        onay_depo_sil_btn = silme_onay_kutusu("onay_depo_sil")
+                        depo_sil_btn = st.form_submit_button("Seçilen Depoyu ve Bağlı Ürünleri Sil", type="primary")
 
-                    if depo_sil_btn and not onay_depo_sil_btn:
+                        if depo_sil_btn and not onay_depo_sil_btn:
 
-                        st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                            st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
 
-                    elif depo_sil_btn:
-                        if len(st.session_state.depolar) <= 1:
-                            st.error("⚠️ Sistemde en az 1 depo kalmalıdır, tamamen silemezsiniz!")
-                        else:
-                            otomatik_yedek_al("Depo silme: " + str(secilen_sil_depo))
-                            st.session_state.depolar.remove(secilen_sil_depo)
-                            depoları_kaydet(st.session_state.depolar)
+                        elif depo_sil_btn:
+                            if len(st.session_state.depolar) <= 1:
+                                st.error("⚠️ Sistemde en az 1 depo kalmalıdır, tamamen silemezsiniz!")
+                            else:
+                                otomatik_yedek_al("Depo silme: " + str(secilen_sil_depo))
+                                st.session_state.depolar.remove(secilen_sil_depo)
+                                depoları_kaydet(st.session_state.depolar)
                             
-                            st.session_state.girisler = [g for g in st.session_state.girisler if g.get("depo") != secilen_sil_depo]
-                            verileri_kaydet(st.session_state.girisler)
+                                st.session_state.girisler = [g for g in st.session_state.girisler if g.get("depo") != secilen_sil_depo]
+                                verileri_kaydet(st.session_state.girisler)
 
-                            st.success(f"🎉 Başarılı! Depo ve bağlı ürünler silindi.")
-                            st.balloons()
-                            st.rerun()
-                else:
-                    st.info("Silinecek depo bulunmuyor.")
+                                st.success(f"🎉 Başarılı! Depo ve bağlı ürünler silindi.")
+                                st.balloons()
+                                st.rerun()
+                    else:
+                        st.info("Silinecek depo bulunmuyor.")
 
         st.markdown("---")
         st.subheader("📋 Aktif Depolar Listesi")
@@ -2897,28 +2979,31 @@ elif menu == "Demirbaş Yönetimi":
                         st.rerun()
 
             with col_dem_sil:
-                with st.form("demirbas_sil_form"):
-                    st.markdown("**🗑️ Demirbaş Sil**")
-                    if st.session_state.demirbaslar:
-                        dem_secenekleri = [f"{d['id']} - {d['ad']} ({d['kategori']})" for d in st.session_state.demirbaslar]
-                        secilen_sil_dem = st.selectbox("Silinecek Demirbaşı Seçin", dem_secenekleri)
-                        onay_dem_sil_btn = silme_onay_kutusu("onay_demirbas_sil")
-                        dem_sil_btn = st.form_submit_button("Seçilen Demirbaş Kaydını Sil", type="primary")
+                if not yonetici_modu:
+                    st.info("🗑️ Demirbaş silme yetkisi yalnızca Admin'e aittir.")
+                else:
+                    with st.form("demirbas_sil_form"):
+                        st.markdown("**🗑️ Demirbaş Sil**")
+                        if st.session_state.demirbaslar:
+                            dem_secenekleri = [f"{d['id']} - {d['ad']} ({d['kategori']})" for d in st.session_state.demirbaslar]
+                            secilen_sil_dem = st.selectbox("Silinecek Demirbaşı Seçin", dem_secenekleri)
+                            onay_dem_sil_btn = silme_onay_kutusu("onay_demirbas_sil")
+                            dem_sil_btn = st.form_submit_button("Seçilen Demirbaş Kaydını Sil", type="primary")
 
-                        if dem_sil_btn and not onay_dem_sil_btn:
+                            if dem_sil_btn and not onay_dem_sil_btn:
 
-                            st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
 
-                        elif dem_sil_btn:
-                            otomatik_yedek_al("Demirbaş silme: " + str(secilen_sil_dem))
-                            sil_id = secilen_sil_dem.split(" - ")[0]
-                            st.session_state.demirbaslar = [d for d in st.session_state.demirbaslar if d["id"] != sil_id]
-                            demirbasları_kaydet(st.session_state.demirbaslar)
-                            st.success("🎉 Başarılı! Demirbaş kaydı silindi.")
-                            st.balloons()
-                            st.rerun()
-                    else:
-                        st.info("Silinecek demirbaş bulunmuyor.")
+                            elif dem_sil_btn:
+                                otomatik_yedek_al("Demirbaş silme: " + str(secilen_sil_dem))
+                                sil_id = secilen_sil_dem.split(" - ")[0]
+                                st.session_state.demirbaslar = [d for d in st.session_state.demirbaslar if d["id"] != sil_id]
+                                demirbasları_kaydet(st.session_state.demirbaslar)
+                                st.success("🎉 Başarılı! Demirbaş kaydı silindi.")
+                                st.balloons()
+                                st.rerun()
+                        else:
+                            st.info("Silinecek demirbaş bulunmuyor.")
 
         st.markdown("---")
         st.subheader("📋 Kayıtlı Demirbaş Tablosu")
@@ -3711,52 +3796,55 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                             st.rerun()
 
                 with col_form_sil:
-                    with st.form("ihtiyac_sahibi_sil_formu"):
-                        st.markdown("**🗑️ Kayıtlı İhtiyaç Sahibini Sil**")
-                        if st.session_state.ihtiyac_sahipleri:
-                            kisi_secenekleri_sil = [
-                                f"{k['id']} - {k['ad_soyad']} (T.C./Hane: {k.get('tc_hane', '-')})"
-                                for k in st.session_state.ihtiyac_sahipleri
-                            ]
-                            secilen_silinecek = st.selectbox(
-                                "Silinecek Kişiyi / Haneyi Seçin", kisi_secenekleri_sil
-                            )
-                            onay_sil_btn = silme_onay_kutusu("onay_ihtiyac_sil")
-                            sil_btn = st.form_submit_button(
-                                "Seçilen Kişiyi Sistemden Sil", type="primary"
-                            )
+                    if not yonetici_modu:
+                        st.info("🗑️ İhtiyaç sahibi silme yetkisi yalnızca Admin'e aittir.")
+                    else:
+                        with st.form("ihtiyac_sahibi_sil_formu"):
+                            st.markdown("**🗑️ Kayıtlı İhtiyaç Sahibini Sil**")
+                            if st.session_state.ihtiyac_sahipleri:
+                                kisi_secenekleri_sil = [
+                                    f"{k['id']} - {k['ad_soyad']} (T.C./Hane: {k.get('tc_hane', '-')})"
+                                    for k in st.session_state.ihtiyac_sahipleri
+                                ]
+                                secilen_silinecek = st.selectbox(
+                                    "Silinecek Kişiyi / Haneyi Seçin", kisi_secenekleri_sil
+                                )
+                                onay_sil_btn = silme_onay_kutusu("onay_ihtiyac_sil")
+                                sil_btn = st.form_submit_button(
+                                    "Seçilen Kişiyi Sistemden Sil", type="primary"
+                                )
 
-                            if sil_btn and not onay_sil_btn:
+                                if sil_btn and not onay_sil_btn:
 
-                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                                    st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
 
-                            elif sil_btn:
-                                otomatik_yedek_al("İhtiyaç sahibi silme: " + str(secilen_silinecek))
-                                silinecek_id = secilen_silinecek.split(" - ")[0]
-                                silinen_kisi_obj = next(
-                                    (
+                                elif sil_btn:
+                                    otomatik_yedek_al("İhtiyaç sahibi silme: " + str(secilen_silinecek))
+                                    silinecek_id = secilen_silinecek.split(" - ")[0]
+                                    silinen_kisi_obj = next(
+                                        (
+                                            k
+                                            for k in st.session_state.ihtiyac_sahipleri
+                                            if k["id"] == silinecek_id
+                                        ),
+                                        None,
+                                    )
+                                    silinen_isim = (
+                                        silinen_kisi_obj["ad_soyad"] if silinen_kisi_obj else ""
+                                    )
+                                    st.session_state.ihtiyac_sahipleri = [
                                         k
                                         for k in st.session_state.ihtiyac_sahipleri
-                                        if k["id"] == silinecek_id
-                                    ),
-                                    None,
-                                )
-                                silinen_isim = (
-                                    silinen_kisi_obj["ad_soyad"] if silinen_kisi_obj else ""
-                                )
-                                st.session_state.ihtiyac_sahipleri = [
-                                    k
-                                    for k in st.session_state.ihtiyac_sahipleri
-                                    if k["id"] != silinecek_id
-                                ]
-                                ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
-                                st.session_state.kisi_silme_mesaji = (
-                                    f"🎉 Başarılı! {silinen_isim} silindi."
-                                )
-                                st.balloons()
-                                st.rerun()
-                        else:
-                            st.info("Silinecek kayıt bulunmuyor.")
+                                        if k["id"] != silinecek_id
+                                    ]
+                                    ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                                    st.session_state.kisi_silme_mesaji = (
+                                        f"🎉 Başarılı! {silinen_isim} silindi."
+                                    )
+                                    st.balloons()
+                                    st.rerun()
+                            else:
+                                st.info("Silinecek kayıt bulunmuyor.")
 
             st.markdown("---")
             st.subheader("📋 Kayıtlı İhtiyaç Sahipleri Tablosu")
@@ -4067,48 +4155,51 @@ elif menu == "Personel & Çalışma Süresi Takibi":
                             st.rerun()
 
                 with col_p_sil:
-                    with st.form("personel_sil_form"):
-                        st.markdown("**🗑️ Personeli Sil**")
-                        if st.session_state.personeller:
-                            p_sil_secenekleri = [
-                                f"{p.get('tc', '---')} - {p['ad_soyad']}"
-                                for p in st.session_state.personeller
-                            ]
-                            secilen_sil_p = st.selectbox("Silinecek Personel", p_sil_secenekleri)
-                            onay_p_sil_btn = silme_onay_kutusu("onay_personel_sil")
-                            p_sil_btn = st.form_submit_button(
-                                "Personeli Kadrodan Sil", type="primary"
-                            )
+                    if not yonetici_modu:
+                        st.info("🗑️ Personel silme yetkisi yalnızca Admin'e aittir.")
+                    else:
+                        with st.form("personel_sil_form"):
+                            st.markdown("**🗑️ Personeli Sil**")
+                            if st.session_state.personeller:
+                                p_sil_secenekleri = [
+                                    f"{p.get('tc', '---')} - {p['ad_soyad']}"
+                                    for p in st.session_state.personeller
+                                ]
+                                secilen_sil_p = st.selectbox("Silinecek Personel", p_sil_secenekleri)
+                                onay_p_sil_btn = silme_onay_kutusu("onay_personel_sil")
+                                p_sil_btn = st.form_submit_button(
+                                    "Personeli Kadrodan Sil", type="primary"
+                                )
 
-                            if p_sil_btn and not onay_p_sil_btn:
+                                if p_sil_btn and not onay_p_sil_btn:
 
-                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                                    st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
 
-                            elif p_sil_btn:
-                                otomatik_yedek_al("Personel silme: " + str(secilen_sil_p))
-                                sil_tc = secilen_sil_p.split(" - ")[0]
-                                silinen_obj = next(
-                                    (
+                                elif p_sil_btn:
+                                    otomatik_yedek_al("Personel silme: " + str(secilen_sil_p))
+                                    sil_tc = secilen_sil_p.split(" - ")[0]
+                                    silinen_obj = next(
+                                        (
+                                            p
+                                            for p in st.session_state.personeller
+                                            if p.get("tc") == sil_tc
+                                        ),
+                                        None,
+                                    )
+                                    silinen_ad = silinen_obj["ad_soyad"] if silinen_obj else ""
+                                    st.session_state.personeller = [
                                         p
                                         for p in st.session_state.personeller
-                                        if p.get("tc") == sil_tc
-                                    ),
-                                    None,
-                                )
-                                silinen_ad = silinen_obj["ad_soyad"] if silinen_obj else ""
-                                st.session_state.personeller = [
-                                    p
-                                    for p in st.session_state.personeller
-                                    if p.get("tc") != sil_tc
-                                ]
-                                personelleri_kaydet(st.session_state.personeller)
-                                st.session_state.personel_silme_mesaji = (
-                                    f"🎉 Başarılı! {silinen_ad} silindi."
-                                )
-                                st.balloons()
-                                st.rerun()
-                        else:
-                            st.info("Silinecek personel bulunmuyor.")
+                                        if p.get("tc") != sil_tc
+                                    ]
+                                    personelleri_kaydet(st.session_state.personeller)
+                                    st.session_state.personel_silme_mesaji = (
+                                        f"🎉 Başarılı! {silinen_ad} silindi."
+                                    )
+                                    st.balloons()
+                                    st.rerun()
+                            else:
+                                st.info("Silinecek personel bulunmuyor.")
 
                 with col_p_durum:
                     with st.form("durum_guncelle_form"):
@@ -4850,7 +4941,11 @@ elif menu == "Kullanıcı Ayarları":
         if str(st.secrets.get("MASTER_RECOVERY_KEY", "") or ""):
             st.success("MASTER_RECOVERY_KEY tanımlı.")
         else:
-            st.info("MASTER_RECOVERY_KEY tanımlı değil: şifre kurtarma devre dışı. Ekledim diyorsanız adrese `?tani=1` ekleyip kontrol edin.")
+            st.info("MASTER_RECOVERY_KEY tanımlı değil: şifre kurtarma devre dışı. Ekledim diyorsanız secrets'a `TANI_MODU = \"1\"` ekleyip adrese `?tani=1` yazarak kontrol edin.")
+        st.info(
+            f"Boşta kalma süresi: {bosta_kalma_suresi_sn() // 60} dk (işlem yapılmazsa oturum kapanır). "
+            "Değiştirmek için secrets'a `BOSTA_KALMA_DAKIKA = \"20\"` gibi bir satır ekleyin."
+        )
         _zayif = [
             k for k, v in kullanici_db.items()
             if v.get("sifre_degistirilmeli") or v.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
