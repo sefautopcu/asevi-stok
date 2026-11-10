@@ -24,11 +24,6 @@ import streamlit as st
 APP_VERSION = "v2.0.0"
 LAST_UPDATE = "Kasım 2026"
 
-# Sidebar (Sol Menü) alt kısmına eklemek için:
-st.sidebar.markdown("---")
-st.sidebar.caption(f"🚀 **Aziziye Aşevi Takip Sistemi** {APP_VERSION}")
-st.sidebar.caption(f"📅 Son Güncelleme: {LAST_UPDATE}")
-
 # 1. Önce fonksiyonu tanımlayın (33. satırdan üstte olmalı)
 def bellek_kullanimi_al():
     """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
