@@ -2689,7 +2689,13 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "Yeni Ürün Adı (Örn: KIRMIZI MERCİMEK - Büyük Harfle)"
                 ).strip().upper()
             else:
-                urun = st.selectbox("Mevcut Ürünlerden Seçin", mevcut_urun_listesi)
+                urun = st.selectbox(
+                    "Mevcut Ürünlerden Seçin",
+                    mevcut_urun_listesi,
+                    index=None,
+                    placeholder="Ürün Seçiniz...",
+                    key="fatura_urun_selectbox"
+                )
 
             kategori = st.selectbox(
                 "Kategori",
@@ -2710,49 +2716,52 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             fiyat = st.number_input("Birim Fiyat (TL)", min_value=0.01, step=0.1)
 
             submitted = st.form_submit_button("Depoya Yeni Ürün / Fatura Ekle")
-            if submitted and urun:
-                urun_temiz = urun.strip().upper()
-                
-                if yeni_urun_secimi and mevcut_urun_listesi:
-                    benzerler = difflib.get_close_matches(urun_temiz, mevcut_urun_listesi, n=1, cutoff=0.7)
-                    if benzerler:
-                        st.warning(f"⚠️ Dikkat! Yazdığınız ürün mevcut '{benzerler[0]}' adına çok benziyor.")
+            if submitted:
+                if not urun:
+                    st.error("⚠️ Lütfen listeden bir ürün seçin veya yeni bir ürün adı girin!")
+                else:
+                    urun_temiz = urun.strip().upper()
+                    
+                    if yeni_urun_secimi and mevcut_urun_listesi:
+                        benzerler = difflib.get_close_matches(urun_temiz, mevcut_urun_listesi, n=1, cutoff=0.7)
+                        if benzerler:
+                            st.warning(f"⚠️ Dikkat! Yazdığınız ürün mevcut '{benzerler[0]}' adına çok benziyor.")
 
-                islem_yapan_kisi = st.session_state.aktif_kullanici
-                fatura_no_degeri = (
-                    fatura_no_input if fatura_no_input else "BELİRTİLMEMİŞ"
-                )
-                yeni_kayit_id = yeni_id_uret("FAT-", st.session_state.girisler)
-                
-                yeni_kayit_obj = {
-                    "id": yeni_kayit_id,
-                    "tarih": tarih_giris,
-                    "fatura_no": fatura_no_degeri,
-                    "urun": urun_temiz,
-                    "kategori": kategori,
-                    "birim": birim,
-                    "miktar": miktar,
-                    "kalan": miktar,
-                    "fiyat": fiyat,
-                    "depo": depo,
-                    "islem_yapan": islem_yapan_kisi,
-                }
-                
-                st.session_state.girisler.append(yeni_kayit_obj)
-                st.session_state["son_eklenen_fatura_id"] = yeni_kayit_id
-                verileri_kaydet(st.session_state.girisler)
-                
-                st.markdown(
-                """
-                <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 14px 18px; border-radius: 14px; margin: 16px 0; font-weight: 600; font-size: 15px;">
-                🎉 Başarılı! Yeni mal alımı faturası ve ürün depoya eklendi.
-                </div>
-                """,
-                unsafe_allow_html=True
-                )
-                st.balloons()
-                time.sleep(1)
-                st.rerun()
+                    islem_yapan_kisi = st.session_state.aktif_kullanici
+                    fatura_no_degeri = (
+                        fatura_no_input if fatura_no_input else "BELİRTİLMEMİŞ"
+                    )
+                    yeni_kayit_id = yeni_id_uret("FAT-", st.session_state.girisler)
+                    
+                    yeni_kayit_obj = {
+                        "id": yeni_kayit_id,
+                        "tarih": tarih_giris,
+                        "fatura_no": fatura_no_degeri,
+                        "urun": urun_temiz,
+                        "kategori": kategori,
+                        "birim": birim,
+                        "miktar": miktar,
+                        "kalan": miktar,
+                        "fiyat": fiyat,
+                        "depo": depo,
+                        "islem_yapan": islem_yapan_kisi,
+                    }
+                    
+                    st.session_state.girisler.append(yeni_kayit_obj)
+                    st.session_state["son_eklenen_fatura_id"] = yeni_kayit_id
+                    verileri_kaydet(st.session_state.girisler)
+                    
+                    st.markdown(
+                    """
+                    <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 14px 18px; border-radius: 14px; margin: 16px 0; font-weight: 600; font-size: 15px;">
+                    🎉 Başarılı! Yeni mal alımı faturası ve ürün depoya eklendi.
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                    )
+                    st.balloons()
+                    time.sleep(1)
+                    st.rerun()
 
         st.markdown("---")
         col_b_fatura, col_indir_fatura = st.columns([2, 2])
