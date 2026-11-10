@@ -1,3 +1,11 @@
+# app.py dosyasının üst kısımlarına
+APP_VERSION = "v2.0.0"
+LAST_UPDATE = "Kasım 2026"
+
+# Sidebar (Sol Menü) alt kısmına eklemek için:
+st.sidebar.markdown("---")
+st.sidebar.caption(f"🚀 **Aziziye Aşevi Takip Sistemi** {APP_VERSION}")
+st.sidebar.caption(f"📅 Son Güncelleme: {LAST_UPDATE}")
 import base64
 import datetime
 import hashlib
