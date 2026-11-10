@@ -4589,8 +4589,17 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                         if not any(str(iz.get("id")) == str(p_obj.get("id")) for iz in st.session_state.personel_izinleri):
                             st.session_state.personel_izinleri.append(p_obj)
 
-                    personelleri_kaydet(st.session_state.personeller)
-                    personel_izinlerini_kaydet(st.session_state.personel_izinleri)
+                    # Güvenli Kaydetme (NameError Önleyici)
+                    if "personelleri_kaydet" in globals():
+                        personelleri_kaydet(st.session_state.personeller)
+                    else:
+                        supabase_veri_kaydet("personeller", st.session_state.personeller)
+
+                    if "personel_izinlerini_kaydet" in globals():
+                        personel_izinlerini_kaydet(st.session_state.personel_izinleri)
+                    else:
+                        supabase_veri_kaydet("personel_izinleri", st.session_state.personel_izinleri)
+
                     st.session_state.pop("son_personel_islem", None)
                     st.success("🎉 Yapılan son işlem başarıyla geri alındı!")
                     time.sleep(1)
@@ -4655,7 +4664,11 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                                 "eklenme_zamanı": simdi_tr_str("%Y-%m-%d %H:%M")
                             }
                             st.session_state.personeller.append(yeni_p_obj)
-                            personelleri_kaydet(st.session_state.personeller)
+                            
+                            if "personelleri_kaydet" in globals():
+                                personelleri_kaydet(st.session_state.personeller)
+                            else:
+                                supabase_veri_kaydet("personeller", st.session_state.personeller)
 
                             st.session_state["son_personel_islem"] = {
                                 "tur": "personel_ekle",
@@ -4700,7 +4713,11 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                                         
                                         if silinen_p_obj:
                                             st.session_state.personeller = [p for p in st.session_state.personeller if str(p.get("id")) != str(sil_p_id)]
-                                            personelleri_kaydet(st.session_state.personeller)
+                                            
+                                            if "personelleri_kaydet" in globals():
+                                                personelleri_kaydet(st.session_state.personeller)
+                                            else:
+                                                supabase_veri_kaydet("personeller", st.session_state.personeller)
                                             
                                             st.session_state["son_personel_islem"] = {
                                                 "tur": "personel_sil",
@@ -4778,7 +4795,11 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                                         "ekleme_tarihi": simdi_tr_str("%Y-%m-%d %H:%M")
                                     }
                                     st.session_state.personel_izinleri.append(yeni_iz_obj)
-                                    personel_izinlerini_kaydet(st.session_state.personel_izinleri)
+                                    
+                                    if "personel_izinlerini_kaydet" in globals():
+                                        personel_izinlerini_kaydet(st.session_state.personel_izinleri)
+                                    else:
+                                        supabase_veri_kaydet("personel_izinleri", st.session_state.personel_izinleri)
 
                                     st.session_state["son_personel_islem"] = {
                                         "tur": "izin_ekle",
@@ -4822,7 +4843,11 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                                             
                                             if silinen_iz_obj:
                                                 st.session_state.personel_izinleri = [iz for iz in st.session_state.personel_izinleri if str(iz.get("id")) != str(sil_iz_id)]
-                                                personel_izinlerini_kaydet(st.session_state.personel_izinleri)
+                                                
+                                                if "personel_izinlerini_kaydet" in globals():
+                                                    personel_izinlerini_kaydet(st.session_state.personel_izinleri)
+                                                else:
+                                                    supabase_veri_kaydet("personel_izinleri", st.session_state.personel_izinleri)
 
                                                 st.session_state["son_personel_islem"] = {
                                                     "tur": "izin_sil",
