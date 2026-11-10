@@ -29,6 +29,27 @@ st.sidebar.markdown("---")
 st.sidebar.caption(f"🚀 **Aziziye Aşevi Takip Sistemi** {APP_VERSION}")
 st.sidebar.caption(f"📅 Son Güncelleme: {LAST_UPDATE}")
 
+# 1. Önce fonksiyonu tanımlayın (33. satırdan üstte olmalı)
+def bellek_kullanimi_al():
+    """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+        return round(process.memory_info().rss / (1024 * 1024), 1)
+    except Exception:
+        return 0.0
+
+# 2. Ardından sidebar ve RAM göstergesi çalışabilir
+st.sidebar.markdown("---")
+st.sidebar.caption(f"🚀 **Aziziye Aşevi Takip Sistemi** {APP_VERSION}")
+st.sidebar.caption(f"📅 Son Güncelleme: {LAST_UPDATE}")
+
+ram_kullanimi = bellek_kullanimi_al()
+if ram_kullanimi > 0:
+    st.sidebar.caption(f"💾 **RAM Kullanımı:** {ram_kullanimi} MB")
+    if st.sidebar.button("🧹 Önbellek Temizle", key="sb_ram_clean_btn", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
 # RAM Göstergesi ve Önbellek Temizleme Düğmesi
 ram_kullanimi = bellek_kullanimi_al()
 if ram_kullanimi > 0:
