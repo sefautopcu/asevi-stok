@@ -3035,6 +3035,31 @@ elif menu == "Ürün Sil / Düzenle":
             if st.session_state.silme_mesaji:
                 st.success(st.session_state.silme_mesaji)
                 st.session_state.silme_mesaji = ""
+
+            # Son Silme İşlemini Geri Al Butonu ve Bildirimi
+            if st.session_state.get("son_silinen_kayit"):
+                son_silinen = st.session_state["son_silinen_kayit"]
+                c_undo1, c_undo2 = st.columns([3, 1])
+                with c_undo1:
+                    st.info(f"💡 **Son Silinen Kayıt:** {son_silinen.get('urun')} (ID: {son_silinen.get('id')} - Kalan: {son_silinen.get('kalan')} {son_silinen.get('birim')})")
+                with c_undo2:
+                    if st.button("↩️ Silme İşlemini Geri Al", type="secondary", key="btn_undo_silme_son"):
+                        # Silinen kaydı depoya geri ekle
+                        st.session_state.girisler.append(son_silinen)
+                        verileri_kaydet(st.session_state.girisler)
+
+                        # Silinen ürün loglarından ilgili kaydı temizle
+                        silinen_id = son_silinen.get("id")
+                        st.session_state.silinen_urun_loglari = [
+                            l for l in st.session_state.silinen_urun_loglari if l.get("kayit_id") != silinen_id
+                        ]
+                        silinen_urun_loglarini_kaydet(st.session_state.silinen_urun_loglari)
+
+                        st.session_state.pop("son_silinen_kayit", None)
+                        st.success(f"🎉 Kayıt ID {silinen_id} ({son_silinen.get('urun')}) depoya ve sisteme geri yüklendi!")
+                        time.sleep(1)
+                        st.rerun()
+
             if not st.session_state.girisler:
                 st.info("Sistemde silinecek kayıt bulunmuyor.")
             else:
@@ -3044,7 +3069,11 @@ elif menu == "Ürün Sil / Düzenle":
                         for g in st.session_state.girisler
                     ]
                     secilen_kayit_str = st.selectbox(
-                        "Silmek İstediğiniz Kaydı / Faturayı Seçin", secenekler
+                        "Silmek İstediğiniz Kaydı / Faturayı Seçin",
+                        secenekler,
+                        index=None,
+                        placeholder="Silinecek kaydı seçiniz...",
+                        key="urun_silme_select_box"
                     )
                     silme_nedeni_input = st.text_input(
                         "Silme Nedeni / Gerekçesi", "Örn: Yanlış giriş"
@@ -3054,45 +3083,51 @@ elif menu == "Ürün Sil / Düzenle":
                         "Seçilen Kaydı Kalıcı Olarak Sil", type="primary"
                     )
 
-                    if sil_onay_btn and not onay_sil_onay_btn:
-
-                        st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
-
-                    elif sil_onay_btn:
-                        secilen_id = secilen_kayit_str.split(" - ")[0]
-                        ilgili_oge = next(
-                            (g for g in st.session_state.girisler if g["id"] == secilen_id),
-                            None,
-                        )
-                        if ilgili_oge:
-                            otomatik_yedek_al("Kayıt silme: " + str(ilgili_oge.get("id")))
-                            silinen_urun_adi = ilgili_oge["urun"]
-                            st.session_state.silinen_urun_loglari.append({
-                                "tarih": simdi_tr_str("%Y-%m-%d %H:%M"),
-                                "urun": silinen_urun_adi,
-                                "kayit_id": ilgili_oge["id"],
-                                "fatura_no": ilgili_oge.get("fatura_no", "-"),
-                                "neden": (
-                                    silme_nedeni_input
-                                    if silme_nedeni_input
-                                    else "Belirtilmedi"
-                                ),
-                                "islem_yapan": st.session_state.aktif_kullanici,
-                            })
-                            silinen_urun_loglarini_kaydet(
-                                st.session_state.silinen_urun_loglari
+                    if sil_onay_btn:
+                        if not secilen_kayit_str:
+                            st.error("⚠️ Lütfen silmek istediğiniz kaydı listeden seçin!")
+                        elif not onay_sil_onay_btn:
+                            st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                        else:
+                            secilen_id = secilen_kayit_str.split(" - ")[0]
+                            ilgili_oge = next(
+                                (g for g in st.session_state.girisler if g["id"] == secilen_id),
+                                None,
                             )
-                            st.session_state.girisler = [
-                                g
-                                for g in st.session_state.girisler
-                                if g["id"] != secilen_id
-                            ]
-                            verileri_kaydet(st.session_state.girisler)
-                            st.session_state.silme_mesaji = (
-                                f"🎉 Başarılı! {silinen_urun_adi} kayıt ID {secilen_id} sistemden silindi."
-                            )
-                            st.balloons()
-                            st.rerun()
+                            if ilgili_oge:
+                                otomatik_yedek_al("Kayıt silme: " + str(ilgili_oge.get("id")))
+                                silinen_urun_adi = ilgili_oge["urun"]
+                                
+                                # Son silinen kaydı sakla (Geri Al için)
+                                st.session_state["son_silinen_kayit"] = ilgili_oge.copy()
+
+                                st.session_state.silinen_urun_loglari.append({
+                                    "tarih": simdi_tr_str("%Y-%m-%d %H:%M"),
+                                    "urun": silinen_urun_adi,
+                                    "kayit_id": ilgili_oge["id"],
+                                    "fatura_no": ilgili_oge.get("fatura_no", "-"),
+                                    "neden": (
+                                        silme_nedeni_input
+                                        if silme_nedeni_input
+                                        else "Belirtilmedi"
+                                    ),
+                                    "islem_yapan": st.session_state.aktif_kullanici,
+                                })
+                                silinen_urun_loglarini_kaydet(
+                                    st.session_state.silinen_urun_loglari
+                                )
+                                st.session_state.girisler = [
+                                    g
+                                    for g in st.session_state.girisler
+                                    if g["id"] != secilen_id
+                                ]
+                                verileri_kaydet(st.session_state.girisler)
+                                st.session_state.silme_mesaji = (
+                                    f"🎉 Başarılı! {silinen_urun_adi} kayıt ID {secilen_id} sistemden silindi."
+                                )
+                                st.balloons()
+                                time.sleep(1)
+                                st.rerun()
 
         st.markdown("---")
         
