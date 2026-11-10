@@ -4561,32 +4561,32 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
         if st.session_state.get("son_personel_islem"):
             son_p_islem = st.session_state["son_personel_islem"]
             tur = son_p_islem.get("tur")
-            p_obj = son_p_islem.get("obje")
+            p_obj = son_p_islem.get("obje", {})
             
             c_undo1, c_undo2 = st.columns([3, 1])
             with c_undo1:
                 if tur == "personel_ekle":
-                    st.info(f"💡 **Son İşlem:** '{p_obj.get('ad_soyad')}' personeli eklendi.")
+                    st.info(f"💡 **Son İşlem:** '{p_obj.get('ad_soyad', p_obj.get('ad', '-'))}' personeli eklendi.")
                 elif tur == "personel_sil":
-                    st.info(f"💡 **Son İşlem:** '{p_obj.get('ad_soyad')}' personeli silindi.")
+                    st.info(f"💡 **Son İşlem:** '{p_obj.get('ad_soyad', p_obj.get('ad', '-'))}' personeli silindi.")
                 elif tur == "izin_ekle":
-                    st.info(f"💡 **Son İşlem:** '{p_obj.get('personel_ad')}' için {p_obj.get('gun_sayisi')} günlük {p_obj.get('izin_turu')} eklendi.")
+                    st.info(f"💡 **Son İşlem:** '{p_obj.get('personel_ad', '-')}' için {p_obj.get('gun_sayisi', 0)} günlük {p_obj.get('izin_turu', '-')} eklendi.")
                 elif tur == "izin_sil":
-                    st.info(f"💡 **Son İşlem:** '{p_obj.get('personel_ad')}' kişisine ait izin kaydı silindi.")
+                    st.info(f"💡 **Son İşlem:** '{p_obj.get('personel_ad', '-')}' kişisine ait izin kaydı silindi.")
 
             with c_undo2:
                 if st.button("↩️ Son İşlemi Geri Al", type="secondary", key="btn_undo_personel_son"):
                     otomatik_yedek_al("Personel işlemi geri alma: " + str(tur))
                     
                     if tur == "personel_ekle":
-                        st.session_state.personeller = [p for p in st.session_state.personeller if p.get("id") != p_obj.get("id")]
+                        st.session_state.personeller = [p for p in st.session_state.personeller if str(p.get("id")) != str(p_obj.get("id"))]
                     elif tur == "personel_sil":
-                        if not any(p.get("id") == p_obj.get("id") for p in st.session_state.personeller):
+                        if not any(str(p.get("id")) == str(p_obj.get("id")) for p in st.session_state.personeller):
                             st.session_state.personeller.append(p_obj)
                     elif tur == "izin_ekle":
-                        st.session_state.personel_izinleri = [iz for iz in st.session_state.personel_izinleri if iz.get("id") != p_obj.get("id")]
+                        st.session_state.personel_izinleri = [iz for iz in st.session_state.personel_izinleri if str(iz.get("id")) != str(p_obj.get("id"))]
                     elif tur == "izin_sil":
-                        if not any(iz.get("id") == p_obj.get("id") for iz in st.session_state.personel_izinleri):
+                        if not any(str(iz.get("id")) == str(p_obj.get("id")) for iz in st.session_state.personel_izinleri):
                             st.session_state.personel_izinleri.append(p_obj)
 
                     personelleri_kaydet(st.session_state.personeller)
@@ -4610,11 +4610,12 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
 
             personel_gosterim = []
             for p in st.session_state.personeller:
-                tc_p = "🔒 Gizli" if "5. Sayfa: Personel - T.C. No" in aktif_k_maskeleri else p.get("tc_no", "-")
-                ad_p = "🔒 Gizli" if "5. Sayfa: Personel - Adı Soyadı" in aktif_k_maskeleri else p.get("ad_soyad", "-")
+                ad_soyad_val = p.get("ad_soyad", p.get("ad", p.get("isim", "-")))
+                tc_p = "🔒 Gizli" if "5. Sayfa: Personel - T.C. No" in aktif_k_maskeleri else p.get("tc_no", p.get("tc", "-"))
+                ad_p = "🔒 Gizli" if "5. Sayfa: Personel - Adı Soyadı" in aktif_k_maskeleri else ad_soyad_val
                 tel_p = "🔒 Gizli" if "5. Sayfa: Personel - Telefon" in aktif_k_maskeleri else p.get("telefon", "-")
                 gorev_p = p.get("gorev", "-")
-                tarih_p = p.get("baslama_tarihi", "-")
+                tarih_p = p.get("baslama_tarihi", p.get("tarih", "-"))
 
                 personel_gosterim.append({
                     "Personel ID": p.get("id", "-"),
@@ -4673,7 +4674,10 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                         with st.form("personel_sil_form"):
                             st.markdown("**🗑️ Kayıtlı Personeli Sil**")
                             if st.session_state.personeller:
-                                p_secenekler_sil = [f"{p['id']} - {p['ad_soyad']} ({p.get('gorev', '-')})" for p in st.session_state.personeller]
+                                p_secenekler_sil = [
+                                    f"{p.get('id', '-') } - {p.get('ad_soyad', p.get('ad', p.get('isim', '-')))} ({p.get('gorev', '-')})"
+                                    for p in st.session_state.personeller
+                                ]
                                 secilen_sil_p = st.selectbox(
                                     "Silinecek Personeli Seçin",
                                     p_secenekler_sil,
@@ -4692,10 +4696,10 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                                     else:
                                         otomatik_yedek_al("Personel silme: " + str(secilen_sil_p))
                                         sil_p_id = secilen_sil_p.split(" - ")[0]
-                                        silinen_p_obj = next((p for p in st.session_state.personeller if p["id"] == sil_p_id), None)
+                                        silinen_p_obj = next((p for p in st.session_state.personeller if str(p.get("id")) == str(sil_p_id)), None)
                                         
                                         if silinen_p_obj:
-                                            st.session_state.personeller = [p for p in st.session_state.personeller if p["id"] != sil_p_id]
+                                            st.session_state.personeller = [p for p in st.session_state.personeller if str(p.get("id")) != str(sil_p_id)]
                                             personelleri_kaydet(st.session_state.personeller)
                                             
                                             st.session_state["son_personel_islem"] = {
@@ -4729,7 +4733,7 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                     with col_iz_ekle:
                         with st.form("yeni_izin_form"):
                             st.markdown("**➕ İzin / Rapor Kaydı Ekle**")
-                            p_isimler = [p["ad_soyad"] for p in st.session_state.personeller]
+                            p_isimler = [p.get("ad_soyad", p.get("ad", p.get("isim", "-"))) for p in st.session_state.personeller]
                             secilen_p_ad = st.selectbox(
                                 "Personel Seçin",
                                 p_isimler,
@@ -4794,7 +4798,7 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                                 st.markdown("**🗑️ İzin Kaydı Sil**")
                                 if st.session_state.personel_izinleri:
                                     iz_secenekler = [
-                                        f"{iz['id']} - {iz['personel_ad']} ({iz['izin_turu']}: {iz['baslangic']} / {iz['bitis']})"
+                                        f"{iz.get('id', '-') } - {iz.get('personel_ad', '-') } ({iz.get('izin_turu', '-') }: {iz.get('baslangic', '-') } / {iz.get('bitis', '-') })"
                                         for iz in st.session_state.personel_izinleri
                                     ]
                                     secilen_sil_iz = st.selectbox(
@@ -4814,10 +4818,10 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
                                             st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
                                         else:
                                             sil_iz_id = secilen_sil_iz.split(" - ")[0]
-                                            silinen_iz_obj = next((iz for iz in st.session_state.personel_izinleri if iz["id"] == sil_iz_id), None)
+                                            silinen_iz_obj = next((iz for iz in st.session_state.personel_izinleri if str(iz.get("id")) == str(sil_iz_id)), None)
                                             
                                             if silinen_iz_obj:
-                                                st.session_state.personel_izinleri = [iz for iz in st.session_state.personel_izinleri if iz["id"] != sil_iz_id]
+                                                st.session_state.personel_izinleri = [iz for iz in st.session_state.personel_izinleri if str(iz.get("id")) != str(sil_iz_id)]
                                                 personel_izinlerini_kaydet(st.session_state.personel_izinleri)
 
                                                 st.session_state["son_personel_islem"] = {
@@ -4857,14 +4861,12 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
             sorgu_ay = st.date_input("Sorgulanacak Ay ve Yıl Seçin", value=datetime.date.today(), key="sorgu_ay_picker")
             sorgu_yil_ay_str = sorgu_ay.strftime("%Y-%m")
             
-            # Ay kaç gün çekiyor hesabı
             toplam_ay_gunu = calendar.monthrange(sorgu_ay.year, sorgu_ay.month)[1]
             
             net_calisma_raporu = []
             for p in st.session_state.personeller:
-                p_ad = p.get("ad_soyad", "-")
+                p_ad = p.get("ad_soyad", p.get("ad", p.get("isim", "-")))
                 
-                # Bu aya denk gelen izin günlerini topla
                 kullandigi_izin_gunu = 0
                 for iz in st.session_state.personel_izinleri:
                     if iz.get("personel_ad") == p_ad:
