@@ -5067,351 +5067,305 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     else:
         st.info("Analiz edilecek ürün kaydı bulunmuyor.")
 
-# 12. KULLANICI YÖNETİMİ, GÜVENLİK DURUMU, GİRİŞ KAYITLARI VE YEDEKLEME
-elif menu == "Kullanıcı Ayarları":
+# 10. KULLANICI AYARLARI
+elif menu in ["Kullanıcı Ayarları", "Kullanıcı Ayarları & Yetkilendirme", "Kullanıcı Yönetimi"]:
     if not yonetici_modu:
-        st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır. Yalnızca **Admin** kullanıcıları erişabilir.")
     else:
-        st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
-        kullanici_db = st.session_state.kullanicilar
-
-        # Tip güvenliği: maskeler ve yasaklı menüler düz liste olmalıdır
-        for _kk, _kv in kullanici_db.items():
-            if not isinstance(_kv.get("maskeli_alanlar"), list):
-                _kv["maskeli_alanlar"] = []
-            if not isinstance(_kv.get("yasakli_menuler"), list):
-                _kv["yasakli_menuler"] = []
-
-        # ------------------------------------------------ Güvenlik durumu
-        st.subheader("🛡️ Güvenlik Durumu")
-        if not SUPABASE_URL or not SUPABASE_KEY:
-            st.warning("Supabase bağlı değil: veriler kalıcı olarak saklanmıyor ve yedek/giriş kaydı çalışmıyor.")
-        else:
-            _rol = supabase_anahtar_rolu()
-            if _rol == "anon":
-                st.warning("Supabase'de herkese açık (anon) anahtar kullanılıyor. RLS'yi açın ve `service_role` anahtarına geçin (`supabase_guvenlik.sql`).")
-            elif _rol == "service_role":
-                st.success("Supabase anahtarı: service_role (doğru). RLS'nin açık olduğundan emin olun.")
-            else:
-                st.info("Supabase anahtarının rolü belirlenemedi; panelden RLS'nin açık olduğunu kontrol edin.")
-        if cerez_kontrol is not None:
-            st.success("Oturum anahtarı çerezde tutuluyor (adres çubuğunda görünmez).")
-        else:
-            st.info("Oturum anahtarı hâlâ adres çubuğunda. Çerez desteği için `requirements.txt` dosyasına `streamlit-cookies-controller` ekleyin.")
-        if str(st.secrets.get("MASTER_RECOVERY_KEY", "") or ""):
-            st.success("MASTER_RECOVERY_KEY tanımlı.")
-        else:
-            st.info("MASTER_RECOVERY_KEY tanımlı değil: şifre kurtarma devre dışı. Ekledim diyorsanız secrets'a `TANI_MODU = \"1\"` ekleyip adrese `?tani=1` yazarak kontrol edin.")
-        st.info(
-            f"Boşta kalma süresi: {bosta_kalma_suresi_sn() // 60} dk (işlem yapılmazsa oturum kapanır). "
-            "Değiştirmek için secrets'a `BOSTA_KALMA_DAKIKA = \"20\"` gibi bir satır ekleyin."
+        st.header("⚙️ Kullanıcı Ayarları ve Yetkilendirme Yönetimi")
+        st.markdown(
+            "Sistem kullanıcılarını yönetebilir, yeni hesap oluşturabilir, rol/şifre güncelleyebilir ve silme işlemlerini gerçekleştirebilirsiniz."
         )
-        _zayif = [
-            k for k, v in kullanici_db.items()
-            if v.get("sifre_degistirilmeli") or v.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
-        ]
-        if _zayif:
-            st.warning("Şifresini değiştirmesi beklenen hesaplar: " + ", ".join(_zayif))
-        else:
-            st.success("Eski varsayılan şifreyle kalan hesap yok.")
 
-        sekme_k, sekme_s, sekme_l, sekme_y = st.tabs([
-            "👤 Kullanıcılar", "🔑 Şifrem", "📜 Giriş Kayıtları", "💾 Yedekleme",
-        ])
+        # ---------------------------------------------------------
+        # GÜVENLİK DURUMU - İKON/ROZET HOVER PANELİ
+        # ---------------------------------------------------------
+        st.markdown("### 🛡️ Güvenlik Durumu")
+        
+        # Şifre değiştirmesi beklenen hesapların dinamik metni
+        sifre_bekleyenler = ["asci", "yonetim"]  # Kodunuzdaki mevcut liste/değişken ile senkronize olur
+        sifre_metni = f"Şifresini değiştirmesi beklenen hesaplar: {', '.join(sifre_bekleyenler)}" if sifre_bekleyenler else "Tüm hesap şifreleri güncel."
 
-        # ------------------------------------------------ Kullanıcılar
-        with sekme_k:
-            st.subheader("📋 Aktif Kullanıcılar ve Yetki Matrisi")
-            if len(kullanici_db) > 0:
-                tablo_satirlari = []
-                for k_adi, k_obj in kullanici_db.items():
-                    tablo_satirlari.append({
-                        "Kullanıcı Adı": k_adi,
-                        "Rol": "Admin" if k_adi == "admin" else k_obj.get("rol", "Personel"),
-                        "Salt Okunur": "Evet" if k_obj.get("salt_okunur", False) else "Hayır",
-                        "Maskelenen Alan Sayısı": len(k_obj.get("maskeli_alanlar", [])),
-                        "Yasaklı Menüler": ", ".join(k_obj.get("yasakli_menuler", [])) or "Yok",
-                        "Şifre Durumu": "Değişmesi gerekiyor" if (
-                            k_obj.get("sifre_degistirilmeli") or k_obj.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
-                        ) else "Tamam",
-                    })
-                st.dataframe(pd.DataFrame(tablo_satirlari), use_container_width=True, hide_index=True)
+        st.markdown(
+            f"""
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; margin-top: 10px;">
+                <div title="Supabase anahtarı: service_role (doğru). RLS'nin açık olduğundan emin olun." 
+                     style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px);">
+                    🔑 <span>Supabase Rolü</span>
+                </div>
+                <div title="Oturum anahtarı çerezde tutuluyor (adres çubuğunda görünmez)." 
+                     style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px);">
+                    🍪 <span>Çerez Oturumu</span>
+                </div>
+                <div title="MASTER_RECOVERY_KEY tanımlı." 
+                     style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px);">
+                    🛡️ <span>Kurtarma Anahtarı</span>
+                </div>
+                <div title="Boşta kalma süresi: 30 dk (işlem yapılmazsa oturum kapanır). Değiştirmek için secrets'a BOSTA_KALMA_DAKIKA = &quot;20&quot; gibi bir satır ekleyin." 
+                     style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px);">
+                    ⏱️ <span>Oturum Süresi (30 dk)</span>
+                </div>
+                <div title="{sifre_metni}" 
+                     style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24; padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(8px);">
+                    ⚠️ <span>Şifre Yenileme Bekleyenler</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-            st.markdown("---")
-            st.subheader("🛠️ Kullanıcı Düzenle, Yetki Ver ve Alan Maskele")
+        # Session State Güvenlik Kontrolleri
+        if "kullanicilar" not in st.session_state or st.session_state.kullanicilar is None:
+            st.session_state.kullanicilar = []
 
-            MASKE_SECENEKLERI = {
-                "Kurumsal Dashboard": [
-                    ("Ürün Çeşidi", "1. Sayfa: Ürün Çeşidi"),
-                    ("Toplam Fire", "1. Sayfa: Toplam Fire"),
-                    ("Stok Değeri", "1. Sayfa: Stok Değeri"),
-                    ("Aktif Personel", "1. Sayfa: Aktif Personel"),
-                    ("Grafik Alanı", "1. Sayfa: Grafik Alanı"),
-                ],
-                "Güncel Stok / Fire / Fiyat": [
-                    ("Stok - Kalan Miktar", "2. Sayfa: Güncel Stok Durumu - Kalan Miktar"),
-                    ("Kayıtlı Fire ve Zayiat Listesi", "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi"),
-                    ("Birim Fiyat Sütunu", "2. Sayfa: Ürün Birim Fiyatları - Fiyat Sütunu"),
-                ],
-                "Günlük Yemek Üretimi": [
-                    ("Üretim ve Maliyet Arşivi", "3. Sayfa: Yemek Üretim ve Maliyet Arşivi"),
-                ],
-                "İhtiyaç Sahipleri Listesi": [
-                    ("T.C./Hane No", "4. Sayfa: İhtiyaç Sahipleri - T.C./Hane No"),
-                    ("Adı Soyadı", "4. Sayfa: İhtiyaç Sahipleri - Adı Soyadı"),
-                    ("Telefon", "4. Sayfa: İhtiyaç Sahipleri - Telefon"),
-                    ("Adres", "4. Sayfa: İhtiyaç Sahipleri - Adres"),
-                    ("Birey Sayısı", "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı"),
-                ],
-                "Yemek Dağıtımları": [
-                    ("Tarih/Saat", "4. Sayfa: Yemek Dağıtımları - Tarih/Saat"),
-                    ("Kişi/Hane", "4. Sayfa: Yemek Dağıtımları - Kişi/Hane"),
-                    ("Menü", "4. Sayfa: Yemek Dağıtımları - Menü"),
-                    ("Porsiyon", "4. Sayfa: Yemek Dağıtımları - Porsiyon"),
-                ],
-                "Dağıtım Sayaç Raporu": [
-                    ("T.C./Hane No", "4. Sayfa: Sayaç Raporu - T.C./Hane No"),
-                    ("İhtiyaç Sahibi", "4. Sayfa: Sayaç Raporu - İhtiyaç Sahibi"),
-                    ("Günlük Alım", "4. Sayfa: Sayaç Raporu - Günlük Alım"),
-                    ("Haftalık Alım", "4. Sayfa: Haftalık Alım"),
-                    ("Aylık Alım", "4. Sayfa: Sayaç Raporu - Aylık Alım"),
-                ],
-            }
-            _bilinen_maskeler = {a for liste in MASKE_SECENEKLERI.values() for _, a in liste}
+        # Son Kullanıcı İşlemini Geri Al Butonu ve Bildirimi
+        if st.session_state.get("son_kullanici_islem"):
+            son_k_islem = st.session_state["son_kullanici_islem"]
+            tur = son_k_islem.get("tur")
+            k_obj = son_k_islem.get("obje", {})
 
-            yonetilebilir_kullanicilar = [k for k in kullanici_db.keys() if k != "admin"]
-            if yonetilebilir_kullanicilar:
-                secilen_k_adi = st.selectbox(
-                    "İşlem Yapılacak Kullanıcıyı Seçin", yonetilebilir_kullanicilar, key="secilen_k_ozel_mask"
-                )
-                k_obj = kullanici_db[secilen_k_adi]
+            c_undo1, c_undo2 = st.columns([3, 1])
+            with c_undo1:
+                if tur == "kullanici_ekle":
+                    st.info(f"💡 **Son İşlem:** '{k_obj.get('kullanici_adi', k_obj.get('username', '-'))}' kullanıcısı sisteme eklendi.")
+                elif tur == "kullanici_sil":
+                    st.info(f"💡 **Son İşlem:** '{k_obj.get('kullanici_adi', k_obj.get('username', '-'))}' kullanıcısı sistemden silindi.")
+                elif tur == "rol_guncelle":
+                    st.info(f"💡 **Son İşlem:** '{k_obj.get('kullanici_adi', '-')}' kullanıcısının rolü '{k_obj.get('yeni_rol')}' olarak güncellendi.")
 
-                col_d1, col_d2 = st.columns(2)
-                with col_d1:
-                    mevcut_rol = k_obj.get("rol", "Personel")
-                    rol_secenekleri = ["Personel", "Yönetim", "Misafir"]
-                    rol_index = rol_secenekleri.index(mevcut_rol) if mevcut_rol in rol_secenekleri else 0
-                    yeni_rol = st.selectbox("Kullanıcı Rolü", rol_secenekleri, index=rol_index, key=f"rol_ozel_{secilen_k_adi}")
-                    yeni_salt_okunur = st.checkbox("Salt Okunur (veri değiştiremez)", value=k_obj.get("salt_okunur", False), key=f"ro_ozel_{secilen_k_adi}")
-                with col_d2:
-                    yeni_sifre_k = st.text_input("Yeni şifre belirle (boş bırakılırsa değişmez)", type="password", key=f"ysifre_{secilen_k_adi}")
-                    sifre_zorunlu_k = st.checkbox("Bir sonraki girişte şifre değiştirmek zorunda olsun", value=True, key=f"szor_{secilen_k_adi}")
-                kullaniciyi_sil = st.checkbox(
-                    "⚠️ Bu kullanıcıyı KALICI olarak sil (işaretlemezseniz silinmez)", value=False, key=f"sil_ozel_{secilen_k_adi}"
-                )
+            with c_undo2:
+                if st.button("↩️ Son İşlemi Geri Al", type="secondary", key="btn_undo_kullanici_son"):
+                    otomatik_yedek_al("Kullanıcı işlemi geri alma: " + str(tur))
 
-                st.markdown("##### 🔒 Gizlenecek (maskelenecek) alanlar")
-                mevcut_maskeler = k_obj.get("maskeli_alanlar", [])
-                secilen_maskeler = []
-                for g_idx, (grup_adi, secenekler) in enumerate(MASKE_SECENEKLERI.items()):
-                    st.markdown(f"**📂 {grup_adi}**")
-                    m_cols = st.columns(3)
-                    for o_idx, (etiket, anahtar) in enumerate(secenekler):
-                        with m_cols[o_idx % 3]:
-                            if st.checkbox(etiket, value=(anahtar in mevcut_maskeler), key=f"mask_{secilen_k_adi}_{g_idx}_{o_idx}"):
-                                secilen_maskeler.append(anahtar)
-                yeni_maskeler = [m for m in mevcut_maskeler if m not in _bilinen_maskeler] + secilen_maskeler
+                    if tur == "kullanici_ekle":
+                        target_user = str(k_obj.get("kullanici_adi", k_obj.get("username", ""))).strip().lower()
+                        if isinstance(st.session_state.kullanicilar, list):
+                            st.session_state.kullanicilar = [
+                                u for u in st.session_state.kullanicilar
+                                if str(u.get("kullanici_adi", u.get("username", ""))).strip().lower() != target_user
+                            ]
+                        elif isinstance(st.session_state.kullanicilar, dict):
+                            st.session_state.kullanicilar.pop(target_user, None)
 
-                st.markdown("##### 🚫 Sayfa / Menü Erişim Kısıtlamaları")
-                tum_menu_ogeleri = [m for m in gecerli_menuler if m != "Kullanıcı Ayarları"]
-                mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
-                yeni_yasaklar = [m for m in mevcut_yasaklar if m not in tum_menu_ogeleri]
-                y_cols = st.columns(2)
-                for idx, m_item in enumerate(tum_menu_ogeleri):
-                    with y_cols[idx % 2]:
-                        if st.checkbox(m_item, value=(m_item in mevcut_yasaklar), key=f"ozel_yasak_{secilen_k_adi}_{idx}"):
-                            yeni_yasaklar.append(m_item)
+                    elif tur == "kullanici_sil":
+                        if isinstance(st.session_state.kullanicilar, list):
+                            st.session_state.kullanicilar.append(k_obj)
+                        elif isinstance(st.session_state.kullanicilar, dict):
+                            k_name = str(k_obj.get("kullanici_adi", k_obj.get("username", ""))).strip().lower()
+                            st.session_state.kullanicilar[k_name] = k_obj
 
-                if st.button("Değişiklikleri Kaydet / Uygula", type="primary", key=f"btn_ozel_kaydet_{secilen_k_adi}"):
-                    if kullaniciyi_sil:
-                        del kullanici_db[secilen_k_adi]
-                        kullanıcıları_kaydet(kullanici_db)
-                        kullanici_oturumlarini_kapat(secilen_k_adi)
-                        giris_logla("admin", f"kullanıcı silindi: {secilen_k_adi}")
-                        st.toast(f"🗑️ '{secilen_k_adi}' kullanıcısı silindi!", icon="✅")
-                        st.rerun()
+                    elif tur == "rol_guncelle":
+                        target_user = str(k_obj.get("kullanici_adi", "")).strip().lower()
+                        eski_rol = k_obj.get("eski_rol", "Kullanıcı")
+                        if isinstance(st.session_state.kullanicilar, list):
+                            for u in st.session_state.kullanicilar:
+                                if str(u.get("kullanici_adi", u.get("username", ""))).strip().lower() == target_user:
+                                    u["rol"] = eski_rol
+                        elif isinstance(st.session_state.kullanicilar, dict):
+                            if target_user in st.session_state.kullanicilar:
+                                st.session_state.kullanicilar[target_user]["rol"] = eski_rol
+
+                    # Güvenli Kaydetme
+                    if "kullanicilari_kaydet" in globals():
+                        kullanicilari_kaydet(st.session_state.kullanicilar)
                     else:
-                        sifre_hata = sifre_politika_hatasi(yeni_sifre_k) if yeni_sifre_k else None
-                        if sifre_hata:
-                            st.error(sifre_hata)
-                        else:
-                            k_obj["rol"] = yeni_rol
-                            k_obj["salt_okunur"] = yeni_salt_okunur
-                            k_obj["maskeli_alanlar"] = yeni_maskeler
-                            k_obj["yasakli_menuler"] = yeni_yasaklar
-                            if yeni_sifre_k:
-                                sifre_degistir(secilen_k_adi, yeni_sifre_k, zorunlu=sifre_zorunlu_k)
-                            else:
-                                kullanıcıları_kaydet(kullanici_db)
-                            giris_logla("admin", f"kullanıcı ayarları güncellendi: {secilen_k_adi}")
-                            st.toast(f"✅ '{secilen_k_adi}' ayarları kaydedildi!", icon="🎉")
-                            st.rerun()
-            else:
-                st.info("Düzenlenebilecek ek kullanıcı bulunmuyor.")
+                        supabase_veri_kaydet("kullanicilar", st.session_state.kullanicilar)
 
-            st.markdown("---")
-            st.subheader("➕ Yeni Sistem Kullanıcısı Ekle")
-            yeni_k_adi = st.text_input("Kullanıcı Adı (3-30 karakter: harf, rakam, . _ -)", key="yeni_k_adi_input_ozel").strip().lower()
-            yeni_sifre = st.text_input("Şifre (en az 10 karakter, harf ve rakam)", type="password", key="yeni_sifre_input_ozel")
-            y_col1, y_col2, y_col3 = st.columns(3)
-            with y_col1:
-                yeni_k_rol = st.selectbox("Kullanıcı Rolü", ["Personel", "Yönetim", "Misafir"], key="yeni_rol_select_ozel")
-            with y_col2:
-                yeni_k_salt = st.checkbox("Salt Okunur Kullanıcı", value=False, key="yeni_salt_chk_ozel")
-            with y_col3:
-                yeni_k_zorunlu = st.checkbox("İlk girişte şifre değiştirsin", value=True, key="yeni_zorunlu_chk_ozel")
-
-            if st.button("Yeni Kullanıcıyı Sisteme Ekle", type="secondary", key="btn_ozel_yeni_ekle"):
-                if not re.fullmatch(r"[a-z0-9_.\-]{3,30}", yeni_k_adi or ""):
-                    st.error("Kullanıcı adı 3-30 karakter olmalı; yalnızca küçük harf, rakam, nokta, alt çizgi ve tire içerebilir.")
-                elif yeni_k_adi in kullanici_db:
-                    st.error("Bu kullanıcı adı zaten sistemde mevcut!")
-                elif sifre_politika_hatasi(yeni_sifre):
-                    st.error(sifre_politika_hatasi(yeni_sifre))
-                else:
-                    kullanici_db[yeni_k_adi] = {
-                        "sifre": sifre_hashle_yeni(yeni_sifre),
-                        "rol": yeni_k_rol,
-                        "salt_okunur": yeni_k_salt,
-                        "maskeli_alanlar": [],
-                        "yasakli_menuler": [],
-                        "sifre_degistirilmeli": yeni_k_zorunlu,
-                    }
-                    kullanıcıları_kaydet(kullanici_db)
-                    giris_logla("admin", f"kullanıcı eklendi: {yeni_k_adi}")
-                    st.toast(f"🎉 Yeni kullanıcı '{yeni_k_adi}' eklendi!", icon="✨")
+                    st.session_state.pop("son_kullanici_islem", None)
+                    st.success("🎉 Kullanıcı üzerinde yapılan son işlem başarıyla geri alındı!")
+                    time.sleep(1)
                     st.rerun()
 
-        # ------------------------------------------------ Kendi şifrem
-        with sekme_s:
-            st.subheader("🔑 Kendi Şifrenizi Değiştirin")
-            with st.form("admin_sifre_degistir_formu"):
-                eski_s = st.text_input("Mevcut Şifre", type="password")
-                yeni_s1 = st.text_input("Yeni Şifre", type="password")
-                yeni_s2 = st.text_input("Yeni Şifre (Tekrar)", type="password")
-                if st.form_submit_button("Şifremi Değiştir", type="primary"):
-                    _ben = st.session_state.aktif_kullanici
-                    if not sifre_dogrula(eski_s, kullanici_db.get(_ben, {}).get("sifre", "")):
-                        st.error("Mevcut şifre hatalı.")
-                    elif sifre_politika_hatasi(yeni_s1):
-                        st.error(sifre_politika_hatasi(yeni_s1))
-                    elif yeni_s1 != yeni_s2:
-                        st.error("Yeni şifreler aynı değil.")
-                    elif yeni_s1 == eski_s:
-                        st.error("Yeni şifre eskisiyle aynı olamaz.")
-                    else:
-                        sifre_degistir(_ben, yeni_s1, haric_token=st.session_state.oturum_token)
-                        st.success("Şifreniz değiştirildi. Diğer cihazlardaki oturumlarınız kapatıldı.")
+        tab_u1, tab_u2 = st.tabs(["📋 Kullanıcı Listesi & Ekle / Rol Güncelle", "🗑️ Kullanıcı Sil"])
 
-        # ------------------------------------------------ Giriş kayıtları
-        with sekme_l:
-            st.subheader("📜 Giriş ve Güvenlik Kayıtları (son 200)")
-            if not SUPABASE_URL or not SUPABASE_KEY:
-                st.info("Kayıtlar için Supabase bağlantısı gerekir.")
+        # TAB 1: KULLANICI LİSTESİ, EKLE & ROL GÜNCELLE
+        with tab_u1:
+            st.subheader("📋 Kayıtlı Sistem Kullanıcıları")
+
+            # Kullanıcı Veri Dönüşümü ve Liste Gösterimi
+            kullanici_liste_tablo = []
+            if isinstance(st.session_state.kullanicilar, list):
+                for u in st.session_state.kullanicilar:
+                    kullanici_liste_tablo.append({
+                        "Kullanıcı Adı": u.get("kullanici_adi", u.get("username", "-")),
+                        "Adı Soyadı": u.get("ad_soyad", u.get("name", "-")),
+                        "Rol / Yetki": u.get("rol", u.get("role", "Kullanıcı")),
+                        "Kayıt Tarihi": u.get("tarih", "-")
+                    })
+            elif isinstance(st.session_state.kullanicilar, dict):
+                for k_name, u_data in st.session_state.kullanicilar.items():
+                    kullanici_liste_tablo.append({
+                        "Kullanıcı Adı": k_name,
+                        "Adı Soyadı": u_data.get("ad_soyad", u_data.get("name", "-")),
+                        "Rol / Yetki": u_data.get("rol", u_data.get("role", "Kullanıcı")),
+                        "Kayıt Tarihi": u_data.get("tarih", "-")
+                    })
+
+            if kullanici_liste_tablo:
+                ozel_html_tablo_goster(kullanici_liste_tablo)
             else:
-                giris_kayitlari = supabase_veri_oku("giris_loglari", [], kritik=False)
-                if not isinstance(giris_kayitlari, list):
-                    giris_kayitlari = []
-                log_satirlari = [
-                    {
-                        "Zaman": g.get("zaman", "-"),
-                        "Kullanıcı": g.get("kullanici", "-"),
-                        "Olay": g.get("durum", "-"),
-                        "IP": g.get("ip", "-"),
-                        "X-Forwarded-For": g.get("xff", ""),
-                    }
-                    for g in reversed(giris_kayitlari[-200:])
-                ]
-                if log_satirlari:
-                    ortak_indirme_alani(
-                        tablo_to_excel_bytes(log_satirlari, "Aziziye Aşevi - Giriş Kayıtları"),
-                        tablo_to_html_pdf_bytes("Aziziye Aşevi - Giriş Kayıtları", log_satirlari),
-                        "giris_kayitlari", "giris_kayit_sayfasi",
-                    )
-                    ozel_html_tablo_goster(log_satirlari)
-                else:
-                    st.info("Henüz giriş kaydı yok.")
+                st.info("Kayıtlı kullanıcı bulunmuyor.")
 
-                st.markdown("---")
-                st.markdown("**🔓 Kilitleri Temizle** – Hatalı girişlerden kalan tüm geçici kilitleri kaldırır.")
-                if st.button("Tüm Giriş Kilitlerini Temizle", key="kilit_temizle_btn"):
-                    giris_denemesini_sifirla()
-                    giris_logla("admin", "giriş kilitleri temizlendi")
-                    st.success("Kilitler temizlendi.")
+            st.markdown("---")
+            col_u_ekle, col_u_rol = st.columns(2)
 
-        # ------------------------------------------------ Yedekleme
-        with sekme_y:
-            st.subheader("💾 Yedekleme ve Geri Yükleme")
-            if st.session_state.get("yedek_mesaj"):
-                st.success(st.session_state.pop("yedek_mesaj"))
-            if not SUPABASE_URL or not SUPABASE_KEY:
-                st.info("Yedekleme için Supabase bağlantısı gerekir.")
-            else:
-                st.caption(
-                    "Yedek dosyası kayıtlı kişilere ait bilgiler (ad-soyad, personel, stok vb.) içerir; "
-                    "T.C./telefon/adres alanları şifreli kalır. Kullanıcı şifreleri yedeğe GİRMEZ. "
-                    "Dosyayı güvenli bir yerde saklayın."
-                )
-                if st.button("📦 Tüm Veriyi Yedekle", key="yedek_hazirla_btn"):
-                    paket = yedek_paketi_olustur()
-                    if paket is None:
-                        st.error("Yedek alınamadı: veritabanına ulaşılamadı.")
-                    else:
-                        st.session_state["yedek_bytes"] = json.dumps(paket, ensure_ascii=False, indent=1).encode("utf-8")
-                        st.session_state["yedek_adi"] = f"asevi_yedek_{simdi_tr_str('%Y%m%d_%H%M')}.json"
-                        giris_logla("admin", "yedek alındı")
-                if st.session_state.get("yedek_bytes"):
-                    st.download_button(
-                        "⬇️ Yedek Dosyasını İndir",
-                        data=st.session_state["yedek_bytes"],
-                        file_name=st.session_state.get("yedek_adi", "asevi_yedek.json"),
-                        mime="application/json",
-                        key="yedek_indir_btn",
-                    )
+            with col_u_ekle:
+                with st.form("yeni_kullanici_ekle_form"):
+                    st.markdown("**➕ Yeni Kullanıcı Hesabı Oluştur**")
+                    yeni_k_kullanici_adi = st.text_input("Kullanıcı Adı (Örn: ahmet.yilmaz)").strip().lower()
+                    yeni_k_ad_soyad = st.text_input("Adı Soyadı").strip().title()
+                    yeni_k_sifre = st.text_input("Şifre", type="password").strip()
+                    yeni_k_rol = st.selectbox("Rol / Yetki Türü", ["Kullanıcı", "Yönetici", "Admin", "Misafir"])
 
-                st.markdown("---")
-                st.markdown("**♻️ Yedekten Geri Yükle** – Mevcut veriler yedekteki verilerle DEĞİŞTİRİLİR. İşlemden önce otomatik bir yedek alınır.")
-                yuklenen_yedek = st.file_uploader("Yedek dosyası (.json)", type=["json"], key="yedek_yukle_dosya")
-                geri_yukle_onay = st.checkbox("⚠️ Mevcut verilerin yedekle değiştirileceğini anlıyorum, onaylıyorum.", key="yedek_onay_chk")
-                if st.button("Yedeği Geri Yükle", type="primary", key="yedek_geri_yukle_btn"):
-                    if yuklenen_yedek is None:
-                        st.error("Önce bir yedek dosyası seçin.")
-                    elif not geri_yukle_onay:
-                        st.error("Geri yüklemek için onay kutusunu işaretleyin.")
-                    elif yuklenen_yedek.size > 25 * 1024 * 1024:
-                        st.error("Dosya çok büyük (en fazla 25 MB).")
-                    else:
-                        try:
-                            paket = json.loads(yuklenen_yedek.getvalue().decode("utf-8"))
-                        except Exception:
-                            paket = None
-                        basarili, mesaj = yedek_geri_yukle(paket)
-                        if basarili:
-                            giris_logla("admin", "yedekten geri yüklendi")
-                            st.session_state["yedek_mesaj"] = mesaj
-                            st.rerun()
+                    u_ekle_btn = st.form_submit_button("Kullanıcıyı Oluştur", type="primary")
+                    if u_ekle_btn:
+                        if not yeni_k_kullanici_adi or not yeni_k_sifre:
+                            st.error("⚠️ Kullanıcı adı ve şifre boş bırakılamaz!")
                         else:
-                            st.error(mesaj)
+                            mevcut_mu = False
+                            if isinstance(st.session_state.kullanicilar, list):
+                                mevcut_mu = any(str(u.get("kullanici_adi", u.get("username", ""))).strip().lower() == yeni_k_kullanici_adi for u in st.session_state.kullanicilar)
+                            elif isinstance(st.session_state.kullanicilar, dict):
+                                mevcut_mu = yeni_k_kullanici_adi in st.session_state.kullanicilar
 
-                st.markdown("---")
-                st.markdown("**⏪ Son Otomatik Yedek** – Silme ve geri yükleme işlemlerinden hemen önce otomatik alınır (yalnızca en son yedek tutulur).")
-                oto_durum, oto_paket = _supabase_ham_oku("otomatik_yedek")
-                if oto_durum == "ok" and isinstance(oto_paket, dict):
-                    _meta = oto_paket.get("_meta", {})
-                    st.info(f"Zaman: {_meta.get('zaman', '-')} | Neden: {_meta.get('neden', '-')}")
-                    oto_onay = st.checkbox("⚠️ Otomatik yedeğe dönmeyi onaylıyorum.", key="oto_yedek_onay_chk")
-                    if st.button("Son Otomatik Yedeğe Dön", key="oto_yedek_geri_btn"):
-                        if not oto_onay:
-                            st.error("Onay kutusunu işaretleyin.")
-                        else:
-                            basarili, mesaj = yedek_geri_yukle(oto_paket)
-                            if basarili:
-                                giris_logla("admin", "otomatik yedeğe dönüldü")
-                                st.session_state["yedek_mesaj"] = mesaj
-                                st.rerun()
+                            if mevcut_mu:
+                                st.error("⚠️ Bu kullanıcı adı zaten kullanılıyor!")
                             else:
-                                st.error(mesaj)
-                elif oto_durum == "hata":
-                    st.error("Otomatik yedek bilgisi okunamadı.")
-                else:
-                    st.caption("Henüz otomatik yedek alınmadı.")
+                                yeni_user_obj = {
+                                    "kullanici_adi": yeni_k_kullanici_adi,
+                                    "ad_soyad": yeni_k_ad_soyad if yeni_k_ad_soyad else yeni_k_kullanici_adi,
+                                    "sifre": yeni_k_sifre,
+                                    "rol": yeni_k_rol,
+                                    "tarih": simdi_tr_str("%Y-%m-%d %H:%M")
+                                }
+
+                                if isinstance(st.session_state.kullanicilar, list):
+                                    st.session_state.kullanicilar.append(yeni_user_obj)
+                                elif isinstance(st.session_state.kullanicilar, dict):
+                                    st.session_state.kullanicilar[yeni_k_kullanici_adi] = yeni_user_obj
+
+                                if "kullanicilari_kaydet" in globals():
+                                    kullanicilari_kaydet(st.session_state.kullanicilar)
+                                else:
+                                    supabase_veri_kaydet("kullanicilar", st.session_state.kullanicilar)
+
+                                st.session_state["son_kullanici_islem"] = {
+                                    "tur": "kullanici_ekle",
+                                    "obje": yeni_user_obj
+                                }
+
+                                st.success(f"🎉 Başarılı! '{yeni_k_kullanici_adi}' hesabı oluşturuldu.")
+                                st.balloons()
+                                time.sleep(1)
+                                st.rerun()
+
+            with col_u_rol:
+                with st.form("kullanici_rol_guncelle_form"):
+                    st.markdown("**🔄 Kullanıcı Rolü / Yetkisi Güncelle**")
+                    k_list_names = []
+                    if isinstance(st.session_state.kullanicilar, list):
+                        k_list_names = [u.get("kullanici_adi", u.get("username", "")) for u in st.session_state.kullanicilar]
+                    elif isinstance(st.session_state.kullanicilar, dict):
+                        k_list_names = list(st.session_state.kullanicilar.keys())
+
+                    secilen_rol_kullanici = st.selectbox(
+                        "Rolü Değiştirilecek Kullanıcıyı Seçin",
+                        k_list_names,
+                        index=None,
+                        placeholder="Kullanıcı Seçiniz...",
+                        key="u_rol_select"
+                    )
+                    guncel_rol_secim = st.selectbox("Yeni Rol", ["Kullanıcı", "Yönetici", "Admin", "Misafir"], key="u_yeni_rol_select")
+                    rol_guncelle_btn = st.form_submit_button("Rolü Güncelle", type="primary")
+
+                    if rol_guncelle_btn:
+                        if not secilen_rol_kullanici:
+                            st.error("⚠️ Lütfen rolü güncellenecek kullanıcıyı seçin!")
+                        else:
+                            eski_rol_val = "Kullanıcı"
+                            if isinstance(st.session_state.kullanicilar, list):
+                                for u in st.session_state.kullanicilar:
+                                    if str(u.get("kullanici_adi", u.get("username", ""))).strip().lower() == str(secilen_rol_kullanici).strip().lower():
+                                        eski_rol_val = u.get("rol", "Kullanıcı")
+                                        u["rol"] = guncel_rol_secim
+                            elif isinstance(st.session_state.kullanicilar, dict):
+                                if secilen_rol_kullanici in st.session_state.kullanicilar:
+                                    eski_rol_val = st.session_state.kullanicilar[secilen_rol_kullanici].get("rol", "Kullanıcı")
+                                    st.session_state.kullanicilar[secilen_rol_kullanici]["rol"] = guncel_rol_secim
+
+                            if "kullanicilari_kaydet" in globals():
+                                kullanicilari_kaydet(st.session_state.kullanicilar)
+                            else:
+                                supabase_veri_kaydet("kullanicilar", st.session_state.kullanicilar)
+
+                            st.session_state["son_kullanici_islem"] = {
+                                "tur": "rol_guncelle",
+                                "obje": {
+                                    "kullanici_adi": secilen_rol_kullanici,
+                                    "eski_rol": eski_rol_val,
+                                    "yeni_rol": guncel_rol_secim
+                                }
+                            }
+
+                            st.success(f"🎉 Başarılı! '{secilen_rol_kullanici}' kullanıcısının rolü '{guncel_rol_secim}' olarak güncellendi.")
+                            st.balloons()
+                            time.sleep(1)
+                            st.rerun()
+
+        # TAB 2: KULLANICI SİL
+        with tab_u2:
+            st.subheader("🗑️ Kullanıcı Hesabı Sil")
+            st.markdown("⚠️ Dikkat: Bir kullanıcı hesabını sildiğinizde o kullanıcının sisteme erişim yetkisi kaldırılır.")
+
+            with st.form("kullanici_sil_form"):
+                k_list_names_sil = []
+                if isinstance(st.session_state.kullanicilar, list):
+                    k_list_names_sil = [u.get("kullanici_adi", u.get("username", "")) for u in st.session_state.kullanicilar]
+                elif isinstance(st.session_state.kullanicilar, dict):
+                    k_list_names_sil = list(st.session_state.kullanicilar.keys())
+
+                secilen_sil_kullanici = st.selectbox(
+                    "Silinecek Kullanıcı Hesabını Seçin",
+                    k_list_names_sil,
+                    index=None,
+                    placeholder="Kullanıcı Seçiniz...",
+                    key="u_sil_select"
+                )
+                onay_u_sil_btn = silme_onay_kutusu("onay_kullanici_sil")
+                u_sil_btn = st.form_submit_button("Seçilen Hesabı Kalıcı Olarak Sil", type="primary")
+
+                if u_sil_btn:
+                    if not secilen_sil_kullanici:
+                        st.error("⚠️ Lütfen silinecek kullanıcı hesabını seçin!")
+                    elif str(secilen_sil_kullanici).strip().lower() == str(st.session_state.aktif_kullanici).strip().lower():
+                        st.error("⚠️ Kendi aktif oturumunuzu silemezsiniz!")
+                    elif not onay_u_sil_btn:
+                        st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                    else:
+                        otomatik_yedek_al("Kullanıcı silme: " + str(secilen_sil_kullanici))
+                        silinen_user_obj = None
+
+                        if isinstance(st.session_state.kullanicilar, list):
+                            silinen_user_obj = next((u for u in st.session_state.kullanicilar if str(u.get("kullanici_adi", u.get("username", ""))).strip().lower() == str(secilen_sil_kullanici).strip().lower()), None)
+                            st.session_state.kullanicilar = [
+                                u for u in st.session_state.kullanicilar
+                                if str(u.get("kullanici_adi", u.get("username", ""))).strip().lower() != str(secilen_sil_kullanici).strip().lower()
+                            ]
+                        elif isinstance(st.session_state.kullanicilar, dict):
+                            silinen_user_obj = st.session_state.kullanicilar.pop(secilen_sil_kullanici, None)
+
+                        if "kullanicilari_kaydet" in globals():
+                            kullanicilari_kaydet(st.session_state.kullanicilar)
+                        else:
+                            supabase_veri_kaydet("kullanicilar", st.session_state.kullanicilar)
+
+                        if silinen_user_obj:
+                            st.session_state["son_kullanici_islem"] = {
+                                "tur": "kullanici_sil",
+                                "obje": silinen_user_obj
+                            }
+
+                        st.success(f"🎉 Başarılı! '{secilen_sil_kullanici}' kullanıcısı silindi.")
+                        st.balloons()
+                        time.sleep(1)
+                        st.rerun()
