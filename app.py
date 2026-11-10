@@ -4101,6 +4101,29 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             "Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun, aktif/pasif durumlarını yönetin ve yemek dağıtımlarını takip edin."
         )
 
+        # Son Toplu Yemek Dağıtımını Geri Al Butonu ve Bildirimi
+        if st.session_state.get("son_toplu_dagitim_kaydi"):
+            son_dagitim = st.session_state["son_toplu_dagitim_kaydi"]
+            c_undo1, c_undo2 = st.columns([3, 1])
+            with c_undo1:
+                st.info(
+                    f"💡 **Son Toplu Dağıtım:** '{son_dagitim.get('menu')}' ({son_dagitim.get('sayi')} Haneye Dağıtıldı - Tarih: {son_dagitim.get('tarih')})"
+                )
+            with c_undo2:
+                if st.button("↩️ Son Dağıtımı Geri Al", type="secondary", key="btn_undo_dagitim_son"):
+                    otomatik_yedek_al("Toplu yemek dağıtımı geri alma: " + str(son_dagitim.get("menu")))
+                    
+                    silinecek_id_listesi = son_dagitim.get("eklenen_id_listesi", [])
+                    st.session_state.dagitim_loglari = [
+                        d for d in st.session_state.dagitim_loglari if d.get("id") not in silinecek_id_listesi
+                    ]
+                    
+                    dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
+                    st.session_state.pop("son_toplu_dagitim_kaydi", None)
+                    st.success(f"🎉 '{son_dagitim.get('menu')}' için yapılan toplu dağıtım kaydı geri alındı ve silindi!")
+                    time.sleep(1)
+                    st.rerun()
+
         tab1, tab2, tab3 = st.tabs([
             "📋 İhtiyaç Sahibi Listesi, Aktif/Pasif ve Ekle",
             "🍲 Toplu Yemek Dağıtımı",
@@ -4156,18 +4179,27 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 with st.expander("🔄 Vatandaşın Aktif / Pasif Durumunu Değiştir"):
                     with st.form("aktif_pasif_form"):
                         kisi_sec_list = [f"{k['id']} - {k['ad_soyad']} (Mevcut: {'Aktif' if k.get('aktif', True) else 'Pasif'})" for k in st.session_state.ihtiyac_sahipleri]
-                        secilen_kisi_durum_str = st.selectbox("Vatandaş Seçin", kisi_sec_list if kisi_sec_list else ["Yok"])
+                        secilen_kisi_durum_str = st.selectbox(
+                            "Vatandaş Seçin",
+                            kisi_sec_list if kisi_sec_list else [],
+                            index=None,
+                            placeholder="Vatandaş Seçiniz...",
+                            key="kisi_durum_selectbox"
+                        )
                         yeni_durum_secim = st.radio("Yeni Durum", ["Aktif Yap", "Pasif Yap"], horizontal=True)
                         durum_degis_btn = st.form_submit_button("Durumu Güncelle", type="primary")
 
-                        if durum_degis_btn and secilen_kisi_durum_str != "Yok":
-                            h_id = secilen_kisi_durum_str.split(" - ")[0]
-                            for k in st.session_state.ihtiyac_sahipleri:
-                                if k["id"] == h_id:
-                                    k["aktif"] = (yeni_durum_secim == "Aktif Yap")
-                            ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
-                            st.success("🎉 Başarılı! Vatandaşın aktif/pasif durumu güncellendi (Geçmiş dağıtım kayıtları korundu).")
-                            st.rerun()
+                        if durum_degis_btn:
+                            if not secilen_kisi_durum_str:
+                                st.error("⚠️ Lütfen durumu güncellenecek vatandaşı seçin!")
+                            else:
+                                h_id = secilen_kisi_durum_str.split(" - ")[0]
+                                for k in st.session_state.ihtiyac_sahipleri:
+                                    if k["id"] == h_id:
+                                        k["aktif"] = (yeni_durum_secim == "Aktif Yap")
+                                ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                                st.success("🎉 Başarılı! Vatandaşın aktif/pasif durumu güncellendi.")
+                                st.rerun()
 
             if yonetim_modu:
                 st.info("👀 Yönetim modundasınız. Bu ekranda yalnızca kayıtlı ihtiyaç sahiplerini gözlemleyebilirsiniz.")
@@ -4218,42 +4250,47 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                                     for k in st.session_state.ihtiyac_sahipleri
                                 ]
                                 secilen_silinecek = st.selectbox(
-                                    "Silinecek Kişiyi / Haneyi Seçin", kisi_secenekleri_sil
+                                    "Silinecek Kişiyi / Haneyi Seçin",
+                                    kisi_secenekleri_sil,
+                                    index=None,
+                                    placeholder="Kişi Seçiniz...",
+                                    key="ihtiyac_sil_selectbox"
                                 )
                                 onay_sil_btn = silme_onay_kutusu("onay_ihtiyac_sil")
                                 sil_btn = st.form_submit_button(
                                     "Seçilen Kişiyi Sistemden Sil", type="primary"
                                 )
 
-                                if sil_btn and not onay_sil_btn:
-
-                                    st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
-
-                                elif sil_btn:
-                                    otomatik_yedek_al("İhtiyaç sahibi silme: " + str(secilen_silinecek))
-                                    silinecek_id = secilen_silinecek.split(" - ")[0]
-                                    silinen_kisi_obj = next(
-                                        (
+                                if sil_btn:
+                                    if not secilen_silinecek:
+                                        st.error("⚠️ Lütfen silinecek kişi/haneyi seçin!")
+                                    elif not onay_sil_btn:
+                                        st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                                    else:
+                                        otomatik_yedek_al("İhtiyaç sahibi silme: " + str(secilen_silinecek))
+                                        silinecek_id = secilen_silinecek.split(" - ")[0]
+                                        silinen_kisi_obj = next(
+                                            (
+                                                k
+                                                for k in st.session_state.ihtiyac_sahipleri
+                                                if k["id"] == silinecek_id
+                                            ),
+                                            None,
+                                        )
+                                        silinen_isim = (
+                                            silinen_kisi_obj["ad_soyad"] if silinen_kisi_obj else ""
+                                        )
+                                        st.session_state.ihtiyac_sahipleri = [
                                             k
                                             for k in st.session_state.ihtiyac_sahipleri
-                                            if k["id"] == silinecek_id
-                                        ),
-                                        None,
-                                    )
-                                    silinen_isim = (
-                                        silinen_kisi_obj["ad_soyad"] if silinen_kisi_obj else ""
-                                    )
-                                    st.session_state.ihtiyac_sahipleri = [
-                                        k
-                                        for k in st.session_state.ihtiyac_sahipleri
-                                        if k["id"] != silinecek_id
-                                    ]
-                                    ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
-                                    st.session_state.kisi_silme_mesaji = (
-                                        f"🎉 Başarılı! {silinen_isim} silindi."
-                                    )
-                                    st.balloons()
-                                    st.rerun()
+                                            if k["id"] != silinecek_id
+                                        ]
+                                        ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                                        st.session_state.kisi_silme_mesaji = (
+                                            f"🎉 Başarılı! {silinen_isim} silindi."
+                                        )
+                                        st.balloons()
+                                        st.rerun()
                             else:
                                 st.info("Silinecek kayıt bulunmuyor.")
 
@@ -4311,21 +4348,33 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                     if toplu_kaydet_btn:
                         d_tarih_saat = simdi_tr_str("%Y-%m-%d %H:%M")
                         eklenen_sayisi = 0
+                        eklenen_id_listesi = []
+
                         for sv in secim_verileri:
                             if sv["secili"]:
+                                yeni_dag_id = yeni_id_uret("DAG-", st.session_state.dagitim_loglari)
                                 st.session_state.dagitim_loglari.append({
-                                    "id": yeni_id_uret("DAG-", st.session_state.dagitim_loglari),
+                                    "id": yeni_dag_id,
                                     "tarih": d_tarih_saat,
                                     "kisi": sv["kisi"],
                                     "menu": menu_adi_toplu,
                                     "porsiyon": sv["porsiyon"],
                                     "islem_yapan": st.session_state.aktif_kullanici,
                                 })
+                                eklenen_id_listesi.append(yeni_dag_id)
                                 eklenen_sayisi += 1
                         
+                        st.session_state["son_toplu_dagitim_kaydi"] = {
+                            "tarih": d_tarih_saat,
+                            "menu": menu_adi_toplu,
+                            "sayi": eklenen_sayisi,
+                            "eklenen_id_listesi": eklenen_id_listesi
+                        }
+
                         dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
                         st.success(f"🎉 Başarılı! Seçilen {eklenen_sayisi} haneye yemek dağıtımı işlendi.")
                         st.balloons()
+                        time.sleep(1)
                         st.rerun()
 
             st.markdown("---")
