@@ -2859,62 +2859,200 @@ elif menu == "Depo Yönetimi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("🏢 Dinamik Depo Yönetimi")
-        st.markdown("Sisteme yeni depo ekleyebilir veya mevcut bir depoyu silebilirsiniz. Depo silindiğinde o depoda kayıtlı olan tüm ürünler ve loglar sistemden otomatik olarak temizlenir.")
+        st.header("🏢 Depo ve Kategori Yönetimi")
+        st.markdown("Sisteme yeni depolar ve ürün kategorileri ekleyebilir, mevcut kayıtları yönetebilirsiniz.")
 
-        col_depo_ekle, col_depo_sil = st.columns(2)
-        with col_depo_ekle:
-            with st.form("yeni_depo_ekle_form"):
-                st.markdown("**➕ Yeni Depo Ekle**")
-                yeni_depo_adi = st.text_input("Depo Adı (Örn: Soğuk Hava Deposu -20)").strip()
-                depo_ekle_btn = st.form_submit_button("Depoyu Kaydet", type="primary")
+        # Varsayılan Kategoriler ve Session State Kontrolü
+        varsayilan_kategoriler = ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"]
+        if "kategoriler" not in st.session_state:
+            st.session_state.kategoriler = supabase_veri_oku("kategoriler_listesi", varsayilan_kategoriler, kritik=False)
+            if not isinstance(st.session_state.kategoriler, list) or not st.session_state.kategoriler:
+                st.session_state.kategoriler = list(varsayilan_kategoriler)
 
-                if depo_ekle_btn and yeni_depo_adi:
-                    if yeni_depo_adi in st.session_state.depolar:
-                        st.error("⚠️ Bu depo zaten mevcut!")
-                    else:
-                        st.session_state.depolar.append(yeni_depo_adi)
-                        depoları_kaydet(st.session_state.depolar)
-                        st.success(f"🎉 Başarılı! '{yeni_depo_adi}' deposu eklendi.")
-                        st.balloons()
-                        st.rerun()
+        # Son Depo veya Kategori İşlemini Geri Al Butonu ve Bildirimi
+        if st.session_state.get("son_depo_kat_islem"):
+            son_islem = st.session_state["son_depo_kat_islem"]
+            tur = son_islem.get("tur")
+            ad = son_islem.get("ad")
+            
+            c_undo1, c_undo2 = st.columns([3, 1])
+            with c_undo1:
+                if tur == "depo_ekle":
+                    st.info(f"💡 **Son İşlem:** '{ad}' deposu eklendi.")
+                elif tur == "depo_sil":
+                    st.info(f"💡 **Son İşlem:** '{ad}' deposu ve ilgili kayıtlar silindi.")
+                elif tur == "kat_ekle":
+                    st.info(f"💡 **Son İşlem:** '{ad}' kategorisi eklendi.")
+                elif tur == "kat_sil":
+                    st.info(f"💡 **Son İşlem:** '{ad}' kategorisi silindi.")
+            
+            with c_undo2:
+                if st.button("↩️ Son İşlemi Geri Al", type="secondary", key="btn_undo_depo_kat_son"):
+                    otomatik_yedek_al("Depo/Kategori işlemi geri alma: " + str(ad))
+                    
+                    if tur == "depo_ekle":
+                        if ad in st.session_state.depolar:
+                            st.session_state.depolar.remove(ad)
+                            depoları_kaydet(st.session_state.depolar)
+                    elif tur == "depo_sil":
+                        if ad not in st.session_state.depolar:
+                            st.session_state.depolar.append(ad)
+                            depoları_kaydet(st.session_state.depolar)
+                        # Silinen bağlı alım kayıtlarını geri yükle
+                        silinen_girisler = son_islem.get("silinen_girisler", [])
+                        if silinen_girisler:
+                            st.session_state.girisler.extend(silinen_girisler)
+                            verileri_kaydet(st.session_state.girisler)
+                    elif tur == "kat_ekle":
+                        if ad in st.session_state.kategoriler:
+                            st.session_state.kategoriler.remove(ad)
+                            supabase_veri_kaydet("kategoriler_listesi", st.session_state.kategoriler)
+                    elif tur == "kat_sil":
+                        if ad not in st.session_state.kategoriler:
+                            st.session_state.kategoriler.append(ad)
+                            supabase_veri_kaydet("kategoriler_listesi", st.session_state.kategoriler)
 
-        with col_depo_sil:
-            if not yonetici_modu:
-                st.info("🗑️ Depo silme yetkisi yalnızca Admin'e aittir.")
-            else:
-                with st.form("depo_sil_form"):
-                    st.markdown("**🗑️ Depo Sil**")
-                    if st.session_state.depolar:
-                        secilen_sil_depo = st.selectbox("Silinecek Depoyu Seçin", st.session_state.depolar)
-                        onay_depo_sil_btn = silme_onay_kutusu("onay_depo_sil")
-                        depo_sil_btn = st.form_submit_button("Seçilen Depoyu ve Bağlı Ürünleri Sil", type="primary")
+                    st.session_state.pop("son_depo_kat_islem", None)
+                    st.success(f"🎉 '{ad}' üzerine yapılan son işlem başarıyla geri alındı!")
+                    time.sleep(1)
+                    st.rerun()
 
-                        if depo_sil_btn and not onay_depo_sil_btn:
+        depo_tab1, depo_tab2 = st.tabs(["🏢 Depo Yönetimi", "🏷️ Kategori Yönetimi"])
 
-                            st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+        # TAB 1: DEPO YÖNETİMİ
+        with depo_tab1:
+            col_depo_ekle, col_depo_sil = st.columns(2)
+            with col_depo_ekle:
+                with st.form("yeni_depo_ekle_form"):
+                    st.markdown("**➕ Yeni Depo Ekle**")
+                    yeni_depo_adi = st.text_input("Depo Adı (Örn: Soğuk Hava Deposu -20)").strip()
+                    depo_ekle_btn = st.form_submit_button("Depoyu Kaydet", type="primary")
 
-                        elif depo_sil_btn:
-                            if len(st.session_state.depolar) <= 1:
-                                st.error("⚠️ Sistemde en az 1 depo kalmalıdır, tamamen silemezsiniz!")
-                            else:
-                                otomatik_yedek_al("Depo silme: " + str(secilen_sil_depo))
-                                st.session_state.depolar.remove(secilen_sil_depo)
-                                depoları_kaydet(st.session_state.depolar)
+                    if depo_ekle_btn and yeni_depo_adi:
+                        if yeni_depo_adi in st.session_state.depolar:
+                            st.error("⚠️ Bu depo zaten mevcut!")
+                        else:
+                            st.session_state.depolar.append(yeni_depo_adi)
+                            depoları_kaydet(st.session_state.depolar)
                             
-                                st.session_state.girisler = [g for g in st.session_state.girisler if g.get("depo") != secilen_sil_depo]
-                                verileri_kaydet(st.session_state.girisler)
+                            st.session_state["son_depo_kat_islem"] = {
+                                "tur": "depo_ekle",
+                                "ad": yeni_depo_adi
+                            }
+                            
+                            st.success(f"🎉 Başarılı! '{yeni_depo_adi}' deposu eklendi.")
+                            st.balloons()
+                            time.sleep(1)
+                            st.rerun()
 
-                                st.success(f"🎉 Başarılı! Depo ve bağlı ürünler silindi.")
-                                st.balloons()
-                                st.rerun()
-                    else:
-                        st.info("Silinecek depo bulunmuyor.")
+            with col_depo_sil:
+                if not yonetici_modu:
+                    st.info("🗑️ Depo silme yetkisi yalnızca Admin'e aittir.")
+                else:
+                    with st.form("depo_sil_form"):
+                        st.markdown("**🗑️ Depo Sil**")
+                        if st.session_state.depolar:
+                            secilen_sil_depo = st.selectbox("Silinecek Depoyu Seçin", st.session_state.depolar)
+                            onay_depo_sil_btn = silme_onay_kutusu("onay_depo_sil")
+                            depo_sil_btn = st.form_submit_button("Seçilen Depoyu ve Bağlı Ürünleri Sil", type="primary")
 
-        st.markdown("---")
-        st.subheader("📋 Aktif Depolar Listesi")
-        depo_tablosu = [{"Depo Adı": d} for d in st.session_state.depolar]
-        ozel_html_tablo_goster(depo_tablosu)
+                            if depo_sil_btn:
+                                if not onay_depo_sil_btn:
+                                    st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                                elif len(st.session_state.depolar) <= 1:
+                                    st.error("⚠️ Sistemde en az 1 depo kalmalıdır, tamamen silemezsiniz!")
+                                else:
+                                    otomatik_yedek_al("Depo silme: " + str(secilen_sil_depo))
+                                    
+                                    # Silinecek depoya bağlı alım kayıtlarını sakla (Geri Al için)
+                                    silinecek_girisler = [g for g in st.session_state.girisler if g.get("depo") == secilen_sil_depo]
+                                    
+                                    st.session_state.depolar.remove(secilen_sil_depo)
+                                    depoları_kaydet(st.session_state.depolar)
+                                
+                                    st.session_state.girisler = [g for g in st.session_state.girisler if g.get("depo") != secilen_sil_depo]
+                                    verileri_kaydet(st.session_state.girisler)
+
+                                    st.session_state["son_depo_kat_islem"] = {
+                                        "tur": "depo_sil",
+                                        "ad": secilen_sil_depo,
+                                        "silinen_girisler": silinecek_girisler
+                                    }
+
+                                    st.success(f"🎉 Başarılı! '{secilen_sil_depo}' deposu ve bağlı ürünler silindi.")
+                                    st.balloons()
+                                    time.sleep(1)
+                                    st.rerun()
+                        else:
+                            st.info("Silinecek depo bulunmuyor.")
+
+            st.markdown("---")
+            st.subheader("📋 Aktif Depolar Listesi")
+            depo_tablosu = [{"Depo Adı": d} for d in st.session_state.depolar]
+            ozel_html_tablo_goster(depo_tablosu)
+
+        # TAB 2: KATEGORİ YÖNETİMİ
+        with depo_tab2:
+            col_kat_ekle, col_kat_sil = st.columns(2)
+            with col_kat_ekle:
+                with st.form("yeni_kat_ekle_form"):
+                    st.markdown("**➕ Yeni Ürün Kategorisi Ekle**")
+                    yeni_kat_adi = st.text_input("Kategori Adı (Örn: TEK KULLANIMLIK / AMBALAJ)").strip().upper()
+                    kat_ekle_btn = st.form_submit_button("Kategoriyi Kaydet", type="primary")
+
+                    if kat_ekle_btn and yeni_kat_adi:
+                        if yeni_kat_adi in st.session_state.kategoriler:
+                            st.error("⚠️ Bu kategori zaten mevcut!")
+                        else:
+                            st.session_state.kategoriler.append(yeni_kat_adi)
+                            supabase_veri_kaydet("kategoriler_listesi", st.session_state.kategoriler)
+                            
+                            st.session_state["son_depo_kat_islem"] = {
+                                "tur": "kat_ekle",
+                                "ad": yeni_kat_adi
+                            }
+                            
+                            st.success(f"🎉 Başarılı! '{yeni_kat_adi}' kategorisi eklendi.")
+                            st.balloons()
+                            time.sleep(1)
+                            st.rerun()
+
+            with col_kat_sil:
+                if not yonetici_modu:
+                    st.info("🗑️ Kategori silme yetkisi yalnızca Admin'e aittir.")
+                else:
+                    with st.form("kat_sil_form"):
+                        st.markdown("**🗑️ Ürün Kategorisi Sil**")
+                        if st.session_state.kategoriler:
+                            secilen_sil_kat = st.selectbox("Silinecek Kategoriyi Seçin", st.session_state.kategoriler)
+                            onay_kat_sil_btn = silme_onay_kutusu("onay_kat_sil")
+                            kat_sil_btn = st.form_submit_button("Seçilen Kategoriyi Sil", type="primary")
+
+                            if kat_sil_btn:
+                                if not onay_kat_sil_btn:
+                                    st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                                elif len(st.session_state.kategoriler) <= 1:
+                                    st.error("⚠️ Sistemde en az 1 kategori kalmalıdır!")
+                                else:
+                                    st.session_state.kategoriler.remove(secilen_sil_kat)
+                                    supabase_veri_kaydet("kategoriler_listesi", st.session_state.kategoriler)
+
+                                    st.session_state["son_depo_kat_islem"] = {
+                                        "tur": "kat_sil",
+                                        "ad": secilen_sil_kat
+                                    }
+
+                                    st.success(f"🎉 Başarılı! '{secilen_sil_kat}' kategorisi silindi.")
+                                    st.balloons()
+                                    time.sleep(1)
+                                    st.rerun()
+                        else:
+                            st.info("Silinecek kategori bulunmuyor.")
+
+            st.markdown("---")
+            st.subheader("📋 Kayıtlı Ürün Kategorileri Listesi")
+            kat_tablosu = [{"Kategori Adı": k} for k in st.session_state.kategoriler]
+            ozel_html_tablo_goster(kat_tablosu)
 
 # DEMİRBAŞ YÖNETİMİ
 elif menu == "Demirbaş Yönetimi":
