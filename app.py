@@ -4073,7 +4073,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 except:
                     pass
 
-if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" in aktif_k_maskeleri:
+    if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" in aktif_k_maskeleri:
         st.info("🔒 Yemek Üretim ve Maliyet Arşivi bu kullanıcı için maskelenmiştir (gizlenmiştir).")
     else:
         if secilen_gun_uretimleri:
