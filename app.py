@@ -1,11 +1,3 @@
-# app.py dosyasının üst kısımlarına
-APP_VERSION = "v2.0.0"
-LAST_UPDATE = "Kasım 2026"
-
-# Sidebar (Sol Menü) alt kısmına eklemek için:
-st.sidebar.markdown("---")
-st.sidebar.caption(f"🚀 **Aziziye Aşevi Takip Sistemi** {APP_VERSION}")
-st.sidebar.caption(f"📅 Son Güncelleme: {LAST_UPDATE}")
 import base64
 import datetime
 import hashlib
@@ -27,6 +19,15 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+
+# app.py dosyasının üst kısımlarına
+APP_VERSION = "v2.0.0"
+LAST_UPDATE = "Kasım 2026"
+
+# Sidebar (Sol Menü) alt kısmına eklemek için:
+st.sidebar.markdown("---")
+st.sidebar.caption(f"🚀 **Aziziye Aşevi Takip Sistemi** {APP_VERSION}")
+st.sidebar.caption(f"📅 Son Güncelleme: {LAST_UPDATE}")
 
 # Sayfa Yapılandırması
 st.set_page_config(
