@@ -332,6 +332,45 @@ def _veri_hash(veri):
         json.dumps(veri, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
     ).hexdigest()
 
+# =========================================================================
+# HIZLANDIRILMIŞ VERİTABANI BAĞLANTI VE ÖNBELLEKLEME
+# =========================================================================
+@st.cache_resource
+def get_http_session():
+    """Tüm Supabase istekleri için ortak ve hızlı HTTP bağlantı havuzu oluşturur."""
+    session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=20)
+    session.mount("https://", adapter)
+    return session
+
+
+def _supabase_ham_oku(kayit_id):
+    """('ok', veri) | ('yok', None) | ('hata', mesaj). Oturum durumunu DEĞİŞTİRMEZ."""
+    try:
+        session = get_http_session()
+        r = session.get(
+            f"{SUPABASE_URL}/rest/v1/asevi_veritabani",
+            headers=_supa_basliklar(),
+            params={"id": f"eq.{kayit_id}", "select": "veri"},
+            timeout=10,
+        )
+    except Exception as e:
+        return "hata", f"Bağlantı hatası: {type(e).__name__}"
+    if r.status_code != 200:
+        return "hata", f"HTTP {r.status_code}"
+    try:
+        data = r.json()
+    except Exception:
+        return "hata", "Geçersiz yanıt"
+    if data and data[0].get("veri") is not None:
+        return "ok", data[0]["veri"]
+    return "yok", None
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _supabase_ham_oku_cached(kayit_id):
+    """Veritabanı okumalarını 60 saniye boyunca bellek seviyesinde hızlı tutar."""
+    return _supabase_ham_oku(kayit_id)
 
 def _supabase_ham_oku(kayit_id):
     """('ok', veri) | ('yok', None) | ('hata', mesaj). Oturum durumunu DEĞİŞTİRMEZ."""
