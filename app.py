@@ -4076,10 +4076,18 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" in aktif_k_maskeleri:
         st.info("🔒 Yemek Üretim ve Maliyet Arşivi bu kullanıcı için maskelenmiştir (gizlenmiştir).")
     else:
-        if secilen_gun_uretimleri:
+if secilen_gun_uretimleri:
             arsiv_tablo_verisi = []
             excel_arsiv_listesi = []
             for u_kayit in secilen_gun_uretimleri:
+                # Toplam Maliyet ve Kişi Başı Maliyet Hesabı
+                toplam_maliyet_degeri = float(u_kayit.get("toplam_maliyet", 0))
+                if toplam_maliyet_degeri == 0 and u_kayit.get("malzemeler"):
+                    toplam_maliyet_degeri = sum(float(m.get("tutar", 0)) for m in u_kayit.get("malzemeler", []))
+                
+                kisi_sayisi_degeri = int(u_kayit.get("kisi_sayisi", 1) or 1)
+                kisi_basi_maliyet = toplam_maliyet_degeri / kisi_sayisi_degeri if kisi_sayisi_degeri > 0 else 0.0
+
                 if misafir_modu:
                     arsiv_tablo_verisi.append({
                         "Tarih": u_kayit.get("tarih", "-"),
@@ -4099,6 +4107,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                             "Kullanılan Malzeme": m.get("urun", "-"),
                             "Maliyet": f"{m.get('tutar', 0):,.2f} ₺",
+                            "Kişi Başı Maliyet": f"{kisi_basi_maliyet:,.2f} ₺",
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
                         excel_arsiv_listesi.append({
@@ -4107,6 +4116,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                             "Kullanılan Malzeme": m.get("urun", "-"),
                             "Maliyet (TL)": round(m.get("tutar", 0), 2),
+                            "Kişi Başı Maliyet (TL)": round(kisi_basi_maliyet, 2),
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
 
