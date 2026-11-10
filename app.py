@@ -5067,7 +5067,7 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     else:
         st.info("Analiz edilecek ürün kaydı bulunmuyor.")
 
-# 10. KULLANICI AYARLARI
+# 12. KULLANICI AYARLARI
 elif menu in ["Kullanıcı Ayarları", "Kullanıcı Ayarları & Yetkilendirme", "Kullanıcı Yönetimi"]:
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır. Yalnızca **Admin** kullanıcıları erişabilir.")
