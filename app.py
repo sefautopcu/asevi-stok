@@ -3165,6 +3165,35 @@ elif menu == "Fire / Zayiat Girişi":
         if salt_okunur_modu:
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
         else:
+            # Son Fire İşlemini Geri Al Butonu ve Bildirimi
+            if st.session_state.get("son_fire_kaydi"):
+                son_fire = st.session_state["son_fire_kaydi"]
+                c_undo1, c_undo2 = st.columns([3, 1])
+                with c_undo1:
+                    st.info(f"💡 **Son Fire Kaydı:** {son_fire.get('urun')} ({son_fire.get('miktar')} Miktar - Zarar: {son_fire.get('tutar', 0):,.2f} ₺ - Tarih: {son_fire.get('tarih')})")
+                with c_undo2:
+                    if st.button("↩️ Son Fire İşlemini Geri Al", type="secondary", key="btn_undo_fire_son"):
+                        otomatik_yedek_al("Fire girişi geri alma: " + str(son_fire.get("urun")))
+                        
+                        # Düşülen miktarları orijinal stok girişlerine iade et
+                        for item in son_fire.get("dusulen_kayitlar", []):
+                            for g in st.session_state.girisler:
+                                if g.get("id") == item["id"]:
+                                    g["kalan"] = float(g.get("kalan", 0)) + float(item["miktar"])
+
+                        # Kullanım loglarından sil
+                        log_target = son_fire.get("log_objesi")
+                        if log_target and log_target in st.session_state.kullanim_loglari:
+                            st.session_state.kullanim_loglari.remove(log_target)
+
+                        verileri_kaydet(st.session_state.girisler)
+                        loglari_kaydet(st.session_state.kullanim_loglari)
+                        
+                        st.session_state.pop("son_fire_kaydi", None)
+                        st.success(f"🎉 {son_fire.get('urun')} için girilen fire bildirimi geri alındı ve stok iade edildi!")
+                        time.sleep(1)
+                        st.rerun()
+
             benzersiz_urunler = sorted(
                 list(set(str(g.get("urun", "")).strip().upper() for g in st.session_state.girisler if g.get("urun")))
             )
@@ -3179,77 +3208,96 @@ elif menu == "Fire / Zayiat Girişi":
                     fire_saati_secim = st.time_input("⏰ Fire Saati", value=datetime.datetime.now().time(), key="fire_saat_inp")
                 fire_tarih_str = f"{fire_tarihi_secim.strftime('%Y-%m-%d')} {fire_saati_secim.strftime('%H:%M')}"
 
-                # Form dışına alınarak anlık seçim güncellemesi sağlandı
                 secilen_gercek_urun = st.selectbox(
-                    "Fire Düşülecek Ürünü Seçin", benzersiz_urunler, key="fire_urun_secim_box"
+                    "Fire Düşülecek Ürünü Seçin",
+                    benzersiz_urunler,
+                    index=None,
+                    placeholder="Ürün Seçiniz...",
+                    key="fire_urun_secim_box"
                 )
                 
-                # Seçilen ürüne ait kayıtları ve stoğu doğru filtreleme
-                ilgili_girisler = [
-                    g
-                    for g in st.session_state.girisler
-                    if str(g.get("urun", "")).strip().upper() == str(secilen_gercek_urun).strip().upper()
-                ]
-                toplam_stok = sum(float(g.get("kalan", 0)) for g in ilgili_girisler)
-                aktif_ilgili_girisler = [g for g in ilgili_girisler if float(g.get("kalan", 0)) > 0]
+                if secilen_gercek_urun:
+                    ilgili_girisler = [
+                        g
+                        for g in st.session_state.girisler
+                        if str(g.get("urun", "")).strip().upper() == str(secilen_gercek_urun).strip().upper()
+                    ]
+                    toplam_stok = sum(float(g.get("kalan", 0)) for g in ilgili_girisler)
+                    aktif_ilgili_girisler = [g for g in ilgili_girisler if float(g.get("kalan", 0)) > 0]
 
-                en_son_fiyat = 0.0
-                if ilgili_girisler:
-                    en_son_kayit = max(
-                        ilgili_girisler, key=lambda x: str(x.get("tarih", ""))
-                    )
-                    en_son_fiyat = float(en_son_kayit.get("fiyat", 0.0))
-
-                # Artık seçilen ürün adı anlık olarak kutucuğa ve bilgiye yansıyacak
-                st.info(
-                    f"Güncel Toplam Stok ({secilen_gercek_urun}): {toplam_stok} | Baz Alınan Birim Fiyat: {en_son_fiyat:,.2f} ₺"
-                )
-                
-                fire_miktari = st.number_input(
-                    "Fire Miktarı",
-                    min_value=0.0,
-                    value=1.0,
-                    step=0.1,
-                    key="fire_miktar_inp"
-                )
-
-                if st.button("Fireyi Düş ve Kaydet", type="primary", key="fire_kaydet_button"):
-                    if fire_miktari <= 0:
-                        st.error("⚠️ Lütfen 0'dan büyük bir fire miktarı girin!")
-                    elif fire_miktari > toplam_stok:
-                        st.error(f"⚠️ Hata: Girilen fire miktarı ({fire_miktari}), güncel toplam stoktan ({toplam_stok}) büyük olamaz!")
-                    else:
-                        kalan_dusulecek = fire_miktari
-
-                        for g in aktif_ilgili_girisler:
-                            if kalan_dusulecek <= 0:
-                                break
-                            if float(g["kalan"]) >= kalan_dusulecek:
-                                g["kalan"] = float(g["kalan"]) - kalan_dusulecek
-                                kalan_dusulecek = 0
-                            else:
-                                dusulen = float(g["kalan"])
-                                g["kalan"] = 0.0
-                                kalan_dusulecek -= dusulen
-
-                        toplam_zarar = fire_miktari * en_son_fiyat
-
-                        verileri_kaydet(st.session_state.girisler)
-                        st.session_state.kullanim_loglari.append({
-                            "tarih": fire_tarih_str,
-                            "urun": secilen_gercek_urun,
-                            "tur": "Fire/Zayiat",
-                            "miktar": fire_miktari,
-                            "tutar": toplam_zarar,
-                            "islem_yapan": st.session_state.aktif_kullanici,
-                        })
-                        loglari_kaydet(st.session_state.kullanim_loglari)
-                        st.success(
-                            f"🎉 Başarılı! {secilen_gercek_urun} için fire düşüldü ({fire_tarih_str}). Toplam zarar: {toplam_zarar:,.2f} ₺"
+                    en_son_fiyat = 0.0
+                    if ilgili_girisler:
+                        en_son_kayit = max(
+                            ilgili_girisler, key=lambda x: str(x.get("tarih", ""))
                         )
-                        st.balloons()
-                        time.sleep(1)
-                        st.rerun()
+                        en_son_fiyat = float(en_son_kayit.get("fiyat", 0.0))
+
+                    st.info(
+                        f"Güncel Toplam Stok ({secilen_gercek_urun}): {toplam_stok} | Baz Alınan Birim Fiyat: {en_son_fiyat:,.2f} ₺"
+                    )
+                    
+                    fire_miktari = st.number_input(
+                        "Fire Miktarı",
+                        min_value=0.1,
+                        value=1.0,
+                        step=0.1,
+                        key="fire_miktar_inp"
+                    )
+
+                    if st.button("Fireyi Düş ve Kaydet", type="primary", key="fire_kaydet_button"):
+                        if fire_miktari <= 0:
+                            st.error("⚠️ Lütfen 0'dan büyük bir fire miktarı girin!")
+                        elif fire_miktari > toplam_stok:
+                            st.error(f"⚠️ Hata: Girilen fire miktarı ({fire_miktari}), güncel toplam stoktan ({toplam_stok}) büyük olamaz!")
+                        else:
+                            kalan_dusulecek = fire_miktari
+                            dusulen_kayitlar = []
+
+                            for g in aktif_ilgili_girisler:
+                                if kalan_dusulecek <= 0:
+                                    break
+                                if float(g["kalan"]) >= kalan_dusulecek:
+                                    dusulen_kayitlar.append({"id": g["id"], "miktar": kalan_dusulecek})
+                                    g["kalan"] = float(g["kalan"]) - kalan_dusulecek
+                                    kalan_dusulecek = 0
+                                else:
+                                    dusulen = float(g["kalan"])
+                                    dusulen_kayitlar.append({"id": g["id"], "miktar": dusulen})
+                                    g["kalan"] = 0.0
+                                    kalan_dusulecek -= dusulen
+
+                            toplam_zarar = fire_miktari * en_son_fiyat
+
+                            yeni_log = {
+                                "tarih": fire_tarih_str,
+                                "urun": secilen_gercek_urun,
+                                "tur": "Fire/Zayiat",
+                                "miktar": fire_miktari,
+                                "tutar": toplam_zarar,
+                                "islem_yapan": st.session_state.aktif_kullanici,
+                            }
+
+                            st.session_state.kullanim_loglari.append(yeni_log)
+                            
+                            # Son fire kaydını session_state içinde sakla
+                            st.session_state["son_fire_kaydi"] = {
+                                "urun": secilen_gercek_urun,
+                                "miktar": fire_miktari,
+                                "tutar": toplam_zarar,
+                                "tarih": fire_tarih_str,
+                                "dusulen_kayitlar": dusulen_kayitlar,
+                                "log_objesi": yeni_log
+                            }
+
+                            verileri_kaydet(st.session_state.girisler)
+                            loglari_kaydet(st.session_state.kullanim_loglari)
+
+                            st.success(
+                                f"🎉 Başarılı! {secilen_gercek_urun} için fire düşüldü ({fire_tarih_str}). Toplam zarar: {toplam_zarar:,.2f} ₺"
+                            )
+                            st.balloons()
+                            time.sleep(1)
+                            st.rerun()
 
         st.markdown("---")
         
