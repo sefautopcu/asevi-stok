@@ -3062,6 +3062,34 @@ elif menu == "Demirbaş Yönetimi":
         st.header("🛠️ Aşevi Demirbaş ve Ekipman Yönetimi")
         st.markdown("Aşevinde bulunan demirbaşları, mutfak ekipmanlarını ve malzemeleri buradan ekleyebilir, durumlarını (Sağlam, Bakımda vb.) takip edebilirsiniz.")
 
+        # Son Demirbaş İşlemini Geri Al Butonu ve Bildirimi
+        if st.session_state.get("son_demirbas_islem"):
+            son_islem = st.session_state["son_demirbas_islem"]
+            tur = son_islem.get("tur")
+            d_obj = son_islem.get("obje")
+            
+            c_undo1, c_undo2 = st.columns([3, 1])
+            with c_undo1:
+                if tur == "ekle":
+                    st.info(f"💡 **Son İşlem:** '{d_obj.get('ad')}' demirbaşı eklendi (ID: {d_obj.get('id')}).")
+                elif tur == "sil":
+                    st.info(f"💡 **Son İşlem:** '{d_obj.get('ad')}' demirbaş kaydı silindi (ID: {d_obj.get('id')}).")
+            with c_undo2:
+                if st.button("↩️ Son İşlemi Geri Al", type="secondary", key="btn_undo_dem_son"):
+                    otomatik_yedek_al("Demirbaş işlemi geri alma: " + str(d_obj.get("id")))
+                    
+                    if tur == "ekle":
+                        st.session_state.demirbaslar = [d for d in st.session_state.demirbaslar if d.get("id") != d_obj.get("id")]
+                    elif tur == "sil":
+                        if not any(d.get("id") == d_obj.get("id") for d in st.session_state.demirbaslar):
+                            st.session_state.demirbaslar.append(d_obj)
+                    
+                    demirbasları_kaydet(st.session_state.demirbaslar)
+                    st.session_state.pop("son_demirbas_islem", None)
+                    st.success(f"🎉 '{d_obj.get('ad')}' kaydı üzerine yapılan işlem başarıyla geri alındı!")
+                    time.sleep(1)
+                    st.rerun()
+
         col_b_dem, col_indir_dem = st.columns([2, 2])
         with col_b_dem:
             st.subheader("📋 Kayıtlı Demirbaş Listesi")
@@ -3111,7 +3139,7 @@ elif menu == "Demirbaş Yönetimi":
                     dem_ekle_btn = st.form_submit_button("Demirbaş Kaydet", type="primary")
                     if dem_ekle_btn and d_ad:
                         yeni_d_id = yeni_id_uret("DEM-", st.session_state.demirbaslar)
-                        st.session_state.demirbaslar.append({
+                        yeni_dem_obj = {
                             "id": yeni_d_id,
                             "ad": d_ad,
                             "kategori": d_kat,
@@ -3119,10 +3147,18 @@ elif menu == "Demirbaş Yönetimi":
                             "durum": d_durum,
                             "zimmet": d_zimmet if d_zimmet else "Belirtilmemiş",
                             "tarih": str(d_tarih)
-                        })
+                        }
+                        st.session_state.demirbaslar.append(yeni_dem_obj)
                         demirbasları_kaydet(st.session_state.demirbaslar)
+                        
+                        st.session_state["son_demirbas_islem"] = {
+                            "tur": "ekle",
+                            "obje": yeni_dem_obj
+                        }
+                        
                         st.success(f"🎉 Başarılı! '{d_ad}' demirbaş listesine eklendi.")
                         st.balloons()
+                        time.sleep(1)
                         st.rerun()
 
             with col_dem_sil:
@@ -3133,22 +3169,39 @@ elif menu == "Demirbaş Yönetimi":
                         st.markdown("**🗑️ Demirbaş Sil**")
                         if st.session_state.demirbaslar:
                             dem_secenekleri = [f"{d['id']} - {d['ad']} ({d['kategori']})" for d in st.session_state.demirbaslar]
-                            secilen_sil_dem = st.selectbox("Silinecek Demirbaşı Seçin", dem_secenekleri)
+                            secilen_sil_dem = st.selectbox(
+                                "Silinecek Demirbaşı Seçin",
+                                dem_secenekleri,
+                                index=None,
+                                placeholder="Demirbaş Seçiniz...",
+                                key="dem_sil_selectbox"
+                            )
                             onay_dem_sil_btn = silme_onay_kutusu("onay_demirbas_sil")
                             dem_sil_btn = st.form_submit_button("Seçilen Demirbaş Kaydını Sil", type="primary")
 
-                            if dem_sil_btn and not onay_dem_sil_btn:
+                            if dem_sil_btn:
+                                if not secilen_sil_dem:
+                                    st.error("⚠️ Lütfen silmek istediğiniz demirbaşı seçin!")
+                                elif not onay_dem_sil_btn:
+                                    st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
+                                else:
+                                    otomatik_yedek_al("Demirbaş silme: " + str(secilen_sil_dem))
+                                    sil_id = secilen_sil_dem.split(" - ")[0]
+                                    silinen_obj = next((d for d in st.session_state.demirbaslar if d["id"] == sil_id), None)
+                                    
+                                    if silinen_obj:
+                                        st.session_state.demirbaslar = [d for d in st.session_state.demirbaslar if d["id"] != sil_id]
+                                        demirbasları_kaydet(st.session_state.demirbaslar)
+                                        
+                                        st.session_state["son_demirbas_islem"] = {
+                                            "tur": "sil",
+                                            "obje": silinen_obj
+                                        }
 
-                                st.error("⚠️ Silmek için onay kutusunu işaretleyin.")
-
-                            elif dem_sil_btn:
-                                otomatik_yedek_al("Demirbaş silme: " + str(secilen_sil_dem))
-                                sil_id = secilen_sil_dem.split(" - ")[0]
-                                st.session_state.demirbaslar = [d for d in st.session_state.demirbaslar if d["id"] != sil_id]
-                                demirbasları_kaydet(st.session_state.demirbaslar)
-                                st.success("🎉 Başarılı! Demirbaş kaydı silindi.")
-                                st.balloons()
-                                st.rerun()
+                                        st.success("🎉 Başarılı! Demirbaş kaydı silindi.")
+                                        st.balloons()
+                                        time.sleep(1)
+                                        st.rerun()
                         else:
                             st.info("Silinecek demirbaş bulunmuyor.")
 
@@ -3158,7 +3211,7 @@ elif menu == "Demirbaş Yönetimi":
             ozel_html_tablo_goster(demirbas_tablo)
         else:
             st.info("Kayıtlı demirbaş bulunmuyor.")
-
+            
 # 3. ÜRÜN SİL / DÜZENLE
 elif menu == "Ürün Sil / Düzenle":
     if misafir_modu:
