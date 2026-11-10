@@ -2652,6 +2652,25 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
     else:
         st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
         st.markdown("Her yeni mal alımı ayrı bir kayıt olarak depoya eklenir; böylece aynı ürün eklendiğinde stoğunuz artar ve geçmiş alım fiyatlarınız/tarihçeniz korunur.")
+        
+        # Son Eklenen İşlemi Geri Al Butonu ve Bildirimi
+        if st.session_state.get("son_eklenen_fatura_id"):
+            son_id = st.session_state["son_eklenen_fatura_id"]
+            son_fatura = next((g for g in st.session_state.girisler if g.get("id") == son_id), None)
+            if son_fatura:
+                c_undo1, c_undo2 = st.columns([3, 1])
+                with c_undo1:
+                    st.info(f"💡 **Son Eklenen Kayıt:** {son_fatura.get('urun')} ({son_fatura.get('miktar')} {son_fatura.get('birim')} - Fatura No: {son_fatura.get('fatura_no')})")
+                with c_undo2:
+                    if st.button("↩️ Son Mal Alımını Geri Al", type="secondary", key="btn_undo_fatura_son"):
+                        otomatik_yedek_al("Fatura ekleme geri alma: " + str(son_id))
+                        st.session_state.girisler = [g for g in st.session_state.girisler if g.get("id") != son_id]
+                        verileri_kaydet(st.session_state.girisler)
+                        st.session_state.pop("son_eklenen_fatura_id", None)
+                        st.success(f"🎉 {son_id} numaralı mal alım kaydı başarıyla geri alındı ve silindi!")
+                        time.sleep(1)
+                        st.rerun()
+
         with st.form("fatura_formu"):
             fatura_tarihi_secim = st.date_input("📅 Fatura / Alım Tarihi", value=datetime.date.today())
             fatura_saati_secim = st.time_input("⏰ Alım Saati", value=datetime.datetime.now().time())
@@ -2704,7 +2723,8 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     fatura_no_input if fatura_no_input else "BELİRTİLMEMİŞ"
                 )
                 yeni_kayit_id = yeni_id_uret("FAT-", st.session_state.girisler)
-                st.session_state.girisler.append({
+                
+                yeni_kayit_obj = {
                     "id": yeni_kayit_id,
                     "tarih": tarih_giris,
                     "fatura_no": fatura_no_degeri,
@@ -2716,8 +2736,12 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "fiyat": fiyat,
                     "depo": depo,
                     "islem_yapan": islem_yapan_kisi,
-                })
+                }
+                
+                st.session_state.girisler.append(yeni_kayit_obj)
+                st.session_state["son_eklenen_fatura_id"] = yeni_kayit_id
                 verileri_kaydet(st.session_state.girisler)
+                
                 st.markdown(
                 """
                 <div style="background-color: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 14px 18px; border-radius: 14px; margin: 16px 0; font-weight: 600; font-size: 15px;">
@@ -2727,7 +2751,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 unsafe_allow_html=True
                 )
                 st.balloons()
-                time.sleep(2)
+                time.sleep(1)
                 st.rerun()
 
         st.markdown("---")
@@ -2820,7 +2844,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             ozel_html_tablo_goster(fatura_log_tablosu)
         else:
             st.info("Kayıtlı mal alımı faturası bulunmuyor.")
-
+            
 # DEPO YÖNETİMİ
 elif menu == "Depo Yönetimi":
     if misafir_modu:
