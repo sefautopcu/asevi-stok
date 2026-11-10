@@ -50,13 +50,6 @@ if ram_kullanimi > 0:
     if st.sidebar.button("🧹 Önbellek Temizle", key="sb_ram_clean_btn", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-# RAM Göstergesi ve Önbellek Temizleme Düğmesi
-ram_kullanimi = bellek_kullanimi_al()
-if ram_kullanimi > 0:
-    st.sidebar.caption(f"💾 **RAM Kullanımı:** {ram_kullanimi} MB")
-    if st.sidebar.button("🧹 Önbellek Temizle", key="sb_ram_clean_btn", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
 
 # Sayfa Yapılandırması
 st.set_page_config(
