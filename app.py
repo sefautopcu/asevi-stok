@@ -4541,7 +4541,8 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 st.info("Listelenecek ihtiyaç sahibi veya dağıtım verisi bulunmuyor.")
 
 # 8. PERSONEL VE ÇALIŞMA SÜRESİ TAKİBİ
-elif menu == "Personel ve Çalışma Süresi Takibi":
+elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma Süresi Takibi"]:
+    import calendar
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
@@ -4550,10 +4551,10 @@ elif menu == "Personel ve Çalışma Süresi Takibi":
             "Aşevi personelinin kayıtlarını tutun, izin/rapor günlerini girin ve net çalışma günlerini takip edin."
         )
 
-        # Session State Kontrolleri
-        if "personeller" not in st.session_state:
+        # Session State Güvenlik Kontrolleri
+        if "personeller" not in st.session_state or st.session_state.personeller is None:
             st.session_state.personeller = []
-        if "personel_izinleri" not in st.session_state:
+        if "personel_izinleri" not in st.session_state or st.session_state.personel_izinleri is None:
             st.session_state.personel_izinleri = []
 
         # Son Personel / İzin İşlemini Geri Al Butonu ve Bildirimi
