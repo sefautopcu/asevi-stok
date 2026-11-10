@@ -5067,10 +5067,10 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     else:
         st.info("Analiz edilecek ürün kaydı bulunmuyor.")
 
-# 12. KULLANICI AYARLARI
+# 10. KULLANICI AYARLARI
 elif menu in ["Kullanıcı Ayarları", "Kullanıcı Ayarları & Yetkilendirme", "Kullanıcı Yönetimi"]:
     if not yonetici_modu:
-        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır. Yalnızca **Admin** kullanıcıları erişabilir.")
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır. Yalnızca **Admin** kullanıcıları erişebilir.")
     else:
         st.header("⚙️ Kullanıcı Ayarları ve Yetkilendirme Yönetimi")
         st.markdown(
@@ -5082,8 +5082,7 @@ elif menu in ["Kullanıcı Ayarları", "Kullanıcı Ayarları & Yetkilendirme", 
         # ---------------------------------------------------------
         st.markdown("### 🛡️ Güvenlik Durumu")
         
-        # Şifre değiştirmesi beklenen hesapların dinamik metni
-        sifre_bekleyenler = ["asci", "yonetim"]  # Kodunuzdaki mevcut liste/değişken ile senkronize olur
+        sifre_bekleyenler = ["asci", "yonetim"]
         sifre_metni = f"Şifresini değiştirmesi beklenen hesaplar: {', '.join(sifre_bekleyenler)}" if sifre_bekleyenler else "Tüm hesap şifreleri güncel."
 
         st.markdown(
@@ -5182,29 +5181,55 @@ elif menu in ["Kullanıcı Ayarları", "Kullanıcı Ayarları & Yetkilendirme", 
         with tab_u1:
             st.subheader("📋 Kayıtlı Sistem Kullanıcıları")
 
-            # Kullanıcı Veri Dönüşümü ve Liste Gösterimi
-            kullanici_liste_tablo = []
-            if isinstance(st.session_state.kullanicilar, list):
-                for u in st.session_state.kullanicilar:
-                    kullanici_liste_tablo.append({
-                        "Kullanıcı Adı": u.get("kullanici_adi", u.get("username", "-")),
-                        "Adı Soyadı": u.get("ad_soyad", u.get("name", "-")),
-                        "Rol / Yetki": u.get("rol", u.get("role", "Kullanıcı")),
-                        "Kayıt Tarihi": u.get("tarih", "-")
-                    })
-            elif isinstance(st.session_state.kullanicilar, dict):
-                for k_name, u_data in st.session_state.kullanicilar.items():
-                    kullanici_liste_tablo.append({
-                        "Kullanıcı Adı": k_name,
-                        "Adı Soyadı": u_data.get("ad_soyad", u_data.get("name", "-")),
-                        "Rol / Yetki": u_data.get("rol", u_data.get("role", "Kullanıcı")),
-                        "Kayıt Tarihi": u_data.get("tarih", "-")
-                    })
+            # Maskeleme Kontrolü
+            maske_listesi = aktif_k_maskeleri if 'aktif_k_maskeleri' in locals() or 'aktif_k_maskeleri' in globals() else st.session_state.get("aktif_k_maskeleri", [])
 
-            if kullanici_liste_tablo:
-                ozel_html_tablo_goster(kullanici_liste_tablo)
+            if any("6. Sayfa: Kullanıcılar" in m for m in maske_listesi):
+                st.info("🔒 Kullanıcı listesi bu kullanıcı için tamamen maskelenmiştir.")
             else:
-                st.info("Kayıtlı kullanıcı bulunmuyor.")
+                kullanici_liste_tablo = []
+                
+                # Liste formatındaki kullanıcı verisini işle
+                if isinstance(st.session_state.kullanicilar, list):
+                    for u in st.session_state.kullanicilar:
+                        raw_k_adi = u.get("kullanici_adi", u.get("username", "-"))
+                        raw_ad = u.get("ad_soyad", u.get("name", "-"))
+                        raw_rol = u.get("rol", u.get("role", "Kullanıcı"))
+                        raw_tarih = u.get("tarih", "-")
+
+                        k_adi_mask = "🔒 Gizli" if "6. Sayfa: Kullanıcılar - Kullanıcı Adı" in maske_listesi else raw_k_adi
+                        ad_mask = "🔒 Gizli" if "6. Sayfa: Kullanıcılar - Adı Soyadı" in maske_listesi else raw_ad
+                        rol_mask = "🔒 Gizli" if "6. Sayfa: Kullanıcılar - Rol" in maske_listesi else raw_rol
+
+                        kullanici_liste_tablo.append({
+                            "Kullanıcı Adı": k_adi_mask,
+                            "Adı Soyadı": ad_mask,
+                            "Rol / Yetki": rol_mask,
+                            "Kayıt Tarihi": raw_tarih
+                        })
+                # Sözlük formatındaki kullanıcı verisini işle
+                elif isinstance(st.session_state.kullanicilar, dict):
+                    for k_name, u_data in st.session_state.kullanicilar.items():
+                        raw_k_adi = k_name
+                        raw_ad = u_data.get("ad_soyad", u_data.get("name", "-"))
+                        raw_rol = u_data.get("rol", u_data.get("role", "Kullanıcı"))
+                        raw_tarih = u_data.get("tarih", "-")
+
+                        k_adi_mask = "🔒 Gizli" if "6. Sayfa: Kullanıcılar - Kullanıcı Adı" in maske_listesi else raw_k_adi
+                        ad_mask = "🔒 Gizli" if "6. Sayfa: Kullanıcılar - Adı Soyadı" in maske_listesi else raw_ad
+                        rol_mask = "🔒 Gizli" if "6. Sayfa: Kullanıcılar - Rol" in maske_listesi else raw_rol
+
+                        kullanici_liste_tablo.append({
+                            "Kullanıcı Adı": k_adi_mask,
+                            "Adı Soyadı": ad_mask,
+                            "Rol / Yetki": rol_mask,
+                            "Kayıt Tarihi": raw_tarih
+                        })
+
+                if kullanici_liste_tablo:
+                    ozel_html_tablo_goster(kullanici_liste_tablo)
+                else:
+                    st.info("Kayıtlı kullanıcı bulunmuyor.")
 
             st.markdown("---")
             col_u_ekle, col_u_rol = st.columns(2)
