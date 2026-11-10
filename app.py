@@ -4106,7 +4106,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                             "Kullanılan Malzeme": m.get("urun", "-"),
-                            "Maliyet": f"{m.get('tutar', 0):,.2f} ₺",
+                            "Malzeme Maliyeti": f"{m.get('tutar', 0):,.2f} ₺",
+                            "Menü Toplam Maliyeti": f"{toplam_maliyet_degeri:,.2f} ₺",
                             "Kişi Başı Maliyet": f"{kisi_basi_maliyet:,.2f} ₺",
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
@@ -4115,7 +4116,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                             "Kullanılan Malzeme": m.get("urun", "-"),
-                            "Maliyet (TL)": round(m.get("tutar", 0), 2),
+                            "Malzeme Maliyeti (TL)": round(m.get("tutar", 0), 2),
+                            "Menü Toplam Maliyeti (TL)": round(toplam_maliyet_degeri, 2),
                             "Kişi Başı Maliyet (TL)": round(kisi_basi_maliyet, 2),
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
