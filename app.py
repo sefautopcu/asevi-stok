@@ -414,7 +414,7 @@ def supabase_veri_oku(kayit_id, varsayilan_deger, kritik=True):
     boşla ezebilirdi."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         return varsayilan_deger
-    durum, veri = _supabase_ham_oku(kayit_id)
+    durum, veri = _supabase_ham_oku_cached(kayit_id)
     if durum == "hata":
         if kritik:
             _veritabani_hatasi_dur(f"'{kayit_id}' okunamadı ({veri})")
