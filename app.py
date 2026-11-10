@@ -3344,6 +3344,35 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
         if salt_okunur_modu:
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda toplu stok düşümü yapamazsınız.")
         else:
+            # Son Sarfiyat İşlemini Geri Al Butonu ve Bildirimi
+            if st.session_state.get("son_toplu_sarfiyat_kaydi"):
+                son_sarf = st.session_state["son_toplu_sarfiyat_kaydi"]
+                c_undo1, c_undo2 = st.columns([3, 1])
+                with c_undo1:
+                    st.info(f"💡 **Son Sarfiyat Kaydı:** {son_sarf.get('urun')} ({son_sarf.get('miktar')} Miktar - Tutar: {son_sarf.get('tutar', 0):,.2f} ₺ - Tarih: {son_sarf.get('tarih')})")
+                with c_undo2:
+                    if st.button("↩️ Son Sarfiyat İşlemini Geri Al", type="secondary", key="btn_undo_toplu_sarf_son"):
+                        otomatik_yedek_al("Toplu sarfiyat geri alma: " + str(son_sarf.get("urun")))
+                        
+                        # Düşülen miktarları orijinal stok girişlerine iade et
+                        for item in son_sarf.get("dusulen_kayitlar", []):
+                            for g in st.session_state.girisler:
+                                if g.get("id") == item["id"]:
+                                    g["kalan"] = float(g.get("kalan", 0)) + float(item["miktar"])
+
+                        # Kullanım loglarından sil
+                        log_target = son_sarf.get("log_objesi")
+                        if log_target and log_target in st.session_state.kullanim_loglari:
+                            st.session_state.kullanim_loglari.remove(log_target)
+
+                        verileri_kaydet(st.session_state.girisler)
+                        loglari_kaydet(st.session_state.kullanim_loglari)
+                        
+                        st.session_state.pop("son_toplu_sarfiyat_kaydi", None)
+                        st.success(f"🎉 {son_sarf.get('urun')} için yapılan stok düşümü geri alındı ve stok iade edildi!")
+                        time.sleep(1)
+                        st.rerun()
+
             col_form1, col_form2 = st.columns(2)
             
             with col_form1:
@@ -3351,7 +3380,6 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                 benzersiz_urunler_toplu = sorted(list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun"))))
                 
                 if benzersiz_urunler_toplu:
-                    # Tarih ve Saat seçim alanları
                     col_t1, col_t2 = st.columns(2)
                     with col_t1:
                         toplu_tarih_secim = st.date_input("📅 Sarfiyat Tarihi", value=datetime.date.today(), key="toplu_tarih_inp")
@@ -3359,54 +3387,79 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
                         toplu_saat_secim = st.time_input("⏰ Sarfiyat Saati", value=datetime.datetime.now().time(), key="toplu_saat_inp")
                     toplu_tarih_str = f"{toplu_tarih_secim.strftime('%Y-%m-%d')} {toplu_saat_secim.strftime('%H:%M')}"
 
-                    selected_item = st.selectbox("Malzeme Seçin", benzersiz_urunler_toplu, key="toplu_malzeme_selectbox")
+                    selected_item = st.selectbox(
+                        "Malzeme Seçin",
+                        benzersiz_urunler_toplu,
+                        index=None,
+                        placeholder="Malzeme Seçiniz...",
+                        key="toplu_malzeme_selectbox"
+                    )
                     
-                    ilgili_girisler_toplu = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == selected_item.strip().upper()]
-                    current_stock = sum(g.get("kalan", 0) for g in ilgili_girisler_toplu)
-                    aktif_ilgili_toplu = [g for g in ilgili_girisler_toplu if g.get("kalan", 0) > 0]
-                    
-                    unit = ilgili_girisler_toplu[0].get("birim", "Kg") if ilgili_girisler_toplu else "Kg"
-                    
-                    st.info(f"Mevcut Toplam Stok ({selected_item}): {current_stock} {unit}")
-                    
-                    used_amount = st.number_input(f"Kullanılan Miktar ({unit})", min_value=0.1, value=1.0, step=0.5)
-                    description = st.text_input("Açıklama / Not (Örn: Kazan yemeği, günlük dağıtım vb.)", "Günlük Aşevi Üretimi")
-                    
-                    if st.button("Stoktan Düş ve Kullanılanlara Ekle", type="primary"):
-                        if used_amount > current_stock:
-                            st.error(f"⚠️ Hata: Kullanılan miktar ({used_amount}), mevcut toplam stoktan ({current_stock}) büyük olamaz!")
-                        else:
-                            kalan_dusulecek = used_amount
-                            harcanan_tutar = 0.0
-                            
-                            for g in aktif_ilgili_toplu:
-                                if kalan_dusulecek <= 0:
-                                    break
-                                if g["kalan"] >= kalan_dusulecek:
-                                    g["kalan"] -= kalan_dusulecek
-                                    harcanan_tutar += kalan_dusulecek * g["fiyat"]
-                                    kalan_dusulecek = 0
-                                else:
-                                    dusulen = g["kalan"]
-                                    g["kalan"] = 0
-                                    harcanan_tutar += dusulen * g["fiyat"]
-                                    kalan_dusulecek -= dusulen
-                            
-                            verileri_kaydet(st.session_state.girisler)
-                            
-                            st.session_state.kullanim_loglari.append({
-                                "tarih": toplu_tarih_str,
-                                "urun": selected_item,
-                                "tur": f"Toplu Sarfiyat ({description})",
-                                "miktar": used_amount,
-                                "tutar": harcanan_tutar,
-                                "islem_yapan": st.session_state.aktif_kullanici,
-                            })
-                            loglari_kaydet(st.session_state.kullanim_loglari)
-                            
-                            st.success(f"🎉 Başarılı! {toplu_tarih_str} tarihli {used_amount} {unit} {selected_item} stoktan düşüldü ve loglara eklendi!")
-                            st.balloons()
-                            st.rerun()
+                    if selected_item:
+                        ilgili_girisler_toplu = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == selected_item.strip().upper()]
+                        current_stock = sum(float(g.get("kalan", 0)) for g in ilgili_girisler_toplu)
+                        aktif_ilgili_toplu = [g for g in ilgili_girisler_toplu if float(g.get("kalan", 0)) > 0]
+                        
+                        unit = ilgili_girisler_toplu[0].get("birim", "Kg") if ilgili_girisler_toplu else "Kg"
+                        
+                        st.info(f"Mevcut Toplam Stok ({selected_item}): {current_stock} {unit}")
+                        
+                        used_amount = st.number_input(f"Kullanılan Miktar ({unit})", min_value=0.1, value=1.0, step=0.5)
+                        description = st.text_input("Açıklama / Not (Örn: Kazan yemeği, günlük dağıtım vb.)", "Günlük Aşevi Üretimi")
+                        
+                        if st.button("Stoktan Düş ve Kullanılanlara Ekle", type="primary"):
+                            if used_amount <= 0:
+                                st.error("⚠️ Lütfen 0'dan büyük bir miktar girin!")
+                            elif used_amount > current_stock:
+                                st.error(f"⚠️ Hata: Kullanılan miktar ({used_amount}), mevcut toplam stoktan ({current_stock}) büyük olamaz!")
+                            else:
+                                kalan_dusulecek = used_amount
+                                harcanan_tutar = 0.0
+                                dusulen_kayitlar = []
+                                
+                                for g in aktif_ilgili_toplu:
+                                    if kalan_dusulecek <= 0:
+                                        break
+                                    if float(g["kalan"]) >= kalan_dusulecek:
+                                        dusulen_kayitlar.append({"id": g["id"], "miktar": kalan_dusulecek})
+                                        g["kalan"] = float(g["kalan"]) - kalan_dusulecek
+                                        harcanan_tutar += kalan_dusulecek * float(g["fiyat"])
+                                        kalan_dusulecek = 0
+                                    else:
+                                        dusulen = float(g["kalan"])
+                                        dusulen_kayitlar.append({"id": g["id"], "miktar": dusulen})
+                                        g["kalan"] = 0.0
+                                        harcanan_tutar += dusulen * float(g["fiyat"])
+                                        kalan_dusulecek -= dusulen
+                                
+                                yeni_log = {
+                                    "tarih": toplu_tarih_str,
+                                    "urun": selected_item,
+                                    "tur": f"Toplu Sarfiyat ({description})",
+                                    "miktar": used_amount,
+                                    "tutar": harcanan_tutar,
+                                    "islem_yapan": st.session_state.aktif_kullanici,
+                                }
+
+                                st.session_state.kullanim_loglari.append(yeni_log)
+                                
+                                # Son sarfiyat kaydını session_state içinde sakla
+                                st.session_state["son_toplu_sarfiyat_kaydi"] = {
+                                    "urun": selected_item,
+                                    "miktar": used_amount,
+                                    "tutar": harcanan_tutar,
+                                    "tarih": toplu_tarih_str,
+                                    "dusulen_kayitlar": dusulen_kayitlar,
+                                    "log_objesi": yeni_log
+                                }
+
+                                verileri_kaydet(st.session_state.girisler)
+                                loglari_kaydet(st.session_state.kullanim_loglari)
+                                
+                                st.success(f"🎉 Başarılı! {toplu_tarih_str} tarihli {used_amount} {unit} {selected_item} stoktan düşüldü ve loglara eklendi!")
+                                st.balloons()
+                                time.sleep(1)
+                                st.rerun()
                 else:
                     st.info("Depoda kayıtlı ürün bulunmuyor.")
 
