@@ -4101,7 +4101,29 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
             "Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun, aktif/pasif durumlarını yönetin ve yemek dağıtımlarını takip edin."
         )
 
-        # Son Toplu Yemek Dağıtımını Geri Al Butonu ve Bildirimi
+        # 1) Son Silinen İhtiyaç Sahibini Geri Al Butonu ve Bildirimi
+        if st.session_state.get("son_silinen_ihtiyac_sahibi"):
+            son_kisi = st.session_state["son_silinen_ihtiyac_sahibi"]
+            c_undo1, c_undo2 = st.columns([3, 1])
+            with c_undo1:
+                st.info(
+                    f"💡 **Son Silinen İhtiyaç Sahibi:** {son_kisi.get('ad_soyad')} (Kayıt No: {son_kisi.get('id')} - T.C./Hane: {son_kisi.get('tc_hane', '-')})"
+                )
+            with c_undo2:
+                if st.button("↩️ Silinen Kişiyi Geri Al", type="secondary", key="btn_undo_kisi_sil_son"):
+                    otomatik_yedek_al("Silinen ihtiyaç sahibini geri alma: " + str(son_kisi.get("ad_soyad")))
+                    
+                    # Kişiyi tekrar listeye iade et
+                    if not any(k["id"] == son_kisi["id"] for k in st.session_state.ihtiyac_sahipleri):
+                        st.session_state.ihtiyac_sahipleri.append(son_kisi)
+                    
+                    ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                    st.session_state.pop("son_silinen_ihtiyac_sahibi", None)
+                    st.success(f"🎉 '{son_kisi.get('ad_soyad')}' ihtiyaç sahibi listesine başarıyla geri yüklendi!")
+                    time.sleep(1)
+                    st.rerun()
+
+        # 2) Son Toplu Yemek Dağıtımını Geri Al Butonu ve Bildirimi
         if st.session_state.get("son_toplu_dagitim_kaydi"):
             son_dagitim = st.session_state["son_toplu_dagitim_kaydi"]
             c_undo1, c_undo2 = st.columns([3, 1])
@@ -4277,20 +4299,23 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                                             ),
                                             None,
                                         )
-                                        silinen_isim = (
-                                            silinen_kisi_obj["ad_soyad"] if silinen_kisi_obj else ""
-                                        )
-                                        st.session_state.ihtiyac_sahipleri = [
-                                            k
-                                            for k in st.session_state.ihtiyac_sahipleri
-                                            if k["id"] != silinecek_id
-                                        ]
-                                        ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
-                                        st.session_state.kisi_silme_mesaji = (
-                                            f"🎉 Başarılı! {silinen_isim} silindi."
-                                        )
-                                        st.balloons()
-                                        st.rerun()
+                                        if silinen_kisi_obj:
+                                            # Geri al butonu için sakla
+                                            st.session_state["son_silinen_ihtiyac_sahibi"] = silinen_kisi_obj.copy()
+
+                                            silinen_isim = silinen_kisi_obj["ad_soyad"]
+                                            st.session_state.ihtiyac_sahipleri = [
+                                                k
+                                                for k in st.session_state.ihtiyac_sahipleri
+                                                if k["id"] != silinecek_id
+                                            ]
+                                            ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
+                                            st.session_state.kisi_silme_mesaji = (
+                                                f"🎉 Başarılı! {silinen_isim} silindi."
+                                            )
+                                            st.balloons()
+                                            time.sleep(1)
+                                            st.rerun()
                             else:
                                 st.info("Silinecek kayıt bulunmuyor.")
 
