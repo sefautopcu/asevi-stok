@@ -2307,14 +2307,13 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     aktif_personel_sayisi = sum(1 for p in personel_verileri if p.get("aktif", True)) if personel_verileri else sum(1 for p in st.session_state.get("personeller", []) if p.get("aktif", True))
 
+    # Eğer veritabanında henüz üretim kaydı yoksa boş liste bırak
     if not gecmis_uretimler:
-        gecmis_uretimler = [
-            {"tarih": "2026-11-11", "menu_adi": "Ispanak Yemeği / Makarna / Yoğurt Menüsü", "kisi_basi_orijinal_maliyet": 79.19, "kalem_sayisi": 6},
-            {"tarih": "2026-11-10", "menu_adi": "Kuru Fasulye / Pirinç Pilavı / Cacık", "kisi_basi_orijinal_maliyet": 64.50, "kalem_sayisi": 5},
-            {"tarih": "2026-11-09", "menu_adi": "Tavuk Sote / Arpa Şehriye Pilavı / Ayran", "kisi_basi_orijinal_maliyet": 71.20, "kalem_sayisi": 5}
-        ]
-
-    menu_secenekleri = {f"{item['tarih']} | {item['menu_adi']}": item for item in gecmis_uretimler}
+        gecmis_uretimler = []
+      if gecmis_uretimler:
+        menu_secenekleri = {f"{item.get('tarih', '')} | {item.get('menu_adi', 'Menü')}": item for item in gecmis_uretimler}
+    else:
+        menu_secenekleri = {"Henüz Üretim Kaydı Girilmedi": {"tarih": "-", "menu_adi": "Kayıt Yok", "kisi_basi_orijinal_maliyet": 0.0, "kalem_sayisi": 0}}
     
     # 3. HTML & NEON CAM KART RENDER (8'Lİ METRİK KARTI EN ÜSTTE)
     dash_html = f"""
