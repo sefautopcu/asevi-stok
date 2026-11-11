@@ -2298,7 +2298,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         fiyat = float(item.get("birim_fiyat", 0.0))
         toplam_stok_degeri += kalan * fiyat
     if toplam_stok_degeri == 0.0:
-        # Fallback olarak session_state girişleri üzerinden hesapla
         for g in st.session_state.get("girisler", []):
             toplam_stok_degeri += float(g.get("kalan", 0)) * float(g.get("fiyat", 0))
 
@@ -2311,7 +2310,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         toplam_fire_kg += f_miktar
         toplam_fire_tl += f_miktar * f_fiyat
     
-    # Session state loglarındaki fireleri de dahil et
     for log in st.session_state.get("kullanim_loglari", []):
         if log.get("tur") == "Fire/Zayiat":
             f_mik = float(log.get("miktar", 0))
@@ -2501,7 +2499,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             </div>
             <div class="wf-card">
                 <div class="wf-title">4. Raporlama & Arşiv</div>
-                <div class="wf-desc">PDF and Excel formatında kurumsal operasyon raporları anında indirilir.</div>
+                <div class="wf-desc">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</div>
             </div>
         </div>
 
