@@ -805,52 +805,56 @@ if "tema" not in st.session_state:
     else:
         st.session_state.tema = "Dark"
 
-# Tema Renk Paletleri (Liquid Glass & Glassmorphism)
+# Sunum Görseline (İkinci Görsel) %100 Uyumlu Dinamik Paletler
 if st.session_state.tema == "Dark":
-    bg_color = "#09090b"
-    card_bg = "rgba(39, 39, 42, 0.45)"
-    sidebar_bg = "rgba(18, 18, 22, 0.75)"
+    bg_color = "#040711"
+    card_bg = "rgba(10, 15, 29, 0.75)"
+    sidebar_bg = "rgba(6, 10, 20, 0.85)"
     text_color = "#f4f4f5"
-    subtext_color = "#a1a1aa"
-    border_color = "rgba(255, 255, 255, 0.08)"
-    input_bg = "rgba(24, 24, 27, 0.8)"
-    table_hover = "rgba(99, 102, 241, 0.08)"
-    popover_bg = "#18181b"
+    subtext_color = "#94a3b8"
+    border_color = "rgba(16, 185, 129, 0.25)"
+    input_bg = "rgba(15, 23, 42, 0.8)"
+    table_hover = "rgba(16, 185, 129, 0.1)"
+    popover_bg = "#0b1329"
     plotly_template = "plotly_dark"
-    accent_color = "#6366f1"
-    btn_gradient = "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)"
-    btn_shadow = "0 4px 20px -2px rgba(99, 102, 241, 0.5)"
+    accent_glow = "0 0 25px -5px rgba(16, 185, 129, 0.35)"
+    btn_gradient = "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+    btn_shadow = "0 4px 20px rgba(16, 185, 129, 0.4)"
 else:
-    bg_color = "#f4f4f6"
-    card_bg = "rgba(255, 255, 255, 0.65)"
-    sidebar_bg = "rgba(255, 255, 255, 0.75)"
-    text_color = "#18181b"
-    subtext_color = "#52525b"
-    border_color = "rgba(0, 0, 0, 0.08)"
-    input_bg = "rgba(255, 255, 255, 0.9)"
-    table_hover = "rgba(79, 70, 229, 0.05)"
+    bg_color = "#f0f4f8"
+    card_bg = "rgba(255, 255, 255, 0.75)"
+    sidebar_bg = "rgba(255, 255, 255, 0.85)"
+    text_color = "#0f172a"
+    subtext_color = "#475569"
+    border_color = "rgba(14, 165, 233, 0.3)"
+    input_bg = "rgba(255, 255, 255, 0.95)"
+    table_hover = "rgba(14, 165, 233, 0.08)"
     popover_bg = "#ffffff"
     plotly_template = "plotly_white"
-    accent_color = "#4f46e5"
-    btn_gradient = "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)"
-    btn_shadow = "0 4px 15px rgba(79, 70, 229, 0.3)"
+    accent_glow = "0 0 20px -5px rgba(14, 165, 233, 0.25)"
+    btn_gradient = "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
+    btn_shadow = "0 4px 15px rgba(14, 165, 233, 0.35)"
 
-# DİNAMİK TEMA STİLLERİ (LIQUID GLASS)
+# SUNUM TEMASI (GLOWING LIQUID GLASS) CSS ENJEKSİYONU
 st.markdown(
     f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
+    /* Arka Plan ve Ana Gövde */
     .main, .stApp {{ 
         background-color: {bg_color} !important; 
+        background-image: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                          radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 40%) !important;
         color: {text_color} !important;
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
     }}
     
+    /* Sol Menü (Sidebar) Cam Efekti */
     .stSidebar, section[data-testid="stSidebar"] {{ 
         background: {sidebar_bg} !important; 
-        backdrop-filter: blur(16px) !important;
-        -webkit-backdrop-filter: blur(16px) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
         padding-top: 10px; 
         border-right: 1px solid {border_color} !important;
     }}
@@ -874,29 +878,20 @@ st.markdown(
         text-align: left !important;
         box-shadow: none !important;
         font-weight: 500 !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.3s ease;
         padding: 9px 14px !important;
     }}
     
     section[data-testid="stSidebar"] div.stButton > button:hover {{
-        background: rgba(99, 102, 241, 0.12) !important;
+        background: rgba(16, 185, 129, 0.12) !important;
         backdrop-filter: blur(16px) !important;
-        -webkit-backdrop-filter: blur(16px) !important;
         color: {text_color} !important;
-        border: 1px solid rgba(99, 102, 241, 0.3) !important;
-        box-shadow: 0 8px 20px 0 rgba(99, 102, 241, 0.15) !important;
+        border: 1px solid {border_color} !important;
+        box-shadow: {accent_glow} !important;
         transform: translateX(4px);
     }}
-    
-    section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {{
-        background: rgba(99, 102, 241, 0.2) !important;
-        backdrop-filter: blur(16px) !important;
-        -webkit-backdrop-filter: blur(16px) !important;
-        color: {text_color} !important;
-        border: 1px solid rgba(99, 102, 241, 0.4) !important;
-        font-weight: 600 !important;
-    }}
 
+    /* Başlıklar ve Metinler */
     h1, h2, h3, h4, h5, h6 {{ 
         color: {text_color} !important; 
         font-weight: 700 !important;
@@ -908,99 +903,61 @@ st.markdown(
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div {{ display: none !important; }}
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] {{ color: transparent !important; }}
 
-    /* Form, Kart ve Buton Tasarımları */
-    div.stButton > button, button[data-testid="baseButton-secondary"], div.stFormSubmitButton > button {{
+    /* Sunumda Görseldeki Gibi Parlayan Cam Kartlar (Dashboard & Metrics) */
+    div.stMetric, 
+    div[data-testid="stExpander"], 
+    div.stForm,
+    div[data-testid="stColumn"] > div > div > div[data-testid="stVerticalBlock"] > div {{
         background: {card_bg} !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        color: {text_color} !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
         border: 1px solid {border_color} !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        font-size: 13.5px !important;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 18px !important;
+        box-shadow: {accent_glow} !important;
+        transition: all 0.3s ease !important;
     }}
-    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, div.stFormSubmitButton > button:hover {{
-        border-color: {accent_color} !important;
+    
+    div.stMetric:hover, div[data-testid="stForm"]:hover {{
+        border-color: rgba(16, 185, 129, 0.5) !important;
         transform: translateY(-2px);
     }}
 
-    /* Birincil Butonlar (Primary Buttons) */
-    button[data-testid="baseButton-primary"] {{
-        background: {btn_gradient} !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    /* Butonlar (Yerleştirilen Sunum İkonları Stili) */
+    div.stButton > button, button[data-testid="baseButton-secondary"], div.stFormSubmitButton > button {{
+        background: {card_bg} !important;
+        backdrop-filter: blur(12px) !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
         border-radius: 12px !important;
         font-weight: 600 !important;
         font-size: 13.5px !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        transition: all 0.25s ease !important;
+    }}
+    
+    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, div.stFormSubmitButton > button:hover {{
+        border-color: #10b981 !important;
+        box-shadow: {accent_glow} !important;
+        transform: translateY(-2px);
+    }}
+
+    /* Canlı Yeşil/Turkuaz Vurgulu Birincil Butonlar */
+    button[data-testid="baseButton-primary"] {{
+        background: {btn_gradient} !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        font-size: 13.5px !important;
         box-shadow: {btn_shadow} !important;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: all 0.25s ease !important;
     }}
     button[data-testid="baseButton-primary"]:hover {{
         transform: translateY(-2px) !important;
-        filter: brightness(1.1);
+        filter: brightness(1.15);
     }}
 
-    /* Metrik Kartlar, Expander ve Form Panelleri (Cam Efekti) */
-    div.stMetric, div[data-testid="stExpander"], div.stForm {{
-        background: {card_bg} !important;
-        backdrop-filter: blur(14px) !important;
-        -webkit-backdrop-filter: blur(14px) !important;
-        border: 1px solid {border_color} !important;
-        padding: 24px;
-        border-radius: 18px;
-        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.2);
-        color: {text_color} !important;
-    }}
-    
-    /* Popover ve Açılır Menüler */
-    div[data-baseweb="menu"], 
-    ul[role="listbox"], 
-    div[data-baseweb="popover"], 
-    div[data-baseweb="calendar"],
-    div[data-baseweb="select"] ul,
-    div[id*="popover"],
-    div[class*="popover"] {{
-        background-color: {popover_bg} !important;
-        color: {text_color} !important;
-        border: 1px solid {border_color} !important;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25) !important;
-        border-radius: 14px !important;
-        backdrop-filter: blur(16px) !important;
-    }}
-
-    li[role="option"], 
-    li[role="option"] div, 
-    li[role="option"] span,
-    div[data-baseweb="menu"] div {{
-        background-color: transparent !important;
-        color: {text_color} !important;
-    }}
-    li[role="option"]:hover, 
-    li[role="option"]:hover div, 
-    li[role="option"]:hover span {{
-        background-color: rgba(99, 102, 241, 0.15) !important;
-        color: {text_color} !important;
-    }}
-    li[role="option"][aria-selected="true"] {{
-        background-color: rgba(99, 102, 241, 0.3) !important;
-        color: {text_color} !important;
-    }}
-
-    div[data-baseweb="calendar"] *, 
-    div[data-baseweb="calendar"] div, 
-    div[data-baseweb="calendar"] span, 
-    div[data-baseweb="calendar"] button {{
-        color: {text_color} !important;
-        background-color: transparent !important;
-    }}
-    div[data-baseweb="calendar"] button:hover {{
-        background-color: rgba(99, 102, 241, 0.2) !important;
-        border-radius: 50% !important;
-    }}
-
-    /* Input ve Select Kutuları */
+    /* Input ve Select Kutuları (Cam Görünümlü) */
     input, 
     div[data-baseweb="select"] > div,
     div[data-baseweb="base-input"] {{
@@ -1008,13 +965,67 @@ st.markdown(
         color: {text_color} !important;
         border-radius: 12px !important;
         border: 1px solid {border_color} !important;
-        backdrop-filter: blur(8px) !important;
+        backdrop-filter: blur(10px) !important;
     }}
-    
     input::placeholder {{
         color: {subtext_color} !important;
         opacity: 0.7;
     }}
+
+    /* Popover ve Açılır Menüler */
+    div[data-baseweb="menu"], 
+    ul[role="listbox"], 
+    div[data-baseweb="popover"], 
+    div[data-baseweb="calendar"],
+    div[data-baseweb="select"] ul {{
+        background-color: {popover_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+        border-radius: 14px !important;
+        backdrop-filter: blur(20px) !important;
+    }}
+
+    li[role="option"]:hover {{
+        background-color: rgba(16, 185, 129, 0.15) !important;
+        color: {text_color} !important;
+    }}
+
+    /* Tablo Yapısı (Cam Tablo) */
+    .custom-table {{
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 15px 0;
+        background: {card_bg};
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid {border_color};
+        box-shadow: {accent_glow};
+    }}
+    .custom-table th {{
+        background: {sidebar_bg};
+        color: {text_color};
+        padding: 14px 18px;
+        font-size: 13px;
+        font-weight: 700;
+        border-bottom: 1px solid {border_color};
+    }}
+    .custom-table td {{
+        padding: 14px 18px;
+        color: {subtext_color};
+        font-size: 13px;
+        border-bottom: 1px solid {border_color};
+    }}
+    .custom-table tr:hover {{
+        background-color: {table_hover};
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
     /* Özel HTML Tablosu (Custom Table) */
     .custom-table {{
