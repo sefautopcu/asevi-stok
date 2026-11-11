@@ -2260,62 +2260,86 @@ import streamlit.components.v1 as components
 
 if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
-    # 1. ÜST KONTROL VE CANLI SİMÜLATÖR KİŞİ SAYISI
+    # 1. ÜST KONTROL VE KİŞİ SAYISI SİMÜLATÖRÜ
     col_hdr1, col_hdr2 = st.columns([2, 1])
     with col_hdr1:
-        st.markdown("<h2 style='margin:0;'>🍲 Aziziye Aşevi Operasyon Dashboard</h2>", unsafe_allow_html=True)
-        st.caption("Şeffaf, Hassas ve Dijital Stok & Maliyet Yönetim Paneli")
+        st.markdown("<h2 style='margin:0;'>🍲 Sefa Aşevi Operasyon Dashboard</h2>", unsafe_allow_html=True)
+        st.caption("Şeffaf, Hassas ve Dijital Stok, Fire & Maliyet Yönetim Paneli")
     with col_hdr2:
         kisi_sayisi = st.slider("Yararlanan Kişi Sayısı (Simülasyon)", 10, 1000, 230, step=10)
 
-    # 2. SUPABASE'DEN GEÇMİŞ YEMEK ÜRETİMLERİNİ ÇEKME
+    # 2. SUPABASE'DEN CANLI VERİLERİ ÇEKME
     try:
+        # Geçmiş Üretimler
         uretim_res = supabase.table("gunluk_uretim").select("*").order("tarih", desc=True).execute()
         gecmis_uretimler = uretim_res.data if uretim_res.data else []
-    except Exception:
-        gecmis_uretimler = []
+        
+        # Stok Kütüğü (Ürün Çeşidi ve Stok Değeri için)
+        stok_res = supabase.table("stok_kutugu").select("*").execute()
+        stok_verileri = stok_res.data if stok_res.data else []
 
+        # Fire / Zayiat Kayıtları
+        fire_res = supabase.table("fire_zayiat").select("*").execute()
+        fire_verileri = fire_res.data if fire_res.data else []
+
+        # Personel Listesi
+        personel_res = supabase.table("personel").select("*").execute()
+        personel_verileri = personel_res.data if personel_res.data else []
+
+    except Exception:
+        gecmis_uretimler, stok_verileri, fire_verileri, personel_verileri = [], [], [], []
+
+    # --- HESAPLAMALAR ---
+    # A. Ürün Çeşidi (Güncel Stok Durumu tablosundan benzersiz ürünler)
+    benzersiz_urunler = set([item.get("ürün_adı") or item.get("urun_adi") or item.get("malzeme_adi") for item in stok_verileri if item])
+    urun_cesidi_sayisi = len(benzersiz_urunler) if benzersiz_urunler else 6
+
+    # B. Toplam Stok Değeri (Kalan Miktar * Birim Fiyat)
+    toplam_stok_degeri = 0.0
+    for item in stok_verileri:
+        kalan = float(item.get("kalan_miktar", item.get("alınan_miktar", 0.0) or 0.0))
+        fiyat = float(item.get("birim_fiyat", 0.0))
+        toplam_stok_degeri += kalan * fiyat
+    if toplam_stok_degeri == 0.0:
+        toplam_stok_degeri = 142500.00  # Veri yoksa örnek gösterge
+
+    # C. Toplam Fire (Miktar ve TL Karşılığı)
+    toplam_fire_kg = 0.0
+    toplam_fire_tl = 0.0
+    for f in fire_verileri:
+        f_miktar = float(f.get("miktar", f.get("fire_miktari", 0.0) or 0.0))
+        f_fiyat = float(f.get("birim_fiyat", 40.0)) # Birim fiyat yoksa ortalama
+        toplam_fire_kg += f_miktar
+        toplam_fire_tl += f_miktar * f_fiyat
+    if toplam_fire_kg == 0.0:
+        toplam_fire_kg, toplam_fire_tl = 14.5, 960.00 # Örnek gösterge
+
+    # D. Aktif Çalışan Personel Sayısı
+    aktif_personel_sayisi = len(personel_verileri) if personel_verileri else 8
+
+    # Geçmiş Menü Verileri (Yedekli)
     if not gecmis_uretimler:
         gecmis_uretimler = [
-            {
-                "tarih": "2026-11-11",
-                "menu_adi": "Ispanak Yemeği / Makarna / Yoğurt Menüsü",
-                "kisi_basi_orijinal_maliyet": 79.19,
-                "kalem_sayisi": 6
-            },
-            {
-                "tarih": "2026-11-10",
-                "menu_adi": "Kuru Fasulye / Pirinç Pilavı / Cacık",
-                "kisi_basi_orijinal_maliyet": 64.50,
-                "kalem_sayisi": 5
-            },
-            {
-                "tarih": "2026-11-09",
-                "menu_adi": "Tavuk Sote / Arpa Şehriye Pilavı / Ayran",
-                "kisi_basi_orijinal_maliyet": 71.20,
-                "kalem_sayisi": 5
-            }
+            {"tarih": "2026-11-11", "menu_adi": "Ispanak Yemeği / Makarna / Yoğurt Menüsü", "kisi_basi_orijinal_maliyet": 79.19, "kalem_sayisi": 6},
+            {"tarih": "2026-11-10", "menu_adi": "Kuru Fasulye / Pirinç Pilavı / Cacık", "kisi_basi_orijinal_maliyet": 64.50, "kalem_sayisi": 5},
+            {"tarih": "2026-11-09", "menu_adi": "Tavuk Sote / Arpa Şehriye Pilavı / Ayran", "kisi_basi_orijinal_maliyet": 71.20, "kalem_sayisi": 5}
         ]
 
     menu_secenekleri = {f"{item['tarih']} | {item['menu_adi']}": item for item in gecmis_uretimler}
     
     col_sel1, _ = st.columns([2, 1])
     with col_sel1:
-        secilen_key = st.selectbox(
-            "📋 Geçmişte Çıkan Yemeği / Menüyü Seçin",
-            options=list(menu_secenekleri.keys())
-        )
+        secilen_key = st.selectbox("📋 Geçmişte Çıkan Yemeği / Menüyü Seçin", options=list(menu_secenekleri.keys()))
     
     secilen_menu_verisi = menu_secenekleri[secilen_key]
 
-    # HESAPLAMA
     kisi_basi_tl = float(secilen_menu_verisi.get("kisi_basi_orijinal_maliyet", 79.19))
     toplam_tl = kisi_basi_tl * kisi_sayisi
     menu_adi = secilen_menu_verisi.get("menu_adi", "Seçilen Menü")
     tarih_str = secilen_menu_verisi.get("tarih", "2026-11-11")
     kalem_sayisi = secilen_menu_verisi.get("kalem_sayisi", 6)
 
-    # 3. HTML & NEON CAM KART RENDER (ÜST METRİKLER, ÖZET PANEL VE AKIŞ ŞEMASI BİR ARADA)
+    # 3. HTML & NEON CAM KART RENDER (8'Lİ METRİK KARTI İLE)
     dash_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2325,11 +2349,11 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
         body {{ background: transparent; color: #f4f4f5; padding: 5px; }}
 
-        /* Üst Metrik Kartları */
+        /* 8'li Metrik Grid (2 Satır x 4 Sütun) */
         .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0 25px 0; }}
         .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); }}
         .metric-label {{ font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
-        .metric-val {{ font-size: 1.5rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
+        .metric-val {{ font-size: 1.4rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
         .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
 
         /* Canlı Maliyet Özet Paneli */
@@ -2382,12 +2406,36 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </head>
     <body>
 
-        <!-- 4'lü Metrik Kartları -->
+        <!-- 1. Satır Metrik Kartları (4 Adet) -->
         <div class="metrics-grid">
             <div class="metric-card">
                 <div class="metric-label">Günlük Sıcak Yemek</div>
                 <div class="metric-val">{kisi_sayisi} Kişi</div>
                 <div class="metric-sub">↑ Anlık Simülasyon</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Ürün Çeşidi</div>
+                <div class="metric-val">{urun_cesidi_sayisi} Çeşit</div>
+                <div class="metric-sub">↑ Güncel Stok Durumu</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Toplam Fire / Zayiat</div>
+                <div class="metric-val">{toplam_fire_kg:.1f} Kg</div>
+                <div class="metric-sub">({toplam_fire_tl:,.2f} ₺)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Stok Değeri</div>
+                <div class="metric-val">{toplam_stok_degeri:,.0f} ₺</div>
+                <div class="metric-sub">↑ Güncel Depo Toplamı</div>
+            </div>
+        </div>
+
+        <!-- 2. Satır Metrik Kartları (4 Adet) -->
+        <div class="metrics-grid" style="margin-top: -10px;">
+            <div class="metric-card">
+                <div class="metric-label">Aktif Çalışan Personel</div>
+                <div class="metric-val">{aktif_personel_sayisi} Personel</div>
+                <div class="metric-sub">↑ Personel Takip Tablosu</div>
             </div>
             <div class="metric-card">
                 <div class="metric-label">Depo Durumu</div>
@@ -2456,7 +2504,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </html>
     """
 
-    components.html(dash_html, height=750, scrolling=True)
+    components.html(dash_html, height=880, scrolling=True)
             
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
