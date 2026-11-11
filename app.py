@@ -1925,11 +1925,14 @@ if secilen_tema_val != st.session_state.get("tema", "Dark"):
     st.query_params["theme"] = secilen_tema_val
     st.rerun()
     
+text_color = "#ffffff"
+subtext_color = "#aaaaaa"
+
 st.sidebar.markdown(
     f"""
     <div style="background: transparent; padding: 6px 8px; display: flex; align-items: center; justify-content: space-between; margin-top: 12px; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="background: rgba(99, 102, 241, 0.12); color: {text_color}; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; border: 1px solid {border_color};">
+            <div style="background: rgba(99, 102, 241, 0.12); color: {text_color}; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 600;">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
@@ -1938,7 +1941,7 @@ st.sidebar.markdown(
             </div>
         </div>
     </div>
-""",
+    """,
     unsafe_allow_html=True,
 )
 
