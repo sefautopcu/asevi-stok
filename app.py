@@ -2255,16 +2255,11 @@ menu = st.session_state.aktif_menu
 if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
+    
+    if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
-if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
-
-    # 1. ÜST KONTROL VE KİŞİ SAYISI SİMÜLATÖRÜ
-    col_hdr1, col_hdr2 = st.columns([2, 1])
-    with col_hdr1:
-        st.markdown("<h2 style='margin:0;'>🍲 Sefa Aşevi Operasyon Dashboard</h2>", unsafe_allow_html=True)
-        st.caption("Şeffaf, Hassas ve Dijital Stok, Fire & Maliyet Yönetim Paneli")
-    with col_hdr2:
-        kisi_sayisi = st.slider("Yararlanan Kişi Sayısı (Simülasyon)", 10, 1000, 230, step=10)
+    # 1. ÜST KONTROL (Küçültülmüş Başlık)
+    st.markdown("<h4 style='margin:0; padding-bottom:10px;'>🍲 AZİZİYE - AŞEVİ TAKİP EKRANI</h4>", unsafe_allow_html=True)
 
     # 2. SUPABASE'DEN CANLI VERİLERİ ÇEKME
     try:
@@ -2321,18 +2316,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     menu_secenekleri = {f"{item['tarih']} | {item['menu_adi']}": item for item in gecmis_uretimler}
     
-    col_sel1, _ = st.columns([2, 1])
-    with col_sel1:
-        secilen_key = st.selectbox("📋 Geçmişte Çıkan Yemeği / Menüyü Seçin", options=list(menu_secenekleri.keys()))
-    
-    secilen_menu_verisi = menu_secenekleri[secilen_key]
-
-    kisi_basi_tl = float(secilen_menu_verisi.get("kisi_basi_orijinal_maliyet", 79.19))
-    toplam_tl = kisi_basi_tl * kisi_sayisi
-    menu_adi = secilen_menu_verisi.get("menu_adi", "Seçilen Menü")
-    tarih_str = secilen_menu_verisi.get("tarih", "2026-11-11")
-    kalem_sayisi = secilen_menu_verisi.get("kalem_sayisi", 6)
-
+    # 3. HTML & NEON CAM KART RENDER (8'Lİ METRİK KARTI EN ÜSTTE)
     dash_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2341,12 +2325,12 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     <style>
         * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
         body {{ background: transparent; color: #f4f4f5; padding: 5px; }}
-        .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0 25px 0; }}
+        .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 10px 0 20px 0; }}
         .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); }}
         .metric-label {{ font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
         .metric-val {{ font-size: 1.4rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
         .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
-        .glow-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 30px; }}
+        .glow-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 30px; margin-top: 20px; }}
         .panel-header {{ font-size: 1.2rem; font-weight: 700; color: #f4f4f5; }}
         .panel-meta {{ font-size: 12px; color: #94a3b8; margin: 4px 0 18px 0; text-transform: uppercase; }}
         .inner-box {{ background: rgba(6, 10, 20, 0.7); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 16px; padding: 20px; }}
@@ -2364,21 +2348,69 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </style>
     </head>
     <body>
+        <!-- 8'Lİ METRİK KARTLARI EN ÜSTTE -->
         <div class="metrics-grid">
-            <div class="metric-card"><div class="metric-label">Günlük Sıcak Yemek</div><div class="metric-val">{kisi_sayisi} Kişi</div><div class="metric-sub">↑ Anlık Simülasyon</div></div>
+            <div class="metric-card"><div class="metric-label">Günlük Sıcak Yemek</div><div class="metric-val">Aktif</div><div class="metric-sub">↑ Anlık Simülasyon</div></div>
             <div class="metric-card"><div class="metric-label">Ürün Çeşidi</div><div class="metric-val">{urun_cesidi_sayisi} Çeşit</div><div class="metric-sub">↑ Güncel Stok Durumu</div></div>
             <div class="metric-card"><div class="metric-label">Toplam Fire / Zayiat</div><div class="metric-val">{toplam_fire_kg:.1f} Kg</div><div class="metric-sub">({toplam_fire_tl:,.2f} ₺)</div></div>
             <div class="metric-card"><div class="metric-label">Stok Değeri</div><div class="metric-val">{toplam_stok_degeri:,.0f} ₺</div><div class="metric-sub">↑ Güncel Depo Toplamı</div></div>
         </div>
-        <div class="metrics-grid" style="margin-top: -10px;">
+        <div class="metrics-grid" style="margin-top: -5px;">
             <div class="metric-card"><div class="metric-label">Aktif Çalışan Personel</div><div class="metric-val">{aktif_personel_sayisi} Personel</div><div class="metric-sub">↑ Personel Takip Tablosu</div></div>
             <div class="metric-card"><div class="metric-label">Depo Durumu</div><div class="metric-val">Senkronize</div><div class="metric-sub">↑ Supabase Realtime RLS</div></div>
             <div class="metric-card"><div class="metric-label">Son Birim Fiyat Mantığı</div><div class="metric-val">FIFO Mantığı</div><div class="metric-sub">↑ Reçete Hassasiyeti</div></div>
             <div class="metric-card"><div class="metric-label">Son İşlem Desteği</div><div class="metric-val">Aktif (Undo)</div><div class="metric-sub">↑ Tek Tıkla Geri Al</div></div>
         </div>
+    </body>
+    </html>
+    """
+
+    components.html(dash_html, height=350, scrolling=False)
+
+    # 4. KONTROLLER (Selectbox ve Simülasyon Slider Metrik Kartlarının Altında)
+    col_sel1, col_sel2 = st.columns([2, 1])
+    with col_sel1:
+        secilen_key = st.selectbox("📋 Geçmişte Çıkan Yemeği / Menüyü Seçin", options=list(menu_secenekleri.keys()))
+    with col_sel2:
+        kisi_sayisi = st.slider("Yararlanan Kişi Sayısı (Simülasyon)", 10, 1000, 230, step=10)
+    
+    secilen_menu_verisi = menu_secenekleri[secilen_key]
+    kisi_basi_tl = float(secilen_menu_verisi.get("kisi_basi_orijinal_maliyet", 79.19))
+    toplam_tl = kisi_basi_tl * kisi_sayisi
+    menu_adi = secilen_menu_verisi.get("menu_adi", "Seçilen Menü")
+    tarih_str = secilen_menu_verisi.get("tarih", "2026-11-11")
+    kalem_sayisi = secilen_menu_verisi.get("kalem_sayisi", 6)
+
+    # 5. CANLI MALİYET ÖZET PANELİ VE AKIŞ ŞEMASI HTML
+    panel_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
+        body {{ background: transparent; color: #f4f4f5; padding: 5px; }}
+        .glow-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 25px; }}
+        .panel-header {{ font-size: 1.2rem; font-weight: 700; color: #f4f4f5; }}
+        .panel-meta {{ font-size: 12px; color: #94a3b8; margin: 4px 0 18px 0; text-transform: uppercase; }}
+        .inner-box {{ background: rgba(6, 10, 20, 0.7); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 16px; padding: 20px; }}
+        .menu-title {{ font-size: 1.25rem; font-weight: 800; color: #ffffff; margin-bottom: 16px; }}
+        .cost-row {{ display: flex; gap: 16px; margin-bottom: 16px; }}
+        .cost-card {{ flex: 1; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 15px; }}
+        .cost-title {{ font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }}
+        .cost-num-green {{ font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 4px; }}
+        .cost-num-blue {{ font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
+        .info-badge {{ background: rgba(16, 185, 129, 0.12); border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #cbd5e1; }}
+        .workflow-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px; }}
+        .wf-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 16px; }}
+        .wf-title {{ color: #10b981; font-weight: 700; font-size: 13px; margin-bottom: 6px; }}
+        .wf-desc {{ font-size: 11px; color: #94a3b8; line-height: 1.4; }}
+    </style>
+    </head>
+    <body>
         <div class="glow-panel">
             <div class="panel-header">📊 Canlı Maliyet Özet Paneli</div>
-            <div class="panel-meta">Tarih: {tarih_str} | {kalem_sayisi} Kalem Malzeme</div>
+            <div class="panel-meta">Tarih: {tarih_str} | {kalem_sayisi} Kalem Malzeme | Simülasyon: {kisi_sayisi} Kişi</div>
             <div class="inner-box">
                 <div class="menu-title">{menu_adi}</div>
                 <div class="cost-row">
@@ -2388,6 +2420,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 <div class="info-badge">🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.</div>
             </div>
         </div>
+
         <h3 style="color:#f4f4f5; margin-bottom: 12px; font-size: 1.1rem;">🔄 Veriden Tabağa Tam Şeffaf Operasyon Akışı</h3>
         <div class="workflow-grid">
             <div class="wf-card"><div class="wf-title">1. Stok & Fatura Girişi</div><div class="wf-desc">Gelen irsaliye ve faturalar girilir, FIFO birim fiyat kütüğüne işlenir.</div></div>
@@ -2399,7 +2432,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </html>
     """
 
-    components.html(dash_html, height=880, scrolling=True)
+    components.html(panel_html, height=520, scrolling=False) 
             
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
