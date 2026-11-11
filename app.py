@@ -2256,7 +2256,7 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
     
-    if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
+   if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     # 1. ÜST KONTROL (Küçültülmüş Başlık)
     st.markdown("<h4 style='margin:0; padding-bottom:10px;'>🍲 AZİZİYE - AŞEVİ TAKİP EKRANI</h4>", unsafe_allow_html=True)
@@ -2330,25 +2330,9 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
         .metric-label {{ font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
         .metric-val {{ font-size: 1.4rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
         .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
-        .glow-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 30px; margin-top: 20px; }}
-        .panel-header {{ font-size: 1.2rem; font-weight: 700; color: #f4f4f5; }}
-        .panel-meta {{ font-size: 12px; color: #94a3b8; margin: 4px 0 18px 0; text-transform: uppercase; }}
-        .inner-box {{ background: rgba(6, 10, 20, 0.7); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 16px; padding: 20px; }}
-        .menu-title {{ font-size: 1.25rem; font-weight: 800; color: #ffffff; margin-bottom: 16px; }}
-        .cost-row {{ display: flex; gap: 16px; margin-bottom: 16px; }}
-        .cost-card {{ flex: 1; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 15px; }}
-        .cost-title {{ font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }}
-        .cost-num-green {{ font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 4px; }}
-        .cost-num-blue {{ font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
-        .info-badge {{ background: rgba(16, 185, 129, 0.12); border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #cbd5e1; }}
-        .workflow-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px; }}
-        .wf-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 16px; }}
-        .wf-title {{ color: #10b981; font-weight: 700; font-size: 13px; margin-bottom: 6px; }}
-        .wf-desc {{ font-size: 11px; color: #94a3b8; line-height: 1.4; }}
     </style>
     </head>
     <body>
-        <!-- 8'Lİ METRİK KARTLARI EN ÜSTTE -->
         <div class="metrics-grid">
             <div class="metric-card"><div class="metric-label">Günlük Sıcak Yemek</div><div class="metric-val">Aktif</div><div class="metric-sub">↑ Anlık Simülasyon</div></div>
             <div class="metric-card"><div class="metric-label">Ürün Çeşidi</div><div class="metric-val">{urun_cesidi_sayisi} Çeşit</div><div class="metric-sub">↑ Güncel Stok Durumu</div></div>
@@ -2367,7 +2351,7 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
 
     components.html(dash_html, height=350, scrolling=False)
 
-    # 4. KONTROLLER (Selectbox ve Simülasyon Slider Metrik Kartlarının Altında)
+    # 4. KONTROLLER (Selectbox ve Simülasyon Slider)
     col_sel1, col_sel2 = st.columns([2, 1])
     with col_sel1:
         secilen_key = st.selectbox("📋 Geçmişte Çıkan Yemeği / Menüyü Seçin", options=list(menu_secenekleri.keys()))
@@ -2381,7 +2365,7 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     tarih_str = secilen_menu_verisi.get("tarih", "2026-11-11")
     kalem_sayisi = secilen_menu_verisi.get("kalem_sayisi", 6)
 
-    # 5. CANLI MALİYET ÖZET PANELİ VE AKIŞ ŞEMASI HTML
+    # 5. CANLI MALİYET ÖZET PANELİ VE AKIŞ ŞEMASI
     panel_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2432,7 +2416,7 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     </html>
     """
 
-    components.html(panel_html, height=520, scrolling=False) 
+    components.html(panel_html, height=520, scrolling=False)
             
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
