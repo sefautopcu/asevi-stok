@@ -1822,7 +1822,7 @@ if not st.session_state.oturum_aktif:
                             sifre_dogrula(sifre_inp, sifre_hashle_yeni("sahte"))  # zamanlama farkını gizle
                             gecerli = False
 
-if gecerli:
+    if gecerli:
         if sifre_yukseltilmeli_mi(kayitli_hash):
             # Eski SHA-256 kayıt: giriş anında yeni biçime yükselt
             if kayitli_hash in ESKI_VARSAYILAN_HASHLER:
