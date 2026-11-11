@@ -181,6 +181,8 @@ except Exception:
     )
     st.stop()
 
+class SifrelemeHatasi(RuntimeError):
+    """Fernet şifreleme başarısız olduğunda fırlatılır. Düz metin kaydını engeller."""
 
 def metni_sifrele(duz_metin):
     if not duz_metin:
@@ -191,8 +193,13 @@ def metni_sifrele(duz_metin):
         return str(duz_metin)
     try:
         return fernet_motoru.encrypt(str(duz_metin).encode("utf-8")).decode("utf-8")
-    except Exception:
-        return str(duz_metin)
+    except Exception as e:
+        # DÜZ METİN DÖNDÜRMEK YASAK: T.C./telefon/adres gibi hassas alanlar
+        # sessizce açık metin olarak veritabanına yazılırdı. Bunun yerine
+        # hatayı yukarı fırlatıp çağıran katmanda kaydı iptal ettiriyoruz.
+        raise SifrelemeHatasi(
+            f"Şifreleme başarısız oldu ({type(e).__name__}); veri kaydedilmedi."
+        ) from e
 
 
 def metni_coz(sifreli_metin):
@@ -307,6 +314,12 @@ KAYIT_ESLEME = {
 # Yedeğe giren veriler (kullanıcı/şifre bilgileri, oturum ve deneme kayıtları yedeğe girmez)
 YEDEK_ANAHTARLARI = [k for k in KAYIT_ESLEME if k != "kullanici_yetkileri"]
 
+        
+# Güvenlik açısından kritik anahtarlar: bu anahtarların okumaları cache'i
+# ATLAMALI. Aksi hâlde 60 sn'lik @st.cache_data penceresinde birbirini izleyen
+# "oku → değiştir → yaz" döngüleri eski sayacın üzerine yazar; hem kullanıcı
+# bazlı kilit (MAKS_HATALI_GIRIS) hem IP kilidi fiilen devre dışı kalır.
+ONBELLEKSIZ_ANAHTARLAR = {"giris_denemeleri", "aktif_oturumlar"}
 
 def _supa_basliklar(ekstra=None):
     h = {"apikey": SUPABASE_KEY}
@@ -371,6 +384,11 @@ def _supabase_ham_oku(kayit_id):
         return "ok", data[0]["veri"]
     return "yok", None
 
+        @st.cache_data(ttl=60, show_spinner=False)
+def _supabase_ham_oku_cached(kayit_id):
+    """Veritabanı okumalarını 60 saniye boyunca bellek seviyesinde hızlı tutar.
+    Güvenlik açısından kritik anahtarlar bu cache'i KULLANMAZ; bkz. ONBELLEKSIZ_ANAHTARLAR."""
+    return _supabase_ham_oku(kayit_id)
 
 def _taban_hashler():
     if "_db_hash" not in st.session_state:
@@ -392,7 +410,11 @@ def supabase_veri_oku(kayit_id, varsayilan_deger, kritik=True):
     boşla ezebilirdi."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         return varsayilan_deger
-    durum, veri = _supabase_ham_oku(kayit_id)
+    # Güvenlik açısından kritik anahtarlar cache'i ATLAR (bkz. ONBELLEKSIZ_ANAHTARLAR).
+    if kayit_id in ONBELLEKSIZ_ANAHTARLAR:
+        durum, veri = _supabase_ham_oku(kayit_id)
+    else:
+        durum, veri = _supabase_ham_oku_cached(kayit_id)
     if durum == "hata":
         if kritik:
             _veritabani_hatasi_dur(f"'{kayit_id}' okunamadı ({veri})")
@@ -448,7 +470,13 @@ def supabase_veri_kaydet(kayit_id, veri_objesi, zorla=False):
             _taban_hashler()[kayit_id] = _veri_hash(r.json()[0]["veri"])
         except Exception:
             _taban_hashler().pop(kayit_id, None)
-
+    
+     # Yazılan anahtar için (varsa) cache'i geçersiz kıl.
+     if kayit_id in ONBELLEKSIZ_ANAHTARLAR:
+        try:
+            _supabase_ham_oku_cached.clear()
+        except Exception:
+            pass
 
 # =========================================================================
 # YEDEKLEME / GERİ YÜKLEME
@@ -1352,13 +1380,21 @@ def ihtiyac_sahiplerini_yukle():
 
 
 def ihtiyac_sahiplerini_kaydet(veri_listesi):
-    sifrelenmis_liste = []
-    for k in veri_listesi:
-        k_kopya = k.copy()
-        k_kopya["tc_hane"] = metni_sifrele(k.get("tc_hane", ""))
-        k_kopya["telefon"] = metni_sifrele(k.get("telefon", ""))
-        k_kopya["adres"] = metni_sifrele(k.get("adres", ""))
-        sifrelenmis_liste.append(k_kopya)
+    try:
+        sifrelenmis_liste = []
+        for k in veri_listesi:
+            k_kopya = k.copy()
+            k_kopya["tc_hane"] = metni_sifrele(k.get("tc_hane", ""))
+            k_kopya["telefon"] = metni_sifrele(k.get("telefon", ""))
+            k_kopya["adres"] = metni_sifrele(k.get("adres", ""))
+            sifrelenmis_liste.append(k_kopya)
+    except SifrelemeHatasi as e:
+        st.error(
+            f"⚠️ **Kayıt YAPILMADI — hassas veri korunamadı.** {e} "
+            "Fernet anahtarını ve sunucu durumunu kontrol edip tekrar deneyin. "
+            "Hassas alanlar şifrelenmeden veritabanına yazılmaz."
+        )
+        st.stop()
     supabase_veri_kaydet("ihtiyac_sahipleri", sifrelenmis_liste)
 
 
@@ -1382,11 +1418,18 @@ def personelleri_yukle():
 
 
 def personelleri_kaydet(veri_listesi):
-    sifrelenmis_p = []
-    for p in veri_listesi:
-        p_kopya = p.copy()
-        p_kopya["tc"] = metni_sifrele(p.get("tc", ""))
-        sifrelenmis_p.append(p_kopya)
+    try:
+        sifrelenmis_p = []
+        for p in veri_listesi:
+            p_kopya = p.copy()
+            p_kopya["tc"] = metni_sifrele(p.get("tc", ""))
+            sifrelenmis_p.append(p_kopya)
+    except SifrelemeHatasi as e:
+        st.error(
+            f"⚠️ **Kayıt YAPILMADI — hassas veri korunamadı.** {e} "
+            "Fernet anahtarını kontrol edip tekrar deneyin."
+        )
+        st.stop()
     supabase_veri_kaydet("personeller", sifrelenmis_p)
 
 
@@ -1796,9 +1839,13 @@ if not st.session_state.oturum_aktif:
                             giris_logla(k_adi_inp, "başarılı giriş")
                             oturumu_baslat(k_adi_inp)
                             st.rerun()
-                        else:
-                            kalan_hak, kilit_u = hatali_giris_kaydet(u_anahtar, MAKS_HATALI_GIRIS, KILIT_SURESI_SN)
-                            _, kilit_ip = hatali_giris_kaydet(ip_anahtar, IP_MAKS_HATALI_GIRIS, IP_KILIT_SURESI_SN)
+                                                    kalan_hak, kilit_u = hatali_giris_kaydet(u_anahtar, MAKS_HATALI_GIRIS, KILIT_SURESI_SN)
+                            # IP tespit edilemiyorsa IP kilidini atla: aksi hâlde tüm
+                            # kullanıcılar "bilinmiyor" kovasında birlikte kilitlenir (DoS).
+                            if istemci_ip and istemci_ip != "bilinmiyor":
+                                _, kilit_ip = hatali_giris_kaydet(ip_anahtar, IP_MAKS_HATALI_GIRIS, IP_KILIT_SURESI_SN)
+                            else:
+                                kilit_ip = False
                             giris_logla(log_adi, "hatalı giriş")
                             st.session_state.hatali_giris_sayisi += 1
                             if kilit_u or kilit_ip:
