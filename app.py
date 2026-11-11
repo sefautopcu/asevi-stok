@@ -2336,7 +2336,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         <div class="metrics-grid">
             <div class="metric-card"><div class="metric-label">Günlük Sıcak Yemek</div><div class="metric-val">Aktif</div><div class="metric-sub">↑ Anlık Simülasyon</div></div>
             <div class="metric-card"><div class="metric-label">Ürün Çeşidi</div><div class="metric-val">{urun_cesidi_sayisi} Çeşit</div><div class="metric-sub">↑ Güncel Stok Durumu</div></div>
-            <div class="metric-card"><div class="metric-label">Toplam Fire / Zayiat</div><div class="metric-val">{toplam_fire_kg:.1f} Kg</div><div class="metric-sub">({toplam_fire_tl:,.2f} ₺)</div></div>
+            <div class="metric-card"><div class="metric-label">Toplam Fire / Zayiat</div><div class="metric-val">{toplam_fire_kg:.1f} Kg</div><div class="metric-sub" style="color: #ef4444;">({toplam_fire_tl:,.2f} ₺)</div></div>
             <div class="metric-card"><div class="metric-label">Stok Değeri</div><div class="metric-val">{toplam_stok_degeri:,.0f} ₺</div><div class="metric-sub">↑ Güncel Depo Toplamı</div></div>
         </div>
         <div class="metrics-grid" style="margin-top: -5px;">
