@@ -33,4 +33,4 @@ streamlit-cookies-controller==0.0.4
 supabase==2.34.1
 urllib3==2.8.0
 watchdog==7.1.0
-psutil
+psutil==6.1.1
