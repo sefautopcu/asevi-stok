@@ -1897,8 +1897,6 @@ yeni_tema = st.sidebar.radio(
         label_visibility="collapsed",
         horizontal=True
     )
-    
-  # Bu satırdaki fazladan girintiyi düzelttik:
     secilen_tema_val = "Dark" if "Dark" in yeni_tema else "Light"
     if secilen_tema_val != st.session_state.get("tema", "Dark"):
         st.session_state.tema = secilen_tema_val
