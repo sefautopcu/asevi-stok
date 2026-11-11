@@ -20,11 +20,18 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# app.py dosyasının üst kısımlarına
+# Sayfa Yapılandırması: Streamlit'te İLK komut olmak zorundadır
+# (kenar çubuğu, önbellek vb. komutlardan önce çağrılmalıdır).
+st.set_page_config(
+    page_title="Aziziye - Aşevi Takip Sistemi",
+    page_icon="🍲",
+    layout="wide",
+)
+
 APP_VERSION = "v2.0.0"
 LAST_UPDATE = "Kasım 2026"
 
-# 1. Önce fonksiyonu tanımlayın (33. satırdan üstte olmalı)
+
 def bellek_kullanimi_al():
     """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
     try:
@@ -33,25 +40,6 @@ def bellek_kullanimi_al():
         return round(process.memory_info().rss / (1024 * 1024), 1)
     except Exception:
         return 0.0
-
-# 2. Ardından sidebar ve RAM göstergesi çalışabilir
-st.sidebar.markdown("---")
-st.sidebar.caption(f"🚀 **Aziziye Aşevi Takip Sistemi** {APP_VERSION}")
-st.sidebar.caption(f"📅 Son Güncelleme: {LAST_UPDATE}")
-
-ram_kullanimi = bellek_kullanimi_al()
-if ram_kullanimi > 0:
-    st.sidebar.caption(f"💾 **RAM Kullanımı:** {ram_kullanimi} MB")
-    if st.sidebar.button("🧹 Önbellek Temizle", key="sb_ram_clean_btn", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
-
-# Sayfa Yapılandırması
-st.set_page_config(
-    page_title="Aziziye - Aşevi Takip Sistemi",
-    page_icon="🍲",
-    layout="wide",
-)
 
 def baglanti_tanilama_goster():
     """?tani=1 adresinde çalışır. Gizli değerleri GÖSTERMEZ; yalnızca ayarların görünüp
@@ -292,15 +280,6 @@ def simdi_tr_str(format_str="%Y-%m-%d %H:%M"):
     except Exception:
         return datetime.datetime.now().strftime(format_str)
 
-def bellek_kullanimi_al():
-    """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
-    try:
-        import psutil
-        process = psutil.Process(os.getpid())
-        return round(process.memory_info().rss / (1024 * 1024), 1)
-    except Exception:
-        return 0.0
-
 # =========================================================================
 # SUPABASE BULUT VERİTABANI BAĞLANTI FONKSİYONLARI
 # =========================================================================
@@ -316,6 +295,7 @@ KAYIT_ESLEME = {
     "ihtiyac_sahipleri": "ihtiyac_sahipleri",
     "dagitim_loglari": "dagitim_loglari",
     "personeller": "personeller",
+    "personel_izinleri": "personel_izinleri",
     "resmi_tatiller": "resmi_tatiller",
     "yemek_uretim_arsivi": "yemek_uretim_arsivi",
     "depolar_listesi": "depolar",
@@ -392,33 +372,6 @@ def _supabase_ham_oku(kayit_id):
     return "yok", None
 
 
-@st.cache_data(ttl=60, show_spinner=False)
-def _supabase_ham_oku_cached(kayit_id):
-    """Veritabanı okumalarını 60 saniye boyunca bellek seviyesinde hızlı tutar."""
-    return _supabase_ham_oku(kayit_id)
-
-def _supabase_ham_oku(kayit_id):
-    """('ok', veri) | ('yok', None) | ('hata', mesaj). Oturum durumunu DEĞİŞTİRMEZ."""
-    try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/asevi_veritabani",
-            headers=_supa_basliklar(),
-            params={"id": f"eq.{kayit_id}", "select": "veri"},
-            timeout=10,
-        )
-    except Exception as e:
-        return "hata", f"Bağlantı hatası: {type(e).__name__}"
-    if r.status_code != 200:
-        return "hata", f"HTTP {r.status_code}"
-    try:
-        data = r.json()
-    except Exception:
-        return "hata", "Geçersiz yanıt"
-    if data and data[0].get("veri") is not None:
-        return "ok", data[0]["veri"]
-    return "yok", None
-
-
 def _taban_hashler():
     if "_db_hash" not in st.session_state:
         st.session_state["_db_hash"] = {}
@@ -439,7 +392,7 @@ def supabase_veri_oku(kayit_id, varsayilan_deger, kritik=True):
     boşla ezebilirdi."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         return varsayilan_deger
-    durum, veri = _supabase_ham_oku_cached(kayit_id)
+    durum, veri = _supabase_ham_oku(kayit_id)
     if durum == "hata":
         if kritik:
             _veritabani_hatasi_dur(f"'{kayit_id}' okunamadı ({veri})")
@@ -1437,6 +1390,79 @@ def personelleri_kaydet(veri_listesi):
     supabase_veri_kaydet("personeller", sifrelenmis_p)
 
 
+def personel_izinlerini_yukle():
+    veri = supabase_veri_oku("personel_izinleri", [])
+    return veri if isinstance(veri, list) else []
+
+
+def personel_izinlerini_kaydet(veri_listesi):
+    supabase_veri_kaydet("personel_izinleri", veri_listesi)
+
+
+# Eski modelde izinler her personelin içinde (personeller[].izinler) tutuluyordu.
+_ESKI_IZIN_TURU_ESLEME = {
+    "Yıllık İzin": "Yıllık İzin",
+    "Sağlık Raporu": "Hastalık / Rapor",
+    "Saatlik İzin": "Mazeret İzni",
+}
+
+
+def eski_izinleri_tasi():
+    """Eski biçimdeki (personeller[].izinler) kayıtları yeni listeye (personel_izinleri) aktarır.
+    Tekrar çalıştırılırsa aynı kaydı ikinci kez eklemez; aktarılan eski kayıtlar silinmez, boşaltılır."""
+    mevcut = st.session_state.personel_izinleri
+    anahtarlar = {
+        (i.get("personel_ad"), i.get("izin_turu"), i.get("baslangic"), i.get("bitis"), i.get("aciklama"))
+        for i in mevcut if i.get("kaynak") == "eski_kayit"
+    }
+    degisti = False
+    for p in st.session_state.personeller:
+        eskiler = p.get("izinler") or []
+        if not eskiler:
+            continue
+        ad = p.get("ad_soyad", p.get("ad", p.get("isim", "-")))
+        for iz in eskiler:
+            eski_tur = iz.get("tur", "Yıllık İzin")
+            tur = _ESKI_IZIN_TURU_ESLEME.get(eski_tur, "Resmi Görev / Diğer")
+            bas = str(iz.get("baslangic", ""))
+            bit = str(iz.get("bitis", bas))
+            try:
+                gun = (datetime.date.fromisoformat(bit) - datetime.date.fromisoformat(bas)).days + 1
+            except Exception:
+                gun = 0
+            kayit_saat = None
+            if eski_tur == "Saatlik İzin":
+                # Yeni modelde saatlik izin yok: gün sayısı 0 tutulur, süre açıklamada saklanır.
+                kayit_saat = iz.get("saat", 0)
+                gun = 0
+                aciklama = f"Saatlik izin: {kayit_saat} saat ({iz.get('detay', '-')})"
+            else:
+                aciklama = str(iz.get("detay") or "Eski sistemden aktarıldı")
+            anahtar = (ad, tur, bas, bit, aciklama)
+            if anahtar in anahtarlar:
+                continue
+            yeni = {
+                "id": yeni_id_uret("IZN-", mevcut),
+                "personel_ad": ad,
+                "izin_turu": tur,
+                "baslangic": bas,
+                "bitis": bit,
+                "gun_sayisi": max(gun, 0),
+                "aciklama": aciklama,
+                "ekleme_tarihi": simdi_tr_str("%Y-%m-%d %H:%M"),
+                "kaynak": "eski_kayit",
+            }
+            if kayit_saat is not None:
+                yeni["saat"] = kayit_saat
+            mevcut.append(yeni)
+            anahtarlar.add(anahtar)
+        p["izinler"] = []
+        degisti = True
+    if degisti:
+        personel_izinlerini_kaydet(mevcut)   # önce yeni liste, sonra eski kayıtların boşaltılması
+        personelleri_kaydet(st.session_state.personeller)
+
+
 def resmi_tatilleri_yukle():
     return supabase_veri_oku("resmi_tatiller", varsayilan_resmi_tatiller)
 
@@ -1461,6 +1487,9 @@ if "dagitim_loglari" not in st.session_state:
     st.session_state.dagitim_loglari = idleri_benzersiz_yap(dagitim_loglarini_yukle(), "DAG-")
 if "personeller" not in st.session_state:
     st.session_state.personeller = idleri_benzersiz_yap(personelleri_yukle(), "PER-")
+if "personel_izinleri" not in st.session_state:
+    st.session_state.personel_izinleri = idleri_benzersiz_yap(personel_izinlerini_yukle(), "IZN-")
+    eski_izinleri_tasi()
 if "resmi_tatiller" not in st.session_state:
     st.session_state.resmi_tatiller = resmi_tatilleri_yukle()
 if "yemek_uretim_arsivi" not in st.session_state:
@@ -2111,6 +2140,15 @@ st.sidebar.markdown(
     f'<p style="font-size: 11px; text-align: center; opacity: 0.5; color: {subtext_color};">sefautopcu</p>',
     unsafe_allow_html=True,
 )
+st.sidebar.caption(f"🚀 {APP_VERSION} · Son güncelleme: {LAST_UPDATE}")
+if yonetici_modu:  # sunucu bellek bilgisi yalnızca admin'e gösterilir
+    ram_kullanimi = bellek_kullanimi_al()
+    if ram_kullanimi > 0:
+        st.sidebar.caption(f"💾 **RAM Kullanımı:** {ram_kullanimi} MB")
+        if st.sidebar.button("🧹 Önbellek Temizle", key="sb_ram_clean_btn", use_container_width=True):
+            st.cache_data.clear()
+            st.cache_resource.clear()
+            st.rerun()
 
 
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
@@ -5210,9 +5248,17 @@ elif menu == "Kullanıcı Ayarları":
                         if k_adi_hedef in kullanici_db:
                             del kullanici_db[k_adi_hedef]
                     elif islem_turu == "guncelle":
-                        # Eski kullanıcı obje durumuna geri dön
+                        # Eski yetki/maske ayarlarına geri dön; ANCAK mevcut şifre korunur
+                        # (güncelleme şifre değiştirmişse, geri alma eski/ele geçirilmiş şifreyi geri getirmesin).
                         eski_obj = son_islem.get("eski_obje")
                         if eski_obj:
+                            eski_obj = dict(eski_obj)
+                            if k_adi_hedef in kullanici_db:
+                                eski_obj["sifre"] = kullanici_db[k_adi_hedef].get("sifre", eski_obj.get("sifre", ""))
+                                if kullanici_db[k_adi_hedef].get("sifre_degistirilmeli"):
+                                    eski_obj["sifre_degistirilmeli"] = True
+                                else:
+                                    eski_obj.pop("sifre_degistirilmeli", None)
                             kullanici_db[k_adi_hedef] = eski_obj
 
                     kullanıcıları_kaydet(kullanici_db)
@@ -5622,4 +5668,3 @@ elif menu == "Kullanıcı Ayarları":
                     st.error("Otomatik yedek bilgisi okunamadı.")
                 else:
                     st.caption("Henüz otomatik yedek alınmadı.")
-        
