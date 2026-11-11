@@ -19,6 +19,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Sayfa Yapılandırması: Streamlit'te İLK komut olmak zorundadır
 # (kenar çubuğu, önbellek vb. komutlardan önce çağrılmalıdır).
