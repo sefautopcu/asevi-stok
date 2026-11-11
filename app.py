@@ -2307,14 +2307,39 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     aktif_personel_sayisi = sum(1 for p in personel_verileri if p.get("aktif", True)) if personel_verileri else sum(1 for p in st.session_state.get("personeller", []) if p.get("aktif", True))
 
-    # Eğer veritabanında henüz üretim kaydı yoksa boş liste bırak
-    if not gecmis_uretimler:
-        gecmis_uretimler = []
-
+    # Gecmis uretim verilerini esnek anahtarlarla sozluk formatina donusturme
+    menu_secenekleri = {{}}
+    
     if gecmis_uretimler:
-        menu_secenekleri = {f"{item.get('tarih', '')} | {item.get('menu_adi', 'Menü')}": item for item in gecmis_uretimler}
-    else:
-        menu_secenekleri = {"Henüz Üretim Kaydı Girilmedi": {"tarih": "-", "menu_adi": "Kayıt Yok", "kisi_basi_orijinal_maliyet": 0.0, "kalem_sayisi": 0}}
+        for item in gecmis_uretimler:
+            if not item:
+                continue
+            # Farkli sutun adi olasiliklarini yakala
+            tarih = item.get("tarih") or item.get("tarihi") or item.get("gun") or "-"
+            menu_adi = item.get("menu_adi") or item.get("menu") or item.get("yemek_adi") or "Belirtilmemiş Menü"
+            
+            # Maliyet ve kalem sayisi alanlari
+            maliyet = float(item.get("kisi_basi_orijinal_maliyet") or item.get("kisi_basi_maliyet") or item.get("maliyet") or 0.0)
+            kalem = int(item.get("kalem_sayisi") or item.get("urun_sayisi") or 5)
+            
+            # Item icine duzenlenmis degerleri ekle
+            item["tarih"] = tarih
+            item["menu_adi"] = menu_adi
+            item["kisi_basi_orijinal_maliyet"] = maliyet
+            item["kalem_sayisi"] = kalem
+            
+            key = f"{{tarih}} | {{menu_adi}}"
+            menu_secenekleri[key] = item
+
+    if not menu_secenekleri:
+        menu_secenekleri = {
+            "Henüz Üretim Kaydı Girilmedi": {
+                "tarih": "-", 
+                "menu_adi": "Kayıt Yok", 
+                "kisi_basi_orijinal_maliyet": 0.0, 
+                "kalem_sayisi": 0
+            }
+        }
     
     # 3. HTML & NEON CAM KART RENDER (8'Lİ METRİK KARTI EN ÜSTTE)
     dash_html = f"""
