@@ -820,8 +820,8 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-    /* 1. Tüm Sayfa Arka Planı ve Radial Glow Işıkları */
-    html, body, .stApp {{
+    /* 1. Sayfa Arka Planı ve Radial Glow Işıkları */
+    html, body, .stApp, div[data-testid="stAppViewContainer"] {{
         background-color: {bg_color} !important;
         background-image: {bg_gradient} !important;
         background-attachment: fixed !important;
@@ -829,7 +829,15 @@ st.markdown(
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
     }}
 
-    /* 2. Tipografi ve Başlık Puntosu (Beyaz Metinler) */
+    /* Genel Konteyner ve Alanların Beyaz/Pembe Olmasını Engelleme */
+    div[data-testid="stVerticalBlock"], 
+    div[data-testid="stHorizontalBlock"],
+    div[data-testid="element-container"],
+    .stMainBlockContainer {{
+        background: transparent !important;
+    }}
+
+    /* 2. Tipografi ve Başlıklar */
     h1 {{
         font-size: 2.2rem !important;
         font-weight: 800 !important;
@@ -852,26 +860,29 @@ st.markdown(
         font-size: 14px !important;
     }}
 
-    /* 3. Sol Menü (Sidebar) Cam Görünümü */
+    /* 3. Sol Menü (Sidebar) */
     section[data-testid="stSidebar"] {{
         background: {sidebar_bg} !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
         border-right: 1px solid {border_color} !important;
     }}
-    section[data-testid="stSidebar"] * {{
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] div {{
         color: {subtext_color} !important;
     }}
 
-    /* Sol Menü Butonları */
+    /* Sol Menü Navigasyon Butonları */
     section[data-testid="stSidebar"] div.stButton > button {{
         background: transparent !important;
-        color: {subtext_color} !important;
+        color: {text_color} !important;
         border: 1px solid transparent !important;
         border-radius: 12px !important;
         font-weight: 500 !important;
         padding: 10px 16px !important;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: all 0.25s ease !important;
     }}
     section[data-testid="stSidebar"] div.stButton > button:hover {{
         background: rgba(16, 185, 129, 0.12) !important;
@@ -881,11 +892,10 @@ st.markdown(
         transform: translateX(5px) !important;
     }}
 
-    /* 4. Parlayan Neon Cam Kartlar (Dashboard, Form ve Metrikler) */
+    /* 4. Parlayan Neon Cam Kartlar (Sadece Metrik, Form ve Ekspander Kutuları) */
     div[data-testid="stMetric"], 
     div[data-testid="stForm"], 
-    div[data-testid="stExpander"],
-    div[data-testid="stNotification"] {{
+    div[data-testid="stExpander"] {{
         background: {card_bg} !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
@@ -904,7 +914,7 @@ st.markdown(
         transform: translateY(-3px) !important;
     }}
 
-    /* 5. Girdi Kutuları, Seçim Alanları ve Inputlar (Koyu Mavi İç Zemin) */
+    /* 5. Girdi Kutuları ve Inputlar */
     input, 
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div,
@@ -921,7 +931,7 @@ st.markdown(
         opacity: 0.7;
     }}
 
-    /* 6. Tarih Seçici ve Açılır Menü Popover Kutuları (Lacivert Zemin) */
+    /* 6. Tarih Seçici ve Popover Menüler */
     div[data-baseweb="popover"], 
     div[data-baseweb="menu"], 
     div[data-baseweb="calendar"],
@@ -938,12 +948,8 @@ st.markdown(
         color: {text_color} !important;
         background-color: transparent !important;
     }}
-    div[data-baseweb="calendar"] button:hover {{
-        background-color: rgba(16, 185, 129, 0.2) !important;
-        border-radius: 50% !important;
-    }}
 
-    /* 7. Yeşil Neon Butonlar (Primary & Secondary) */
+    /* 7. Yeşil Neon Butonlar */
     button[data-testid="baseButton-primary"] {{
         background: {btn_gradient} !important;
         color: #ffffff !important;
@@ -974,7 +980,7 @@ st.markdown(
         transform: translateY(-2px) !important;
     }}
 
-    /* 8. Özel HTML Tablosu (Sunumdaki Cam Tablo Tasarımı) */
+    /* 8. Özel HTML Tablosu */
     .custom-table {{
         width: 100%;
         border-collapse: separate;
