@@ -3379,6 +3379,11 @@ elif menu == "Fire / Zayiat Girişi":
                         step=0.1,
                         key="fire_miktar_inp"
                     )
+                    fire_aciklama = st.text_input(
+                        "Fire Açıklaması / Nedeni",
+                        placeholder="Örn: Bozuldu, döküldü, son kullanma tarihi geçti...",
+                        key="fire_aciklama_inp"
+                    ).strip()
 
                     if st.button("Fireyi Düş ve Kaydet", type="primary", key="fire_kaydet_button"):
                         if fire_miktari <= 0:
@@ -3410,6 +3415,7 @@ elif menu == "Fire / Zayiat Girişi":
                                 "tur": "Fire/Zayiat",
                                 "miktar": fire_miktari,
                                 "tutar": toplam_zarar,
+                                "aciklama": (fire_aciklama if fire_aciklama else "Belirtilmedi"),
                                 "islem_yapan": st.session_state.aktif_kullanici,
                             }
 
@@ -3458,6 +3464,7 @@ elif menu == "Fire / Zayiat Girişi":
                         "Fire Miktarı": f"{f_log.get('miktar', 0)}",
                         "Toplam Tutar": f"{f_log.get('tutar', 0):,.2f} ₺",
                         "İşlemi Yapan": f_log.get("islem_yapan", "admin"),
+                        "Açıklama": f_log.get("aciklama", "—"),
                     })
                 
                 excel_fire_data = tablo_to_excel_bytes(fire_tablo_verisi, "Aziziye Aşevi - Fire ve Zayiat Raporu")
