@@ -2261,23 +2261,9 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     # 1. ÜST KONTROL (Küçültülmüş Başlık)
     st.markdown("<h4 style='margin:0; padding-bottom:10px;'>🍲 AZİZİYE - AŞEVİ TAKİP EKRANI</h4>", unsafe_allow_html=True)
 
-    # 2. SUPABASE VEYA SESSION_STATE'DEN CANLI VERİLERİ ÇEKME
-    gecmis_uretimler = []
-    try:
-        # Önce Supabase'den çekmeyi dene
-        uretim_res = supabase.table("gunluk_uretim").select("*").execute()
-        if uretim_res.data:
-            gecmis_uretimler = uretim_res.data
-    except Exception:
-        pass
-
-    # Eğer Supabase boş döndüyse, uygulama içi hafızadaki (session_state) kayıtları kontrol et
-    if not gecmis_uretimler:
-        for key_name in ["uretim_listesi", "gunluk_uretim", "kayitli_menu_listesi", "girisler"]:
-            if st.session_state.get(key_name):
-                gecmis_uretimler = st.session_state.get(key_name)
-                break
-
+   # 2. YEMEK ÜRETİM ARŞİVİNDEN CANLI VERİLERİ ÇEKME
+    gecmis_uretimler = st.session_state.get("yemek_uretim_arsivi", [])
+    
     try:
         stok_res = supabase.table("stok_kutugu").select("*").execute()
         stok_verileri = stok_res.data if stok_res.data else []
@@ -2289,6 +2275,70 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         personel_verileri = personel_res.data if personel_res.data else []
     except Exception:
         stok_verileri, fire_verileri, personel_verileri = [], [], []
+
+    # --- HESAPLAMALAR ---
+    benzersiz_urunler = set([item.get("ürün_adı") or item.get("urun_adi") or item.get("malzeme_adi") for item in stok_verileri if item])
+    urun_cesidi_sayisi = len(benzersiz_urunler) if benzersiz_urunler else len(set(g.get("urun", "").strip().upper() for g in st.session_state.get("girisler", []) if g.get("urun")))
+
+    toplam_stok_degeri = 0.0
+    for item in stok_verileri:
+        kalan = float(item.get("kalan_miktar", item.get("alınan_miktar", 0.0) or 0.0))
+        fiyat = float(item.get("birim_fiyat", 0.0))
+        toplam_stok_degeri += kalan * fiyat
+    if toplam_stok_degeri == 0.0:
+        for g in st.session_state.get("girisler", []):
+            toplam_stok_degeri += float(g.get("kalan", 0)) * float(g.get("fiyat", 0))
+
+    toplam_fire_kg = 0.0
+    toplam_fire_tl = 0.0
+    for f in fire_verileri:
+        f_miktar = float(f.get("miktar", f.get("fire_miktari", 0.0) or 0.0))
+        f_fiyat = float(f.get("birim_fiyat", 40.0))
+        toplam_fire_kg += f_miktar
+        toplam_fire_tl += f_miktar * f_fiyat
+    
+    for log in st.session_state.get("kullanim_loglari", []):
+        if log.get("tur") == "Fire/Zayiat":
+            f_mik = float(log.get("miktar", 0))
+            f_tut = float(log.get("tutar", 0))
+            toplam_fire_kg += f_mik
+            toplam_fire_tl += f_tut
+
+    aktif_personel_sayisi = sum(1 for p in personel_verileri if p.get("aktif", True)) if personel_verileri else sum(1 for p in st.session_state.get("personeller", []) if p.get("aktif", True))
+
+    # Arşivdeki kayıtları selectbox için sözlük formatına dönüştürme
+    menu_secenekleri = {}
+    if gecmis_uretimler:
+        for item in gecmis_uretimler:
+            if not item:
+                continue
+            tarih = item.get("tarih", "-")
+            menu_adi = item.get("yemek_adi", "Belirtilmemiş Menü")
+            
+            # Kişi başı orijinal maliyet hesabı
+            top_mal = float(item.get("toplam_maliyet", 0))
+            if top_mal == 0 and item.get("malzemeler"):
+                top_mal = sum(float(m.get("tutar", 0)) for m in item.get("malzemeler", []))
+            
+            kisi_sayisi_val = int(item.get("kisi_sayisi", 1) or 1)
+            kisi_basi = top_mal / kisi_sayisi_val if kisi_sayisi_val > 0 else 0.0
+            
+            item["kisi_basi_orijinal_maliyet"] = kisi_basi
+            item["menu_adi"] = menu_adi
+            item["kalem_sayisi"] = len(item.get("malzemeler", []))
+            
+            key = f"{tarih} | {menu_adi} ({kisi_sayisi_val} Kişi)"
+            menu_secenekleri[key] = item
+
+    if not menu_secenekleri:
+        menu_secenekleri = {
+            "Henüz Üretim Kaydı Girilmedi": {
+                "tarih": "-", 
+                "menu_adi": "Kayıt Yok", 
+                "kisi_basi_orijinal_maliyet": 0.0, 
+                "kalem_sayisi": 0
+            }
+        }
 
     # --- HESAPLAMALAR ---
     benzersiz_urunler = set([item.get("ürün_adı") or item.get("urun_adi") or item.get("malzeme_adi") for item in stok_verileri if item])
