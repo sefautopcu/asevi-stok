@@ -2502,7 +2502,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 <div class="wf-desc">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</div>
             </div>
         </div>
-
     </body>
     </html>
     """
