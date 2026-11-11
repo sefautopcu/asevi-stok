@@ -1892,19 +1892,19 @@ kullanici_adi_goruntule = (
 kullanici_adi_goruntule = html_escape(kullanici_adi_goruntule)
 
 st.sidebar.markdown(
-    f"""
-    st.markdown('<div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid rgba(150,150,150,0.2); margin-bottom: 12px;">', unsafe_allow_html=True)
-        <div style="background: rgba(99, 102, 241, 0.1); color: {text_color}; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid {border_color}; backdrop-filter: blur(12px);">
-            🍲
+        """
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid rgba(150,150,150,0.2); margin-bottom: 12px;">
+            <div style="background: rgba(99, 102, 241, 0.1); color: #6366f1; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                👤
+            </div>
+            <div>
+                <div style="font-weight: 700; font-size: 15px; letter-spacing: -0.02em;">AZİZİYE AŞEVİ</div>
+                <div style="font-size: 11px; font-weight: 500; opacity: 0.7;">Yönetim & Takip Sistemi</div>
+            </div>
         </div>
-        <div>
-            <div style="font-weight: 700; font-size: 15px; color: {text_color}; letter-spacing: -0.02em;">AZİZİYE AŞEVİ</div>
-            <div style="font-size: 11px; color: {subtext_color}; font-weight: 500;">Yönetim & Takip Sistemi</div>
-        </div>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
+        """,
+        unsafe_allow_html=True
+    )
 
 st.sidebar.markdown(f'<p style="font-size: 11px; font-weight: 700; margin-bottom: 6px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; color: {subtext_color};">GÖRÜNÜM MODU</p>', unsafe_allow_html=True)
 yeni_tema = st.sidebar.radio(
