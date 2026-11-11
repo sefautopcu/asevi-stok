@@ -1808,7 +1808,13 @@ if not st.session_state.oturum_aktif:
                     log_adi = k_adi_inp if kullanici_var else "(bilinmeyen kullanıcı)"
                     u_anahtar = f"u|{k_adi_inp if kullanici_var else '_bilinmeyen'}|{istemci_ip}"
                     ip_anahtar = f"ip|{istemci_ip}"
-                    kalan_kilit = max(giris_kilit_kalan(u_anahtar), giris_kilit_kalan(ip_anahtar))
+                    # Giriş Formu/Buton Mantığı
+if st.button("Giriş Yap"):
+    log_adi = k_adi_inp if k_adi_inp else "bilinmiyor"
+    u_anahtar = f"user_{k_adi_inp}" if k_adi_inp else "user_bilinmiyor"
+    
+    # 1. Kilit Süresi Hesabı (Buton tıklandığında hesaplanır)
+    kalan_kilit = max(giris_kilit_kalan(u_anahtar), giris_kilit_kalan(ip_anahtar))
 
     if kalan_kilit > 0:
         giris_logla(log_adi, "kilitliyken deneme")
@@ -1819,7 +1825,7 @@ if not st.session_state.oturum_aktif:
             # Boş şifre yalnızca 'misafir' hesabı için geçerlidir.
             gecerli = (kayitli_hash != "" or k_adi_inp == "misafir") and sifre_dogrula(sifre_inp, kayitli_hash)
         else:
-            sifre_dogrula(sifre_inp, sifre_hashle_yeni("sahte")) # zamanlama farkını gizle
+            sifre_dogrula(sifre_inp, sifre_hashle_yeni("sahte"))  # zamanlama farkını gizle
             gecerli = False
 
         if gecerli:
