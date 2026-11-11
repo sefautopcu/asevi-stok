@@ -2258,10 +2258,7 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     
 if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
-    # 1. ÜST KONTROL (Küçültülmüş Başlık)
-    st.markdown("<h4 style='margin:0; padding-bottom:10px;'>🍲 AZİZİYE - AŞEVİ TAKİP EKRANI</h4>", unsafe_allow_html=True)
-
-   # 2. YEMEK ÜRETİM ARŞİVİNDEN CANLI VERİLERİ ÇEKME
+    # 2. YEMEK ÜRETİM ARŞİVİNDEN CANLI VERİLERİ ÇEKME
     gecmis_uretimler = st.session_state.get("yemek_uretim_arsivi", [])
     stok_verileri, fire_verileri, personel_verileri = [], [], []
 
