@@ -2255,203 +2255,186 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
 
-# Sol menü kontrolü (Projenizdeki menü değişken adına göre if mantığı)
+import streamlit.components.v1 as components
+
 if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
-    # 1. Üst Karşılama ve Canlı Durum Başlığı
-    st.markdown(
-        """
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-            <div>
-                <h1 style="margin: 0; font-size: 2rem;">🍲 Sefa Aşevi Operasyon Dashboard</h1>
-                <p style="margin: 5px 0 0 0; color: #94a3b8; font-size: 14px;">Şeffaf, Hassas ve Dijital Stok & Maliyet Yönetim Paneli</p>
+    # Simülatördeki Kişi Sayısını Canlı Tutmak İçin Streamlit Slider
+    col_ctrl1, col_ctrl2 = st.columns([2, 1])
+    with col_ctrl1:
+        st.markdown(
+            "<h2 style='margin:0;'>🍲 Sefa Aşevi Operasyon Dashboard</h2>",
+            unsafe_allow_html=True,
+        )
+    with col_ctrl2:
+        kisi = st.slider(
+            "Yararlanan Kişi Sayısı (Canlı Simülatör)",
+            10,
+            1000,
+            200,
+            step=10,
+        )
+
+    # Malzeme ve Hesaplama Mantığı
+    ispanak_m = kisi * 0.25
+    et_m = kisi * 0.15
+    yogurt_m = kisi * 0.10
+    makarna_m = kisi * 0.12
+    sogan_m = kisi * 0.05
+    yag_m = kisi * 0.03
+
+    ispanak_tl = ispanak_m * 40.0
+    et_tl = et_m * 380.0
+    yogurt_tl = yogurt_m * 55.0
+    makarna_tl = makarna_m * 32.0
+    sogan_tl = sogan_m * 18.0
+    yag_tl = yag_m * 65.0
+
+    toplam_tl = (
+        ispanak_tl + et_tl + yogurt_tl + makarna_tl + sogan_tl + yag_tl
+    )
+    kisi_basi_tl = toplam_tl / kisi if kisi > 0 else 0
+
+    # SIMULATORDERI BIREBIR HTML & NEON CAM KART TASARIMI
+    sim_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
+        body {{ background: transparent; color: #f4f4f5; padding: 10px; }}
+        
+        .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }}
+        .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 16px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); }}
+        .metric-label {{ font-size: 12px; color: #94a3b8; font-weight: 500; }}
+        .metric-val {{ font-size: 1.6rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
+        .metric-sub {{ font-size: 12px; color: #10b981; font-weight: 600; }}
+
+        .sim-container {{ display: grid; grid-template-columns: 7fr 5fr; gap: 20px; }}
+        .panel {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 22px; box-shadow: 0 0 25px -3px rgba(16, 185, 129, 0.3); }}
+        .panel-title {{ font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }}
+        .panel-sub {{ font-size: 13px; color: #94a3b8; margin-bottom: 18px; }}
+
+        .custom-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+        .custom-table th {{ text-align: left; padding: 12px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid rgba(16, 185, 129, 0.2); text-transform: uppercase; }}
+        .custom-table td {{ padding: 12px; font-size: 13px; color: #e2e8f0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }}
+        .custom-table tr:hover {{ background: rgba(16, 185, 129, 0.08); }}
+
+        .glow-box {{ background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 16px; padding: 20px; box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.3); }}
+        .cost-row {{ display: flex; gap: 12px; margin: 18px 0; }}
+        .cost-card {{ flex: 1; background: rgba(6, 10, 20, 0.8); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 14px; }}
+        .cost-title {{ font-size: 11px; color: #94a3b8; text-transform: uppercase; }}
+        .cost-num {{ font-size: 1.5rem; font-weight: 800; color: #10b981; margin-top: 4px; }}
+        .cost-num-blue {{ font-size: 1.5rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
+        .info-badge {{ background: rgba(16, 185, 129, 0.12); border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #cbd5e1; }}
+
+        .workflow-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 25px; }}
+        .wf-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 16px; }}
+        .wf-title {{ color: #10b981; font-weight: 700; font-size: 14px; margin-bottom: 6px; }}
+        .wf-desc {{ font-size: 12px; color: #94a3b8; line-height: 1.4; }}
+    </style>
+    </head>
+    <body>
+
+        <!-- Metrikler -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Günlük Sıcak Yemek</div>
+                <div class="metric-val">{kisi} Kişi</div>
+                <div class="metric-sub">↑ Öğle & Akşam Dağıtımı</div>
             </div>
-            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); padding: 8px 16px; border-radius: 20px; color: #10b981; font-weight: 600; font-size: 13px;">
-                🟢 Canlı FIFO Depo Senkronize
+            <div class="metric-card">
+                <div class="metric-label">Depo Durumu</div>
+                <div class="metric-val">Senkronize</div>
+                <div class="metric-sub">↑ Supabase Realtime RLS</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Son Birim Fiyat Mantığı</div>
+                <div class="metric-val">FIFO Mantığı</div>
+                <div class="metric-sub">↑ Reçete Hassasiyeti</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Son İşlem Desteği</div>
+                <div class="metric-val">Aktif (Undo)</div>
+                <div class="metric-sub">↑ Tek Tıkla Geri Al</div>
             </div>
         </div>
-    """,
-        unsafe_allow_html=True,
-    )
 
-    # 2. Üst Özet Metrik Kartları
-    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-    with col_m1:
-        st.metric(
-            label="Günlük Sıcak Yemek", value="200 Kişi", delta="Öğle & Akşam"
-        )
-    with col_m2:
-        st.metric(
-            label="Depo Durumu", value="Senkronize", delta="Supabase Realtime RLS"
-        )
-    with col_m3:
-        st.metric(
-            label="Son Birim Fiyat Mantığı",
-            value="FIFO Mantığı",
-            delta="Reçete Hassasiyeti",
-        )
-    with col_m4:
-        st.metric(
-            label="Son İşlem Desteği", value="Aktif (Undo)", delta="Tek Tıkla Geri Al"
-        )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # 3. İKİ KOLONLU SİMÜLATÖR ALANI (Sol: Kontrol & Malzeme Tablosu | Sağ: Anlık Maliyet Kartı)
-    col_sim_left, col_sim_right = st.columns([7, 5])
-
-    with col_sim_left:
-        st.markdown("### 🧮 Canlı Yemek Üretim & Maliyet Simülatörü")
-        st.caption(
-            "Menu içeriğini seçin, kişi sayısını değiştirin; kişi başı ve toplam maliyet anında hesaplansın."
-        )
-
-        # Menü ve Tarih Seçimi
-        c1, c2 = st.columns(2)
-        with c1:
-            menu_adi = st.text_input(
-                "Çıkan Yemek / Menü Adı",
-                value="Ispanak Yemeği / Makarna / Yoğurt Menüsü",
-            )
-        with c2:
-            kisi_sayisi = st.slider(
-                "Yararlanan Kişi Sayısı",
-                min_value=10,
-                max_value=1000,
-                value=200,
-                step=10,
-            )
-
-        # Örnek Malzeme Veritabanı ve FIFO Birim Fiyatları
-        malzemeler = [
-            {"ad": "✈️ ISPANAK", "miktar_kisi": 0.25, "birim": "Kg", "birim_fiyat": 40.0},
-            {"ad": "🥩 KUŞBAŞI ET", "miktar_kisi": 0.15, "birim": "Kg", "birim_fiyat": 380.0},
-            {"ad": "🥛 YOĞURT", "miktar_kisi": 0.10, "birim": "Kg", "birim_fiyat": 55.0},
-            {"ad": "🍝 MAKARNA", "miktar_kisi": 0.12, "birim": "Kg", "birim_fiyat": 32.0},
-            {"ad": "🧅 KURU SOĞAN", "miktar_kisi": 0.05, "birim": "Kg", "birim_fiyat": 18.0},
-            {"ad": "🛢️ AYÇİÇEK YAĞI", "miktar_kisi": 0.03, "birim": "Lt", "birim_fiyat": 65.0},
-        ]
-
-        # Toplam Maliyet Hesaplama Loop'u
-        toplam_maliyet = 0
-        table_rows = ""
-
-        for m in malzemeler:
-            toplam_kg = m["miktar_kisi"] * kisi_sayisi
-            malzeme_toplam_tl = toplam_kg * m["birim_fiyat"]
-            toplam_maliyet += malzeme_toplam_tl
-
-            table_rows += f"""
-            <tr>
-                <td style="font-weight: 600;">{m['ad']}</td>
-                <td>{toplam_kg:.1f} {m['birim']}</td>
-                <td>{m['birim_fiyat']:.2f} ₺</td>
-                <td style="font-weight: 700; color: #10b981;">{malzeme_toplam_tl:,.2f} ₺</td>
-            </tr>
-            """
-
-        kisi_basi_maliyet = toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0
-
-        # HTML Tablosu
-        st.markdown(
-            f"""
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>Malzeme Adı</th>
-                        <th>Toplam İhtiyaç</th>
-                        <th>FIFO Birim Fiyatı</th>
-                        <th>Toplam Maliyet (TL)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {table_rows}
-                </tbody>
-            </table>
-        """,
-            unsafe_allow_html=True,
-        )
-
-    with col_sim_right:
-        st.markdown("### 📊 Canlı Maliyet Özet Paneli")
-
-        # Neon Işıklı Sonuç Kartı
-        st.markdown(
-            f"""
-            <div style="background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.35); margin-top: 10px;">
-                <div style="font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Tarih: 2026-11-11 | {len(malzemeler)} Kalem Malzeme</div>
-                <h3 style="margin: 8px 0 20px 0; font-size: 1.3rem; color: #f4f4f5;">{menu_adi}</h3>
+        <!-- Simülatör Ana Gövde -->
+        <div class="sim-container">
+            <div class="panel">
+                <div class="panel-title">🧮 Canlı Yemek Üretim & Maliyet Simülatörü</div>
+                <div class="panel-sub">Menu içeriğini seçin, kişi sayısını değiştirin; kişi başı ve toplam maliyet anında hesaplansın.</div>
                 
-                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                    <div style="flex: 1; background: rgba(15, 23, 42, 0.8); padding: 15px; border-radius: 14px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                        <div style="font-size: 12px; color: #94a3b8;">Menü Toplam Maliyeti</div>
-                        <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 4px;">{toplam_maliyet:,.2f} ₺</div>
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Malzeme Adı</th>
+                            <th>Toplam İhtiyaç</th>
+                            <th>FIFO Birim Fiyatı</th>
+                            <th>Toplam Maliyet (TL)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>🥬 ISPANAK</td><td>{ispanak_m:.1f} Kg</td><td>40.00 ₺</td><td style="color:#10b981; font-weight:700;">{ispanak_tl:,.2f} ₺</td></tr>
+                        <tr><td>🥩 KUŞBAŞI ET</td><td>{et_m:.1f} Kg</td><td>380.00 ₺</td><td style="color:#10b981; font-weight:700;">{et_tl:,.2f} ₺</td></tr>
+                        <tr><td>🥛 YOĞURT</td><td>{yogurt_m:.1f} Kg</td><td>55.00 ₺</td><td style="color:#10b981; font-weight:700;">{yogurt_tl:,.2f} ₺</td></tr>
+                        <tr><td>🍝 MAKARNA</td><td>{makarna_m:.1f} Kg</td><td>32.00 ₺</td><td style="color:#10b981; font-weight:700;">{makarna_tl:,.2f} ₺</td></tr>
+                        <tr><td>🧅 KURU SOĞAN</td><td>{sogan_m:.1f} Kg</td><td>18.00 ₺</td><td style="color:#10b981; font-weight:700;">{sogan_tl:,.2f} ₺</td></tr>
+                        <tr><td>🛢️ AYÇİÇEK YAĞI</td><td>{yag_m:.1f} Lt</td><td>65.00 ₺</td><td style="color:#10b981; font-weight:700;">{yag_tl:,.2f} ₺</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">📊 Canlı Maliyet Özet Paneli</div>
+                <div class="panel-sub">Tarih: 2026-11-11 | 6 Kalem Malzeme</div>
+                
+                <div class="glow-box">
+                    <h4 style="color:#f4f4f5; margin-bottom:10px;">Ispanak Yemeği / Makarna / Yoğurt Menüsü</h4>
+                    <div class="cost-row">
+                        <div class="cost-card">
+                            <div class="cost-title">Menü Toplam Maliyeti</div>
+                            <div class="cost-num">{toplam_tl:,.2f} ₺</div>
+                        </div>
+                        <div class="cost-card">
+                            <div class="cost-title">Kişi Başı Maliyet ({kisi} Kişi)</div>
+                            <div class="cost-num-blue">{kisi_basi_tl:,.2f} ₺</div>
+                        </div>
                     </div>
-                    <div style="flex: 1; background: rgba(15, 23, 42, 0.8); padding: 15px; border-radius: 14px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                        <div style="font-size: 12px; color: #94a3b8;">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div>
-                        <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px;">{kisi_basi_maliyet:,.2f} ₺</div>
+                    <div class="info-badge">
+                        🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.
                     </div>
                 </div>
-                
-                <div style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; padding: 12px; border-radius: 8px; font-size: 13px; color: #cbd5e1;">
-                    🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.
-                </div>
             </div>
-        """,
-            unsafe_allow_html=True,
-        )
+        </div>
 
-    st.markdown("<br><hr style='border-color: rgba(16, 185, 129, 0.2);'><br>", unsafe_allow_html=True)
-
-    # 4. OPERASYONEL AKIŞ ŞEMASI VE SİSTEM MİMARİSİ
-    st.markdown("### 🔄 Veriden Tabağa Tam Şeffaf Operasyon Akışı")
-    st.caption("Faturadan depoya, mutfak düşümünden maliyet raporlamasına kadar sistem algoritması")
-
-    col_f1, col_f2, col_f3, col_f4 = st.columns(4)
-
-    with col_f1:
-        st.markdown(
-            """
-            <div style="background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: 16px; height: 100%;">
-                <h4 style="color: #10b981; margin-top: 0;">1. Stok & Fatura Girişi</h4>
-                <p style="font-size: 13px; color: #94a3b8;">Gelen irsaliye ve faturalar girilir, FIFO birim fiyat kütüğüne işlenir.</p>
+        <!-- Akış Şeması -->
+        <div class="workflow-grid">
+            <div class="wf-card">
+                <div class="wf-title">1. Stok & Fatura Girişi</div>
+                <div class="wf-desc">Gelen irsaliye ve faturalar girilir, FIFO birim fiyat kütüğüne işlenir.</div>
             </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-    with col_f2:
-        st.markdown(
-            """
-            <div style="background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: 16px; height: 100%;">
-                <h4 style="color: #10b981; margin-top: 0;">2. Yemek Üretim Kaydı</h4>
-                <p style="font-size: 13px; color: #94a3b8;">Çıkan menü ve kişi sayısı girilerek depodan otomatik düşüm yapılır.</p>
+            <div class="wf-card">
+                <div class="wf-title">2. Yemek Üretim Kaydı</div>
+                <div class="wf-desc">Çıkan menü ve kişi sayısı girilerek depodan otomatik düşüm yapılır.</div>
             </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-    with col_f3:
-        st.markdown(
-            """
-            <div style="background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: 16px; height: 100%;">
-                <h4 style="color: #10b981; margin-top: 0;">3. Otomatik FIFO Maliyet</h4>
-                <p style="font-size: 13px; color: #94a3b8;">En son fatura birim fiyatlarıyla öğün ve kişi başı kesin maliyet üretilir.</p>
+            <div class="wf-card">
+                <div class="wf-title">3. Otomatik FIFO Maliyet</div>
+                <div class="wf-desc">En son fatura birim fiyatlarıyla öğün ve kişi başı kesin maliyet üretilir.</div>
             </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-    with col_f4:
-        st.markdown(
-            """
-            <div style="background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: 16px; height: 100%;">
-                <h4 style="color: #10b981; margin-top: 0;">4. Raporlama & Arşiv</h4>
-                <p style="font-size: 13px; color: #94a3b8;">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</p>
+            <div class="wf-card">
+                <div class="wf-title">4. Raporlama & Arşiv</div>
+                <div class="wf-desc">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</div>
             </div>
-        """,
-            unsafe_allow_html=True,
-        )
+        </div>
+
+    </body>
+    </html>
+    """
+
+    components.html(sim_html, height=720, scrolling=True)
             
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
