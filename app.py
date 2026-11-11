@@ -805,44 +805,52 @@ if "tema" not in st.session_state:
     else:
         st.session_state.tema = "Dark"
 
-# Tema Renk Paletleri
+# Tema Renk Paletleri (Liquid Glass & Glassmorphism)
 if st.session_state.tema == "Dark":
-    bg_color = "#000000"
-    card_bg = "#090909"
-    sidebar_bg = "#000000"
-    text_color = "#ffffff"
-    subtext_color = "#9ca3af"
-    border_color = "#1f1f1f"
-    input_bg = "#0b0b0b"
-    table_hover = "rgba(255, 255, 255, 0.03)"
-    popover_bg = "#121212"
+    bg_color = "#09090b"
+    card_bg = "rgba(39, 39, 42, 0.45)"
+    sidebar_bg = "rgba(18, 18, 22, 0.75)"
+    text_color = "#f4f4f5"
+    subtext_color = "#a1a1aa"
+    border_color = "rgba(255, 255, 255, 0.08)"
+    input_bg = "rgba(24, 24, 27, 0.8)"
+    table_hover = "rgba(99, 102, 241, 0.08)"
+    popover_bg = "#18181b"
     plotly_template = "plotly_dark"
+    accent_color = "#6366f1"
+    btn_gradient = "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)"
+    btn_shadow = "0 4px 20px -2px rgba(99, 102, 241, 0.5)"
 else:
-    bg_color = "#f8fafc"
-    card_bg = "#ffffff"
-    sidebar_bg = "#f1f5f9"
-    text_color = "#0f172a"
-    subtext_color = "#64748b"
-    border_color = "#cbd5e1"
-    input_bg = "#ffffff"
-    table_hover = "rgba(0, 0, 0, 0.02)"
+    bg_color = "#f4f4f6"
+    card_bg = "rgba(255, 255, 255, 0.65)"
+    sidebar_bg = "rgba(255, 255, 255, 0.75)"
+    text_color = "#18181b"
+    subtext_color = "#52525b"
+    border_color = "rgba(0, 0, 0, 0.08)"
+    input_bg = "rgba(255, 255, 255, 0.9)"
+    table_hover = "rgba(79, 70, 229, 0.05)"
     popover_bg = "#ffffff"
     plotly_template = "plotly_white"
+    accent_color = "#4f46e5"
+    btn_gradient = "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)"
+    btn_shadow = "0 4px 15px rgba(79, 70, 229, 0.3)"
 
-# DİNAMİK TEMA STİLLERİ
+# DİNAMİK TEMA STİLLERİ (LIQUID GLASS)
 st.markdown(
     f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
     .main, .stApp {{ 
         background-color: {bg_color} !important; 
         color: {text_color} !important;
-        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
     }}
     
-    .stSidebar {{ 
-        background-color: {sidebar_bg} !important; 
+    .stSidebar, section[data-testid="stSidebar"] {{ 
+        background: {sidebar_bg} !important; 
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
         padding-top: 10px; 
         border-right: 1px solid {border_color} !important;
     }}
@@ -861,7 +869,7 @@ st.markdown(
     section[data-testid="stSidebar"] div.stButton > button {{
         background: transparent !important;
         color: {subtext_color} !important;
-        border: none !important;
+        border: 1px solid transparent !important;
         border-radius: 12px !important;
         text-align: left !important;
         box-shadow: none !important;
@@ -871,17 +879,17 @@ st.markdown(
     }}
     
     section[data-testid="stSidebar"] div.stButton > button:hover {{
-        background: rgba(99, 102, 241, 0.08) !important;
+        background: rgba(99, 102, 241, 0.12) !important;
         backdrop-filter: blur(16px) !important;
         -webkit-backdrop-filter: blur(16px) !important;
         color: {text_color} !important;
-        border: 1px solid rgba(99, 102, 241, 0.2) !important;
-        box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.15) !important;
-        transform: translateX(5px);
+        border: 1px solid rgba(99, 102, 241, 0.3) !important;
+        box-shadow: 0 8px 20px 0 rgba(99, 102, 241, 0.15) !important;
+        transform: translateX(4px);
     }}
     
     section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {{
-        background: rgba(99, 102, 241, 0.15) !important;
+        background: rgba(99, 102, 241, 0.2) !important;
         backdrop-filter: blur(16px) !important;
         -webkit-backdrop-filter: blur(16px) !important;
         color: {text_color} !important;
@@ -900,30 +908,53 @@ st.markdown(
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div {{ display: none !important; }}
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] {{ color: transparent !important; }}
 
-    div.stButton > button, button[data-testid="baseButton-secondary"], button[data-testid="baseButton-primary"], div.stFormSubmitButton > button {{
-        background-color: {card_bg} !important;
+    /* Form, Kart ve Buton Tasarımları */
+    div.stButton > button, button[data-testid="baseButton-secondary"], div.stFormSubmitButton > button {{
+        background: {card_bg} !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
         color: {text_color} !important;
         border: 1px solid {border_color} !important;
         border-radius: 12px !important;
         font-weight: 600 !important;
         font-size: 13.5px !important;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }}
-    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, button[data-testid="baseButton-primary"]:hover, div.stFormSubmitButton > button:hover {{
-        border-color: #6366f1 !important;
-        transform: translateY(-1px);
+    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, div.stFormSubmitButton > button:hover {{
+        border-color: {accent_color} !important;
+        transform: translateY(-2px);
     }}
 
+    /* Birincil Butonlar (Primary Buttons) */
+    button[data-testid="baseButton-primary"] {{
+        background: {btn_gradient} !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        font-size: 13.5px !important;
+        box-shadow: {btn_shadow} !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }}
+    button[data-testid="baseButton-primary"]:hover {{
+        transform: translateY(-2px) !important;
+        filter: brightness(1.1);
+    }}
+
+    /* Metrik Kartlar, Expander ve Form Panelleri (Cam Efekti) */
     div.stMetric, div[data-testid="stExpander"], div.stForm {{
         background: {card_bg} !important;
-        border: 1px solid {border_color};
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        border: 1px solid {border_color} !important;
         padding: 24px;
         border-radius: 18px;
-        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.2);
         color: {text_color} !important;
     }}
     
+    /* Popover ve Açılır Menüler */
     div[data-baseweb="menu"], 
     ul[role="listbox"], 
     div[data-baseweb="popover"], 
@@ -934,8 +965,9 @@ st.markdown(
         background-color: {popover_bg} !important;
         color: {text_color} !important;
         border: 1px solid {border_color} !important;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
-        border-radius: 12px !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25) !important;
+        border-radius: 14px !important;
+        backdrop-filter: blur(16px) !important;
     }}
 
     li[role="option"], 
@@ -968,13 +1000,15 @@ st.markdown(
         border-radius: 50% !important;
     }}
 
+    /* Input ve Select Kutuları */
     input, 
     div[data-baseweb="select"] > div,
     div[data-baseweb="base-input"] {{
         background-color: {input_bg} !important;
         color: {text_color} !important;
         border-radius: 12px !important;
-        border-color: {border_color} !important;
+        border: 1px solid {border_color} !important;
+        backdrop-filter: blur(8px) !important;
     }}
     
     input::placeholder {{
@@ -982,19 +1016,22 @@ st.markdown(
         opacity: 0.7;
     }}
 
+    /* Özel HTML Tablosu (Custom Table) */
     .custom-table {{
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
         margin-top: 15px;
         margin-bottom: 15px;
-        background-color: {card_bg};
+        background: {card_bg};
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border-radius: 16px;
         overflow: hidden;
         border: 1px solid {border_color};
     }}
     .custom-table th {{
-        background-color: {sidebar_bg};
+        background: {sidebar_bg};
         color: {text_color};
         padding: 14px 18px;
         text-align: left;
@@ -1015,7 +1052,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 
 def yeni_id_uret(onek, liste, genislik=3, anahtar="id"):
     """Mevcut en büyük numaranın bir fazlasını üretir (kayıt silinse bile kimlik tekrarlanmaz)."""
