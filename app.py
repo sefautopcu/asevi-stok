@@ -797,22 +797,39 @@ def giris_denemesini_sifirla(anahtar=None):
         supabase_veri_kaydet("giris_denemeleri", kayitlar)
 
 
-# =========================================================
-# SEFA AŞEVİ - PURE DARK LIQUID GLASS TEMA
-# =========================================================
-
-# Kodun alt kısımlarındaki KeyError ve NameError hatalarını engelleyen değişkenler:
+# Tema session state kontrolü
 if "tema" not in st.session_state:
     st.session_state.tema = "Dark"
 
-border_color = "rgba(16, 185, 129, 0.35)"
-bg_color = "#040711"
-card_bg = "rgba(10, 15, 29, 0.75)"
-sidebar_bg = "rgba(6, 10, 20, 0.85)"
-text_color = "#f4f4f5"
-subtext_color = "#94a3b8"
-input_bg = "rgba(15, 23, 42, 0.85)"
-popover_bg = "#0b1329"
+# Eğer Light (Açık) seçildiyse arayüze açık tema stillerini uyguluyoruz
+# Dark (Koyu) seçiliyse bu blok hiç çalışmaz, mevcut koyu temanız %100 aynen kalır.
+if st.session_state.tema == "Light":
+    st.markdown("""
+        <style>
+            /* Genel Sayfa Arka Planı ve Yazı Rengi */
+            .stApp {
+                background-color: #f8f9fa !important;
+                color: #212529 !important;
+            }
+            /* Kenar Çubuğu (Sidebar) Açık Tema */
+            [data-testid="stSidebar"] {
+                background-color: #e9ecef !important;
+            }
+            [data-testid="stSidebar"] * {
+                color: #212529 !important;
+            }
+            /* Kartlar, Metrikler ve Konteynerler */
+            div[data-testid="stMetric"], div.element-container {
+                color: #212529 !important;
+            }
+            /* Metin Kutuları ve Giriş Elemanları */
+            input, select, textarea {
+                background-color: #ffffff !important;
+                color: #212529 !important;
+                border-color: #ced4da !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
 # STİL ENJEKSİYONU
 st.markdown("""
