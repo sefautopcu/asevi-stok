@@ -800,7 +800,10 @@ def giris_denemesini_sifirla(anahtar=None):
 # SEFA AŞEVİ - PURE DARK LIQUID GLASS TEMA
 # =========================================================
 
-# Kod içerisindeki HTML metinlerinin (1864. satır gibi) NameError vermemesi için gerekli renk değişkenleri:
+# Kodun alt kısımlarındaki KeyError ve NameError hatalarını engelleyen değişkenler:
+if "tema" not in st.session_state:
+    st.session_state.tema = "Dark"
+
 border_color = "rgba(16, 185, 129, 0.35)"
 bg_color = "#040711"
 card_bg = "rgba(10, 15, 29, 0.75)"
