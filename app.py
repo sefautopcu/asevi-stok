@@ -797,39 +797,22 @@ def giris_denemesini_sifirla(anahtar=None):
         supabase_veri_kaydet("giris_denemeleri", kayitlar)
 
 
-# Tema session state kontrolü
+# =========================================================
+# SEFA AŞEVİ - PURE DARK LIQUID GLASS TEMA
+# =========================================================
+
+# Kodun alt kısımlarındaki KeyError ve NameError hatalarını engelleyen değişkenler:
 if "tema" not in st.session_state:
     st.session_state.tema = "Dark"
 
-# Eğer Light (Açık) seçildiyse arayüze açık tema stillerini uyguluyoruz
-# Dark (Koyu) seçiliyse bu blok hiç çalışmaz, mevcut koyu temanız %100 aynen kalır.
-if st.session_state.tema == "Light":
-    st.markdown("""
-        <style>
-            /* Genel Sayfa Arka Planı ve Yazı Rengi */
-            .stApp {
-                background-color: #f8f9fa !important;
-                color: #212529 !important;
-            }
-            /* Kenar Çubuğu (Sidebar) Açık Tema */
-            [data-testid="stSidebar"] {
-                background-color: #e9ecef !important;
-            }
-            [data-testid="stSidebar"] * {
-                color: #212529 !important;
-            }
-            /* Kartlar, Metrikler ve Konteynerler */
-            div[data-testid="stMetric"], div.element-container {
-                color: #212529 !important;
-            }
-            /* Metin Kutuları ve Giriş Elemanları */
-            input, select, textarea {
-                background-color: #ffffff !important;
-                color: #212529 !important;
-                border-color: #ced4da !important;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+border_color = "rgba(16, 185, 129, 0.35)"
+bg_color = "#040711"
+card_bg = "rgba(10, 15, 29, 0.75)"
+sidebar_bg = "rgba(6, 10, 20, 0.85)"
+text_color = "#f4f4f5"
+subtext_color = "#94a3b8"
+input_bg = "rgba(15, 23, 42, 0.85)"
+popover_bg = "#0b1329"
 
 # STİL ENJEKSİYONU
 st.markdown("""
@@ -1892,47 +1875,39 @@ kullanici_adi_goruntule = (
 kullanici_adi_goruntule = html_escape(kullanici_adi_goruntule)
 
 st.sidebar.markdown(
-    """
-    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid rgba(150,150,150,0.2); margin-bottom: 12px;">
-        <div style="background: rgba(99, 102, 241, 0.1); color: #6366f1; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-            👤
+    f"""
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid {border_color}; margin-bottom: 12px;">
+        <div style="background: rgba(99, 102, 241, 0.1); color: {text_color}; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid {border_color}; backdrop-filter: blur(12px);">
+            🍲
         </div>
         <div>
-            <div style="font-weight: 700; font-size: 15px; letter-spacing: -0.02em;">AZİZİYE AŞEVİ</div>
-            <div style="font-size: 11px; font-weight: 500; opacity: 0.7;">Yönetim & Takip Sistemi</div>
+            <div style="font-weight: 700; font-size: 15px; color: {text_color}; letter-spacing: -0.02em;">AZİZİYE AŞEVİ</div>
+            <div style="font-size: 11px; color: {subtext_color}; font-weight: 500;">Yönetim & Takip Sistemi</div>
         </div>
     </div>
-    """,
-    unsafe_allow_html=True
+""",
+    unsafe_allow_html=True,
 )
 
-st.sidebar.markdown(
-    '<p style="font-size: 11px; font-weight: 700; margin-bottom: 6px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px;">GÖRÜNÜM MODU</p>',
-    unsafe_allow_html=True
-)
-
+st.sidebar.markdown(f'<p style="font-size: 11px; font-weight: 700; margin-bottom: 6px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; color: {subtext_color};">GÖRÜNÜM MODU</p>', unsafe_allow_html=True)
 yeni_tema = st.sidebar.radio(
-    "Tema Seçimi",
-    ["Dark (Koyu)", "Light (Açık)"],
-    index=0 if st.session_state.get("tema", "Dark") == "Dark" else 1,
+    "Tema Seçimi", 
+    ["Dark (Koyu)", "Light (Açık)"], 
+    index=0 if st.session_state.tema == "Dark" else 1,
     label_visibility="collapsed",
     horizontal=True
 )
-
 secilen_tema_val = "Dark" if "Dark" in yeni_tema else "Light"
-if secilen_tema_val != st.session_state.get("tema", "Dark"):
+if secilen_tema_val != st.session_state.tema:
     st.session_state.tema = secilen_tema_val
     st.query_params["theme"] = secilen_tema_val
     st.rerun()
-    
-text_color = "#ffffff"
-subtext_color = "#aaaaaa"
 
 st.sidebar.markdown(
     f"""
     <div style="background: transparent; padding: 6px 8px; display: flex; align-items: center; justify-content: space-between; margin-top: 12px; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="background: rgba(99, 102, 241, 0.12); color: {text_color}; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 600;">
+            <div style="background: rgba(99, 102, 241, 0.12); color: {text_color}; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; border: 1px solid {border_color};">
                 {kullanici_adi_goruntule[:1]}
             </div>
             <div>
@@ -1941,7 +1916,7 @@ st.sidebar.markdown(
             </div>
         </div>
     </div>
-    """,
+""",
     unsafe_allow_html=True,
 )
 
