@@ -1891,17 +1891,20 @@ st.sidebar.markdown(
 
 st.sidebar.markdown(f'<p style="font-size: 11px; font-weight: 700; margin-bottom: 6px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; color: {subtext_color};">GÖRÜNÜM MODU</p>', unsafe_allow_html=True)
 yeni_tema = st.sidebar.radio(
-    "Tema Seçimi", 
-    ["Dark (Koyu)", "Light (Açık)"], 
-    index=0 if st.session_state.tema == "Dark" else 1,
-    label_visibility="collapsed",
-    horizontal=True
-)
-secilen_tema_val = "Dark" if "Dark" in yeni_tema else "Light"
-if secilen_tema_val != st.session_state.tema:
-    st.session_state.tema = secilen_tema_val
-    st.query_params["theme"] = secilen_tema_val
-    st.rerun()
+    # Tema seçimi radio butonu
+    secilen_tema_radio = st.radio(
+        "Tema Seçimi",
+        ["Dark (Koyu)", "Light (Açık)"],
+        index=0 if st.session_state.get("tema", "Dark") == "Dark" else 1,
+        label_visibility="collapsed",
+        horizontal=True
+    )
+    
+    secilen_tema_val = "Dark" if "Dark" in secilen_tema_radio else "Light"
+    if secilen_tema_val != st.session_state.get("tema", "Dark"):
+        st.session_state.tema = secilen_tema_val
+        st.query_params["theme"] = secilen_tema_val
+        st.rerun()
 
 st.sidebar.markdown(
     f"""
