@@ -2255,178 +2255,150 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
 
+import streamlit as st
 import streamlit.components.v1 as components
 
 if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
-    # Simülatördeki Kişi Sayısını Canlı Tutmak İçin Streamlit Slider
-    col_ctrl1, col_ctrl2 = st.columns([2, 1])
-    with col_ctrl1:
-        st.markdown(
-            "<h2 style='margin:0;'>🍲 Sefa Aşevi Operasyon Dashboard</h2>",
-            unsafe_allow_html=True,
+    # 1. ÜST KARŞILAMA VE CANLI SİLMÜLATÖR KİŞİ KONTROLÜ
+    col_hdr1, col_hdr2 = st.columns([2, 1])
+    with col_hdr1:
+        st.markdown("<h2 style='margin:0;'>🍲 Sefa Aşevi Operasyon Dashboard</h2>", unsafe_allow_html=True)
+        st.caption("Geçmiş Menü Üretimleri Canlı Maliyet Simülasyon Paneli")
+    with col_hdr2:
+        kisi_sayisi = st.slider("Yararlanan Kişi Sayısı (Simülasyon)", 10, 1000, 230, step=10)
+
+    # 2. SUPABASE'DEN GEÇMİŞ YEMEK ÜRETİMLERİNİ VE MALİYET KÜTÜĞÜNÜ ÇEKME
+    try:
+        # Geçmiş günlük yemek üretim kayıtlarını çek
+        uretim_res = supabase.table("gunluk_uretim").select("*").order("tarih", desc=True).execute()
+        gecmis_uretimler = uretim_res.data if uretim_res.data else []
+    except Exception:
+        gecmis_uretimler = []
+
+    # Veritabanı boşsa arayüzün bozulmaması için yedek geçmiş menü verisi
+    if not gecmis_uretimler:
+        gecmis_uretimler = [
+            {
+                "tarih": "2026-11-11",
+                "menu_adi": "Ispanak Yemeği / Makarna / Yoğurt Menüsü",
+                "kisi_basi_orijinal_maliyet": 79.19,
+                "kalem_sayisi": 6
+            },
+            {
+                "tarih": "2026-11-10",
+                "menu_adi": "Kuru Fasulye / Pirinç Pilavı / Cacık",
+                "kisi_basi_orijinal_maliyet": 64.50,
+                "kalem_sayisi": 5
+            },
+            {
+                "tarih": "2026-11-09",
+                "menu_adi": "Tavuk Sote / Arpa Şehriye Pilavı / Ayran",
+                "kisi_basi_orijinal_maliyet": 71.20,
+                "kalem_sayisi": 5
+            }
+        ]
+
+    # Seçenekler listesini formatlama (Tarih - Menü Adı)
+    menu_secenekleri = {f"{item['tarih']} | {item['menu_adi']}": item for item in gecmis_uretimler}
+    
+    col_sel1, _ = st.columns([2, 1])
+    with col_sel1:
+        secilen_key = st.selectbox(
+            "📋 Geçmişte Çıkan Yemeği / Menüyü Seçin",
+            options=list(menu_secenekleri.keys())
         )
-    with col_ctrl2:
-        kisi = st.slider(
-            "Yararlanan Kişi Sayısı (Canlı Simülatör)",
-            10,
-            1000,
-            200,
-            step=10,
-        )
+    
+    secilen_menu_verisi = menu_secenekleri[secilen_key]
 
-    # Malzeme ve Hesaplama Mantığı
-    ispanak_m = kisi * 0.25
-    et_m = kisi * 0.15
-    yogurt_m = kisi * 0.10
-    makarna_m = kisi * 0.12
-    sogan_m = kisi * 0.05
-    yag_m = kisi * 0.03
+    # 3. CANLI SİMÜLASYON HESAPLAMASI
+    # Kişi başı sabit maliyet katsayısı * Seçilen dinamik kişi sayısı
+    kisi_basi_tl = float(secilen_menu_verisi.get("kisi_basi_orijinal_maliyet", 79.19))
+    toplam_tl = kisi_basi_tl * kisi_sayisi
+    menu_adi = secilen_menu_verisi.get("menu_adi", "Seçilen Menü")
+    tarih_str = secilen_menu_verisi.get("tarih", "2026-11-11")
+    kalem_sayisi = secilen_menu_verisi.get("kalem_sayisi", 6)
 
-    ispanak_tl = ispanak_m * 40.0
-    et_tl = et_m * 380.0
-    yogurt_tl = yogurt_m * 55.0
-    makarna_tl = makarna_m * 32.0
-    sogan_tl = sogan_m * 18.0
-    yag_tl = yag_m * 65.0
-
-    toplam_tl = (
-        ispanak_tl + et_tl + yogurt_tl + makarna_tl + sogan_tl + yag_tl
-    )
-    kisi_basi_tl = toplam_tl / kisi if kisi > 0 else 0
-
-    # SIMULATORDERI BIREBIR HTML & NEON CAM KART TASARIMI
-    sim_html = f"""
+    # 4. NEON CAM KART - BİREBİR SİMÜLATÖR EKRANİ (SOL TABLO REMOVED)
+    dash_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
-        body {{ background: transparent; color: #f4f4f5; padding: 10px; }}
+        body {{ background: transparent; color: #f4f4f5; padding: 5px; }}
+
+        .glow-panel {{
+            background: rgba(10, 15, 29, 0.85);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35);
+            margin-top: 10px;
+            max-width: 750px;
+        }}
         
-        .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }}
-        .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 16px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); }}
-        .metric-label {{ font-size: 12px; color: #94a3b8; font-weight: 500; }}
-        .metric-val {{ font-size: 1.6rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
-        .metric-sub {{ font-size: 12px; color: #10b981; font-weight: 600; }}
+        .panel-header {{ display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: 700; color: #f4f4f5; }}
+        .panel-meta {{ font-size: 13px; color: #94a3b8; margin: 4px 0 20px 0; text-transform: uppercase; letter-spacing: 0.04em; }}
 
-        .sim-container {{ display: grid; grid-template-columns: 7fr 5fr; gap: 20px; }}
-        .panel {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 22px; box-shadow: 0 0 25px -3px rgba(16, 185, 129, 0.3); }}
-        .panel-title {{ font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }}
-        .panel-sub {{ font-size: 13px; color: #94a3b8; margin-bottom: 18px; }}
+        .inner-box {{
+            background: rgba(6, 10, 20, 0.7);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 16px;
+            padding: 22px;
+        }}
 
-        .custom-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-        .custom-table th {{ text-align: left; padding: 12px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid rgba(16, 185, 129, 0.2); text-transform: uppercase; }}
-        .custom-table td {{ padding: 12px; font-size: 13px; color: #e2e8f0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }}
-        .custom-table tr:hover {{ background: rgba(16, 185, 129, 0.08); }}
+        .menu-title {{ font-size: 1.3rem; font-weight: 800; color: #ffffff; margin-bottom: 20px; }}
 
-        .glow-box {{ background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 16px; padding: 20px; box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.3); }}
-        .cost-row {{ display: flex; gap: 12px; margin: 18px 0; }}
-        .cost-card {{ flex: 1; background: rgba(6, 10, 20, 0.8); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 14px; }}
-        .cost-title {{ font-size: 11px; color: #94a3b8; text-transform: uppercase; }}
-        .cost-num {{ font-size: 1.5rem; font-weight: 800; color: #10b981; margin-top: 4px; }}
-        .cost-num-blue {{ font-size: 1.5rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
-        .info-badge {{ background: rgba(16, 185, 129, 0.12); border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #cbd5e1; }}
+        .cost-row {{ display: flex; gap: 16px; margin-bottom: 20px; }}
+        .cost-card {{
+            flex: 1;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 14px;
+            padding: 16px;
+        }}
+        .cost-title {{ font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }}
+        .cost-num-green {{ font-size: 1.8rem; font-weight: 800; color: #10b981; margin-top: 6px; }}
+        .cost-num-blue {{ font-size: 1.8rem; font-weight: 800; color: #38bdf8; margin-top: 6px; }}
 
-        .workflow-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 25px; }}
-        .wf-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 16px; }}
-        .wf-title {{ color: #10b981; font-weight: 700; font-size: 14px; margin-bottom: 6px; }}
-        .wf-desc {{ font-size: 12px; color: #94a3b8; line-height: 1.4; }}
+        .info-badge {{
+            background: rgba(16, 185, 129, 0.12);
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
     </style>
     </head>
     <body>
 
-        <!-- Metrikler -->
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-label">Günlük Sıcak Yemek</div>
-                <div class="metric-val">{kisi} Kişi</div>
-                <div class="metric-sub">↑ Öğle & Akşam Dağıtımı</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Depo Durumu</div>
-                <div class="metric-val">Senkronize</div>
-                <div class="metric-sub">↑ Supabase Realtime RLS</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Son Birim Fiyat Mantığı</div>
-                <div class="metric-val">FIFO Mantığı</div>
-                <div class="metric-sub">↑ Reçete Hassasiyeti</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Son İşlem Desteği</div>
-                <div class="metric-val">Aktif (Undo)</div>
-                <div class="metric-sub">↑ Tek Tıkla Geri Al</div>
-            </div>
-        </div>
+        <div class="glow-panel">
+            <div class="panel-header">📊 Canlı Maliyet Özet Paneli</div>
+            <div class="panel-meta">Tarih: {tarih_str} | {kalem_sayisi} Kalem Malzeme</div>
 
-        <!-- Simülatör Ana Gövde -->
-        <div class="sim-container">
-            <div class="panel">
-                <div class="panel-title">🧮 Canlı Yemek Üretim & Maliyet Simülatörü</div>
-                <div class="panel-sub">Menu içeriğini seçin, kişi sayısını değiştirin; kişi başı ve toplam maliyet anında hesaplansın.</div>
-                
-                <table class="custom-table">
-                    <thead>
-                        <tr>
-                            <th>Malzeme Adı</th>
-                            <th>Toplam İhtiyaç</th>
-                            <th>FIFO Birim Fiyatı</th>
-                            <th>Toplam Maliyet (TL)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>🥬 ISPANAK</td><td>{ispanak_m:.1f} Kg</td><td>40.00 ₺</td><td style="color:#10b981; font-weight:700;">{ispanak_tl:,.2f} ₺</td></tr>
-                        <tr><td>🥩 KUŞBAŞI ET</td><td>{et_m:.1f} Kg</td><td>380.00 ₺</td><td style="color:#10b981; font-weight:700;">{et_tl:,.2f} ₺</td></tr>
-                        <tr><td>🥛 YOĞURT</td><td>{yogurt_m:.1f} Kg</td><td>55.00 ₺</td><td style="color:#10b981; font-weight:700;">{yogurt_tl:,.2f} ₺</td></tr>
-                        <tr><td>🍝 MAKARNA</td><td>{makarna_m:.1f} Kg</td><td>32.00 ₺</td><td style="color:#10b981; font-weight:700;">{makarna_tl:,.2f} ₺</td></tr>
-                        <tr><td>🧅 KURU SOĞAN</td><td>{sogan_m:.1f} Kg</td><td>18.00 ₺</td><td style="color:#10b981; font-weight:700;">{sogan_tl:,.2f} ₺</td></tr>
-                        <tr><td>🛢️ AYÇİÇEK YAĞI</td><td>{yag_m:.1f} Lt</td><td>65.00 ₺</td><td style="color:#10b981; font-weight:700;">{yag_tl:,.2f} ₺</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <div class="inner-box">
+                <div class="menu-title">{menu_adi}</div>
 
-            <div class="panel">
-                <div class="panel-title">📊 Canlı Maliyet Özet Paneli</div>
-                <div class="panel-sub">Tarih: 2026-11-11 | 6 Kalem Malzeme</div>
-                
-                <div class="glow-box">
-                    <h4 style="color:#f4f4f5; margin-bottom:10px;">Ispanak Yemeği / Makarna / Yoğurt Menüsü</h4>
-                    <div class="cost-row">
-                        <div class="cost-card">
-                            <div class="cost-title">Menü Toplam Maliyeti</div>
-                            <div class="cost-num">{toplam_tl:,.2f} ₺</div>
-                        </div>
-                        <div class="cost-card">
-                            <div class="cost-title">Kişi Başı Maliyet ({kisi} Kişi)</div>
-                            <div class="cost-num-blue">{kisi_basi_tl:,.2f} ₺</div>
-                        </div>
+                <div class="cost-row">
+                    <div class="cost-card">
+                        <div class="cost-title">Menü Toplam Maliyeti</div>
+                        <div class="cost-num-green">{toplam_tl:,.2f} ₺</div>
                     </div>
-                    <div class="info-badge">
-                        🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.
+                    <div class="cost-card">
+                        <div class="cost-title">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div>
+                        <div class="cost-num-blue">{kisi_basi_tl:,.2f} ₺</div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Akış Şeması -->
-        <div class="workflow-grid">
-            <div class="wf-card">
-                <div class="wf-title">1. Stok & Fatura Girişi</div>
-                <div class="wf-desc">Gelen irsaliye ve faturalar girilir, FIFO birim fiyat kütüğüne işlenir.</div>
-            </div>
-            <div class="wf-card">
-                <div class="wf-title">2. Yemek Üretim Kaydı</div>
-                <div class="wf-desc">Çıkan menü ve kişi sayısı girilerek depodan otomatik düşüm yapılır.</div>
-            </div>
-            <div class="wf-card">
-                <div class="wf-title">3. Otomatik FIFO Maliyet</div>
-                <div class="wf-desc">En son fatura birim fiyatlarıyla öğün ve kişi başı kesin maliyet üretilir.</div>
-            </div>
-            <div class="wf-card">
-                <div class="wf-title">4. Raporlama & Arşiv</div>
-                <div class="wf-desc">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</div>
+                <div class="info-badge">
+                    🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.
+                </div>
             </div>
         </div>
 
@@ -2434,7 +2406,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </html>
     """
 
-    components.html(sim_html, height=720, scrolling=True)
+    components.html(dash_html, height=400, scrolling=False)
             
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
