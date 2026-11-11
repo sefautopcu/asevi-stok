@@ -2263,18 +2263,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
    # 2. YEMEK ÜRETİM ARŞİVİNDEN CANLI VERİLERİ ÇEKME
     gecmis_uretimler = st.session_state.get("yemek_uretim_arsivi", [])
-    
-    try:
-        stok_res = supabase.table("stok_kutugu").select("*").execute()
-        stok_verileri = stok_res.data if stok_res.data else []
-
-        fire_res = supabase.table("fire_zayiat").select("*").execute()
-        fire_verileri = fire_res.data if fire_res.data else []
-
-        personel_res = supabase.table("personel").select("*").execute()
-        personel_verileri = personel_res.data if personel_res.data else []
-    except Exception:
-        stok_verileri, fire_verileri, personel_verileri = [], [], []
+    stok_verileri, fire_verileri, personel_verileri = [], [], []
 
     # --- HESAPLAMALAR ---
     benzersiz_urunler = set([item.get("ürün_adı") or item.get("urun_adi") or item.get("malzeme_adi") for item in stok_verileri if item])
