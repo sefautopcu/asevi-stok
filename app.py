@@ -2267,31 +2267,24 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     # 2. SUPABASE'DEN CANLI VERİLERİ ÇEKME
     try:
-        # Geçmiş Üretimler
         uretim_res = supabase.table("gunluk_uretim").select("*").order("tarih", desc=True).execute()
         gecmis_uretimler = uretim_res.data if uretim_res.data else []
         
-        # Stok Kütüğü (Ürün Çeşidi ve Stok Değeri için)
         stok_res = supabase.table("stok_kutugu").select("*").execute()
         stok_verileri = stok_res.data if stok_res.data else []
 
-        # Fire / Zayiat Kayıtları
         fire_res = supabase.table("fire_zayiat").select("*").execute()
         fire_verileri = fire_res.data if fire_res.data else []
 
-        # Personel Listesi
         personel_res = supabase.table("personel").select("*").execute()
         personel_verileri = personel_res.data if personel_res.data else []
-
     except Exception:
         gecmis_uretimler, stok_verileri, fire_verileri, personel_verileri = [], [], [], []
 
     # --- HESAPLAMALAR ---
-    # A. Ürün Çeşidi (Güncel Stok Durumu tablosundan benzersiz ürünler)
     benzersiz_urunler = set([item.get("ürün_adı") or item.get("urun_adi") or item.get("malzeme_adi") for item in stok_verileri if item])
     urun_cesidi_sayisi = len(benzersiz_urunler) if benzersiz_urunler else len(set(g.get("urun", "").strip().upper() for g in st.session_state.get("girisler", []) if g.get("urun")))
 
-    # B. Toplam Stok Değeri (Kalan Miktar * Birim Fiyat)
     toplam_stok_degeri = 0.0
     for item in stok_verileri:
         kalan = float(item.get("kalan_miktar", item.get("alınan_miktar", 0.0) or 0.0))
@@ -2301,7 +2294,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         for g in st.session_state.get("girisler", []):
             toplam_stok_degeri += float(g.get("kalan", 0)) * float(g.get("fiyat", 0))
 
-    # C. Toplam Fire (Miktar ve TL Karşılığı)
     toplam_fire_kg = 0.0
     toplam_fire_tl = 0.0
     for f in fire_verileri:
@@ -2317,10 +2309,8 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             toplam_fire_kg += f_mik
             toplam_fire_tl += f_tut
 
-    # D. Aktif Çalışan Personel Sayısı
     aktif_personel_sayisi = sum(1 for p in personel_verileri if p.get("aktif", True)) if personel_verileri else sum(1 for p in st.session_state.get("personeller", []) if p.get("aktif", True))
 
-    # Geçmiş Menü Verileri (Yedekli)
     if not gecmis_uretimler:
         gecmis_uretimler = [
             {"tarih": "2026-11-11", "menu_adi": "Ispanak Yemeği / Makarna / Yoğurt Menüsü", "kisi_basi_orijinal_maliyet": 79.19, "kalem_sayisi": 6},
@@ -2342,7 +2332,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     tarih_str = secilen_menu_verisi.get("tarih", "2026-11-11")
     kalem_sayisi = secilen_menu_verisi.get("kalem_sayisi", 6)
 
-    # 3. HTML & NEON CAM KART RENDER (8'Lİ METRİK KARTI İLE)
     dash_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2351,56 +2340,22 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     <style>
         * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
         body {{ background: transparent; color: #f4f4f5; padding: 5px; }}
-
-        /* 8'li Metrik Grid (2 Satır x 4 Sütun) */
         .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0 25px 0; }}
         .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); }}
         .metric-label {{ font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
         .metric-val {{ font-size: 1.4rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
         .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
-
-        /* Canlı Maliyet Özet Paneli */
-        .glow-panel {{
-            background: rgba(10, 15, 29, 0.85);
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35);
-            margin-bottom: 30px;
-        }}
+        .glow-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 30px; }}
         .panel-header {{ font-size: 1.2rem; font-weight: 700; color: #f4f4f5; }}
         .panel-meta {{ font-size: 12px; color: #94a3b8; margin: 4px 0 18px 0; text-transform: uppercase; }}
-
-        .inner-box {{
-            background: rgba(6, 10, 20, 0.7);
-            border: 1px solid rgba(16, 185, 129, 0.25);
-            border-radius: 16px;
-            padding: 20px;
-        }}
+        .inner-box {{ background: rgba(6, 10, 20, 0.7); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 16px; padding: 20px; }}
         .menu-title {{ font-size: 1.25rem; font-weight: 800; color: #ffffff; margin-bottom: 16px; }}
-
         .cost-row {{ display: flex; gap: 16px; margin-bottom: 16px; }}
-        .cost-card {{
-            flex: 1;
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(16, 185, 129, 0.25);
-            border-radius: 14px;
-            padding: 15px;
-        }}
+        .cost-card {{ flex: 1; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 15px; }}
         .cost-title {{ font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }}
         .cost-num-green {{ font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 4px; }}
         .cost-num-blue {{ font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
-
-        .info-badge {{
-            background: rgba(16, 185, 129, 0.12);
-            border-left: 4px solid #10b981;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #cbd5e1;
-        }}
-
-        /* Operasyon Akış Şeması */
+        .info-badge {{ background: rgba(16, 185, 129, 0.12); border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #cbd5e1; }}
         .workflow-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px; }}
         .wf-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 16px; }}
         .wf-title {{ color: #10b981; font-weight: 700; font-size: 13px; margin-bottom: 6px; }}
@@ -2408,99 +2363,36 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </style>
     </head>
     <body>
-
-        <!-- 1. Satır Metrik Kartları (4 Adet) -->
         <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-label">Günlük Sıcak Yemek</div>
-                <div class="metric-val">{kisi_sayisi} Kişi</div>
-                <div class="metric-sub">↑ Anlık Simülasyon</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Ürün Çeşidi</div>
-                <div class="metric-val">{urun_cesidi_sayisi} Çeşit</div>
-                <div class="metric-sub">↑ Güncel Stok Durumu</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Toplam Fire / Zayiat</div>
-                <div class="metric-val">{toplam_fire_kg:.1f} Kg</div>
-                <div class="metric-sub">({toplam_fire_tl:,.2f} ₺)</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Stok Değeri</div>
-                <div class="metric-val">{toplam_stok_degeri:,.0f} ₺</div>
-                <div class="metric-sub">↑ Güncel Depo Toplamı</div>
-            </div>
+            <div class="metric-card"><div class="metric-label">Günlük Sıcak Yemek</div><div class="metric-val">{kisi_sayisi} Kişi</div><div class="metric-sub">↑ Anlık Simülasyon</div></div>
+            <div class="metric-card"><div class="metric-label">Ürün Çeşidi</div><div class="metric-val">{urun_cesidi_sayisi} Çeşit</div><div class="metric-sub">↑ Güncel Stok Durumu</div></div>
+            <div class="metric-card"><div class="metric-label">Toplam Fire / Zayiat</div><div class="metric-val">{toplam_fire_kg:.1f} Kg</div><div class="metric-sub">({toplam_fire_tl:,.2f} ₺)</div></div>
+            <div class="metric-card"><div class="metric-label">Stok Değeri</div><div class="metric-val">{toplam_stok_degeri:,.0f} ₺</div><div class="metric-sub">↑ Güncel Depo Toplamı</div></div>
         </div>
-
-        <!-- 2. Satır Metrik Kartları (4 Adet) -->
         <div class="metrics-grid" style="margin-top: -10px;">
-            <div class="metric-card">
-                <div class="metric-label">Aktif Çalışan Personel</div>
-                <div class="metric-val">{aktif_personel_sayisi} Personel</div>
-                <div class="metric-sub">↑ Personel Takip Tablosu</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Depo Durumu</div>
-                <div class="metric-val">Senkronize</div>
-                <div class="metric-sub">↑ Supabase Realtime RLS</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Son Birim Fiyat Mantığı</div>
-                <div class="metric-val">FIFO Mantığı</div>
-                <div class="metric-sub">↑ Reçete Hassasiyeti</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Son İşlem Desteği</div>
-                <div class="metric-val">Aktif (Undo)</div>
-                <div class="metric-sub">↑ Tek Tıkla Geri Al</div>
-            </div>
+            <div class="metric-card"><div class="metric-label">Aktif Çalışan Personel</div><div class="metric-val">{aktif_personel_sayisi} Personel</div><div class="metric-sub">↑ Personel Takip Tablosu</div></div>
+            <div class="metric-card"><div class="metric-label">Depo Durumu</div><div class="metric-val">Senkronize</div><div class="metric-sub">↑ Supabase Realtime RLS</div></div>
+            <div class="metric-card"><div class="metric-label">Son Birim Fiyat Mantığı</div><div class="metric-val">FIFO Mantığı</div><div class="metric-sub">↑ Reçete Hassasiyeti</div></div>
+            <div class="metric-card"><div class="metric-label">Son İşlem Desteği</div><div class="metric-val">Aktif (Undo)</div><div class="metric-sub">↑ Tek Tıkla Geri Al</div></div>
         </div>
-
-        <!-- Canlı Maliyet Özet Paneli -->
         <div class="glow-panel">
             <div class="panel-header">📊 Canlı Maliyet Özet Paneli</div>
             <div class="panel-meta">Tarih: {tarih_str} | {kalem_sayisi} Kalem Malzeme</div>
-
             <div class="inner-box">
                 <div class="menu-title">{menu_adi}</div>
-
                 <div class="cost-row">
-                    <div class="cost-card">
-                        <div class="cost-title">Menü Toplam Maliyeti</div>
-                        <div class="cost-num-green">{toplam_tl:,.2f} ₺</div>
-                    </div>
-                    <div class="cost-card">
-                        <div class="cost-title">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div>
-                        <div class="cost-num-blue">{kisi_basi_tl:,.2f} ₺</div>
-                    </div>
+                    <div class="cost-card"><div class="cost-title">Menü Toplam Maliyeti</div><div class="cost-num-green">{toplam_tl:,.2f} ₺</div></div>
+                    <div class="cost-card"><div class="cost-title">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div><div class="cost-num-blue">{kisi_basi_tl:,.2f} ₺</div></div>
                 </div>
-
-                <div class="info-badge">
-                    🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.
-                </div>
+                <div class="info-badge">🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.</div>
             </div>
         </div>
-
-        <!-- Akış Şeması -->
         <h3 style="color:#f4f4f5; margin-bottom: 12px; font-size: 1.1rem;">🔄 Veriden Tabağa Tam Şeffaf Operasyon Akışı</h3>
         <div class="workflow-grid">
-            <div class="wf-card">
-                <div class="wf-title">1. Stok & Fatura Girişi</div>
-                <div class="wf-desc">Gelen irsaliye ve faturalar girilir, FIFO birim fiyat kütüğüne işlenir.</div>
-            </div>
-            <div class="wf-card">
-                <div class="wf-title">2. Yemek Üretim Kaydı</div>
-                <div class="wf-desc">Çıkan menü ve kişi sayısı girilerek depodan otomatik düşüm yapılır.</div>
-            </div>
-            <div class="wf-card">
-                <div class="wf-title">3. Otomatik FIFO Maliyet</div>
-                <div class="wf-desc">En son fatura birim fiyatlarıyla öğün ve kişi başı kesin maliyet üretilir.</div>
-            </div>
-            <div class="wf-card">
-                <div class="wf-title">4. Raporlama & Arşiv</div>
-                <div class="wf-desc">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</div>
-            </div>
+            <div class="wf-card"><div class="wf-title">1. Stok & Fatura Girişi</div><div class="wf-desc">Gelen irsaliye ve faturalar girilir, FIFO birim fiyat kütüğüne işlenir.</div></div>
+            <div class="wf-card"><div class="wf-title">2. Yemek Üretim Kaydı</div><div class="wf-desc">Çıkan menü ve kişi sayısı girilerek depodan otomatik düşüm yapılır.</div></div>
+            <div class="wf-card"><div class="wf-title">3. Otomatik FIFO Maliyet</div><div class="wf-desc">En son fatura birim fiyatlarıyla öğün ve kişi başı kesin maliyet üretilir.</div></div>
+            <div class="wf-card"><div class="wf-title">4. Raporlama & Arşiv</div><div class="wf-desc">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</div></div>
         </div>
     </body>
     </html>
