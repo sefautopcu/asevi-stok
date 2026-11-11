@@ -1822,10 +1822,10 @@ if not st.session_state.oturum_aktif:
                             sifre_dogrula(sifre_inp, sifre_hashle_yeni("sahte"))  # zamanlama farkını gizle
                             gecerli = False
 
-                                if gecerli:
-                            if sifre_yukseltilmeli_mi(kayitli_hash):
+                            if gecerli:
+                                if sifre_yukseltilmeli_mi(kayitli_hash):
                                 # Eski SHA-256 kayıt: giriş anında yeni biçime yükselt
-                                if kayitli_hash in ESKI_VARSAYILAN_HASHLER:
+                                    if kayitli_hash in ESKI_VARSAYILAN_HASHLER:
                                     kullanici_db[k_adi_inp]["sifre_degistirilmeli"] = True
                                 kullanici_db[k_adi_inp]["sifre"] = sifre_hashle_yeni(sifre_inp)
                                 kullanıcıları_kaydet(kullanici_db)
