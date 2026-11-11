@@ -1822,14 +1822,14 @@ if not st.session_state.oturum_aktif:
                             sifre_dogrula(sifre_inp, sifre_hashle_yeni("sahte"))  # zamanlama farkını gizle
                             gecerli = False
 
-        if gecerli:
+if gecerli:
         if sifre_yukseltilmeli_mi(kayitli_hash):
             # Eski SHA-256 kayıt: giriş anında yeni biçime yükselt
             if kayitli_hash in ESKI_VARSAYILAN_HASHLER:
                 kullanici_db[k_adi_inp]["sifre_degistirilmeli"] = True
             kullanici_db[k_adi_inp]["sifre"] = sifre_hashle_yeni(sifre_inp)
             kullanicilari_kaydet(kullanici_db)
-        
+
         st.session_state.hatali_giris_sayisi = 0
         giris_denemesini_sifirla(u_anahtar)
         giris_logla(k_adi_inp, "başarılı giriş")
@@ -1843,16 +1843,17 @@ if not st.session_state.oturum_aktif:
             _, kilit_ip = hatali_giris_kaydet(ip_anahtar, IP_MAKS_HATALI_GIRIS, IP_KILIT_SURESI_SN)
         else:
             kilit_ip = False
-        
+
         giris_logla(log_adi, "hatalı giriş")
         st.session_state.hatali_giris_sayisi += 1
-        
+
         if kilit_u or kilit_ip:
             st.session_state.kilitlenme_bitis_zamani = time.time() + KILIT_SURESI_SN
             st.session_state.hatali_giris_sayisi = 0
             st.rerun()
         else:
             st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {max(kalan_hak, 0)}")
+            
         st.markdown(
             f"<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size: 13px; color: {subtext_color};'>veya</div>",
             unsafe_allow_html=True,
