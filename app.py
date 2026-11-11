@@ -2310,7 +2310,8 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     # Eğer veritabanında henüz üretim kaydı yoksa boş liste bırak
     if not gecmis_uretimler:
         gecmis_uretimler = []
-      if gecmis_uretimler:
+
+    if gecmis_uretimler:
         menu_secenekleri = {f"{item.get('tarih', '')} | {item.get('menu_adi', 'Menü')}": item for item in gecmis_uretimler}
     else:
         menu_secenekleri = {"Henüz Üretim Kaydı Girilmedi": {"tarih": "-", "menu_adi": "Kayıt Yok", "kisi_basi_orijinal_maliyet": 0.0, "kalem_sayisi": 0}}
