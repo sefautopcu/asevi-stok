@@ -2310,6 +2310,8 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     # Gecmis uretim verilerini esnek anahtarlarla sozluk formatina donusturme
     menu_secenekleri = {{}}
     
+    # Gecmis uretim verilerini esnek anahtarlarla sozluk formatina donusturme
+    menu_secenekleri = {}
     if gecmis_uretimler:
         for item in gecmis_uretimler:
             if not item:
@@ -2328,7 +2330,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             item["kisi_basi_orijinal_maliyet"] = maliyet
             item["kalem_sayisi"] = kalem
             
-            key = f"{{tarih}} | {{menu_adi}}"
+            key = f"{tarih} | {menu_adi}"
             menu_secenekleri[key] = item
 
     if not menu_secenekleri:
