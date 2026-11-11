@@ -471,12 +471,6 @@ def supabase_veri_kaydet(kayit_id, veri_objesi, zorla=False):
         except Exception:
             _taban_hashler().pop(kayit_id, None)
     
-     # Yazılan anahtar için (varsa) cache'i geçersiz kıl.
-     if kayit_id in ONBELLEKSIZ_ANAHTARLAR:
-        try:
-            _supabase_ham_oku_cached.clear()
-        except Exception:
-            pass
 
 # =========================================================================
 # YEDEKLEME / GERİ YÜKLEME
