@@ -2255,9 +2255,6 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
 
-import streamlit as st
-import streamlit.components.v1 as components
-
 if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     # 1. ÜST KONTROL VE KİŞİ SAYISI SİMÜLATÖRÜ
@@ -2292,7 +2289,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     # --- HESAPLAMALAR ---
     # A. Ürün Çeşidi (Güncel Stok Durumu tablosundan benzersiz ürünler)
     benzersiz_urunler = set([item.get("ürün_adı") or item.get("urun_adi") or item.get("malzeme_adi") for item in stok_verileri if item])
-    urun_cesidi_sayisi = len(benzersiz_urunler) if benzersiz_urunler else 6
+    urun_cesidi_sayisi = len(benzersiz_urunler) if benzersiz_urunler else len(set(g.get("urun", "").strip().upper() for g in st.session_state.get("girisler", []) if g.get("urun")))
 
     # B. Toplam Stok Değeri (Kalan Miktar * Birim Fiyat)
     toplam_stok_degeri = 0.0
@@ -2301,21 +2298,29 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         fiyat = float(item.get("birim_fiyat", 0.0))
         toplam_stok_degeri += kalan * fiyat
     if toplam_stok_degeri == 0.0:
-        toplam_stok_degeri = 142500.00  # Veri yoksa örnek gösterge
+        # Fallback olarak session_state girişleri üzerinden hesapla
+        for g in st.session_state.get("girisler", []):
+            toplam_stok_degeri += float(g.get("kalan", 0)) * float(g.get("fiyat", 0))
 
     # C. Toplam Fire (Miktar ve TL Karşılığı)
     toplam_fire_kg = 0.0
     toplam_fire_tl = 0.0
     for f in fire_verileri:
         f_miktar = float(f.get("miktar", f.get("fire_miktari", 0.0) or 0.0))
-        f_fiyat = float(f.get("birim_fiyat", 40.0)) # Birim fiyat yoksa ortalama
+        f_fiyat = float(f.get("birim_fiyat", 40.0))
         toplam_fire_kg += f_miktar
         toplam_fire_tl += f_miktar * f_fiyat
-    if toplam_fire_kg == 0.0:
-        toplam_fire_kg, toplam_fire_tl = 14.5, 960.00 # Örnek gösterge
+    
+    # Session state loglarındaki fireleri de dahil et
+    for log in st.session_state.get("kullanim_loglari", []):
+        if log.get("tur") == "Fire/Zayiat":
+            f_mik = float(log.get("miktar", 0))
+            f_tut = float(log.get("tutar", 0))
+            toplam_fire_kg += f_mik
+            toplam_fire_tl += f_tut
 
     # D. Aktif Çalışan Personel Sayısı
-    aktif_personel_sayisi = len(personel_verileri) if personel_verileri else 8
+    aktif_personel_sayisi = sum(1 for p in personel_verileri if p.get("aktif", True)) if personel_verileri else sum(1 for p in st.session_state.get("personeller", []) if p.get("aktif", True))
 
     # Geçmiş Menü Verileri (Yedekli)
     if not gecmis_uretimler:
@@ -2496,7 +2501,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             </div>
             <div class="wf-card">
                 <div class="wf-title">4. Raporlama & Arşiv</div>
-                <div class="wf-desc">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</div>
+                <div class="wf-desc">PDF and Excel formatında kurumsal operasyon raporları anında indirilir.</div>
             </div>
         </div>
 
