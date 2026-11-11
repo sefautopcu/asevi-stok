@@ -800,18 +800,18 @@ def giris_denemesini_sifirla(anahtar=None):
 # SEFA AŞEVİ - SUNUM SİMÜLATÖRÜ TEMASI (PURE DARK LIQUID GLASS)
 # =========================================================
 
-# Tema Değişkenleri (Sunum Simülatöründen Birebir Alınmıştır)
-bg_color = "#040711"
+# Renk Paleti (Sunum Simülatöründen Birebir Eşlenmiştir)
+bg_color = "#040711"         # Derin Gece Mavisi / Siyah Arka Plan
 bg_gradient = "radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.12) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.12) 0%, transparent 45%)"
-card_bg = "rgba(10, 15, 29, 0.75)"
-sidebar_bg = "rgba(6, 10, 20, 0.85)"
-text_color = "#f4f4f5"
-subtext_color = "#94a3b8"
-border_color = "rgba(16, 185, 129, 0.3)"
-input_bg = "rgba(15, 23, 42, 0.85)"
-popover_bg = "#0b1329"
-accent_glow = "0 0 25px -3px rgba(16, 185, 129, 0.35)"
-btn_gradient = "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+card_bg = "rgba(10, 15, 29, 0.75)"      # Cam Kart Yarı Saydam Zemin
+sidebar_bg = "rgba(6, 10, 20, 0.85)"    # Sol Menü Cam Zemin
+text_color = "#f4f4f5"       # Beyaz Ana Metinler
+subtext_color = "#94a3b8"    # Açık Gri İkincil Metinler
+border_color = "rgba(16, 185, 129, 0.35)" # Turkuaz/Yeşil Parlayan Kenarlık
+input_bg = "rgba(15, 23, 42, 0.85)"     # Girdi Kutuları İç Zemin (Koyu Mavi)
+popover_bg = "#0b1329"       # Tarih Seçici & Açılır Menü Zemin
+accent_glow = "0 0 25px -3px rgba(16, 185, 129, 0.35)" # Yeşil Neon Gölge/Parlama
+btn_gradient = "linear-gradient(135deg, #10b981 0%, #059669 100%)" # Canlı Yeşil Buton
 btn_shadow = "0 4px 20px rgba(16, 185, 129, 0.4)"
 
 # STİL ENJEKSİYONU
@@ -829,7 +829,7 @@ st.markdown(
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
     }}
 
-    /* 2. Tipografi ve Başlık Puntosu */
+    /* 2. Tipografi ve Başlık Puntosu (Beyaz Metinler) */
     h1 {{
         font-size: 2.2rem !important;
         font-weight: 800 !important;
@@ -895,12 +895,16 @@ st.markdown(
         transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
     }}
 
+    div[data-testid="stMetric"] *, div[data-testid="stForm"] * {{
+        color: {text_color} !important;
+    }}
+
     div[data-testid="stMetric"]:hover, div[data-testid="stForm"]:hover {{
         border-color: rgba(16, 185, 129, 0.6) !important;
         transform: translateY(-3px) !important;
     }}
 
-    /* 5. Girdi Kutuları, Seçim Alanları ve Tarih Kutuları */
+    /* 5. Girdi Kutuları, Seçim Alanları ve Inputlar (Koyu Mavi İç Zemin) */
     input, 
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div,
@@ -917,7 +921,7 @@ st.markdown(
         opacity: 0.7;
     }}
 
-    /* 6. Tarih Seçici ve Açılır Menü Popover Kutuları */
+    /* 6. Tarih Seçici ve Açılır Menü Popover Kutuları (Lacivert Zemin) */
     div[data-baseweb="popover"], 
     div[data-baseweb="menu"], 
     div[data-baseweb="calendar"],
