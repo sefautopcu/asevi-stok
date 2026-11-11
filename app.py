@@ -1810,49 +1810,49 @@ if not st.session_state.oturum_aktif:
                     ip_anahtar = f"ip|{istemci_ip}"
                     kalan_kilit = max(giris_kilit_kalan(u_anahtar), giris_kilit_kalan(ip_anahtar))
 
-                    if kalan_kilit > 0:
-                        giris_logla(log_adi, "kilitliyken deneme")
-                        st.error(f"⚠️ Çok fazla hatalı deneme. Lütfen {kalan_kilit} saniye sonra tekrar deneyin.")
-                    else:
-                        kayitli_hash = str(kullanici_db.get(k_adi_inp, {}).get("sifre", ""))
-                        if kullanici_var:
-                            # Boş şifre yalnızca 'misafir' hesabı için geçerlidir.
-                            gecerli = (kayitli_hash != "" or k_adi_inp == "misafir") and sifre_dogrula(sifre_inp, kayitli_hash)
-                        else:
-                            sifre_dogrula(sifre_inp, sifre_hashle_yeni("sahte"))  # zamanlama farkını gizle
-                            gecerli = False
-
-    if gecerli:
-        if sifre_yukseltilmeli_mi(kayitli_hash):
-            # Eski SHA-256 kayıt: giriş anında yeni biçime yükselt
-            if kayitli_hash in ESKI_VARSAYILAN_HASHLER:
-                kullanici_db[k_adi_inp]["sifre_degistirilmeli"] = True
-            kullanici_db[k_adi_inp]["sifre"] = sifre_hashle_yeni(sifre_inp)
-            kullanicilari_kaydet(kullanici_db)
-
-        st.session_state.hatali_giris_sayisi = 0
-        giris_denemesini_sifirla(u_anahtar)
-        giris_logla(k_adi_inp, "başarılı giriş")
-        oturumu_baslat(k_adi_inp)
-        st.rerun()
+    if kalan_kilit > 0:
+        giris_logla(log_adi, "kilitliyken deneme")
+        st.error(f"⚠️ Çok fazla hatalı deneme. Lütfen {kalan_kilit} saniye sonra tekrar deneyin.")
     else:
-        kalan_hak, kilit_u = hatali_giris_kaydet(u_anahtar, MAKS_HATALI_GIRIS, KILIT_SURESI_SN)
-        # IP tespit edilemiyorsa IP kilidini atla: aksi hâlde tüm
-        # kullanıcılar "bilinmiyor" kovasında birlikte kilitlenir (DoS).
-        if istemci_ip and istemci_ip != "bilinmiyor":
-            _, kilit_ip = hatali_giris_kaydet(ip_anahtar, IP_MAKS_HATALI_GIRIS, IP_KILIT_SURESI_SN)
+        kayitli_hash = str(kullanici_db.get(k_adi_inp, {}).get("sifre", ""))
+        if kullanici_var:
+            # Boş şifre yalnızca 'misafir' hesabı için geçerlidir.
+            gecerli = (kayitli_hash != "" or k_adi_inp == "misafir") and sifre_dogrula(sifre_inp, kayitli_hash)
         else:
-            kilit_ip = False
+            sifre_dogrula(sifre_inp, sifre_hashle_yeni("sahte")) # zamanlama farkını gizle
+            gecerli = False
 
-        giris_logla(log_adi, "hatalı giriş")
-        st.session_state.hatali_giris_sayisi += 1
+        if gecerli:
+            if sifre_yukseltilmeli_mi(kayitli_hash):
+                # Eski SHA-256 kayıt: giriş anında yeni biçime yükselt
+                if kayitli_hash in ESKI_VARSAYILAN_HASHLER:
+                    kullanici_db[k_adi_inp]["sifre_degistirilmeli"] = True
+                kullanici_db[k_adi_inp]["sifre"] = sifre_hashle_yeni(sifre_inp)
+                kullanicilari_kaydet(kullanici_db)
 
-        if kilit_u or kilit_ip:
-            st.session_state.kilitlenme_bitis_zamani = time.time() + KILIT_SURESI_SN
             st.session_state.hatali_giris_sayisi = 0
+            giris_denemesini_sifirla(u_anahtar)
+            giris_logla(k_adi_inp, "başarılı giriş")
+            oturumu_baslat(k_adi_inp)
             st.rerun()
         else:
-            st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {max(kalan_hak, 0)}")
+            kalan_hak, kilit_u = hatali_giris_kaydet(u_anahtar, MAKS_HATALI_GIRIS, KILIT_SURESI_SN)
+            # IP tespit edilemiyorsa IP kilidini atla: aksi hâlde tüm
+            # kullanıcılar "bilinmiyor" kovasında birlikte kilitlenir (DoS).
+            if istemci_ip and istemci_ip != "bilinmiyor":
+                _, kilit_ip = hatali_giris_kaydet(ip_anahtar, IP_MAKS_HATALI_GIRIS, IP_KILIT_SURESI_SN)
+            else:
+                kilit_ip = False
+
+            giris_logla(log_adi, "hatalı giriş")
+            st.session_state.hatali_giris_sayisi += 1
+
+            if kilit_u or kilit_ip:
+                st.session_state.kilitlenme_bitis_zamani = time.time() + KILIT_SURESI_SN
+                st.session_state.hatali_giris_sayisi = 0
+                st.rerun()
+            else:
+                st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {max(kalan_hak, 0)}")
             
         st.markdown(
             f"<div style='text-align: center; margin: 16px 0; opacity: 0.4; font-size: 13px; color: {subtext_color};'>veya</div>",
