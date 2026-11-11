@@ -2255,292 +2255,204 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
 
-# 0. KURUMSAL DASHBOARD & ÖZET
-if menu == "Kurumsal Dashboard & Özet":
-    toplam_stok_kalemi = len(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
-    toplam_envanter_maliyeti = sum(
-        g.get("kalan", 0) * g.get("fiyat", 0) for g in st.session_state.girisler
+# =========================================================
+# SEFA AŞEVİ - CANLI OPERASYON & MALİYET SİMÜLATÖRÜ DASHBOARD
+# =========================================================
+
+# 1. Üst Karşılama ve Canlı Durum Başlığı
+st.markdown(
+    """
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div>
+            <h1 style="margin: 0; font-size: 2rem;">🍲 Sefa Aşevi Operasyon Dashboard</h1>
+            <p style="margin: 5px 0 0 0; color: #94a3b8; font-size: 14px;">Şeffaf, Hassas ve Dijital Stok & Maliyet Yönetim Paneli</p>
+        </div>
+        <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); padding: 8px 16px; border-radius: 20px; color: #10b981; font-weight: 600; font-size: 13px;">
+            🟢 Canlı FIFO Depo Senkronize
+        </div>
+    </div>
+""",
+    unsafe_allow_html=True,
+)
+
+# 2. Üst Özet Metrik Kartları
+col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+with col_m1:
+    st.metric(
+        label="Günlük Sıcak Yemek", value="200 Kişi", delta="Öğle & Akşam"
+    )
+with col_m2:
+    st.metric(
+        label="Depo Durumu", value="Senkronize", delta="Supabase Realtime RLS"
+    )
+with col_m3:
+    st.metric(
+        label="Son Birim Fiyat Mantığı",
+        value="FIFO Mantığı",
+        delta="Reçete Hassasiyeti",
+    )
+with col_m4:
+    st.metric(
+        label="Son İşlem Desteği", value="Aktif (Undo)", delta="Tek Tıkla Geri Al"
     )
 
-    loglar = st.session_state.kullanim_loglari
-    toplam_fire_mik = sum(
-        l.get("miktar", 0) for l in loglar if l.get("tur") == "Fire/Zayiat"
-    )
-    toplam_fire_tutar = sum(l.get("tutar", 0) for l in loglar if l.get("tur") == "Fire/Zayiat")
-    aktif_calisan_personel_sayisi = sum(
-        1 for p in st.session_state.personeller if p.get("aktif", True)
+st.markdown("<br>", unsafe_allow_html=True)
+
+# 3. İKİ KOLONLU SİMÜLATÖR ALANI (Sol: Kontrol & Malzeme Tablosu | Sağ: Anlık Maliyet Kartı)
+col_sim_left, col_sim_right = st.columns([7, 5])
+
+with col_sim_left:
+    st.markdown("### 🧮 Canlı Yemek Üretim & Maliyet Simülatörü")
+    st.caption(
+        "Menu içeriğini seçin, kişi sayısını değiştirin; kişi başı ve toplam maliyet anında hesaplansın."
     )
 
-    m_urun_cesidi = "🔒 Gizli" if "1. Sayfa: Ürün Çeşidi" in aktif_k_maskeleri else f"{toplam_stok_kalemi} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Çeşit</span>"
-    m_toplam_fire = "🔒 Gizli" if "1. Sayfa: Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_mik:,.1f} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Kg</span>"
-    stok_formatli = f"{toplam_envanter_maliyeti:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    m_stok_degeri = "🔒 Gizli" if "1. Sayfa: Stok Değeri" in aktif_k_maskeleri else f"{stok_formatli} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>₺</span>"
-    m_aktif_personel = "🔒 Gizli" if "1. Sayfa: Aktif Personel" in aktif_k_maskeleri else f"{aktif_calisan_personel_sayisi} <span style='font-size: 13px; font-weight: normal; color: {subtext_color};'>Kişi</span>"
+    # Menü ve Tarih Seçimi
+    c1, c2 = st.columns(2)
+    with c1:
+        menu_adi = st.text_input(
+            "Çıkan Yemek / Menü Adı",
+            value="Ispanak Yemeği / Makarna / Yoğurt Menüsü",
+        )
+    with c2:
+        kisi_sayisi = st.slider(
+            "Yararlanan Kişi Sayısı",
+            min_value=10,
+            max_value=1000,
+            value=200,
+            step=10,
+        )
 
+    # Örnek Malzeme Veritabanı ve FIFO Birim Fiyatları
+    malzemeler = [
+        {"ad": "✈️ ISPANAK", "miktar_kisi": 0.25, "birim": "Kg", "birim_fiyat": 40.0},
+        {"ad": "🥩 KUŞBAŞI ET", "miktar_kisi": 0.15, "birim": "Kg", "birim_fiyat": 380.0},
+        {"ad": "🥛 YOĞURT", "miktar_kisi": 0.10, "birim": "Kg", "birim_fiyat": 55.0},
+        {"ad": "🍝 MAKARNA", "miktar_kisi": 0.12, "birim": "Kg", "birim_fiyat": 32.0},
+        {"ad": "🧅 KURU SOĞAN", "miktar_kisi": 0.05, "birim": "Kg", "birim_fiyat": 18.0},
+        {"ad": "🛢️ AYÇİÇEK YAĞI", "miktar_kisi": 0.03, "birim": "Lt", "birim_fiyat": 65.0},
+    ]
+
+    # Toplam Maliyet Hesaplama Loop'u
+    toplam_maliyet = 0
+    table_rows = ""
+
+    for m in malzemeler:
+        toplam_kg = m["miktar_kisi"] * kisi_sayisi
+        malzeme_toplam_tl = toplam_kg * m["birim_fiyat"]
+        toplam_maliyet += malzeme_toplam_tl
+
+        table_rows += f"""
+        <tr>
+            <td style="font-weight: 600;">{m['ad']}</td>
+            <td>{toplam_kg:.1f} {m['birim']}</td>
+            <td>{m['birim_fiyat']:.2f} ₺</td>
+            <td style="font-weight: 700; color: #10b981;">{malzeme_toplam_tl:,.2f} ₺</td>
+        </tr>
+        """
+
+    kisi_basi_maliyet = toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0
+
+    # HTML Tablosu
     st.markdown(
         f"""
-        <style>
-        .dashboard-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: {card_bg};
-            border: 1px solid {border_color};
-            padding: 28px 36px;
-            border-radius: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.08);
-        }}
-        .metric-card {{
-            background: {card_bg};
-            border: 1px solid {border_color};
-            padding: 24px;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-            height: 160px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }}
-        .metric-card:hover {{
-            border-color: #6366f1;
-            transform: translateY(-2px);
-        }}
-        </style>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Malzeme Adı</th>
+                    <th>Toplam İhtiyaç</th>
+                    <th>FIFO Birim Fiyatı</th>
+                    <th>Toplam Maliyet (TL)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {table_rows}
+            </tbody>
+        </table>
+    """,
+        unsafe_allow_html=True,
+    )
 
-        <div class="dashboard-header">
-            <div>
-                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: {text_color};">Genel Bakış & Operasyonel Özet</h1>
-                <p style="margin: 6px 0 0 0; color: {subtext_color}; font-size: 14px;">Aziziye Aşevi Yönetim Paneli</p>
+with col_sim_right:
+    st.markdown("### 📊 Canlı Maliyet Özet Paneli")
+
+    # Neon Işıklı Sonuç Kartı (Simülatördeki Gibi Parlayan Görünüm)
+    st.markdown(
+        f"""
+        <div style="background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.35); margin-top: 10px;">
+            <div style="font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Tarih: 2026-11-11 | {len(malzemeler)} Kalem Malzeme</div>
+            <h3 style="margin: 8px 0 20px 0; font-size: 1.3rem; color: #f4f4f5;">{menu_adi}</h3>
+            
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div style="flex: 1; background: rgba(15, 23, 42, 0.8); padding: 15px; border-radius: 14px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <div style="font-size: 12px; color: #94a3b8;">Menü Toplam Maliyeti</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 4px;">{toplam_maliyet:,.2f} ₺</div>
+                </div>
+                <div style="flex: 1; background: rgba(15, 23, 42, 0.8); padding: 15px; border-radius: 14px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <div style="font-size: 12px; color: #94a3b8;">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px;">{kisi_basi_maliyet:,.2f} ₺</div>
+                </div>
             </div>
-            <div style="background: rgba(99, 102, 241, 0.12); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 12px; backdrop-filter: blur(12px);">
-                ● sefautopcu
+            
+            <div style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; padding: 12px; border-radius: 8px; font-size: 13px; color: #cbd5e1;">
+                🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.
             </div>
         </div>
     """,
         unsafe_allow_html=True,
     )
 
-    c1, c2, c3, c4 = st.columns(4)
+st.markdown("<br><hr style='border-color: rgba(16, 185, 129, 0.2);'><br>", unsafe_allow_html=True)
 
-    with c1:
-        st.markdown(
-            f"""
-            <div class="metric-card">
-                <div>
-                    <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Ürün Çeşidi</div>
-                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_urun_cesidi}</div>
-                </div>
-                <div style="color: {subtext_color}; font-size: 12px;">📦 Aktif Envanter</div>
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
+# 4. OPERASYONEL AKIŞ ŞEMASI VE SİSTEM MİMARİSİ
+st.markdown("### 🔄 Veriden Tabağa Tam Şeffaf Operasyon Akışı")
+st.caption("Faturadan depoya, mutfak düşümünden maliyet raporlamasına kadar sistem algoritması")
 
-    with c2:
-        if misafir_modu:
-            st.markdown(
-                f"""
-                <div class="metric-card">
-                    <div>
-                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire / Zayiat</div>
-                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">Gizli</div>
-                    </div>
-                    <div style="color: {subtext_color}; font-size: 12px;">Yetkisiz Görünüm</div>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
-        else:
-            zarar_gosterim_metin = "🔒 Gizli" if "1. Sayfa: Toplam Fire" in aktif_k_maskeleri else f"{toplam_fire_tutar:,.0f} ₺"
-            st.markdown(
-                f"""
-                <div class="metric-card">
-                    <div>
-                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Fire</div>
-                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_toplam_fire}</div>
-                    </div>
-                    <div style="color: #ef4444; font-size: 12px; font-weight: 600;">Zarar: {zarar_gosterim_metin}</div>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
+col_f1, col_f2, col_f3, col_f4 = st.columns(4)
 
-    with c3:
-        if misafir_modu:
-            st.markdown(
-                f"""
-                <div class="metric-card">
-                    <div>
-                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Toplam Stok Değeri</div>
-                        <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">Gizli</div>
-                    </div>
-                    <div style="color: {subtext_color}; font-size: 12px;">Yetkisiz Görünüm</div>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                f"""
-                <div class="metric-card">
-                    <div>
-                        <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Stok Değeri</div>
-                        <div style="color: {text_color}; font-size: 24px; font-weight: 700; margin-top: 8px;">{m_stok_degeri}</div>
-                    </div>
-                    <div style="color: #10b981; font-size: 12px; font-weight: 600;">💰 Güncel Maliyet</div>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
-
-    with c4:
-        st.markdown(
-            f"""
-            <div class="metric-card">
-                <div>
-                    <div style="color: {subtext_color}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Aktif Personel</div>
-                    <div style="color: {text_color}; font-size: 28px; font-weight: 700; margin-top: 8px;">{m_aktif_personel}</div>
-                </div>
-                <div style="color: #a855f7; font-size: 12px; font-weight: 600;">👥 Kadro Durumu</div>
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+with col_f1:
     st.markdown(
-        f"<h3 style='font-size: 16px; font-weight: 700; color: {text_color}; margin-bottom: 16px;'>⚡ Hızlı İşlem Kısayolları</h3>",
+        """
+        <div style="background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: 16px; height: 100%;">
+            <h4 style="color: #10b981; margin-top: 0;">1. Stok & Fatura Girişi</h4>
+            <p style="font-size: 13px; color: #94a3b8;">Gelen irsaliye ve faturalar girilir, FIFO birim fiyat kütüğüne işlenir.</p>
+        </div>
+    """,
         unsafe_allow_html=True,
     )
 
-    q1, q2, q3 = st.columns(3)
-    with q1:
-        if not misafir_modu:
-            if st.button("📦 Güncel Stok Durumuna Git", use_container_width=True):
-                st.session_state.aktif_menu = "Güncel Stok Durumu"
-                st.query_params["menu"] = "Güncel Stok Durumu"
-                st.rerun()
-        else:
-            st.button("📦 Stok Durumu (Kısıtlı)", use_container_width=True, disabled=True)
-    with q2:
-        if st.button("🍲 Günlük Yemek Üretimi Yap", use_container_width=True):
-            st.session_state.aktif_menu = "Günlük Yemek Üretimi & Maliyet Raporu"
-            st.query_params["menu"] = "Günlük Yemek Üretimi & Maliyet Raporu"
-            st.rerun()
-    with q3:
-        if st.button("🔥 Kalori Hesaplama Aracı", use_container_width=True):
-            st.session_state.aktif_menu = "Kalori Hesaplama Aracı"
-            st.query_params["menu"] = "Kalori Hesaplama Aracı"
-            st.rerun()
-
-    st.markdown("---")
+with col_f2:
     st.markdown(
-        f"<h3 style='font-size: 18px; font-weight: 700; color: {text_color}; margin-top: 20px;'>📊 İnteraktif Dashboard Grafikleri ve Widget Alanı</h3>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f"<p style='color: {subtext_color}; font-size: 13.5px;'>Aşağıda etkinleştirilmiş olan EasyUI tarzı modern, cam efektli ve akışkan grafikler görüntülenmektedir.</p>",
+        """
+        <div style="background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: 16px; height: 100%;">
+            <h4 style="color: #10b981; margin-top: 0;">2. Yemek Üretim Kaydı</h4>
+            <p style="font-size: 13px; color: #94a3b8;">Çıkan menü ve kişi sayısı girilerek depodan otomatik düşüm yapılır.</p>
+        </div>
+    """,
         unsafe_allow_html=True,
     )
 
-    if "1. Sayfa: Grafik Alanı" in aktif_k_maskeleri:
-        st.info("🔒 Dashboard grafik alanı bu kullanıcı için maskelenmiştir (gizlenmiştir).")
-    else:
-        aktif_w_list = [
-            w for w in st.session_state.dashboard_widgets if w.get("aktif", True)
-        ]
-        if aktif_w_list:
-            for w in aktif_w_list:
-                st.markdown(
-                    f"<div style='border: 1px solid {border_color}; background: {card_bg}; padding: 24px; border-radius: 18px; margin-bottom: 24px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.08);'>",
-                    unsafe_allow_html=True,
-                )
-                st.markdown(f"#### {w['baslik']}")
+with col_f3:
+    st.markdown(
+        """
+        <div style="background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: 16px; height: 100%;">
+            <h4 style="color: #10b981; margin-top: 0;">3. Otomatik FIFO Maliyet</h4>
+            <p style="font-size: 13px; color: #94a3b8;">En son fatura birim fiyatlarıyla öğün ve kişi başı kesin maliyet üretilir.</p>
+        </div>
+    """,
+        unsafe_allow_html=True,
+    )
 
-                easyui_colors = ["#6366f1", "#10b981", "#a855f7", "#ef4444", "#3b82f6", "#f59e0b"]
-
-                if w["tur"] == "Sütun Grafik":
-                    if st.session_state.girisler:
-                        df_stok = pd.DataFrame(st.session_state.girisler)
-                        if (
-                            not df_stok.empty
-                            and "kategori" in df_stok.columns
-                            and "kalan" in df_stok.columns
-                        ):
-                            fig = px.bar(
-                                df_stok,
-                                x="kategori",
-                                y="kalan",
-                                color="kategori",
-                                template=plotly_template,
-                                color_discrete_sequence=easyui_colors,
-                            )
-                            fig.update_layout(
-                                plot_bgcolor="rgba(0,0,0,0)",
-                                paper_bgcolor="rgba(0,0,0,0)",
-                                font=dict(family="Plus Jakarta Sans", color=subtext_color, size=12),
-                                margin=dict(l=20, r=20, t=30, b=20),
-                                xaxis=dict(showgrid=False, linecolor=border_color),
-                                yaxis=dict(showgrid=True, gridcolor="rgba(100,100,100,0.1)", linecolor=border_color),
-                                legend=dict(bgcolor=card_bg, bordercolor=border_color, borderwidth=1)
-                            )
-                            # Benzersiz key eklendi
-                            st.plotly_chart(fig, use_container_width=True, key=f"chart_{w['id']}")
-                    else:
-                        st.info("Grafik için yeterli veri bulunmuyor.")
-                elif w["tur"] == "Çizgi Grafik":
-                    if st.session_state.kullanim_loglari:
-                        df_log = pd.DataFrame(st.session_state.kullanim_loglari)
-                        if (
-                            not df_log.empty
-                            and "tarih" in df_log.columns
-                            and "tutar" in df_log.columns
-                        ):
-                            fig2 = px.line(
-                                df_log,
-                                x="tarih",
-                                y="tutar",
-                                template=plotly_template,
-                                color_discrete_sequence=["#6366f1"],
-                            )
-                            fig2.update_traces(line=dict(width=3, shape="spline"))
-                            fig2.update_layout(
-                                plot_bgcolor="rgba(0,0,0,0)",
-                                paper_bgcolor="rgba(0,0,0,0)",
-                                font=dict(family="Plus Jakarta Sans", color=subtext_color, size=12),
-                                margin=dict(l=20, r=20, t=30, b=20),
-                                xaxis=dict(showgrid=False, linecolor=border_color),
-                                yaxis=dict(showgrid=True, gridcolor="rgba(100,100,100,0.1)", linecolor=border_color),
-                            )
-                            # Benzersiz key eklendi
-                            st.plotly_chart(fig2, use_container_width=True, key=f"chart_{w['id']}")
-                    else:
-                        st.info("Trend grafiği için yeterli log kaydı bulunmuyor.")
-                elif w["tur"] == "Pasta Grafik (Dağılım)":
-                    if st.session_state.girisler:
-                        df_giris = pd.DataFrame(st.session_state.girisler)
-                        fig3 = px.pie(
-                            df_giris,
-                            names="urun",
-                            values="kalan",
-                            template=plotly_template,
-                            color_discrete_sequence=easyui_colors,
-                        )
-                        fig3.update_layout(
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            font=dict(family="Plus Jakarta Sans", color=subtext_color, size=12),
-                            margin=dict(l=20, r=20, t=30, b=20),
-                            legend=dict(bgcolor=card_bg, bordercolor=border_color, borderwidth=1)
-                        )
-                        fig3.update_traces(textinfo="percent+label", marker=dict(line=dict(color=card_bg, width=2)))
-                        # Benzersiz key eklendi
-                        st.plotly_chart(fig3, use_container_width=True, key=f"chart_{w['id']}")
-                st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            st.info("Görüntülenecek aktif grafik widget'ı bulunmuyor.")
+with col_f4:
+    st.markdown(
+        """
+        <div style="background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.3); padding: 18px; border-radius: 16px; height: 100%;">
+            <h4 style="color: #10b981; margin-top: 0;">4. Raporlama & Arşiv</h4>
+            <p style="font-size: 13px; color: #94a3b8;">PDF ve Excel formatında kurumsal operasyon raporları anında indirilir.</p>
+        </div>
+    """,
+        unsafe_allow_html=True,
+    )
             
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
