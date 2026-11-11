@@ -1891,7 +1891,7 @@ kullanici_adi_goruntule = (
 )
 kullanici_adi_goruntule = html_escape(kullanici_adi_goruntule)
 
-st.sidebar.markdown(
+st.sidebar.markdown('<p style="font-size: 11px; font-weight: 700; margin-bottom: 6px; padding-left: 4px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px;">GÖRÜNÜM MODU</p>', unsafe_allow_html=True)
         """
         <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid rgba(150,150,150,0.2); margin-bottom: 12px;">
             <div style="background: rgba(99, 102, 241, 0.1); color: #6366f1; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
