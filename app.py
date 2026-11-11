@@ -2306,9 +2306,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             toplam_fire_tl += f_tut
 
     aktif_personel_sayisi = sum(1 for p in personel_verileri if p.get("aktif", True)) if personel_verileri else sum(1 for p in st.session_state.get("personeller", []) if p.get("aktif", True))
-
-    # Gecmis uretim verilerini esnek anahtarlarla sozluk formatina donusturme
-    menu_secenekleri = {{}}
+    
     
     # Gecmis uretim verilerini esnek anahtarlarla sozluk formatina donusturme
     menu_secenekleri = {}
