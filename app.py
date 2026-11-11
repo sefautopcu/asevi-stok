@@ -800,6 +800,17 @@ def giris_denemesini_sifirla(anahtar=None):
 # SEFA AŞEVİ - PURE DARK LIQUID GLASS TEMA
 # =========================================================
 
+# Kod içerisindeki HTML metinlerinin (1864. satır gibi) NameError vermemesi için gerekli renk değişkenleri:
+border_color = "rgba(16, 185, 129, 0.35)"
+bg_color = "#040711"
+card_bg = "rgba(10, 15, 29, 0.75)"
+sidebar_bg = "rgba(6, 10, 20, 0.85)"
+text_color = "#f4f4f5"
+subtext_color = "#94a3b8"
+input_bg = "rgba(15, 23, 42, 0.85)"
+popover_bg = "#0b1329"
+
+# STİL ENJEKSİYONU
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -819,7 +830,7 @@ st.markdown("""
         background: rgba(6, 10, 20, 0.85) !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
-        border-right: 1px solid rgba(16, 185, 129, 0.3) !important;
+        border-right: 1px solid rgba(16, 185, 129, 0.35) !important;
     }
 
     /* Sol Menü Butonları */
