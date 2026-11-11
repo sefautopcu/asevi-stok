@@ -805,7 +805,7 @@ if "tema" not in st.session_state:
     else:
         st.session_state.tema = "Dark"
 
-# Sunum Görseline (İkinci Görsel) %100 Uyumlu Dinamik Paletler
+# Sunum Görseline %100 Uyumlu Dinamik Paletler
 if st.session_state.tema == "Dark":
     bg_color = "#040711"
     card_bg = "rgba(10, 15, 29, 0.75)"
@@ -841,7 +841,6 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-    /* Arka Plan ve Ana Gövde */
     .main, .stApp {{ 
         background-color: {bg_color} !important; 
         background-image: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
@@ -850,7 +849,6 @@ st.markdown(
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
     }}
     
-    /* Sol Menü (Sidebar) Cam Efekti */
     .stSidebar, section[data-testid="stSidebar"] {{ 
         background: {sidebar_bg} !important; 
         backdrop-filter: blur(20px) !important;
@@ -891,7 +889,6 @@ st.markdown(
         transform: translateX(4px);
     }}
 
-    /* Başlıklar ve Metinler */
     h1, h2, h3, h4, h5, h6 {{ 
         color: {text_color} !important; 
         font-weight: 700 !important;
@@ -903,7 +900,6 @@ st.markdown(
     button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div {{ display: none !important; }}
     section[data-testid="stSidebar"] [data-testid="baseButton-header"] {{ color: transparent !important; }}
 
-    /* Sunumda Görseldeki Gibi Parlayan Cam Kartlar (Dashboard & Metrics) */
     div.stMetric, 
     div[data-testid="stExpander"], 
     div.stForm,
@@ -922,7 +918,6 @@ st.markdown(
         transform: translateY(-2px);
     }}
 
-    /* Butonlar (Yerleştirilen Sunum İkonları Stili) */
     div.stButton > button, button[data-testid="baseButton-secondary"], div.stFormSubmitButton > button {{
         background: {card_bg} !important;
         backdrop-filter: blur(12px) !important;
@@ -941,7 +936,6 @@ st.markdown(
         transform: translateY(-2px);
     }}
 
-    /* Canlı Yeşil/Turkuaz Vurgulu Birincil Butonlar */
     button[data-testid="baseButton-primary"] {{
         background: {btn_gradient} !important;
         color: #ffffff !important;
@@ -957,7 +951,6 @@ st.markdown(
         filter: brightness(1.15);
     }}
 
-    /* Input ve Select Kutuları (Cam Görünümlü) */
     input, 
     div[data-baseweb="select"] > div,
     div[data-baseweb="base-input"] {{
@@ -972,7 +965,6 @@ st.markdown(
         opacity: 0.7;
     }}
 
-    /* Popover ve Açılır Menüler */
     div[data-baseweb="menu"], 
     ul[role="listbox"], 
     div[data-baseweb="popover"], 
@@ -991,7 +983,6 @@ st.markdown(
         color: {text_color} !important;
     }}
 
-    /* Tablo Yapısı (Cam Tablo) */
     .custom-table {{
         width: 100%;
         border-collapse: separate;
@@ -1011,43 +1002,6 @@ st.markdown(
         padding: 14px 18px;
         font-size: 13px;
         font-weight: 700;
-        border-bottom: 1px solid {border_color};
-    }}
-    .custom-table td {{
-        padding: 14px 18px;
-        color: {subtext_color};
-        font-size: 13px;
-        border-bottom: 1px solid {border_color};
-    }}
-    .custom-table tr:hover {{
-        background-color: {table_hover};
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-    /* Özel HTML Tablosu (Custom Table) */
-    .custom-table {{
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin-top: 15px;
-        margin-bottom: 15px;
-        background: {card_bg};
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid {border_color};
-    }}
-    .custom-table th {{
-        background: {sidebar_bg};
-        color: {text_color};
-        padding: 14px 18px;
-        text-align: left;
-        font-size: 13px;
-        font-weight: 600;
         border-bottom: 1px solid {border_color};
     }}
     .custom-table td {{
