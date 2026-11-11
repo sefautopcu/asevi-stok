@@ -2263,7 +2263,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     # 2. SUPABASE'DEN CANLI VERİLERİ ÇEKME
     try:
-        uretim_res = supabase.table("gunluk_uretim").select("*").order("tarih", desc=True).execute()
+        uretim_res = supabase.table("gunluk_uretim").select("*").execute()
         gecmis_uretimler = uretim_res.data if uretim_res.data else []
         
         stok_res = supabase.table("stok_kutugu").select("*").execute()
