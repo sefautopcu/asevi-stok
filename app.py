@@ -805,9 +805,10 @@ if "tema" not in st.session_state:
     else:
         st.session_state.tema = "Dark"
 
-# Sunum Dosyasındaki Palet & Neon Işık Tanımları
+# Sunum Dosyasındaki Palet & Neon Işık Tanımları (Dark & Light Glass)
 if st.session_state.tema == "Dark":
     bg_color = "#040711"
+    bg_gradient = "radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 40%)"
     card_bg = "rgba(10, 15, 29, 0.75)"
     sidebar_bg = "rgba(6, 10, 20, 0.85)"
     text_color = "#f4f4f5"
@@ -822,16 +823,17 @@ if st.session_state.tema == "Dark":
     btn_shadow = "0 4px 20px rgba(16, 185, 129, 0.4)"
 else:
     bg_color = "#f0f4f8"
-    card_bg = "rgba(255, 255, 255, 0.8)"
-    sidebar_bg = "rgba(255, 255, 255, 0.9)"
+    bg_gradient = "radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.12) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 40%)"
+    card_bg = "rgba(255, 255, 255, 0.75)"
+    sidebar_bg = "rgba(255, 255, 255, 0.85)"
     text_color = "#0f172a"
-    subtext_color = "#475569"
+    subtext_color = "#334155"
     border_color = "rgba(14, 165, 233, 0.3)"
     input_bg = "rgba(255, 255, 255, 0.95)"
-    table_hover = "rgba(14, 165, 233, 0.08)"
+    table_hover = "rgba(14, 165, 233, 0.12)"
     popover_bg = "#ffffff"
     plotly_template = "plotly_white"
-    accent_glow = "0 0 20px -5px rgba(14, 165, 233, 0.25)"
+    accent_glow = "0 8px 30px rgba(14, 165, 233, 0.18)"
     btn_gradient = "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
     btn_shadow = "0 4px 15px rgba(14, 165, 233, 0.35)"
 
@@ -844,8 +846,7 @@ st.markdown(
     /* 1. Arka Plan, Yazı Tipi ve Ekran Yumuşak Geçişi */
     html, body, .stApp {{
         background-color: {bg_color} !important;
-        background-image: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
-                          radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 40%) !important;
+        background-image: {bg_gradient} !important;
         color: {text_color} !important;
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
         transition: background-color 0.4s ease, color 0.4s ease !important;
@@ -869,7 +870,8 @@ st.markdown(
         font-weight: 600 !important;
         color: {text_color} !important;
     }}
-    p, span, label, div {{
+    p, span, label, div, .stMarkdown, .stText {{
+        color: {text_color} !important;
         font-size: 14px !important;
     }}
 
@@ -880,6 +882,13 @@ st.markdown(
         -webkit-backdrop-filter: blur(20px) !important;
         border-right: 1px solid {border_color} !important;
         transition: all 0.3s ease !important;
+    }}
+
+    section[data-testid="stSidebar"] p, 
+    section[data-testid="stSidebar"] span, 
+    section[data-testid="stSidebar"] label, 
+    section[data-testid="stSidebar"] div {{
+        color: {subtext_color} !important;
     }}
 
     section[data-testid="stSidebar"] div.stButton > button {{
@@ -893,7 +902,7 @@ st.markdown(
     }}
 
     section[data-testid="stSidebar"] div.stButton > button:hover {{
-        background: rgba(16, 185, 129, 0.12) !important;
+        background: rgba(14, 165, 233, 0.12) !important;
         color: {text_color} !important;
         border: 1px solid {border_color} !important;
         box-shadow: {accent_glow} !important;
@@ -913,8 +922,12 @@ st.markdown(
         transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
     }}
 
+    div[data-testid="stMetric"] *, div[data-testid="stForm"] * {{
+        color: {text_color} !important;
+    }}
+
     div[data-testid="stMetric"]:hover, div[data-testid="stForm"]:hover {{
-        border-color: rgba(16, 185, 129, 0.5) !important;
+        border-color: rgba(14, 165, 233, 0.5) !important;
         transform: translateY(-3px) !important;
     }}
 
@@ -926,6 +939,11 @@ st.markdown(
         border: 1px solid {border_color} !important;
         backdrop-filter: blur(10px) !important;
     }}
+    
+    input::placeholder {{
+        color: {subtext_color} !important;
+        opacity: 0.7;
+    }}
 
     /* 6. Birincil (Primary) ve İkincil Butonlar */
     button[data-testid="baseButton-primary"] {{
@@ -936,6 +954,9 @@ st.markdown(
         font-weight: 700 !important;
         box-shadow: {btn_shadow} !important;
         transition: all 0.25s ease !important;
+    }}
+    button[data-testid="baseButton-primary"] * {{
+        color: #ffffff !important;
     }}
     button[data-testid="baseButton-primary"]:hover {{
         transform: translateY(-2px) !important;
@@ -950,12 +971,30 @@ st.markdown(
         transition: all 0.25s ease !important;
     }}
     button[data-testid="baseButton-secondary"]:hover {{
-        border-color: #10b981 !important;
+        border-color: #0ea5e9 !important;
         box-shadow: {accent_glow} !important;
         transform: translateY(-2px) !important;
     }}
 
-    /* 7. Özel HTML Tablosu (Custom Table) */
+    /* 7. Açılır Menü ve Popover Elemanları */
+    div[data-baseweb="menu"], 
+    ul[role="listbox"], 
+    div[data-baseweb="popover"], 
+    div[data-baseweb="calendar"],
+    div[data-baseweb="select"] ul {{
+        background-color: {popover_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15) !important;
+        border-radius: 14px !important;
+        backdrop-filter: blur(20px) !important;
+    }}
+
+    li[role="option"] * {{
+        color: {text_color} !important;
+    }}
+
+    /* 8. Özel HTML Tablosu (Custom Table) */
     .custom-table {{
         width: 100%;
         border-collapse: separate;
@@ -970,7 +1009,7 @@ st.markdown(
     }}
     .custom-table th {{
         background: {sidebar_bg};
-        color: {text_color};
+        color: {text_color} !important;
         padding: 14px 18px;
         font-size: 13px !important;
         font-weight: 700;
@@ -978,7 +1017,7 @@ st.markdown(
     }}
     .custom-table td {{
         padding: 14px 18px;
-        color: {subtext_color};
+        color: {subtext_color} !important;
         font-size: 13px !important;
         border-bottom: 1px solid {border_color};
     }}
