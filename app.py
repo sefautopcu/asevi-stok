@@ -2469,9 +2469,9 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     <body>
         <div class="glow-panel">
             <div class="panel-header">📊 Canlı Maliyet Özet Paneli</div>
-            <div class="panel-meta">Tarih: {tarih_str} | {kalem_sayisi} Kalem Malzeme | Simülasyon: {kisi_sayisi} Kişi</div>
+            <div class="panel-meta">Tarih: {html_escape(str(tarih_str))} | {kalem_sayisi} Kalem Malzeme | Simülasyon: {kisi_sayisi} Kişi</div>
             <div class="inner-box">
-                <div class="menu-title">{menu_adi}</div>
+                <div class="menu-title">{html_escape(str(menu_adi))}</div>
                 <div class="cost-row">
                     <div class="cost-card"><div class="cost-title">Menü Toplam Maliyeti</div><div class="cost-num-green">{toplam_tl:,.2f} ₺</div></div>
                     <div class="cost-card"><div class="cost-title">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div><div class="cost-num-blue">{kisi_basi_tl:,.2f} ₺</div></div>
