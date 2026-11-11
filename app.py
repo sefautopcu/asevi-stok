@@ -1826,7 +1826,7 @@ if not st.session_state.oturum_aktif:
                                 if sifre_yukseltilmeli_mi(kayitli_hash):
                                 # Eski SHA-256 kayıt: giriş anında yeni biçime yükselt
                                     if kayitli_hash in ESKI_VARSAYILAN_HASHLER:
-                                    kullanici_db[k_adi_inp]["sifre_degistirilmeli"] = True
+                                        kullanici_db[k_adi_inp]["sifre_degistirilmeli"] = True
                                 kullanici_db[k_adi_inp]["sifre"] = sifre_hashle_yeni(sifre_inp)
                                 kullanıcıları_kaydet(kullanici_db)
                             st.session_state.hatali_giris_sayisi = 0
