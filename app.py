@@ -383,9 +383,9 @@ def _supabase_ham_oku(kayit_id):
     if data and data[0].get("veri") is not None:
         return "ok", data[0]["veri"]
     return "yok", None
-
-        @st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def _supabase_ham_oku_cached(kayit_id):
+
     """Veritabanı okumalarını 60 saniye boyunca bellek seviyesinde hızlı tutar.
     Güvenlik açısından kritik anahtarlar bu cache'i KULLANMAZ; bkz. ONBELLEKSIZ_ANAHTARLAR."""
     return _supabase_ham_oku(kayit_id)
