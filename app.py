@@ -2325,71 +2325,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 "kalem_sayisi": 0
             }
         }
-
-    # --- HESAPLAMALAR ---
-    benzersiz_urunler = set([item.get("ürün_adı") or item.get("urun_adi") or item.get("malzeme_adi") for item in stok_verileri if item])
-    urun_cesidi_sayisi = len(benzersiz_urunler) if benzersiz_urunler else len(set(g.get("urun", "").strip().upper() for g in st.session_state.get("girisler", []) if g.get("urun")))
-
-    toplam_stok_degeri = 0.0
-    for item in stok_verileri:
-        kalan = float(item.get("kalan_miktar", item.get("alınan_miktar", 0.0) or 0.0))
-        fiyat = float(item.get("birim_fiyat", 0.0))
-        toplam_stok_degeri += kalan * fiyat
-    if toplam_stok_degeri == 0.0:
-        for g in st.session_state.get("girisler", []):
-            toplam_stok_degeri += float(g.get("kalan", 0)) * float(g.get("fiyat", 0))
-
-    toplam_fire_kg = 0.0
-    toplam_fire_tl = 0.0
-    for f in fire_verileri:
-        f_miktar = float(f.get("miktar", f.get("fire_miktari", 0.0) or 0.0))
-        f_fiyat = float(f.get("birim_fiyat", 40.0))
-        toplam_fire_kg += f_miktar
-        toplam_fire_tl += f_miktar * f_fiyat
-    
-    for log in st.session_state.get("kullanim_loglari", []):
-        if log.get("tur") == "Fire/Zayiat":
-            f_mik = float(log.get("miktar", 0))
-            f_tut = float(log.get("tutar", 0))
-            toplam_fire_kg += f_mik
-            toplam_fire_tl += f_tut
-
-    aktif_personel_sayisi = sum(1 for p in personel_verileri if p.get("aktif", True)) if personel_verileri else sum(1 for p in st.session_state.get("personeller", []) if p.get("aktif", True))
-    
-    
-   # Gecmis uretim verilerini esnek anahtarlarla sozluk formatina donusturme
-    menu_secenekleri = dict()
-    if gecmis_uretimler:
-        for item in gecmis_uretimler:
-            if not item:
-                continue
-            # Farkli sutun adi olasiliklarini yakala
-            tarih = item.get("tarih") or item.get("tarihi") or item.get("gun") or "-"
-            menu_adi = item.get("menu_adi") or item.get("menu") or item.get("yemek_adi") or "Belirtilmemiş Menü"
-            
-            # Maliyet ve kalem sayisi alanlari
-            maliyet = float(item.get("kisi_basi_orijinal_maliyet") or item.get("kisi_basi_maliyet") or item.get("maliyet") or 0.0)
-            kalem = int(item.get("kalem_sayisi") or item.get("urun_sayisi") or 5)
-            
-            # Item icine duzenlenmis degerleri ekle
-            item["tarih"] = tarih
-            item["menu_adi"] = menu_adi
-            item["kisi_basi_orijinal_maliyet"] = maliyet
-            item["kalem_sayisi"] = kalem
-            
-            key = f"{tarih} | {menu_adi}"
-            menu_secenekleri[key] = item
-
-    if not menu_secenekleri:
-        menu_secenekleri = {
-            "Henüz Üretim Kaydı Girilmedi": {
-                "tarih": "-", 
-                "menu_adi": "Kayıt Yok", 
-                "kisi_basi_orijinal_maliyet": 0.0, 
-                "kalem_sayisi": 0
-            }
-        }
-    
+  
     # 3. HTML & NEON CAM KART RENDER (8'Lİ METRİK KARTI EN ÜSTTE)
     dash_html = f"""
     <!DOCTYPE html>
