@@ -2261,11 +2261,24 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     # 1. ÜST KONTROL (Küçültülmüş Başlık)
     st.markdown("<h4 style='margin:0; padding-bottom:10px;'>🍲 AZİZİYE - AŞEVİ TAKİP EKRANI</h4>", unsafe_allow_html=True)
 
-    # 2. SUPABASE'DEN CANLI VERİLERİ ÇEKME
+    # 2. SUPABASE VEYA SESSION_STATE'DEN CANLI VERİLERİ ÇEKME
+    gecmis_uretimler = []
     try:
+        # Önce Supabase'den çekmeyi dene
         uretim_res = supabase.table("gunluk_uretim").select("*").execute()
-        gecmis_uretimler = uretim_res.data if uretim_res.data else []
-        
+        if uretim_res.data:
+            gecmis_uretimler = uretim_res.data
+    except Exception:
+        pass
+
+    # Eğer Supabase boş döndüyse, uygulama içi hafızadaki (session_state) kayıtları kontrol et
+    if not gecmis_uretimler:
+        for key_name in ["uretim_listesi", "gunluk_uretim", "kayitli_menu_listesi", "girisler"]:
+            if st.session_state.get(key_name):
+                gecmis_uretimler = st.session_state.get(key_name)
+                break
+
+    try:
         stok_res = supabase.table("stok_kutugu").select("*").execute()
         stok_verileri = stok_res.data if stok_res.data else []
 
@@ -2275,7 +2288,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         personel_res = supabase.table("personel").select("*").execute()
         personel_verileri = personel_res.data if personel_res.data else []
     except Exception:
-        gecmis_uretimler, stok_verileri, fire_verileri, personel_verileri = [], [], [], []
+        stok_verileri, fire_verileri, personel_verileri = [], [], []
 
     # --- HESAPLAMALAR ---
     benzersiz_urunler = set([item.get("ürün_adı") or item.get("urun_adi") or item.get("malzeme_adi") for item in stok_verileri if item])
