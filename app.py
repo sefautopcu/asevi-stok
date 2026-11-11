@@ -805,7 +805,7 @@ if "tema" not in st.session_state:
     else:
         st.session_state.tema = "Dark"
 
-# Sunum Görseline %100 Uyumlu Dinamik Paletler
+# Sunum Dosyasındaki Palet & Neon Işık Tanımları
 if st.session_state.tema == "Dark":
     bg_color = "#040711"
     card_bg = "rgba(10, 15, 29, 0.75)"
@@ -813,8 +813,8 @@ if st.session_state.tema == "Dark":
     text_color = "#f4f4f5"
     subtext_color = "#94a3b8"
     border_color = "rgba(16, 185, 129, 0.25)"
-    input_bg = "rgba(15, 23, 42, 0.8)"
-    table_hover = "rgba(16, 185, 129, 0.1)"
+    input_bg = "rgba(15, 23, 42, 0.85)"
+    table_hover = "rgba(16, 185, 129, 0.12)"
     popover_bg = "#0b1329"
     plotly_template = "plotly_dark"
     accent_glow = "0 0 25px -5px rgba(16, 185, 129, 0.35)"
@@ -822,8 +822,8 @@ if st.session_state.tema == "Dark":
     btn_shadow = "0 4px 20px rgba(16, 185, 129, 0.4)"
 else:
     bg_color = "#f0f4f8"
-    card_bg = "rgba(255, 255, 255, 0.75)"
-    sidebar_bg = "rgba(255, 255, 255, 0.85)"
+    card_bg = "rgba(255, 255, 255, 0.8)"
+    sidebar_bg = "rgba(255, 255, 255, 0.9)"
     text_color = "#0f172a"
     subtext_color = "#475569"
     border_color = "rgba(14, 165, 233, 0.3)"
@@ -835,154 +835,127 @@ else:
     btn_gradient = "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
     btn_shadow = "0 4px 15px rgba(14, 165, 233, 0.35)"
 
-# SUNUM TEMASI (GLOWING LIQUID GLASS) CSS ENJEKSİYONU
+# Sunum Tipografisi & Ekran Geçiş Stilleri Enjeksiyonu
 st.markdown(
     f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-    .main, .stApp {{ 
-        background-color: {bg_color} !important; 
+    /* 1. Arka Plan, Yazı Tipi ve Ekran Yumuşak Geçişi */
+    html, body, .stApp {{
+        background-color: {bg_color} !important;
         background-image: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
                           radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 40%) !important;
         color: {text_color} !important;
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+        transition: background-color 0.4s ease, color 0.4s ease !important;
     }}
-    
-    .stSidebar, section[data-testid="stSidebar"] {{ 
-        background: {sidebar_bg} !important; 
+
+    /* 2. Başlık ve Tipografi Puntosu */
+    h1 {{
+        font-size: 2.2rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.04em !important;
+        color: {text_color} !important;
+    }}
+    h2 {{
+        font-size: 1.6rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.03em !important;
+        color: {text_color} !important;
+    }}
+    h3 {{
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        color: {text_color} !important;
+    }}
+    p, span, label, div {{
+        font-size: 14px !important;
+    }}
+
+    /* 3. Sol Menü (Sidebar) Cam & Yumuşak Geçiş */
+    section[data-testid="stSidebar"] {{
+        background: {sidebar_bg} !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
-        padding-top: 10px; 
         border-right: 1px solid {border_color} !important;
+        transition: all 0.3s ease !important;
     }}
-    .stSidebar p, .stSidebar span, .stSidebar label, .stSidebar div {{ 
-        color: {subtext_color} !important; 
-        font-size: 13.5px; 
-    }}
-    
-    section[data-testid="stSidebar"] div[data-testid="stExpander"] {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        margin-bottom: -50px;
-    }}
-    
+
     section[data-testid="stSidebar"] div.stButton > button {{
         background: transparent !important;
         color: {subtext_color} !important;
         border: 1px solid transparent !important;
         border-radius: 12px !important;
-        text-align: left !important;
-        box-shadow: none !important;
         font-weight: 500 !important;
-        transition: all 0.3s ease;
-        padding: 9px 14px !important;
+        padding: 10px 16px !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }}
-    
+
     section[data-testid="stSidebar"] div.stButton > button:hover {{
         background: rgba(16, 185, 129, 0.12) !important;
-        backdrop-filter: blur(16px) !important;
         color: {text_color} !important;
         border: 1px solid {border_color} !important;
         box-shadow: {accent_glow} !important;
-        transform: translateX(4px);
+        transform: translateX(5px) !important;
     }}
 
-    h1, h2, h3, h4, h5, h6 {{ 
-        color: {text_color} !important; 
-        font-weight: 700 !important;
-        letter-spacing: -0.03em !important;
-    }}
-    p, span, label, div, .stMarkdown {{ 
-        color: {text_color} !important; 
-    }}
-    button[kind="header"] svg, [data-testid="collapsedControl"] span, [data-testid="collapsedControl"] div {{ display: none !important; }}
-    section[data-testid="stSidebar"] [data-testid="baseButton-header"] {{ color: transparent !important; }}
-
-    div.stMetric, 
-    div[data-testid="stExpander"], 
-    div.stForm,
-    div[data-testid="stColumn"] > div > div > div[data-testid="stVerticalBlock"] > div {{
+    /* 4. Sunumdaki Parlayan Neon Cam Kartlar */
+    div[data-testid="stMetric"], 
+    div[data-testid="stForm"], 
+    div[data-testid="stExpander"] {{
         background: {card_bg} !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
         border: 1px solid {border_color} !important;
         border-radius: 18px !important;
         box-shadow: {accent_glow} !important;
-        transition: all 0.3s ease !important;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
     }}
-    
-    div.stMetric:hover, div[data-testid="stForm"]:hover {{
+
+    div[data-testid="stMetric"]:hover, div[data-testid="stForm"]:hover {{
         border-color: rgba(16, 185, 129, 0.5) !important;
-        transform: translateY(-2px);
+        transform: translateY(-3px) !important;
     }}
 
-    div.stButton > button, button[data-testid="baseButton-secondary"], div.stFormSubmitButton > button {{
-        background: {card_bg} !important;
-        backdrop-filter: blur(12px) !important;
-        color: {text_color} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        font-size: 13.5px !important;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-        transition: all 0.25s ease !important;
-    }}
-    
-    div.stButton > button:hover, button[data-testid="baseButton-secondary"]:hover, div.stFormSubmitButton > button:hover {{
-        border-color: #10b981 !important;
-        box-shadow: {accent_glow} !important;
-        transform: translateY(-2px);
-    }}
-
-    button[data-testid="baseButton-primary"] {{
-        background: {btn_gradient} !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        font-size: 13.5px !important;
-        box-shadow: {btn_shadow} !important;
-        transition: all 0.25s ease !important;
-    }}
-    button[data-testid="baseButton-primary"]:hover {{
-        transform: translateY(-2px) !important;
-        filter: brightness(1.15);
-    }}
-
-    input, 
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="base-input"] {{
+    /* 5. Girdi Kutuları ve Seçim Alanları */
+    input, div[data-baseweb="select"] > div, div[data-baseweb="base-input"] {{
         background-color: {input_bg} !important;
         color: {text_color} !important;
         border-radius: 12px !important;
         border: 1px solid {border_color} !important;
         backdrop-filter: blur(10px) !important;
     }}
-    input::placeholder {{
-        color: {subtext_color} !important;
-        opacity: 0.7;
+
+    /* 6. Birincil (Primary) ve İkincil Butonlar */
+    button[data-testid="baseButton-primary"] {{
+        background: {btn_gradient} !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        box-shadow: {btn_shadow} !important;
+        transition: all 0.25s ease !important;
+    }}
+    button[data-testid="baseButton-primary"]:hover {{
+        transform: translateY(-2px) !important;
+        filter: brightness(1.15) !important;
     }}
 
-    div[data-baseweb="menu"], 
-    ul[role="listbox"], 
-    div[data-baseweb="popover"], 
-    div[data-baseweb="calendar"],
-    div[data-baseweb="select"] ul {{
-        background-color: {popover_bg} !important;
+    button[data-testid="baseButton-secondary"] {{
+        background: {card_bg} !important;
         color: {text_color} !important;
         border: 1px solid {border_color} !important;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
-        border-radius: 14px !important;
-        backdrop-filter: blur(20px) !important;
+        border-radius: 12px !important;
+        transition: all 0.25s ease !important;
+    }}
+    button[data-testid="baseButton-secondary"]:hover {{
+        border-color: #10b981 !important;
+        box-shadow: {accent_glow} !important;
+        transform: translateY(-2px) !important;
     }}
 
-    li[role="option"]:hover {{
-        background-color: rgba(16, 185, 129, 0.15) !important;
-        color: {text_color} !important;
-    }}
-
+    /* 7. Özel HTML Tablosu (Custom Table) */
     .custom-table {{
         width: 100%;
         border-collapse: separate;
@@ -990,7 +963,6 @@ st.markdown(
         margin: 15px 0;
         background: {card_bg};
         backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
         border-radius: 16px;
         overflow: hidden;
         border: 1px solid {border_color};
@@ -1000,14 +972,14 @@ st.markdown(
         background: {sidebar_bg};
         color: {text_color};
         padding: 14px 18px;
-        font-size: 13px;
+        font-size: 13px !important;
         font-weight: 700;
         border-bottom: 1px solid {border_color};
     }}
     .custom-table td {{
         padding: 14px 18px;
         color: {subtext_color};
-        font-size: 13px;
+        font-size: 13px !important;
         border-bottom: 1px solid {border_color};
     }}
     .custom-table tr:hover {{
