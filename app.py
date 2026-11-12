@@ -4345,7 +4345,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 with col_form_ekle:
                     with st.form("ihtiyac_sahibi_formu"):
                         st.markdown("**➕ Yeni İhtiyaç Sahibi / Hane Ekle**")
-                        yeni_tc_hane = st.text_input("T.C. Kimlik No / Hane No").strip()
+                        yeni_hane = st.text_input("Hane No").strip()
                         yeni_ad = (
                             st.text_input("Adı Soyadı / Hane Unvanı").strip().upper()
                         )
