@@ -2256,7 +2256,33 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
     
-if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
+    if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
+    import base64
+    import os
+    
+    # --- ARKA PLAN RESMİ YÖNETİMİ (ADMIN DEĞİŞTİREBİLİR) ---
+    varsayilan_arka_plan = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
+    
+    # Eğer admin arka planı değiştirdiyse session_state veya dosyadan oku
+    if "dashboard_arka_plan" not in st.session_state:
+        st.session_state.dashboard_arka_plan = varsayilan_arka_plan
+
+    # ADMIN ARKA PLAN DEĞİŞTİRME ALANI
+    if yonetici_modu:
+        with st.expander("🎨 Dashboard Arka Plan Resmini Değiştir (Admin)"):
+            yeni_resim = st.file_uploader("Yeni arka plan resmi yükleyin (JPG, PNG)", type=["jpg", "jpeg", "png"], key="dashboard_bg_uploader")
+            if yeni_resim is not None:
+                bytes_data = yeni_resim.getvalue()
+                b64 = base64.b64encode(bytes_data).decode()
+                mime = yeni_resim.type
+                st.session_state.dashboard_arka_plan = f"data:{mime};base64,{b64}"
+                st.success("✅ Arka plan resmi güncellendi! Değişikliğin kalıcı olması için sayfayı yenilemeyin veya Supabase'e kaydedin.")
+            if st.button("🔄 Varsayılan Resme Dön", key="dashboard_bg_reset"):
+                st.session_state.dashboard_arka_plan = varsayilan_arka_plan
+                st.rerun()
+    
+    arka_plan_url = st.session_state.dashboard_arka_plan
+
     # --- VERİ HAZIRLIĞI ---
     gecmis_uretimler = st.session_state.get("yemek_uretim_arsivi", [])
     urun_cesidi_sayisi = len(set(g.get("urun", "").strip().upper() for g in st.session_state.get("girisler", []) if g.get("urun")))
@@ -2282,9 +2308,42 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     urun_cesidi_gosterim = "🔒 Gizli" if urun_maskeli else f"{urun_cesidi_sayisi} Çeşit"
     personel_gosterim = "🔒 Gizli" if personel_maskeli else f"{aktif_personel_sayisi} Kişi"
 
-    # --- 1. BÖLÜM: EN ÜST (BAŞLIK + 8'Lİ METRİK KARTLARI + LÜKS TASARIM) ---
-    arka_plan_url = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
-    
+    # --- 1. BÖLÜM: HERO HEADER (Sayfa Başlığı ve Arka Plan Görseli) ---
+    hero_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
+        body {{ background: transparent; margin: 0; padding: 0; }}
+        .hero-banner {{ 
+            background-image: linear-gradient(rgba(4, 7, 17, 0.6), rgba(4, 7, 17, 0.95)), url('{arka_plan_url}'); 
+            background-size: cover; 
+            background-position: center; 
+            border-radius: 24px; 
+            padding: 40px 35px; 
+            margin-bottom: 25px; 
+            border: 1px solid rgba(16, 185, 129, 0.4); 
+            box-shadow: 0 15px 40px -10px rgba(0,0,0,0.5); 
+        }}
+        .hero-badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 15px; }}
+        .hero-title {{ font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 8px; letter-spacing: -0.03em; }}
+        .hero-subtitle {{ color: #cbd5e1; font-size: 14px; }}
+    </style>
+    </head>
+    <body>
+        <div class="hero-banner">
+            <div class="hero-badge">📍 AZİZİYE AŞEVİ · KURUMSAL PANEL</div>
+            <div class="hero-title">Genel Bakış & Operasyonel Özet</div>
+            <div class="hero-subtitle">Canlı Stok ve Maliyet Takip Sistemi</div>
+        </div>
+    </body>
+    </html>
+    """
+    components.html(hero_html, height=230, scrolling=False)
+
+    # --- 2. BÖLÜM: 8'Lİ METRİK KARTLARI VE LÜKS GRAFİKLER (İlerleme Çubukları) ---
     dash_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2293,38 +2352,27 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     <style>
         * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
         body {{ background: transparent; color: #f4f4f5; padding: 0px; }}
-        
-        .hero-header {{ background-image: linear-gradient(rgba(4, 7, 17, 0.6), rgba(4, 7, 17, 0.95)), url('{arka_plan_url}'); background-size: cover; background-position: center; border-radius: 24px; padding: 35px 30px; margin-bottom: 25px; border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.5); }}
-        .hero-header h1 {{ font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 8px; }}
-        .hero-header p {{ color: #cbd5e1; font-size: 14px; }}
-        .badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 12px; }}
 
-        .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 10px 0 25px 0; }}
-        .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 20px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); transition: all 0.3s ease; }}
+        .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 10px 0 20px 0; }}
+        .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); transition: all 0.3s ease; }}
         .metric-card:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
-        .metric-val {{ font-size: 1.5rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
+        .metric-val {{ font-size: 1.4rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
         .metric-label {{ font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
         .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
         .metric-sub-red {{ font-size: 11px; color: #ef4444; font-weight: 600; }}
 
-        .glass-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 25px; }}
-        .panel-title {{ font-size: 1.1rem; font-weight: 700; color: #f4f4f5; margin-bottom: 15px; }}
-        .progress-row {{ margin-bottom: 14px; }}
-        .progress-title {{ display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; font-weight: 600; margin-bottom: 6px; }}
+        /* YENİ TASARIM (Görseldeki Gibi) */
+        .glass-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 20px 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 20px; }}
+        .panel-title {{ font-size: 1.1rem; font-weight: 700; color: #f4f4f5; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }}
+        .panel-badge {{ background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }}
+        
+        .progress-row {{ margin-bottom: 12px; }}
+        .progress-title {{ display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; font-weight: 600; margin-bottom: 5px; }}
         .progress-bar-bg {{ height: 8px; background: rgba(15, 23, 42, 0.9); border-radius: 4px; overflow: hidden; }}
         .progress-bar-fill {{ height: 100%; border-radius: 4px; }}
-        .site-map-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }}
-        .site-box {{ background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 14px; text-align: center; font-size: 12px; color: #cbd5e1; font-weight: 600; }}
-        .site-box .pct {{ color: #10b981; font-size: 1.1rem; font-weight: 800; display: block; margin-top: 4px; }}
     </style>
     </head>
     <body>
-        <div class="hero-header">
-            <div class="badge">📍 AZİZİYE AŞEVİ · KURUMSAL PANEL</div>
-            <h1>Genel Bakış & Operasyonel Özet</h1>
-            <p>Canlı Stok ve Maliyet Takip Sistemi</p>
-        </div>
-
         <div class="metrics-grid">
             <div class="metric-card"><div class="metric-label">Günlük Sıcak Yemek</div><div class="metric-val">Aktif</div><div class="metric-sub">↑ Anlık Simülasyon</div></div>
             <div class="metric-card"><div class="metric-label">Ürün Çeşidi</div><div class="metric-val">{urun_cesidi_gosterim}</div><div class="metric-sub">↑ Güncel Stok Durumu</div></div>
@@ -2338,8 +2386,9 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             <div class="metric-card"><div class="metric-label">Son İşlem Desteği</div><div class="metric-val">Aktif (Undo)</div><div class="metric-sub">↑ Tek Tıkla Geri Al</div></div>
         </div>
 
+        <!-- YENİ: Operasyonel Verimlilik ve Depo Doluluk Oranları -->
         <div class="glass-panel">
-            <div class="panel-title">📈 Operasyonel Verimlilik ve Depo Doluluk Oranları</div>
+            <div class="panel-title"><span>📈 Operasyonel Verimlilik ve Depo Doluluk Oranları</span><span class="panel-badge">Canlı</span></div>
             <div class="progress-row">
                 <div class="progress-title"><span>Kuru Gıda Deposu</span><span>%78</span></div>
                 <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 78%; background: linear-gradient(90deg, #10b981, #059669);"></div></div>
@@ -2353,27 +2402,65 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 45%; background: linear-gradient(90deg, #f59e0b, #d97706);"></div></div>
             </div>
         </div>
-
+        
+        <!-- Kategoriye ve Depoya Göre Eklenen Yeni Grafikler -->
         <div class="glass-panel">
-            <div class="panel-title">🗺️ Tesis / Depo Durum Haritası</div>
-            <div class="site-map-grid">
-                <div class="site-box">Soğuk +5/+6<span class="pct">%78</span></div>
-                <div class="site-box">Soğuk -18<span class="pct">%62</span></div>
-                <div class="site-box">Sebze Deposu<span class="pct">%45</span></div>
-                <div class="site-box">Kuru Gıda<span class="pct">%88</span></div>
-                <div class="site-box">Mutfak / Üretim<span class="pct">Aktif</span></div>
-                <div class="site-box">Sevkiyat<span class="pct">Hazır</span></div>
+            <div class="panel-title"><span>📂 Kategori ve Depo Bazlı Stok Doluluk Oranları</span></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Kategori Doluluk -->
+                <div>
+                    <div style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase;">Kategoriye Göre Doluluk</div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Kuru Gıda</span><span>%85</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 85%; background: #10b981;"></div></div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Sebze</span><span>%60</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 60%; background: #38bdf8;"></div></div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Yağ</span><span>%35</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 35%; background: #a855f7;"></div></div>
+                    </div>
+                </div>
+                <!-- Depo Doluluk -->
+                <div>
+                    <div style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase;">Depoya Göre Doluluk</div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Merkez Depo</span><span>%70</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 70%; background: #f59e0b;"></div></div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Soğuk Hava</span><span>%50</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 50%; background: #ef4444;"></div></div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Kuru Depo</span><span>%90</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 90%; background: #10b981;"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aylık Dağıtılan Yemek Grafiği -->
+        <div class="glass-panel">
+            <div class="panel-title"><span>🍲 Aylık Dağıtılan Yemek Adetleri</span></div>
+            <div style="display: flex; gap: 10px; align-items: flex-end; height: 120px; padding-top: 10px;">
+                <div style="flex: 1; background: rgba(16, 185, 129, 0.2); border-radius: 6px; height: 40%; position: relative;"><div style="position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; color: #94a3b8;">Oca</div></div>
+                <div style="flex: 1; background: rgba(16, 185, 129, 0.4); border-radius: 6px; height: 55%; position: relative;"><div style="position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; color: #94a3b8;">Şub</div></div>
+                <div style="flex: 1; background: rgba(16, 185, 129, 0.6); border-radius: 6px; height: 70%; position: relative;"><div style="position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; color: #94a3b8;">Mar</div></div>
+                <div style="flex: 1; background: rgba(16, 185, 129, 0.8); border-radius: 6px; height: 85%; position: relative;"><div style="position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; color: #94a3b8;">Nis</div></div>
+                <div style="flex: 1; background: rgba(16, 185, 129, 1); border-radius: 6px; height: 100%; position: relative;"><div style="position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; color: #94a3b8;">May</div></div>
             </div>
         </div>
     </body>
     </html>
     """
-    components.html(dash_html, height=950, scrolling=False)
+    components.html(dash_html, height=850, scrolling=False)
 
-    # --- 2. BÖLÜM: EN ALT (YEMEK SEÇİMİ + CANLI MALİYET ÖZET PANELİ) ---
+    # --- 3. BÖLÜM: EN ALT (YEMEK SEÇİMİ + CANLI MALİYET ÖZET PANELİ) ---
     st.markdown("---")
     
-    # Menü Seçenekleri Hazırlığı
     menu_secenekleri = {}
     if gecmis_uretimler:
         for item in gecmis_uretimler:
@@ -2395,7 +2482,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     if not menu_secenekleri:
         menu_secenekleri = {"Henüz Üretim Kaydı Girilmedi": {"tarih": "-", "menu_adi": "Kayıt Yok", "kisi_basi_orijinal_maliyet": 0.0, "kalem_sayisi": 0}}
 
-    # Streamlit Kontrolleri
     col_sel1, col_sel2 = st.columns([2, 1])
     with col_sel1:
         secilen_key = st.selectbox("📋 Geçmişte Çıkan Yemeği / Menüyü Seçin", options=list(menu_secenekleri.keys()))
@@ -2408,7 +2494,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     secilen_menu_adi = secilen_menu_verisi.get("menu_adi", "Seçilen Menü")
     secilen_tarih_str = secilen_menu_verisi.get("tarih", "-")
 
-    # Canlı Maliyet Paneli HTML
     panel_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2448,7 +2533,53 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     """
     components.html(panel_html, height=300, scrolling=False)
 
-    # --- GRAFİK ALANI ---
+    # --- 4. BÖLÜM: EN ALT KISIM (PROJE ÖZELLİKLERİNİ GÖSTEREN ŞIK KARTLAR) ---
+    st.markdown("### 🌟 Sistem Özellikleri ve Modüller")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown(f"""
+        <div style="background: {card_bg}; border: 1px solid {border_color}; padding: 24px; border-radius: 18px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.12); height: 160px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;">
+            <div style="font-size: 32px;">📦</div>
+            <div>
+                <div style="font-size: 16px; font-weight: 700; color: {text_color}; margin-bottom: 4px;">Stok Yönetimi</div>
+                <div style="font-size: 12px; color: {subtext_color};">FIFO mantığı ile anlık depo takibi, kritik seviye uyarıları.</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"""
+        <div style="background: {card_bg}; border: 1px solid {border_color}; padding: 24px; border-radius: 18px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.12); height: 160px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;">
+            <div style="font-size: 32px;">🍲</div>
+            <div>
+                <div style="font-size: 16px; font-weight: 700; color: {text_color}; margin-bottom: 4px;">Yemek Üretimi</div>
+                <div style="font-size: 12px; color: {subtext_color};">Reçete bazlı otomatik maliyet hesaplama ve stok düşümü.</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"""
+        <div style="background: {card_bg}; border: 1px solid {border_color}; padding: 24px; border-radius: 18px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.12); height: 160px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;">
+            <div style="font-size: 32px;">👥</div>
+            <div>
+                <div style="font-size: 16px; font-weight: 700; color: {text_color}; margin-bottom: 4px;">İhtiyaç Sahipleri</div>
+                <div style="font-size: 12px; color: {subtext_color};">Şifreli veri saklama ile güvenli kayıt ve porsiyon dağıtımı.</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c4:
+        st.markdown(f"""
+        <div style="background: {card_bg}; border: 1px solid {border_color}; padding: 24px; border-radius: 18px; box-shadow: 0 12px 30px -8px rgba(0,0,0,0.12); height: 160px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;">
+            <div style="font-size: 32px;">🔒</div>
+            <div>
+                <div style="font-size: 16px; font-weight: 700; color: {text_color}; margin-bottom: 4px;">Gelişmiş Güvenlik</div>
+                <div style="font-size: 12px; color: {subtext_color};">scrypt hash, Fernet şifreleme, oturum yönetimi ve maskeleme.</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # --- 5. BÖLÜM: GRAFİK ALANI (MASKELENEBİLİR) ---
     if grafik_maskeli:
         st.info("🔒 Dashboard grafik alanı bu kullanıcı için maskelenmiştir (gizlenmiştir).")
     else:
