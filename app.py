@@ -2420,8 +2420,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 """
     except Exception:
         hava_durumu_html = "<div style='color: #94a3b8; text-align: center; width: 100%;'>Hava durumu verisi alınamadı.</div>"
-    
-    <!DOCTYPE html>
+       <!DOCTYPE html>
     <html>
     <head>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
