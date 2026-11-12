@@ -2276,7 +2276,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     fire_degeri_gosterim = "🔒 Gizli" if fire_maskeli else f"{toplam_fire_kg:.1f} Kg"
     fire_alt_gosterim = "" if fire_maskeli else f"({toplam_fire_tl:,.2f} ₺)"
-    stok_degeri_gosterim = "🔒 Gizli" if stok_maskeli else f"{toplam_stok_degeri:,.0f} ₺"
+    stok_degeri_gosterim = "🔒 Gizli" if stok_maskeli else f"{toplam_stok_degeri:,.2f} ₺".replace(',', 'X').replace('.', ',').replace('X', '.')
     urun_cesidi_gosterim = "🔒 Gizli" if urun_maskeli else f"{urun_cesidi_sayisi} Çeşit"
     personel_gosterim = "🔒 Gizli" if personel_maskeli else f"{aktif_personel_sayisi} Kişi"
 
