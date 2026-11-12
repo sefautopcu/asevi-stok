@@ -2374,6 +2374,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         }
     </style>
     """, unsafe_allow_html=True)
+    # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
     hero_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2405,13 +2406,15 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         .panel-total {{ font-size: 1.6rem; font-weight: 800; color: #fff; line-height: 1.2; margin-top: 5px; }}
         .panel-sub {{ font-size: 12px; color: #94a3b8; margin-top: 4px; margin-bottom: 20px; }}
         
-        .table-panel { background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 25px; transition: all 0.3s ease; display: flex; flex-direction: column; min-height: 320px; height: 100%; }
+        .table-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 25px; transition: all 0.3s ease; display: flex; flex-direction: column; min-height: 340px; height: 100%; }}
         .table-panel:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
+        
         .progress-row {{ margin-bottom: 15px; }}
         .progress-title {{ display: flex; justify-content: space-between; font-size: 13px; color: #cbd5e1; font-weight: 500; margin-bottom: 8px; }}
         .text-white {{ color: #fff; font-weight: 700; }}
         .progress-bar-bg {{ height: 6px; background: rgba(15, 23, 42, 0.9); border-radius: 4px; overflow: hidden; }}
         .progress-bar-fill {{ height: 100%; border-radius: 4px; }}
+        
         .chart-container {{ display: flex; gap: 15px; align-items: flex-end; height: 120px; padding-bottom: 20px; }}
     </style>
     </head>
@@ -2456,6 +2459,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                     <div class="panel-title">Operasyonel Sağlık</div>
                     <div class="panel-total">{urun_cesidi_sayisi}</div>
                     <div class="panel-sub">Kayıtlı çeşit üzerinden durum</div>
+                    
                     <div class="progress-row">
                         <div class="progress-title"><span>Kritik Seviyede</span><span class="text-white">{kritik_urun_sayisi} Ürün</span></div>
                         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_kritik}%; background: #ef4444;"></div></div>
@@ -2473,6 +2477,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {min(skt_turuncu*10, 100)}%; background: #f59e0b;"></div></div>
                     </div>
                 </div>
+            </div>
 
             <!-- AYLIK GRAFİK -->
             <div class="table-panel">
