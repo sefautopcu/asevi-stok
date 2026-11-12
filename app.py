@@ -2246,7 +2246,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     import base64
     from collections import defaultdict
         # Üstteki varsayılan Streamlit boşluğunu kaldır
-        st.markdown("<style>div.block-container { padding-top: 3rem !important; } hr { margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }</style>", unsafe_allow_html=True)   
+    st.markdown("<style>div.block-container { padding-top: 3rem !important; } hr { margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }</style>", unsafe_allow_html=True)   
 
     # --- ARKA PLAN RESMİ YÖNETİMİ ---
     varsayilan_arka_plan = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
