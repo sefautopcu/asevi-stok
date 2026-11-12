@@ -2310,6 +2310,24 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             kritik_urun_sayisi += 1
 
     guvenli_urun_sayisi = urun_cesidi_sayisi - kritik_urun_sayisi if urun_cesidi_sayisi > kritik_urun_sayisi else 0
+        # --- SKT / STT UYARILARI (Operasyonel Sağlık için) ---
+    skt_kirmizi = 0
+    skt_turuncu = 0
+    bugun_tarih = datetime.date.today()
+    
+    for u in set(g.get("urun", "").strip().upper() for g in st.session_state.get("girisler", []) if g.get("urun")):
+        skt_listesi = [g.get("skt") for g in st.session_state.get("girisler", []) if g.get("urun", "").strip().upper() == u and g.get("skt")]
+        en_yakin_skt = min(skt_listesi) if skt_listesi else None
+        if en_yakin_skt:
+            try:
+                skt_date = datetime.datetime.strptime(en_yakin_skt, "%Y-%m-%d").date()
+                kalan_gun = (skt_date - bugun_tarih).days
+                if kalan_gun < 0:
+                    skt_kirmizi += 1
+                elif kalan_gun <= 7:
+                    skt_turuncu += 1
+            except Exception:
+                pass
     yuzde_kritik = int((kritik_urun_sayisi / urun_cesidi_sayisi) * 100) if urun_cesidi_sayisi > 0 else 0
     yuzde_guvenli = 100 - yuzde_kritik
 
@@ -2427,11 +2445,14 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_guvenli}%; background: #10b981;"></div></div>
                     </div>
                     <div class="progress-row">
-                        <div class="progress-title"><span>Personel Verimliliği</span><span class="text-white">{aktif_personel_sayisi} Aktif</span></div>
-                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 85%; background: #38bdf8;"></div></div>
+                        <div class="progress-title"><span>🔴 SKT Süresi Geçen</span><span class="text-white">{skt_kirmizi} Ürün</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {min(skt_kirmizi*10, 100)}%; background: #ef4444;"></div></div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>🟠 SKT'si Yaklaşan</span><span class="text-white">{skt_turuncu} Ürün</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {min(skt_turuncu*10, 100)}%; background: #f59e0b;"></div></div>
                     </div>
                 </div>
-            </div>
 
             <!-- AYLIK GRAFİK -->
             <div class="table-panel">
