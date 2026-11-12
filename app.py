@@ -2377,10 +2377,10 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </style>
     """, unsafe_allow_html=True)
     # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
-    # --- ERZURUM AZİZİYE 7 GÜNLÜK HAVA DURUMU VERİSİ ---
+        # --- ERZURUM AZİZİYE 7 GÜNLÜK HAVA DURUMU VERİSİ ---
     hava_durumu_html = ""
     try:
-        hava_url = "https://www.mgm.gov.tr/tahmin/il-ve-ilceler.aspx?il=Erzurum&ilce=Aziziye"
+        hava_url = "https://api.open-meteo.com/v1/forecast?latitude=39.95&longitude=41.10&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe/Istanbul&forecast_days=7"
         hava_cevap = requests.get(hava_url, timeout=10)
         hava_veri = hava_cevap.json()
         
@@ -2420,7 +2420,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 """
     except Exception:
         hava_durumu_html = "<div style='color: #94a3b8; text-align: center; width: 100%;'>Hava durumu verisi alınamadı.</div>"
-    hero_html = f"""
     
     <!DOCTYPE html>
     <html>
