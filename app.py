@@ -2282,44 +2282,9 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     urun_cesidi_gosterim = "🔒 Gizli" if urun_maskeli else f"{urun_cesidi_sayisi} Çeşit"
     personel_gosterim = "🔒 Gizli" if personel_maskeli else f"{aktif_personel_sayisi} Kişi"
 
-    # --- MENÜ SEÇENEKLERİ ---
-    menu_secenekleri = {}
-    if gecmis_uretimler:
-        for item in gecmis_uretimler:
-            if not item:
-                continue
-            tarih = item.get("tarih", "-")
-            menu_adi = item.get("yemek_adi", "Belirtilmemiş Menü")
-            top_mal = float(item.get("toplam_maliyet", 0))
-            if top_mal == 0 and item.get("malzemeler"):
-                top_mal = sum(float(m.get("tutar", 0)) for m in item.get("malzemeler", []))
-            kisi_sayisi_val = int(item.get("kisi_sayisi", 1) or 1)
-            kisi_basi = top_mal / kisi_sayisi_val if kisi_sayisi_val > 0 else 0.0
-            item["kisi_basi_orijinal_maliyet"] = kisi_basi
-            item["menu_adi"] = menu_adi
-            item["kalem_sayisi"] = len(item.get("malzemeler", []))
-            key = f"{tarih} | {menu_adi} ({kisi_sayisi_val} Kişi)"
-            menu_secenekleri[key] = item
-    if not menu_secenekleri:
-        menu_secenekleri = {"Henüz Üretim Kaydı Girilmedi": {"tarih": "-", "menu_adi": "Kayıt Yok", "kisi_basi_orijinal_maliyet": 0.0, "kalem_sayisi": 0}}
-
-    # --- STREAMLIT KONTROLLERİ ---
-    col_sel1, col_sel2 = st.columns([2, 1])
-    with col_sel1:
-        secilen_key = st.selectbox("📋 Geçmişte Çıkan Yemeği / Menüyü Seçin", options=list(menu_secenekleri.keys()))
-    with col_sel2:
-        kisi_sayisi = st.slider("Yararlanan Kişi Sayısı (Simülasyon)", 10, 1000, 230, step=10)
-
-    secilen_menu_verisi = menu_secenekleri[secilen_key]
-    kisi_basi_tl = float(secilen_menu_verisi.get("kisi_basi_orijinal_maliyet", 79.19))
-    toplam_tl = kisi_basi_tl * kisi_sayisi
-    secilen_menu_adi = secilen_menu_verisi.get("menu_adi", "Seçilen Menü")
-    secilen_tarih_str = secilen_menu_verisi.get("tarih", "-")
-
-    # --- ARKA PLAN GÖRSELİ ---
+    # --- 1. BÖLÜM: EN ÜST (BAŞLIK + 8'Lİ METRİK KARTLARI + LÜKS TASARIM) ---
     arka_plan_url = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
-
-    # --- HTML RENDER ---
+    
     dash_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2328,14 +2293,12 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     <style>
         * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
         body {{ background: transparent; color: #f4f4f5; padding: 0px; }}
-
-        /* Üst Arka Plan ve Başlık */
+        
         .hero-header {{ background-image: linear-gradient(rgba(4, 7, 17, 0.6), rgba(4, 7, 17, 0.95)), url('{arka_plan_url}'); background-size: cover; background-position: center; border-radius: 24px; padding: 35px 30px; margin-bottom: 25px; border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.5); }}
         .hero-header h1 {{ font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 8px; }}
         .hero-header p {{ color: #cbd5e1; font-size: 14px; }}
         .badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 12px; }}
 
-        /* 8'li Metrik Kartları (Dünkü Kartlar Aynen Korundu) */
         .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 10px 0 25px 0; }}
         .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 20px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); transition: all 0.3s ease; }}
         .metric-card:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
@@ -2344,7 +2307,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
         .metric-sub-red {{ font-size: 11px; color: #ef4444; font-weight: 600; }}
 
-        /* Yeni Tasarım (İlerleme Çubukları ve Site Map) */
         .glass-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 25px; }}
         .panel-title {{ font-size: 1.1rem; font-weight: 700; color: #f4f4f5; margin-bottom: 15px; }}
         .progress-row {{ margin-bottom: 14px; }}
@@ -2363,7 +2325,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             <p>Canlı Stok ve Maliyet Takip Sistemi</p>
         </div>
 
-        <!-- DÜNKÜ 8'Lİ KARTLAR (Aynen Geri Geldi) -->
         <div class="metrics-grid">
             <div class="metric-card"><div class="metric-label">Günlük Sıcak Yemek</div><div class="metric-val">Aktif</div><div class="metric-sub">↑ Anlık Simülasyon</div></div>
             <div class="metric-card"><div class="metric-label">Ürün Çeşidi</div><div class="metric-val">{urun_cesidi_gosterim}</div><div class="metric-sub">↑ Güncel Stok Durumu</div></div>
@@ -2377,7 +2338,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             <div class="metric-card"><div class="metric-label">Son İşlem Desteği</div><div class="metric-val">Aktif (Undo)</div><div class="metric-sub">↑ Tek Tıkla Geri Al</div></div>
         </div>
 
-        <!-- YENİ TASARIM: İlerleme Çubukları ve Site Map -->
         <div class="glass-panel">
             <div class="panel-title">📈 Operasyonel Verimlilik ve Depo Doluluk Oranları</div>
             <div class="progress-row">
@@ -2405,32 +2365,111 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 <div class="site-box">Sevkiyat<span class="pct">Hazır</span></div>
             </div>
         </div>
+    </body>
+    </html>
+    """
+    components.html(dash_html, height=950, scrolling=False)
 
-        <div class="glass-panel" style="background: rgba(6, 10, 20, 0.95);">
-            <div class="panel-title">📊 Canlı Maliyet Özet Paneli</div>
-            <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 18px;">
-                <div style="font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 12px;">{secilen_menu_adi} <span style="font-size: 0.85rem; color: #94a3b8; font-weight: 500;">({secilen_tarih_str})</span></div>
-                <div style="display: flex; gap: 16px;">
-                    <div style="flex: 1; background: rgba(10, 15, 29, 0.75); padding: 15px; border-radius: 10px;">
-                        <div class="metric-label">Menü Toplam Maliyeti</div>
-                        <div style="font-size: 1.5rem; font-weight: 800; color: #10b981;">{toplam_tl:,.2f} ₺</div>
-                    </div>
-                    <div style="flex: 1; background: rgba(10, 15, 29, 0.75); padding: 15px; border-radius: 10px;">
-                        <div class="metric-label">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div>
-                        <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">{kisi_basi_tl:,.2f} ₺</div>
-                    </div>
+    # --- 2. BÖLÜM: EN ALT (YEMEK SEÇİMİ + CANLI MALİYET ÖZET PANELİ) ---
+    st.markdown("---")
+    
+    # Menü Seçenekleri Hazırlığı
+    menu_secenekleri = {}
+    if gecmis_uretimler:
+        for item in gecmis_uretimler:
+            if not item:
+                continue
+            tarih = item.get("tarih", "-")
+            menu_adi = item.get("yemek_adi", "Belirtilmemiş Menü")
+            top_mal = float(item.get("toplam_maliyet", 0))
+            if top_mal == 0 and item.get("malzemeler"):
+                top_mal = sum(float(m.get("tutar", 0)) for m in item.get("malzemeler", []))
+            kisi_sayisi_val = int(item.get("kisi_sayisi", 1) or 1)
+            kisi_basi = top_mal / kisi_sayisi_val if kisi_sayisi_val > 0 else 0.0
+            item["kisi_basi_orijinal_maliyet"] = kisi_basi
+            item["menu_adi"] = menu_adi
+            item["kalem_sayisi"] = len(item.get("malzemeler", []))
+            key = f"{tarih} | {menu_adi} ({kisi_sayisi_val} Kişi)"
+            menu_secenekleri[key] = item
+
+    if not menu_secenekleri:
+        menu_secenekleri = {"Henüz Üretim Kaydı Girilmedi": {"tarih": "-", "menu_adi": "Kayıt Yok", "kisi_basi_orijinal_maliyet": 0.0, "kalem_sayisi": 0}}
+
+    # Streamlit Kontrolleri
+    col_sel1, col_sel2 = st.columns([2, 1])
+    with col_sel1:
+        secilen_key = st.selectbox("📋 Geçmişte Çıkan Yemeği / Menüyü Seçin", options=list(menu_secenekleri.keys()))
+    with col_sel2:
+        kisi_sayisi = st.slider("Yararlanan Kişi Sayısı (Simülasyon)", 10, 1000, 230, step=10)
+
+    secilen_menu_verisi = menu_secenekleri[secilen_key]
+    kisi_basi_tl = float(secilen_menu_verisi.get("kisi_basi_orijinal_maliyet", 79.19))
+    toplam_tl = kisi_basi_tl * kisi_sayisi
+    secilen_menu_adi = secilen_menu_verisi.get("menu_adi", "Seçilen Menü")
+    secilen_tarih_str = secilen_menu_verisi.get("tarih", "-")
+
+    # Canlı Maliyet Paneli HTML
+    panel_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
+        body {{ background: transparent; color: #f4f4f5; padding: 0px; }}
+        .glow-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 25px; }}
+        .panel-header {{ font-size: 1.2rem; font-weight: 700; color: #f4f4f5; }}
+        .panel-meta {{ font-size: 12px; color: #94a3b8; margin: 4px 0 18px 0; text-transform: uppercase; }}
+        .inner-box {{ background: rgba(6, 10, 20, 0.7); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 16px; padding: 20px; }}
+        .menu-title {{ font-size: 1.25rem; font-weight: 800; color: #ffffff; margin-bottom: 16px; }}
+        .cost-row {{ display: flex; gap: 16px; margin-bottom: 16px; }}
+        .cost-card {{ flex: 1; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 15px; }}
+        .cost-title {{ font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }}
+        .cost-num-green {{ font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 4px; }}
+        .cost-num-blue {{ font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
+        .info-badge {{ background: rgba(16, 185, 129, 0.12); border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #cbd5e1; }}
+    </style>
+    </head>
+    <body>
+        <div class="glow-panel">
+            <div class="panel-header">📊 Canlı Maliyet Özet Paneli</div>
+            <div class="panel-meta">Tarih: {html_escape(str(secilen_tarih_str))} | {secilen_menu_verisi.get('kalem_sayisi', 0)} Kalem Malzeme | Simülasyon: {kisi_sayisi} Kişi</div>
+            <div class="inner-box">
+                <div class="menu-title">{html_escape(str(secilen_menu_adi))}</div>
+                <div class="cost-row">
+                    <div class="cost-card"><div class="cost-title">Menü Toplam Maliyeti</div><div class="cost-num-green">{toplam_tl:,.2f} ₺</div></div>
+                    <div class="cost-card"><div class="cost-title">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div><div class="cost-num-blue">{kisi_basi_tl:,.2f} ₺</div></div>
                 </div>
+                <div class="info-badge">🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.</div>
             </div>
         </div>
     </body>
     </html>
     """
-    components.html(dash_html, height=1100, scrolling=False)
+    components.html(panel_html, height=300, scrolling=False)
 
-    # --- GRAFİK ALANI (MASKELENEBİLİR) ---
+    # --- GRAFİK ALANI ---
     if grafik_maskeli:
         st.info("🔒 Dashboard grafik alanı bu kullanıcı için maskelenmiştir (gizlenmiştir).")
-    # Not: Dünkü alt kısımdaki basit Plotly grafikleri bu tasarıma uymadığı için kaldırıldı.
+    else:
+        aktif_w_list = [w for w in st.session_state.dashboard_widgets if w.get("aktif", True)]
+        if aktif_w_list:
+            st.markdown("### 📊 İnteraktif Dashboard Grafikleri")
+            for w in aktif_w_list:
+                st.markdown(f"#### {w['baslik']}")
+                if w["tur"] == "Sütun Grafik" and st.session_state.girisler:
+                    df_stok = pd.DataFrame(st.session_state.girisler)
+                    if not df_stok.empty and "kategori" in df_stok.columns and "kalan" in df_stok.columns:
+                        fig = px.bar(df_stok, x="kategori", y="kalan", color="kategori", template="plotly_dark", color_discrete_sequence=["#6366f1", "#10b981", "#a855f7", "#ef4444"])
+                        fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#94a3b8"), margin=dict(l=20, r=20, t=30, b=20), xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="rgba(100,100,100,0.1)"), legend=dict(bgcolor="#090909", bordercolor="#1f1f1f", borderwidth=1))
+                        st.plotly_chart(fig, use_container_width=True, key=f"chart_{w['id']}")
+                elif w["tur"] == "Çizgi Grafik" and st.session_state.kullanim_loglari:
+                    df_log = pd.DataFrame(st.session_state.kullanim_loglari)
+                    if not df_log.empty and "tarih" in df_log.columns and "tutar" in df_log.columns:
+                        fig2 = px.line(df_log, x="tarih", y="tutar", template="plotly_dark", color_discrete_sequence=["#6366f1"])
+                        fig2.update_traces(line=dict(width=3, shape="spline"))
+                        fig2.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#94a3b8"), margin=dict(l=20, r=20, t=30, b=20), xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="rgba(100,100,100,0.1)"))
+                        st.plotly_chart(fig2, use_container_width=True, key=f"chart_{w['id']}")
             
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
