@@ -2270,6 +2270,9 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     urun_maskeli = "1. Sayfa: Ürün Çeşidi" in aktif_k_maskeleri
     personel_maskeli = "1. Sayfa: Aktif Personel" in aktif_k_maskeleri
     grafik_maskeli = "1. Sayfa: Grafik Alanı" in aktif_k_maskeleri
+    kat_maskeli = "1. Sayfa: Kategori Doluluk" in aktif_k_maskeleri
+    depo_maskeli = "1. Sayfa: Depo Doluluk" in aktif_k_maskeleri
+    op_maskeli = "1. Sayfa: Operasyonel Sağlık" in aktif_k_maskeleri
 
     fire_degeri_gosterim = "🔒 Gizli" if fire_maskeli else f"{toplam_fire_kg:.1f} Kg"
     fire_alt_gosterim = "" if fire_maskeli else f"({toplam_fire_tl:,.2f} ₺)"
