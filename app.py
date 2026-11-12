@@ -39,6 +39,14 @@ LAST_UPDATE = "Kasım 2026"
 
 
 def gunluk_rapor_maili_gonder():
+    def bellek_kullanimi_al():
+    """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+        return round(process.memory_info().rss / (1024 * 1024), 1)
+    except Exception:
+        return 0.0
     """Her sabah çalışır, hafta sonu ve resmi tatilleri atlar, dünün verilerini mail atar."""
     import datetime
     
