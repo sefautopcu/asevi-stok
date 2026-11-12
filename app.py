@@ -54,7 +54,7 @@ def gunluk_rapor_maili_gonder():
         if bugun in tr_holidays:
             return False
     except Exception:
-        pass # holidays kütüphanesi çalışmazsa devam et
+        pass
 
     # 3. Bugün mail zaten gönderildi mi?
     if st.session_state.get("son_mail_tarihi") == str(bugun):
@@ -63,18 +63,97 @@ def gunluk_rapor_maili_gonder():
     # 4. Dünün verilerini topla
     dun = bugun - datetime.timedelta(days=1)
     dun_str = dun.strftime("%Y-%m-%d")
+    dun_str_tr = dun.strftime("%d.%m.%Y")
     
-    # --- DÜNÜN VERİLERİ (Taslak: İçeriği sonra zenginleştireceğiz) ---
+    # Verileri filtrele
     dun_girisler = [g for g in st.session_state.get("girisler", []) if g.get("tarih", "").startswith(dun_str)]
     dun_fireler = [l for l in st.session_state.get("kullanim_loglari", []) if l.get("tarih", "").startswith(dun_str) and l.get("tur") == "Fire/Zayiat"]
+    dun_silinenler = [s for s in st.session_state.get("silinen_urun_loglari", []) if s.get("tarih", "").startswith(dun_str)]
+    dun_yemekler = [y for y in st.session_state.get("yemek_uretim_arsivi", []) if y.get("tarih") == dun_str]
     
-    # Mail İçeriği (Şimdilik basit bir HTML)
-    mail_icerik = f"""
-    <h2>Aziziye Aşevi - Günlük Rapor</h2>
-    <p><b>Tarih:</b> {dun_str}</p>
-    <hr>
-    <p><b>Dün Yapılan Stok Girişi:</b> {len(dun_girisler)} adet</p>
-    <p><b>Dün Yapılan Fire / Zayiat:</b> {len(dun_fireler)} adet</p>
+    # İzinler (Bitiş tarihi düne eşit veya dünden sonra olanları baz alalım, ya da o gün başlayanları)
+    dun_izinler = [i for i in st.session_state.get("personel_izinleri", []) if i.get("baslangic", "") <= dun_str <= i.get("bitis", "")]
+
+    # --- HTML İÇERİK OLUŞTURMA ---
+    # Stil tanımlamaları (Mail istemcileri için inline stiller kullanmak en garantisidir)
+    style_th = "background-color: #f3f4f6; padding: 10px; border: 1px solid #e5e7eb; text-align: left; font-size: 13px;"
+    style_td = "padding: 10px; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;"
+    style_h2 = "color: #111827; font-family: Arial, sans-serif;"
+    style_h3 = "color: #374151; font-family: Arial, sans-serif; margin-top: 25px; border-bottom: 2px solid #10b981; padding-bottom: 5px;"
+    
+    html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px;">
+        <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h2 style="{style_h2}">🍲 Aziziye Aşevi - Günlük Rapor</h2>
+            <p style="color: #6b7280; font-size: 14px;"><b>Tarih:</b> {dun_str_tr}</p>
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+            
+            <!-- ÖZET KARTLARI -->
+            <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+                <div style="flex: 1; background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
+                    <div style="font-size: 12px; color: #065f46; font-weight: bold;">YENİ STOK GİRİŞİ</div>
+                    <div style="font-size: 24px; color: #047857; font-weight: bold;">{len(dun_girisler)}</div>
+                </div>
+                <div style="flex: 1; background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
+                    <div style="font-size: 12px; color: #991b1b; font-weight: bold;">FİRE / ZAYİAT</div>
+                    <div style="font-size: 24px; color: #b91c1c; font-weight: bold;">{len(dun_fireler)}</div>
+                </div>
+                <div style="flex: 1; background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                    <div style="font-size: 12px; color: #1e3a8a; font-weight: bold;">ÜRETİLEN YEMEK</div>
+                    <div style="font-size: 24px; color: #1d4ed8; font-weight: bold;">{len(dun_yemekler)}</div>
+                </div>
+            </div>
+    """
+
+    # 1. Gelen Stok Durumu
+    if dun_girisler:
+        html += f"<h3 style='{style_h3}'>📦 Gelen Stok Girişleri</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Ürün</th><th style='{style_th}'>Miktar</th><th style='{style_th}'>Fatura No</th></tr>"
+        for g in dun_girisler:
+            html += f"<tr><td style='{style_td}'>{g.get('urun')}</td><td style='{style_td}'>{g.get('miktar')} {g.get('birim')}</td><td style='{style_td}'>{g.get('fatura_no')}</td></tr>"
+        html += "</table>"
+
+    # 2. Fire/Zayiat
+    if dun_fireler:
+        html += f"<h3 style='{style_h3}'>🗑️ Fire / Zayiat Girişleri</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Ürün</th><th style='{style_th}'>Miktar</th><th style='{style_th}'>Tutar</th><th style='{style_th}'>Açıklama</th></tr>"
+        for f in dun_fireler:
+            html += f"<tr><td style='{style_td}'>{f.get('urun')}</td><td style='{style_td}'>{f.get('miktar')}</td><td style='{style_td}'>{f.get('tutar', 0):,.2f} ₺</td><td style='{style_td}'>{f.get('aciklama')}</td></tr>"
+        html += "</table>"
+
+    # 3. Silinen Ürünler
+    if dun_silinenler:
+        html += f"<h3 style='{style_h3}'>❌ Silinen Ürünler</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Ürün</th><th style='{style_th}'>Kayıt ID</th><th style='{style_th}'>Neden</th></tr>"
+        for s in dun_silinenler:
+            html += f"<tr><td style='{style_td}'>{s.get('urun')}</td><td style='{style_td}'>{s.get('kayit_id')}</td><td style='{style_td}'>{s.get('neden')}</td></tr>"
+        html += "</table>"
+
+    # 4. Günlük Yemek Üretimi
+    if dun_yemekler:
+        html += f"<h3 style='{style_h3}'>🍲 Günlük Yemek Üretimi</h3>"
+        for y in dun_yemekler:
+            html += f"<div style='background: #f3f4f6; padding: 15px; border-radius: 6px; margin-bottom: 10px;'>"
+            html += f"<h4 style='margin: 0 0 10px 0; color: #111827;'>{y.get('yemek_adi')} ({y.get('kisi_sayisi')} Kişilik)</h4>"
+            html += f"<p style='margin: 0 0 10px 0; font-size: 13px; color: #4b5563;'><b>Toplam Maliyet:</b> {y.get('toplam_maliyet', 0):,.2f} ₺ | <b>Kişi Başı:</b> {(y.get('toplam_maliyet', 0) / y.get('kisi_sayisi', 1)):,.2f} ₺</p>"
+            
+            # Malzemeler
+            if y.get("malzemeler"):
+                html += "<ul style='margin: 0; padding-left: 20px; font-size: 13px; color: #4b5563;'>"
+                for m in y.get("malzemeler", []):
+                    html += f"<li>{m.get('urun')}: {m.get('miktar')} (Maliyet: {m.get('tutar', 0):,.2f} ₺)</li>"
+                html += "</ul>"
+            html += "</div>"
+
+    # 5. Personel İzinleri
+    if dun_izinler:
+        html += f"<h3 style='{style_h3}'>👥 Personel İzinleri</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Personel</th><th style='{style_th}'>İzin Türü</th><th style='{style_th}'>Başlangıç</th><th style='{style_th}'>Bitiş</th></tr>"
+        for i in dun_izinler:
+            html += f"<tr><td style='{style_td}'>{i.get('personel_ad')}</td><td style='{style_td}'>{i.get('izin_turu')}</td><td style='{style_td}'>{i.get('baslangic')}</td><td style='{style_td}'>{i.get('bitis')}</td></tr>"
+        html += "</table>"
+
+    html += """
+        </div>
+    </body>
+    </html>
     """
 
     # 5. Mail Gönderim İşlemi
@@ -88,53 +167,20 @@ def gunluk_rapor_maili_gonder():
         msg = MIMEMultipart()
         msg['From'] = formataddr(("Aziziye Aşevi Otomasyon", sender))
         msg['To'] = recipient
-        msg['Subject'] = f"Aziziye Aşevi Günlük Rapor - {dun_str}"
-        msg.attach(MIMEText(mail_icerik, 'html', 'utf-8'))
+        msg['Subject'] = f"Aziziye Aşevi Günlük Rapor - {dun_str_tr}"
+        msg.attach(MIMEText(html, 'html', 'utf-8'))
         
-        # SMTP Sunucusuna Bağlan ve Gönder
         server = smtplib.SMTP(server_adresi, port)
         server.starttls()
         server.login(sender, password)
         server.send_message(msg)
         server.quit()
         
-        # Başarılıysa bugünün tarihini kaydet ki aynı gün tekrar mail atmasın
         st.session_state["son_mail_tarihi"] = str(bugun)
         return True
     except Exception as e:
         print(f"Mail gönderim hatası: {e}")
         return False
-def bellek_kullanimi_al():
-    """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
-    try:
-        import psutil
-        process = psutil.Process(os.getpid())
-        return round(process.memory_info().rss / (1024 * 1024), 1)
-    except Exception:
-        return 0.0
-
-def baglanti_tanilama_goster():
-    """?tani=1 adresinde çalışır. Gizli değerleri GÖSTERMEZ; yalnızca ayarların görünüp
-    görünmediğini ve Supabase bağlantısının veri döndürüp döndürmediğini denetler."""
-    st.markdown("## 🔧 Bağlantı Tanılama")
-    st.caption(
-        "Bu sayfa şifre/anahtar değerlerini göstermez. Sorun çözülünce secrets içindeki `TANI_MODU` satırını silin."
-    )
-    try:
-        ust_anahtarlar = list(st.secrets.keys())
-    except Exception as e:
-        st.error(
-            f"Secrets okunamadı ({type(e).__name__}). Secrets metnindeki biçimi kontrol edin: "
-            'her satır `ADI = "değer"` şeklinde ve DÜZ çift tırnaklı olmalı (“ ” gibi kıvrık tırnak olmaz).'
-        )
-        return
-    bolumler = {}
-    for k in ust_anahtarlar:
-        try:
-            if hasattr(st.secrets[k], "keys"):
-                bolumler[k] = list(st.secrets[k].keys())
-        except Exception:
-            pass
 
     st.markdown("### 1) Secrets ayarları")
     for ad in ("SUPABASE_URL", "SUPABASE_KEY", "FERNET_KEY", "MASTER_RECOVERY_KEY"):
