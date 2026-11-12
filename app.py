@@ -2260,22 +2260,11 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     import base64
     from collections import defaultdict
 
-    # --- ARKA PLAN RESMİ YÖNETİMİ (ADMIN DEĞİŞTİREBİLİR) ---
+    # --- ARKA PLAN RESMİ YÖNETİMİ ---
     varsayilan_arka_plan = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
     
     if "dashboard_arka_plan" not in st.session_state:
         st.session_state.dashboard_arka_plan = varsayilan_arka_plan
-
-    if yonetici_modu:
-        with st.expander("🎨 Dashboard Arka Plan Resmini Değiştir (Admin)"):
-            yeni_resim = st.file_uploader("Yeni arka plan resmi yükleyin (JPG, PNG)", type=["jpg", "jpeg", "png"], key="dashboard_bg_uploader")
-            if yeni_resim is not None:
-                b64 = base64.b64encode(yeni_resim.getvalue()).decode()
-                st.session_state.dashboard_arka_plan = f"data:{yeni_resim.type};base64,{b64}"
-                st.success("✅ Arka plan resmi güncellendi!")
-            if st.button("🔄 Varsayılan Resme Dön", key="dashboard_bg_reset"):
-                st.session_state.dashboard_arka_plan = varsayilan_arka_plan
-                st.rerun()
     
     arka_plan_url = st.session_state.dashboard_arka_plan
 
@@ -2348,7 +2337,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             </div>
         """
 
-    # --- TÜM TASARIM TEK BİR HTML İÇİNDE (ARKA PLAN RESMİ EN ÜSTTE 8'Lİ KARTLARI KAPSIYOR) ---
+    # --- 1. TASARIM BÖLÜMÜ: HERO VE TABLOLAR ---
     hero_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2357,19 +2346,11 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     <style>
         * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
         body {{ background: transparent; margin: 0; padding: 0; }}
-        
-        /* İSTEDİĞİN GİBİ ARKA PLANI 8'Lİ KARTLARI DA KAPSAYAN GENİŞ ALAN */
-        .main-hero-container {{
-            background-image: linear-gradient(rgba(4, 7, 17, 0.75), rgba(4, 7, 17, 0.95)), url('{arka_plan_url}'); 
-            background-size: cover; background-position: center; 
-            border-radius: 24px; padding: 35px; margin-bottom: 25px; 
-            border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.6); 
-        }}
+        .main-hero-container {{ background-image: linear-gradient(rgba(4, 7, 17, 0.75), rgba(4, 7, 17, 0.95)), url('{arka_plan_url}'); background-size: cover; background-position: center; border-radius: 24px; padding: 35px; margin-bottom: 25px; border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.6); }}
         .hero-badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 15px; }}
         .hero-title {{ font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 8px; letter-spacing: -0.03em; }}
         .hero-subtitle {{ color: #cbd5e1; font-size: 14px; margin-bottom: 30px; }}
-
-        /* 8'Lİ METRİK KARTLARI */
+        
         .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }}
         .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); transition: all 0.3s ease; backdrop-filter: blur(10px); }}
         .metric-card:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
@@ -2378,7 +2359,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
         .metric-sub-red {{ font-size: 11px; color: #ef4444; font-weight: 600; }}
 
-        /* 3'LÜ ŞIK TABLO YAPISI */
         .custom-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 20px 25px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35); }}
         .panel-title {{ font-size: 1.1rem; font-weight: 700; color: #f4f4f5; }}
         .panel-total {{ font-size: 1.6rem; font-weight: 800; color: #fff; line-height: 1.2; margin-top: 5px; }}
@@ -2388,8 +2368,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         .text-white {{ color: #fff; font-weight: 700; }}
         .progress-bar-bg {{ height: 6px; background: rgba(15, 23, 42, 0.9); border-radius: 4px; overflow: hidden; }}
         .progress-bar-fill {{ height: 100%; border-radius: 4px; }}
-        
-        /* AYLIK GRAFİK */
         .chart-container {{ display: flex; gap: 15px; align-items: flex-end; height: 120px; padding-bottom: 20px; }}
     </style>
     </head>
@@ -2412,7 +2390,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 <div class="metric-card"><div class="metric-label">Son İşlem Desteği</div><div class="metric-val">Aktif (Undo)</div><div class="metric-sub">↑ Tek Tıkla Geri Al</div></div>
             </div>
 
-            <!-- 3 SÜTUNLU TABLO -->
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                 <div class="custom-panel">
                     <div class="panel-title">Kategori Doluluk</div><div class="panel-total">Stok Dağılımı</div><div class="panel-sub">Maliyet bazlı oranlar</div>
@@ -2432,7 +2409,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 </div>
             </div>
 
-            <!-- AYLIK GRAFİK -->
             <div class="custom-panel">
                 <div class="panel-title" style="margin-bottom: 15px;">🍲 Aylık Dağıtılan Yemek Adetleri</div>
                 <div class="chart-container">
@@ -2500,34 +2476,59 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     st.markdown("### 🌟 Sistem Özellikleri ve Modüller")
     st.markdown("<br>", unsafe_allow_html=True)
     
-    st.markdown("""
+    ozellikler_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        .feature-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }}
-        .feature-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 24px; height: 160px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s ease; }}
-        .feature-card:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
-        .feature-icon {{ font-size: 32px; }}
-        .feature-title {{ font-size: 16px; font-weight: 700; color: #f4f4f5; margin-bottom: 4px; }}
-        .feature-desc {{ font-size: 12px; color: #94a3b8; }}
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }
+        body { background: transparent; margin: 0; padding: 0; }
+        .feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .metric-card { background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 24px; height: 160px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s ease; backdrop-filter: blur(10px); }
+        .metric-card:hover { transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }
+        .feature-icon { font-size: 32px; }
+        .feature-title { font-size: 16px; font-weight: 700; color: #f4f4f5; margin-bottom: 4px; }
+        .feature-desc { font-size: 12px; color: #94a3b8; line-height: 1.4; }
     </style>
-    <div class="feature-grid">
-        <div class="feature-card">
-            <div class="feature-icon">📦</div>
-            <div><div class="feature-title">Stok Yönetimi</div><div class="feature-desc">FIFO mantığı ile anlık depo takibi, kritik seviye uyarıları.</div></div>
+    </head>
+    <body>
+        <div class="feature-grid">
+            <div class="metric-card">
+                <div class="feature-icon">📦</div>
+                <div><div class="feature-title">Stok Yönetimi</div><div class="feature-desc">FIFO mantığı ile anlık depo takibi, kritik seviye uyarıları.</div></div>
+            </div>
+            <div class="metric-card">
+                <div class="feature-icon">🍲</div>
+                <div><div class="feature-title">Yemek Üretimi</div><div class="feature-desc">Reçete bazlı otomatik maliyet hesaplama ve stok düşümü.</div></div>
+            </div>
+            <div class="metric-card">
+                <div class="feature-icon">👥</div>
+                <div><div class="feature-title">İhtiyaç Sahipleri</div><div class="feature-desc">Şifreli veri saklama ile güvenli kayıt ve porsiyon dağıtımı.</div></div>
+            </div>
+            <div class="metric-card">
+                <div class="feature-icon">🔒</div>
+                <div><div class="feature-title">Gelişmiş Güvenlik</div><div class="feature-desc">scrypt hash, Fernet şifreleme, oturum yönetimi ve maskeleme.</div></div>
+            </div>
         </div>
-        <div class="feature-card">
-            <div class="feature-icon">🍲</div>
-            <div><div class="feature-title">Yemek Üretimi</div><div class="feature-desc">Reçete bazlı otomatik maliyet hesaplama ve stok düşümü.</div></div>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon">👥</div>
-            <div><div class="feature-title">İhtiyaç Sahipleri</div><div class="feature-desc">Şifreli veri saklama ile güvenli kayıt ve porsiyon dağıtımı.</div></div>
-        </div>
-        <div class="feature-card">
-            <div class="feature-icon">🔒</div>
-            <div><div class="feature-title">Gelişmiş Güvenlik</div><div class="feature-desc">scrypt hash, Fernet şifreleme, oturum yönetimi ve maskeleme.</div></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    </body>
+    </html>
+    """
+    components.html(ozellikler_html, height=190, scrolling=False)
+
+
+    # --- 5. BÖLÜM: EN ALTA TAŞINAN ARKA PLAN DEĞİŞTİRME ---
+    if yonetici_modu:
+        st.markdown("---")
+        with st.expander("🎨 Dashboard Arka Plan Resmini Değiştir (Admin)"):
+            yeni_resim = st.file_uploader("Yeni arka plan resmi yükleyin (JPG, PNG)", type=["jpg", "jpeg", "png"], key="dashboard_bg_uploader")
+            if yeni_resim is not None:
+                b64 = base64.b64encode(yeni_resim.getvalue()).decode()
+                st.session_state.dashboard_arka_plan = f"data:{yeni_resim.type};base64,{b64}"
+                st.success("✅ Arka plan resmi güncellendi!")
+            if st.button("🔄 Varsayılan Resme Dön", key="dashboard_bg_reset"):
+                st.session_state.dashboard_arka_plan = varsayilan_arka_plan
+                st.rerun()
             
 # 1. GÜNCEL STOK DURUMU
 elif menu == "Güncel Stok Durumu":
