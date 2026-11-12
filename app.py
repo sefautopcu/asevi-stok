@@ -1552,7 +1552,7 @@ for _anahtar, _deger in (("oturum_token", ""), ("oturum_bitis", 0)):
 # Uygulama her çalıştığında mail kontrolü yap (Hafta sonu/tatil değilse ve bugün atılmadıysa)
 gunluk_rapor_maili_gonder()
 
-    if not st.session_state.oturum_aktif:
+if not st.session_state.oturum_aktif:
        if cerez_kontrol is not None:
         aday_token = cerez_oku()
         if "token" in query_params:
