@@ -39,7 +39,7 @@ LAST_UPDATE = "Kasım 2026"
 
 
 def gunluk_rapor_maili_gonder():
-    def bellek_kullanimi_al():
+def bellek_kullanimi_al():
     """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
     try:
         import psutil
