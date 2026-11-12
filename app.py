@@ -47,13 +47,13 @@ def bellek_kullanimi_al():
     except Exception:
         return 0.0
 
-def gunluk_rapor_maili_gonder():
+    def gunluk_rapor_maili_gonder():
     """Her sabah çalışır, hafta sonu ve resmi tatilleri atlar, dünün verilerini mail atar."""
     import datetime
     
     bugun = datetime.date.today()
     
-    # 1. Hafta Sonu Kontrolü (Cumartesi=5, Pazar=6)
+    # 1. Hafta Sonu Kontrolü
     if bugun.weekday() >= 5:
         return False
         
@@ -69,84 +69,120 @@ def gunluk_rapor_maili_gonder():
     if st.session_state.get("son_mail_tarihi") == str(bugun):
         return False
 
-    # 4. Dünün verilerini topla
+    # 4. Dünün tarihini belirle
     dun = bugun - datetime.timedelta(days=1)
     dun_str = dun.strftime("%Y-%m-%d")
     dun_str_tr = dun.strftime("%d.%m.%Y")
     
-    # Verileri filtrele
-    dun_girisler = [g for g in st.session_state.get("girisler", []) if g.get("tarih", "").startswith(dun_str)]
-    dun_fireler = [l for l in st.session_state.get("kullanim_loglari", []) if l.get("tarih", "").startswith(dun_str) and l.get("tur") == "Fire/Zayiat"]
-    dun_silinenler = [s for s in st.session_state.get("silinen_urun_loglari", []) if s.get("tarih", "").startswith(dun_str)]
-    dun_yemekler = [y for y in st.session_state.get("yemek_uretim_arsivi", []) if y.get("tarih") == dun_str]
-    dun_izinler = [i for i in st.session_state.get("personel_izinleri", []) if i.get("baslangic", "") <= dun_str <= i.get("bitis", "")]
+    # 5. VERİLERİ DOĞRUDAN SUPABASE'DEN ÇEK (Session state'e bağımlı kalmadan)
+    tum_girisler = supabase_veri_oku("girisler", [], kritik=False)
+    tum_kullanim_loglari = supabase_veri_oku("kullanim_loglari", [], kritik=False)
+    tum_silinenler = supabase_veri_oku("silinen_urun_loglari", [], kritik=False)
+    tum_yemekler = supabase_veri_oku("yemek_uretim_arsivi", [], kritik=False)
+    tum_izinler = supabase_veri_oku("personel_izinleri", [], kritik=False)
 
-    # --- HTML İÇERİK OLUŞTURMA ---
-    style_th = "background-color: #f3f4f6; padding: 10px; border: 1px solid #e5e7eb; text-align: left; font-size: 13px;"
-    style_td = "padding: 10px; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;"
-    style_h2 = "color: #111827; font-family: Arial, sans-serif;"
-    style_h3 = "color: #374151; font-family: Arial, sans-serif; margin-top: 25px; border-bottom: 2px solid #10b981; padding-bottom: 5px;"
+    # 6. Dünün verilerini filtrele
+    dun_girisler = [g for g in tum_girisler if g.get("tarih", "").startswith(dun_str)]
+    dun_fireler = [l for l in tum_kullanim_loglari if l.get("tarih", "").startswith(dun_str) and l.get("tur") == "Fire/Zayiat"]
+    dun_silinenler = [s for s in tum_silinenler if s.get("tarih", "").startswith(dun_str)]
+    dun_yemekler = [y for y in tum_yemekler if y.get("tarih") == dun_str]
+    dun_izinler = [i for i in tum_izinler if i.get("baslangic", "") <= dun_str <= i.get("bitis", "")]
+
+    # --- HTML İÇERİK OLUŞTURMA (E-posta istemcilerine uygun) ---
+    # E-posta istemcileri flexbox'ı desteklemediği için tablo yapısı kullanıyoruz.
     
     html = f"""
     <html>
-    <body style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px;">
-        <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <h2 style="{style_h2}">🍲 Aziziye Aşevi - Günlük Rapor</h2>
-            <p style="color: #6b7280; font-size: 14px;"><b>Tarih:</b> {dun_str_tr}</p>
-            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }}
+            .container {{ max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }}
+            h2 {{ color: #10b981; margin-top: 0; }}
+            h3 {{ color: #374151; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-top: 30px; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }}
+            th {{ background-color: #f3f4f6; padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; color: #4b5563; font-size: 13px; }}
+            td {{ padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #1f2937; }}
+            .summary-table {{ width: 100%; border-collapse: separate; border-spacing: 10px 0; margin-bottom: 20px; }}
+            .summary-card {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; text-align: center; width: 33%; }}
+            .summary-title {{ font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: bold; }}
+            .summary-value {{ font-size: 24px; font-weight: bold; margin-top: 5px; }}
+            .yemek-box {{ background: #f9fafb; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 15px; border-radius: 4px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>🍲 Aziziye Aşevi - Günlük Rapor</h2>
+            <p style="color: #6b7280; font-size: 15px;"><b>Tarih:</b> {dun_str_tr}</p>
             
-            <div style="display: flex; gap: 15px; margin-bottom: 30px;">
-                <div style="flex: 1; background: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
-                    <div style="font-size: 12px; color: #065f46; font-weight: bold;">YENİ STOK GİRİŞİ</div>
-                    <div style="font-size: 24px; color: #047857; font-weight: bold;">{len(dun_girisler)}</div>
-                </div>
-                <div style="flex: 1; background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
-                    <div style="font-size: 12px; color: #991b1b; font-weight: bold;">FİRE / ZAYİAT</div>
-                    <div style="font-size: 24px; color: #b91c1c; font-weight: bold;">{len(dun_fireler)}</div>
-                </div>
-                <div style="flex: 1; background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                    <div style="font-size: 12px; color: #1e3a8a; font-weight: bold;">ÜRETİLEN YEMEK</div>
-                    <div style="font-size: 24px; color: #1d4ed8; font-weight: bold;">{len(dun_yemekler)}</div>
-                </div>
-            </div>
+            <!-- ÖZET KARTLARI (Tablo Yapısı ile) -->
+            <table class="summary-table">
+                <tr>
+                    <td class="summary-card">
+                        <div class="summary-title">Yeni Stok Girişi</div>
+                        <div class="summary-value" style="color: #10b981;">{len(dun_girisler)}</div>
+                    </td>
+                    <td class="summary-card">
+                        <div class="summary-title">Fire / Zayiat</div>
+                        <div class="summary-value" style="color: #ef4444;">{len(dun_fireler)}</div>
+                    </td>
+                    <td class="summary-card">
+                        <div class="summary-title">Üretilen Yemek</div>
+                        <div class="summary-value" style="color: #3b82f6;">{len(dun_yemekler)}</div>
+                    </td>
+                </tr>
+            </table>
     """
 
+    # 1. Gelen Stok Girişleri
     if dun_girisler:
-        html += f"<h3 style='{style_h3}'>📦 Gelen Stok Girişleri</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Ürün</th><th style='{style_th}'>Miktar</th><th style='{style_th}'>Fatura No</th></tr>"
+        html += f"<h3>📦 Gelen Stok Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Fatura No</th></tr>"
         for g in dun_girisler:
-            html += f"<tr><td style='{style_td}'>{g.get('urun')}</td><td style='{style_td}'>{g.get('miktar')} {g.get('birim')}</td><td style='{style_td}'>{g.get('fatura_no')}</td></tr>"
+            html += f"<tr><td>{g.get('urun')}</td><td>{g.get('miktar')} {g.get('birim', '')}</td><td>{g.get('fatura_no')}</td></tr>"
         html += "</table>"
 
+    # 2. Fire / Zayiat
     if dun_fireler:
-        html += f"<h3 style='{style_h3}'>🗑️ Fire / Zayiat Girişleri</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Ürün</th><th style='{style_th}'>Miktar</th><th style='{style_th}'>Tutar</th><th style='{style_th}'>Açıklama</th></tr>"
+        html += f"<h3>🗑️ Fire / Zayiat Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
         for f in dun_fireler:
-            html += f"<tr><td style='{style_td}'>{f.get('urun')}</td><td style='{style_td}'>{f.get('miktar')}</td><td style='{style_td}'>{f.get('tutar', 0):,.2f} ₺</td><td style='{style_td}'>{f.get('aciklama')}</td></tr>"
+            html += f"<tr><td>{f.get('urun')}</td><td>{f.get('miktar')}</td><td>{f.get('tutar', 0):,.2f} ₺</td><td>{f.get('aciklama', '-')}</td></tr>"
         html += "</table>"
 
+    # 3. Silinen Ürünler
     if dun_silinenler:
-        html += f"<h3 style='{style_h3}'>❌ Silinen Ürünler</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Ürün</th><th style='{style_th}'>Kayıt ID</th><th style='{style_th}'>Neden</th></tr>"
+        html += f"<h3>❌ Silinen Ürünler</h3><table><tr><th>Ürün</th><th>Kayıt ID</th><th>Neden</th></tr>"
         for s in dun_silinenler:
-            html += f"<tr><td style='{style_td}'>{s.get('urun')}</td><td style='{style_td}'>{s.get('kayit_id')}</td><td style='{style_td}'>{s.get('neden')}</td></tr>"
+            html += f"<tr><td>{s.get('urun')}</td><td>{s.get('kayit_id')}</td><td>{s.get('neden')}</td></tr>"
         html += "</table>"
 
+    # 4. Günlük Yemek Üretimi
     if dun_yemekler:
-        html += f"<h3 style='{style_h3}'>🍲 Günlük Yemek Üretimi</h3>"
+        html += f"<h3>🍲 Günlük Yemek Üretimi</h3>"
         for y in dun_yemekler:
-            html += f"<div style='background: #f3f4f6; padding: 15px; border-radius: 6px; margin-bottom: 10px;'>"
-            html += f"<h4 style='margin: 0 0 10px 0; color: #111827;'>{y.get('yemek_adi')} ({y.get('kisi_sayisi')} Kişilik)</h4>"
-            html += f"<p style='margin: 0 0 10px 0; font-size: 13px; color: #4b5563;'><b>Toplam Maliyet:</b> {y.get('toplam_maliyet', 0):,.2f} ₺ | <b>Kişi Başı:</b> {(y.get('toplam_maliyet', 0) / y.get('kisi_sayisi', 1)):,.2f} ₺</p>"
+            toplam_maliyet = float(y.get('toplam_maliyet', 0))
+            kisi = int(y.get('kisi_sayisi', 1) or 1)
+            kisi_basi = toplam_maliyet / kisi if kisi > 0 else 0
+            
+            html += f"<div class='yemek-box'>"
+            html += f"<h4 style='margin: 0 0 10px 0; color: #111827;'>{y.get('yemek_adi')} ({kisi} Kişilik)</h4>"
+            html += f"<p style='margin: 0 0 10px 0; font-size: 14px; color: #4b5563;'><b>Toplam Maliyet:</b> {toplam_maliyet:,.2f} ₺ | <b>Kişi Başı:</b> {kisi_basi:,.2f} ₺</p>"
+            
             if y.get("malzemeler"):
-                html += "<ul style='margin: 0; padding-left: 20px; font-size: 13px; color: #4b5563;'>"
+                html += "<table style='margin: 0;'><tr><th>Kullanılan Malzeme</th><th>Miktar</th><th>Maliyet</th></tr>"
                 for m in y.get("malzemeler", []):
-                    html += f"<li>{m.get('urun')}: {m.get('miktar')} (Maliyet: {m.get('tutar', 0):,.2f} ₺)</li>"
-                html += "</ul>"
+                    html += f"<tr><td>{m.get('urun')}</td><td>{m.get('miktar')}</td><td>{m.get('tutar', 0):,.2f} ₺</td></tr>"
+                html += "</table>"
             html += "</div>"
 
+    # 5. Personel İzinleri
     if dun_izinler:
-        html += f"<h3 style='{style_h3}'>👥 Personel İzinleri</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Personel</th><th style='{style_th}'>İzin Türü</th><th style='{style_th}'>Başlangıç</th><th style='{style_th}'>Bitiş</th></tr>"
+        html += f"<h3>👥 Personel İzinleri</h3><table><tr><th>Personel</th><th>İzin Türü</th><th>Başlangıç</th><th>Bitiş</th></tr>"
         for i in dun_izinler:
-            html += f"<tr><td style='{style_td}'>{i.get('personel_ad')}</td><td style='{style_td}'>{i.get('izin_turu')}</td><td style='{style_td}'>{i.get('baslangic')}</td><td style='{style_td}'>{i.get('bitis')}</td></tr>"
+            html += f"<tr><td>{i.get('personel_ad')}</td><td>{i.get('izin_turu')}</td><td>{i.get('baslangic')}</td><td>{i.get('bitis')}</td></tr>"
         html += "</table>"
+
+    # Eğer dün hiçbir işlem yapılmadıysa bilgi ver
+    if not (dun_girisler or dun_fireler or dun_silinenler or dun_yemekler or dun_izinler):
+        html += "<div style='text-align: center; padding: 30px; color: #6b7280;'><b>Dün sisteme girilmiş herhangi bir veri bulunmamaktadır.</b></div>"
 
     html += """
         </div>
@@ -154,6 +190,7 @@ def gunluk_rapor_maili_gonder():
     </html>
     """
 
+    # 7. Mail Gönderim İşlemi
     try:
         sender = st.secrets["MAIL_SENDER"]
         password = st.secrets["MAIL_PASSWORD"]
@@ -178,7 +215,7 @@ def gunluk_rapor_maili_gonder():
     except Exception as e:
         print(f"Mail gönderim hatası: {e}")
         return False
-
+        
     # 1. Gelen Stok Durumu
     if dun_girisler:
         html += f"<h3 style='{style_h3}'>📦 Gelen Stok Girişleri</h3><table style='width: 100%; border-collapse: collapse;'><tr><th style='{style_th}'>Ürün</th><th style='{style_th}'>Miktar</th><th style='{style_th}'>Fatura No</th></tr>"
