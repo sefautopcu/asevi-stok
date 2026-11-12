@@ -2257,9 +2257,9 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.stop()
     
     if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
-       import base64
-       import os
-        
+    import base64
+    import os
+    
     # --- ARKA PLAN RESMİ YÖNETİMİ (ADMIN DEĞİŞTİREBİLİR) ---
     varsayilan_arka_plan = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
     
