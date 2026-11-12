@@ -2377,9 +2377,6 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </style>
     """, unsafe_allow_html=True)
     # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
-        </style>
-    """, unsafe_allow_html=True)
-    
     # --- ERZURUM AZİZİYE 7 GÜNLÜK HAVA DURUMU VERİSİ ---
     hava_durumu_html = ""
     try:
@@ -2407,23 +2404,22 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 
                 yagis_ikon = "☀️" if yagis[i] == 0 else ("🌧️" if yagis[i] < 10 else "🌧️🌧️")
                 
+                # Python formatlamasını burada yapıp değişkenlere atıyoruz
+                m_temp = f"{max_temp[i]:.0f}"
+                n_temp = f"{min_temp[i]:.0f}"
+                renk_alt = renk + "88"
+                
                 hava_durumu_html += f"""
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%;">
                         <div style="font-size: 20px; margin-bottom: 5px;">{yagis_ikon}</div>
-                        <div style="font-size: 14px; color: #f4f4f5; font-weight: bold;">{max_temp[i]:.0f}°</div>
-                        <div style="font-size: 12px; color: #94a3b8;">{min_temp[i]:.0f}°</div>
-                        <div style="width: 80%; background: linear-gradient(180deg, {renk} 0%, {renk}88 100%); border-radius: 6px 6px 0 0; height: 60%; margin-top: 8px;"></div>
+                        <div style="font-size: 14px; color: #f4f4f5; font-weight: bold;">{m_temp}°</div>
+                        <div style="font-size: 12px; color: #94a3b8;">{n_temp}°</div>
+                        <div style="width: 80%; background: linear-gradient(180deg, {renk} 0%, {renk_alt} 100%); border-radius: 6px 6px 0 0; height: 60%; margin-top: 8px;"></div>
                         <div style="font-size: 11px; color: #94a3b8; margin-top: 8px;">{gun_adi}</div>
                     </div>
                 """
     except Exception:
         hava_durumu_html = "<div style='color: #94a3b8; text-align: center; width: 100%;'>Hava durumu verisi alınamadı.</div>"
-
-    # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
-    hero_html = f"""
-    <!DOCTYPE html>
-    <html>
-    ...
     hero_html = f"""
     <!DOCTYPE html>
     <html>
