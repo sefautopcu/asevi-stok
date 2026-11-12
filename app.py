@@ -2567,6 +2567,9 @@ elif menu == "Güncel Stok Durumu":
         benzersiz_urunler_Excel = sorted(
             list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
         )
+        
+        bugun = datetime.date.today()
+
         excel_liste = []
         for u in benzersiz_urunler_Excel:
             toplam_kalan_ex = sum(
@@ -2600,6 +2603,9 @@ elif menu == "Güncel Stok Durumu":
                 ),
                 default="-",
             )
+            # En yakın SKT'yi bul
+            skt_listesi = [g.get("skt") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u and g.get("skt")]
+            en_yakin_skt = min(skt_listesi) if skt_listesi else "Belirtilmemiş"
             
             gosterilen_kalan_excel = "🔒 Gizli" if "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri else toplam_kalan_ex
             
@@ -2608,6 +2614,7 @@ elif menu == "Güncel Stok Durumu":
                 "Kategori": kategori_ex,
                 "Birim": birim_ex,
                 "Kalan Miktar": gosterilen_kalan_excel,
+                "En Yakın SKT / STT": en_yakin_skt,
                 "Depo Yeri": depo_ex,
                 "Eklenme/Güncelleme Tarihi": en_son_tarih_ex,
                 "Son İşlemi Yapan": islem_yapan_ex,
@@ -2666,6 +2673,25 @@ elif menu == "Güncel Stok Durumu":
                 ),
                 default="-",
             )
+            
+            # En yakın SKT'yi bul (Ekranda Göstermek İçin)
+            skt_listesi = [g.get("skt") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u and g.get("skt")]
+            en_yakin_skt = min(skt_listesi) if skt_listesi else "Belirtilmemiş"
+            
+            # SKT Rengi Belirleme
+            skt_gosterim = en_yakin_skt
+            if en_yakin_skt != "Belirtilmemiş":
+                try:
+                    skt_date = datetime.datetime.strptime(en_yakin_skt, "%Y-%m-%d").date()
+                    kalan_gun = (skt_date - bugun).days
+                    if kalan_gun < 0:
+                        skt_gosterim = f"🔴 {en_yakin_skt} (Süresi Geçti)"
+                    elif kalan_gun <= 7:
+                        skt_gosterim = f"🟠 {en_yakin_skt} ({kalan_gun} Gün Kaldı)"
+                    else:
+                        skt_gosterim = f"🟢 {en_yakin_skt}"
+                except:
+                    pass
 
             final_kalan_gosterim = "🔒 Gizli" if "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri else toplam_kalan
 
@@ -2675,6 +2701,7 @@ elif menu == "Güncel Stok Durumu":
                     "Kategori": kategori,
                     "Birim": birim,
                     "Kalan Miktar": final_kalan_gosterim,
+                    "SKT / STT": skt_gosterim,
                     "Depo Yeri": depo,
                     "Eklenme Tarihi": en_son_tarih,
                     "İşlemi Yapan": islem_yapan,
@@ -2698,6 +2725,42 @@ elif menu == "Güncel Stok Durumu":
             ozel_html_tablo_goster(kritik_urunler_tablosu)
         else:
             st.success("Tebrikler! Kritik seviyenin altında ürün bulunmuyor.")
+
+        st.markdown("---")
+        
+        # YENİ EKLENEN: TOPLU SKT GÜNCELLEME FORMU
+        st.markdown("### 📅 Son Tüketim Tarihi (SKT / STT) Güncelle")
+        st.info("Sisteme daha önceden eklenmiş ve SKT tarihi girilmemiş ürünler için buradan toplu tarih güncellemesi yapabilirsiniz. Girilen tarih, seçilen ürünün en eski (en son kullanılacak) partisine atanır.")
+        
+        if not benzersiz_urunler:
+            st.info("Sistemde kayıtlı ürün bulunmuyor.")
+        else:
+            with st.form("skt_guncelle_formu"):
+                skt_sec_urun = st.selectbox("SKT Güncellenecek Ürünü Seçin", benzersiz_urunler, index=None, placeholder="Ürün Seçiniz...", key="skt_upd_urun")
+                skt_yeni_tarih = st.date_input("Yeni SKT / STT Tarihi", value=None)
+                skt_guncelle_btn = st.form_submit_button("SKT Tarihini Güncelle", type="primary")
+                
+                if skt_guncelle_btn:
+                    if not skt_sec_urun:
+                        st.error("⚠️ Lütfen SKT güncellenecek ürünü seçin!")
+                    elif skt_yeni_tarih is None:
+                        st.error("⚠️ Lütfen yeni SKT / STT tarihini seçin!")
+                    else:
+                        guncellendi = False
+                        # İlgili ürünün stokta kalanı > 0 olan en eski partisini bul (FIFO)
+                        ilgili_partiler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == skt_sec_urun and g.get("kalan", 0) > 0]
+                        if ilgili_partiler:
+                            en_eski_parti = min(ilgili_partiler, key=lambda x: str(x.get("tarih", "")))
+                            en_eski_parti["skt"] = str(skt_yeni_tarih)
+                            guncellendi = True
+                            
+                        if guncellendi:
+                            verileri_kaydet(st.session_state.girisler)
+                            st.success(f"🎉 Başarılı! {skt_sec_urun} ürününün SKT tarihi {skt_yeni_tarih} olarak güncellendi.")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.warning("⚠️ Seçilen ürünün stokta kalan partisi bulunmuyor, tarih atanamadı.")
 
         with st.expander("⚙️ Ürün Bazlı Kritik Eşik Sınırı Belirle"):
             with st.form("kritik_ayar_form"):
