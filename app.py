@@ -2315,6 +2315,18 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             </div>
         """
 
+    # --- DİNAMİK KRİTİK SEVİYE VE OPERASYONEL SAĞLIK HESABI ---
+    kritik_urun_sayisi = 0
+    for u in set(g.get("urun", "").strip().upper() for g in st.session_state.get("girisler", []) if g.get("urun")):
+        toplam_kalan = sum(float(g.get("kalan", 0)) for g in st.session_state.get("girisler", []) if g.get("urun", "").strip().upper() == u)
+        ozel_sinir = st.session_state.get("kritik_seviyeler", {}).get(u, 10.0)
+        if toplam_kalan <= float(ozel_sinir):
+            kritik_urun_sayisi += 1
+
+    guvenli_urun_sayisi = urun_cesidi_sayisi - kritik_urun_sayisi if urun_cesidi_sayisi > kritik_urun_sayisi else 0
+    yuzde_kritik = int((kritik_urun_sayisi / urun_cesidi_sayisi) * 100) if urun_cesidi_sayisi > 0 else 0
+    yuzde_guvenli = 100 - yuzde_kritik
+
     aylik_dagitim = defaultdict(int)
     for d in st.session_state.get("dagitim_loglari", []):
         if len(d.get("tarih", "")) >= 7: aylik_dagitim[d["tarih"][:7]] += int(d.get("porsiyon", 1))
@@ -2337,7 +2349,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             </div>
         """
 
-    # --- 1. TASARIM BÖLÜMÜ: HERO VE TABLOLAR ---
+    # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
     hero_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2346,11 +2358,17 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     <style>
         * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
         body {{ background: transparent; margin: 0; padding: 0; }}
-        .main-hero-container {{ background-image: linear-gradient(rgba(4, 7, 17, 0.75), rgba(4, 7, 17, 0.95)), url('{arka_plan_url}'); background-size: cover; background-position: center; border-radius: 24px; padding: 35px; margin-bottom: 25px; border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.6); }}
+        
+        .main-hero-container {{
+            background-image: linear-gradient(rgba(4, 7, 17, 0.75), rgba(4, 7, 17, 0.95)), url('{arka_plan_url}'); 
+            background-size: cover; background-position: center; 
+            border-radius: 24px; padding: 35px; margin-bottom: 25px; 
+            border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.6); 
+        }}
         .hero-badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 15px; }}
         .hero-title {{ font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 8px; letter-spacing: -0.03em; }}
         .hero-subtitle {{ color: #cbd5e1; font-size: 14px; margin-bottom: 30px; }}
-        
+
         .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }}
         .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); transition: all 0.3s ease; backdrop-filter: blur(10px); }}
         .metric-card:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
@@ -2359,11 +2377,13 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
         .metric-sub-red {{ font-size: 11px; color: #ef4444; font-weight: 600; }}
 
-        .custom-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 20px 25px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35); }}
         .panel-title {{ font-size: 1.1rem; font-weight: 700; color: #f4f4f5; }}
         .panel-total {{ font-size: 1.6rem; font-weight: 800; color: #fff; line-height: 1.2; margin-top: 5px; }}
-        .panel-sub {{ font-size: 12px; color: #94a3b8; margin-top: 4px; margin-bottom: 25px; }}
-        .progress-row {{ margin-bottom: 18px; }}
+        .panel-sub {{ font-size: 12px; color: #94a3b8; margin-top: 4px; margin-bottom: 20px; }}
+        
+        .table-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 25px; transition: all 0.3s ease; display: flex; flex-direction: column; min-height: 290px; }}
+        .table-panel:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
+        .progress-row {{ margin-bottom: 15px; }}
         .progress-title {{ display: flex; justify-content: space-between; font-size: 13px; color: #cbd5e1; font-weight: 500; margin-bottom: 8px; }}
         .text-white {{ color: #fff; font-weight: 700; }}
         .progress-bar-bg {{ height: 6px; background: rgba(15, 23, 42, 0.9); border-radius: 4px; overflow: hidden; }}
@@ -2390,26 +2410,45 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 <div class="metric-card"><div class="metric-label">Son İşlem Desteği</div><div class="metric-val">Aktif (Undo)</div><div class="metric-sub">↑ Tek Tıkla Geri Al</div></div>
             </div>
 
+            <!-- 3'LÜ TABLO -->
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                <div class="custom-panel">
-                    <div class="panel-title">Kategori Doluluk</div><div class="panel-total">Stok Dağılımı</div><div class="panel-sub">Maliyet bazlı oranlar</div>
+                <div class="table-panel">
+                    <div class="panel-title">Kategori Doluluk</div>
+                    <div class="panel-total">Stok Dağılımı</div>
+                    <div class="panel-sub">Maliyet bazlı oranlar</div>
                     <div class="progress-row"><div class="progress-title"><span>1. Kuru Gıda</span><span class="text-white">{yuzde_gida}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_gida}%; background: #10b981;"></div></div></div>
                     <div class="progress-row"><div class="progress-title"><span>2. Sebze</span><span class="text-white">{yuzde_sebze}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_sebze}%; background: #38bdf8;"></div></div></div>
                     <div class="progress-row"><div class="progress-title"><span>3. Yağ</span><span class="text-white">{yuzde_yag}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_yag}%; background: #a855f7;"></div></div></div>
                 </div>
-                <div class="custom-panel">
-                    <div class="panel-title">Depo Doluluk</div><div class="panel-total">Ağırlıklı</div><div class="panel-sub">Fiziksel depo dolulukları</div>
+
+                <div class="table-panel">
+                    <div class="panel-title">Depo Doluluk</div>
+                    <div class="panel-total">Ağırlıklı</div>
+                    <div class="panel-sub">Fiziksel depo dolulukları</div>
                     {depo_html_satirlari}
                 </div>
-                <div class="custom-panel">
-                    <div class="panel-title">Operasyonel Sağlık</div><div class="panel-total">{urun_cesidi_sayisi}</div><div class="panel-sub">Kayıtlı çeşit üzerinden durum</div>
-                    <div class="progress-row"><div class="progress-title"><span>Kritik Seviyede</span><span class="text-white">3 Ürün</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 30%; background: #ef4444;"></div></div></div>
-                    <div class="progress-row"><div class="progress-title"><span>Güvenli Stokta</span><span class="text-white">Çoğunluk</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 70%; background: #10b981;"></div></div></div>
-                    <div class="progress-row"><div class="progress-title"><span>Personel Verimliliği</span><span class="text-white">Yüksek</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 85%; background: #38bdf8;"></div></div></div>
+
+                <div class="table-panel">
+                    <div class="panel-title">Operasyonel Sağlık</div>
+                    <div class="panel-total">{urun_cesidi_sayisi}</div>
+                    <div class="panel-sub">Kayıtlı çeşit üzerinden durum</div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Kritik Seviyede</span><span class="text-white">{kritik_urun_sayisi} Ürün</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_kritik}%; background: #ef4444;"></div></div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Güvenli Stokta</span><span class="text-white">{guvenli_urun_sayisi} Ürün</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_guvenli}%; background: #10b981;"></div></div>
+                    </div>
+                    <div class="progress-row">
+                        <div class="progress-title"><span>Personel Verimliliği</span><span class="text-white">{aktif_personel_sayisi} Aktif</span></div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 85%; background: #38bdf8;"></div></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="custom-panel">
+            <!-- AYLIK GRAFİK -->
+            <div class="table-panel">
                 <div class="panel-title" style="margin-bottom: 15px;">🍲 Aylık Dağıtılan Yemek Adetleri</div>
                 <div class="chart-container">
                     {aylik_barlar_html}
@@ -2419,7 +2458,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </body>
     </html>
     """
-    components.html(hero_html, height=680, scrolling=False)
+    components.html(hero_html, height=720, scrolling=False)
 
 
     # --- 3. BÖLÜM: EN ALT (YEMEK SEÇİMİ + CANLI MALİYET ÖZET PANELİ) ---
