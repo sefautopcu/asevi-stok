@@ -2256,7 +2256,7 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
     
-    if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
+if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     import base64
     import os
     
