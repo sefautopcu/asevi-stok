@@ -2245,6 +2245,8 @@ if not yonetici_modu and menu in yasakli_menuler_listesi:
 if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     import base64
     from collections import defaultdict
+        # Üstteki varsayılan Streamlit boşluğunu kaldır
+    st.markdown("<style>div.block-container {padding-top: 1rem !important;}</style>", unsafe_allow_html=True)
 
     # --- ARKA PLAN RESMİ YÖNETİMİ ---
     varsayilan_arka_plan = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
