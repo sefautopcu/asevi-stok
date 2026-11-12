@@ -2492,7 +2492,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </body>
     </html>
     """
-    components.html(hero_html, height=840, scrolling=False)
+    components.html(hero_html, height=900, scrolling=False)
 
 
     # --- 3. BÖLÜM: EN ALT (YEMEK SEÇİMİ + CANLI MALİYET ÖZET PANELİ) ---
