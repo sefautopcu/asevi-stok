@@ -20,6 +20,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr
+import holidays
 
 # Sayfa Yapılandırması: Streamlit'te İLK komut olmak zorundadır
 # (kenar çubuğu, önbellek vb. komutlardan önce çağrılmalıdır).
@@ -33,6 +38,72 @@ APP_VERSION = "v2.0.0"
 LAST_UPDATE = "Kasım 2026"
 
 
+def gunluk_rapor_maili_gonder():
+    """Her sabah çalışır, hafta sonu ve resmi tatilleri atlar, dünün verilerini mail atar."""
+    import datetime
+    
+    bugun = datetime.date.today()
+    
+    # 1. Hafta Sonu Kontrolü (Cumartesi=5, Pazar=6)
+    if bugun.weekday() >= 5:
+        return False
+        
+    # 2. Resmi Tatil Kontrolü
+    try:
+        tr_holidays = holidays.Turkey()
+        if bugun in tr_holidays:
+            return False
+    except Exception:
+        pass # holidays kütüphanesi çalışmazsa devam et
+
+    # 3. Bugün mail zaten gönderildi mi?
+    if st.session_state.get("son_mail_tarihi") == str(bugun):
+        return False
+
+    # 4. Dünün verilerini topla
+    dun = bugun - datetime.timedelta(days=1)
+    dun_str = dun.strftime("%Y-%m-%d")
+    
+    # --- DÜNÜN VERİLERİ (Taslak: İçeriği sonra zenginleştireceğiz) ---
+    dun_girisler = [g for g in st.session_state.get("girisler", []) if g.get("tarih", "").startswith(dun_str)]
+    dun_fireler = [l for l in st.session_state.get("kullanim_loglari", []) if l.get("tarih", "").startswith(dun_str) and l.get("tur") == "Fire/Zayiat"]
+    
+    # Mail İçeriği (Şimdilik basit bir HTML)
+    mail_icerik = f"""
+    <h2>Aziziye Aşevi - Günlük Rapor</h2>
+    <p><b>Tarih:</b> {dun_str}</p>
+    <hr>
+    <p><b>Dün Yapılan Stok Girişi:</b> {len(dun_girisler)} adet</p>
+    <p><b>Dün Yapılan Fire / Zayiat:</b> {len(dun_fireler)} adet</p>
+    """
+
+    # 5. Mail Gönderim İşlemi
+    try:
+        sender = st.secrets["MAIL_SENDER"]
+        password = st.secrets["MAIL_PASSWORD"]
+        recipient = st.secrets["MAIL_RECIPIENT"]
+        server_adresi = st.secrets.get("MAIL_SERVER", "smtp.gmail.com")
+        port = int(st.secrets.get("MAIL_PORT", 587))
+        
+        msg = MIMEMultipart()
+        msg['From'] = formataddr(("Aziziye Aşevi Otomasyon", sender))
+        msg['To'] = recipient
+        msg['Subject'] = f"Aziziye Aşevi Günlük Rapor - {dun_str}"
+        msg.attach(MIMEText(mail_icerik, 'html', 'utf-8'))
+        
+        # SMTP Sunucusuna Bağlan ve Gönder
+        server = smtplib.SMTP(server_adresi, port)
+        server.starttls()
+        server.login(sender, password)
+        server.send_message(msg)
+        server.quit()
+        
+        # Başarılıysa bugünün tarihini kaydet ki aynı gün tekrar mail atmasın
+        st.session_state["son_mail_tarihi"] = str(bugun)
+        return True
+    except Exception as e:
+        print(f"Mail gönderim hatası: {e}")
+        return False
 def bellek_kullanimi_al():
     """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
     try:
@@ -1478,6 +1549,11 @@ for _anahtar, _deger in (("oturum_token", ""), ("oturum_bitis", 0)):
         st.session_state[_anahtar] = _deger
 
 # Giriş yapılmamışsa: çerezdeki (çerez desteği yoksa adresteki) token ile oturumu geri yüklemeyi dene
+# Uygulama her çalıştığında mail kontrolü yap (Hafta sonu/tatil değilse ve bugün atılmadıysa)
+gunluk_rapor_maili_gonder()
+
+if not st.session_state.oturum_aktif:
+    # ... (giriş ekranı kodları) ...    
 if not st.session_state.oturum_aktif:
     if cerez_kontrol is not None:
         aday_token = cerez_oku()
