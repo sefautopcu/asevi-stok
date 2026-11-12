@@ -1553,12 +1553,12 @@ for _anahtar, _deger in (("oturum_token", ""), ("oturum_bitis", 0)):
 gunluk_rapor_maili_gonder()
 
 if not st.session_state.oturum_aktif:
-       if cerez_kontrol is not None:
+    if cerez_kontrol is not None:
         aday_token = cerez_oku()
         if "token" in query_params:
             del query_params["token"]
-    else:
-        aday_token = str(query_params.get("token", ""))
+else:  # <-- BURASI EN SOLDA OLMALI (if not... ile aynı hizada)
+    aday_token = str(query_params.get("token", ""))
     if aday_token:
         kayit = oturum_dogrula(aday_token)
         if kayit and kayit.get("kullanici") in st.session_state.kullanicilar:
