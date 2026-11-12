@@ -2377,6 +2377,53 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </style>
     """, unsafe_allow_html=True)
     # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # --- ERZURUM AZİZİYE 7 GÜNLÜK HAVA DURUMU VERİSİ ---
+    hava_durumu_html = ""
+    try:
+        hava_url = "https://api.open-meteo.com/v1/forecast?latitude=39.95&longitude=41.10&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe/Istanbul&forecast_days=7"
+        hava_cevap = requests.get(hava_url, timeout=10)
+        hava_veri = hava_cevap.json()
+        
+        if "daily" in hava_veri:
+            gunler = hava_veri["daily"]["time"]
+            max_temp = hava_veri["daily"]["temperature_2m_max"]
+            min_temp = hava_veri["daily"]["temperature_2m_min"]
+            yagis = hava_veri["daily"]["precipitation_sum"]
+            
+            aylar_tr_kisa = {"01":"Oca", "02":"Şub", "03":"Mar", "04":"Nis", "05":"May", "06":"Haz", "07":"Tem", "08":"Ağu", "09":"Eyl", "10":"Eki", "11":"Kas", "12":"Ara"}
+            
+            for i in range(len(gunler)):
+                tarih_obj = datetime.datetime.strptime(gunler[i], "%Y-%m-%d")
+                gun_adi = f"{tarih_obj.day} {aylar_tr_kisa.get(f'{tarih_obj.month:02d}', '')}"
+                
+                ort_temp = (max_temp[i] + min_temp[i]) / 2
+                if ort_temp > 15: renk = "#10b981" 
+                elif ort_temp > 5: renk = "#38bdf8" 
+                elif ort_temp > -5: renk = "#f59e0b" 
+                else: renk = "#ef4444" 
+                
+                yagis_ikon = "☀️" if yagis[i] == 0 else ("🌧️" if yagis[i] < 10 else "🌧️🌧️")
+                
+                hava_durumu_html += f"""
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%;">
+                        <div style="font-size: 20px; margin-bottom: 5px;">{yagis_ikon}</div>
+                        <div style="font-size: 14px; color: #f4f4f5; font-weight: bold;">{max_temp[i]:.0f}°</div>
+                        <div style="font-size: 12px; color: #94a3b8;">{min_temp[i]:.0f}°</div>
+                        <div style="width: 80%; background: linear-gradient(180deg, {renk} 0%, {renk}88 100%); border-radius: 6px 6px 0 0; height: 60%; margin-top: 8px;"></div>
+                        <div style="font-size: 11px; color: #94a3b8; margin-top: 8px;">{gun_adi}</div>
+                    </div>
+                """
+    except Exception:
+        hava_durumu_html = "<div style='color: #94a3b8; text-align: center; width: 100%;'>Hava durumu verisi alınamadı.</div>"
+
+    # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
+    hero_html = f"""
+    <!DOCTYPE html>
+    <html>
+    ...
     hero_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2481,11 +2528,11 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 </div>
             </div>
 
-            <!-- AYLIK GRAFİK -->
+            <!-- CANLI HAVA DURUMU GRAFİĞİ -->
             <div class="table-panel">
-                <div class="panel-title" style="margin-bottom: 15px;">🍲 Aylık Dağıtılan Yemek Adetleri</div>
-                <div class="chart-container">
-                    {aylik_barlar_html}
+                <div class="panel-title" style="margin-bottom: 15px;">🌤️ Erzurum / Aziziye - 7 Günlük Hava Durumu</div>
+                <div class="chart-container" style="height: 140px;">
+                    {hava_durumu_html}
                 </div>
             </div>
         </div>
