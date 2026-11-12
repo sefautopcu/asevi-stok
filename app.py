@@ -47,7 +47,7 @@ def bellek_kullanimi_al():
     except Exception:
         return 0.0
 
-    def gunluk_rapor_maili_gonder():
+def gunluk_rapor_maili_gonder():
     """Her sabah çalışır, hafta sonu ve resmi tatilleri atlar, dünün verilerini mail atar."""
     import datetime
     
