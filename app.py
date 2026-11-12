@@ -2377,7 +2377,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </style>
     """, unsafe_allow_html=True)
     # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
-        # --- ERZURUM AZİZİYE 7 GÜNLÜK HAVA DURUMU VERİSİ ---
+    # --- ERZURUM AZİZİYE 7 GÜNLÜK HAVA DURUMU VERİSİ ---
     hava_durumu_html = ""
     try:
         hava_url = "https://api.open-meteo.com/v1/forecast?latitude=39.95&longitude=41.10&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe/Istanbul&forecast_days=7"
