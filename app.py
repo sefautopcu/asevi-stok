@@ -2419,6 +2419,12 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 """
     except Exception:
         hava_durumu_html = "<div style='color: #94a3b8; text-align: center; width: 100%;'>Hava durumu verisi alınamadı.</div>"
+        # Maskeler için HTML içeriklerini hazırla
+    kat_icerik = '<div style="text-align: center; color: #ef4444; margin-top: 30px;">🔒 Bu alan maskelenmiştir.</div>' if kat_maskeli else f'<div class="progress-row"><div class="progress-title"><span>1. Kuru Gıda</span><span class="text-white">{yuzde_gida}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_gida}%; background: #10b981;"></div></div></div><div class="progress-row"><div class="progress-title"><span>2. Sebze</span><span class="text-white">{yuzde_sebze}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_sebze}%; background: #38bdf8;"></div></div></div><div class="progress-row"><div class="progress-title"><span>3. Yağ</span><span class="text-white">{yuzde_yag}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_yag}%; background: #a855f7;"></div></div></div>'
+    
+    depo_icerik = '<div style="text-align: center; color: #ef4444; margin-top: 30px;">🔒 Bu alan maskelenmiştir.</div>' if depo_maskeli else depo_html_satirlari
+    
+    op_icerik = '<div style="text-align: center; color: #ef4444; margin-top: 30px;">🔒 Bu alan maskelenmiştir.</div>' if op_maskeli else f'<div class="progress-row"><div class="progress-title"><span>Kritik Seviyede</span><span class="text-white">{kritik_urun_sayisi} Ürün</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_kritik}%; background: #ef4444;"></div></div></div><div class="progress-row"><div class="progress-title"><span>Güvenli Stokta</span><span class="text-white">{guvenli_urun_sayisi} Ürün</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_guvenli}%; background: #10b981;"></div></div></div><div class="progress-row"><div class="progress-title"><span>🔴 SKT Süresi Geçen</span><span class="text-white">{skt_kirmizi} Ürün</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {min(skt_kirmizi*10, 100)}%; background: #ef4444;"></div></div></div><div class="progress-row"><div class="progress-title"><span>🟠 SKT\'si Yaklaşan</span><span class="text-white">{skt_turuncu} Ürün</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {min(skt_turuncu*10, 100)}%; background: #f59e0b;"></div></div></div>'    
     hero_html = f"""
     <!DOCTYPE html>
     <html>
@@ -2489,11 +2495,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                     <div class="panel-title">Kategori Doluluk</div>
                     <div class="panel-total">Stok Dağılımı</div>
                     <div class="panel-sub">Maliyet bazlı oranlar</div>
-                    {f'''
-                    <div class="progress-row"><div class="progress-title"><span>1. Kuru Gıda</span><span class="text-white">{yuzde_gida}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_gida}%; background: #10b981;"></div></div></div>
-                    <div class="progress-row"><div class="progress-title"><span>2. Sebze</span><span class="text-white">{yuzde_sebze}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_sebze}%; background: #38bdf8;"></div></div></div>
-                    <div class="progress-row"><div class="progress-title"><span>3. Yağ</span><span class="text-white">{yuzde_yag}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_yag}%; background: #a855f7;"></div></div></div>
-                    ''' if not kat_maskeli else '<div style="text-align: center; color: #ef4444; margin-top: 30px;">🔒 Bu alan maskelenmiştir.</div>'}
+                    {kat_icerik}
                 </div>
 
                 <!-- Depo Doluluk -->
@@ -2501,7 +2503,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                     <div class="panel-title">Depo Doluluk</div>
                     <div class="panel-total">Ağırlıklı</div>
                     <div class="panel-sub">Fiziksel depo dolulukları</div>
-                    {depo_html_satirlari if not depo_maskeli else '<div style="text-align: center; color: #ef4444; margin-top: 30px;">🔒 Bu alan maskelenmiştir.</div>'}
+                    {depo_icerik}
                 </div>
 
                 <!-- Operasyonel Sağlık -->
@@ -2509,24 +2511,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                     <div class="panel-title">Operasyonel Sağlık</div>
                     <div class="panel-total">{urun_cesidi_sayisi if not op_maskeli else '🔒'}</div>
                     <div class="panel-sub">Kayıtlı çeşit üzerinden durum</div>
-                    {f'''
-                    <div class="progress-row">
-                        <div class="progress-title"><span>Kritik Seviyede</span><span class="text-white">{kritik_urun_sayisi} Ürün</span></div>
-                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_kritik}%; background: #ef4444;"></div></div>
-                    </div>
-                    <div class="progress-row">
-                        <div class="progress-title"><span>Güvenli Stokta</span><span class="text-white">{guvenli_urun_sayisi} Ürün</span></div>
-                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_guvenli}%; background: #10b981;"></div></div>
-                    </div>
-                    <div class="progress-row">
-                        <div class="progress-title"><span>🔴 SKT Süresi Geçen</span><span class="text-white">{skt_kirmizi} Ürün</span></div>
-                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {min(skt_kirmizi*10, 100)}%; background: #ef4444;"></div></div>
-                    </div>
-                    <div class="progress-row">
-                        <div class="progress-title"><span>🟠 SKT'si Yaklaşan</span><span class="text-white">{skt_turuncu} Ürün</span></div>
-                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {min(skt_turuncu*10, 100)}%; background: #f59e0b;"></div></div>
-                    </div>
-                    ''' if not op_maskeli else '<div style="text-align: center; color: #ef4444; margin-top: 30px;">🔒 Bu alan maskelenmiştir.</div>'}
+                    {op_icerik}
                 </div>
 
             </div>
