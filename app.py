@@ -5615,7 +5615,7 @@ elif menu == "Kullanıcı Ayarları":
         st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
         
         # Tip güvenliği: maskeler ve yasaklı menüler düz liste olmalıdır
-            for _kk, _kv in kullanici_db.items():
+for _kk, _kv in kullanici_db.items():
             if not isinstance(_kv.get("maskeli_alanlar"), list):
                 _kv["maskeli_alanlar"] = []
             if not isinstance(_kv.get("yasakli_menuler"), list):
