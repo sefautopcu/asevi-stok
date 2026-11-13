@@ -2784,12 +2784,33 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
     # --- ERZURUM AZİZİYE 7 GÜNLÜK HAVA DURUMU VERİSİ ---
     hava_durumu_html = ""
+    anlik_hava_gosterge = ""  # YENİ EKLENEN: Anlık hava durumu değişkeni
     try:
-        hava_url = "https://api.open-meteo.com/v1/forecast?latitude=39.95&longitude=41.10&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe/Istanbul&forecast_days=7"
+        # URL'ye &current_weather=true eklendi
+        hava_url = "https://api.open-meteo.com/v1/forecast?latitude=39.95&longitude=41.10&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&current_weather=true&timezone=Europe/Istanbul&forecast_days=7"
         hava_cevap = requests.get(hava_url, timeout=10)
         hava_veri = hava_cevap.json()
         
+        # YENİ EKLENEN: Anlık hava durumunu ayıkla ve emojiye çevir
+        if "current_weather" in hava_veri:
+            cw = hava_veri["current_weather"]
+            a_temp = cw.get("temperature", 0)
+            a_code = cw.get("weathercode", 0)
+            
+            # WMO Hava Durumu Kodları Haritası
+            if a_code == 0: a_emoji = "☀️"
+            elif a_code in [1, 2, 3]: a_emoji = "🌤️"
+            elif a_code in [45, 48]: a_emoji = "🌫️"
+            elif a_code in [51, 53, 55, 56, 57]: a_emoji = "🌦️"
+            elif a_code in [61, 63, 65, 66, 67, 80, 81, 82]: a_emoji = "🌧️"
+            elif a_code in [71, 73, 75, 77, 85, 86]: a_emoji = "🌨️"
+            elif a_code in [95, 96, 99]: a_emoji = "⛈️"
+            else: a_emoji = "🌡️"
+            
+            anlik_hava_gosterge = f"{a_emoji} {a_temp}°C"
+
         if "daily" in hava_veri:
+            # ... (mevcut kodlarınız aynen buradan devam edecek)
             gunler = hava_veri["daily"]["time"]
             max_temp = hava_veri["daily"]["temperature_2m_max"]
             min_temp = hava_veri["daily"]["temperature_2m_min"]
@@ -2875,7 +2896,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </head>
     <body>
         <div class="main-hero-container">
-            <div class="hero-badge">📍 AZİZİYE AŞEVİ · KURUMSAL PANEL</div>
+            <div class="hero-badge">📍 AZİZİYE AŞEVİ · KURUMSAL PANEL <span style="margin-left: 8px; padding-left: 8px; border-left: 1px solid rgba(16, 185, 129, 0.5); font-size: 11px; color: #cbd5e1; font-weight: 500;">{anlik_hava_gosterge}</span></div>
             <div class="hero-title">Genel Bakış & Operasyonel Özet</div>
             <div class="hero-subtitle">Canlı Stok ve Maliyet Takip Sistemi</div>
 
