@@ -5613,6 +5613,7 @@ elif menu == "Kullanıcı Ayarları":
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
         st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
+        kullanici_db = st.session_state.kullanicilar
         
         # Tip güvenliği: maskeler ve yasaklı menüler düz liste olmalıdır
         for _kk, _kv in kullanici_db.items():
