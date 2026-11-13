@@ -5613,36 +5613,6 @@ elif menu == "Kullanıcı Ayarları":
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
         st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
-        # --- TEST BUTONU ---
-        if st.button("🧪 Test Maili Gönder", type="primary"):
-            with st.spinner("Mail gönderiliyor..."):
-                try:
-                    sender = st.secrets["MAIL_SENDER"]
-                    password = st.secrets["MAIL_PASSWORD"]
-                    recipient = st.secrets["MAIL_RECIPIENT"]
-                    server_adresi = st.secrets.get("MAIL_SERVER", "smtp.gmail.com")
-                    port = int(st.secrets.get("MAIL_PORT", 587))
-                    
-                    msg = MIMEMultipart()
-                    msg['From'] = formataddr(("Aziziye Aşevi Otomasyon", sender))
-                    msg['To'] = recipient
-                    msg['Subject'] = "Aziziye Aşevi - TEST MAILI"
-                    
-                    test_icerik = "<h2>Bu bir test mailidir.</h2><p>Sistem başarılı bir şekilde mail gönderebiliyor!</p>"
-                    msg.attach(MIMEText(test_icerik, 'html', 'utf-8'))
-                    
-                    server = smtplib.SMTP(server_adresi, port)
-                    server.starttls()
-                    server.login(sender, password)
-                    server.send_message(msg)
-                    server.quit()
-                    
-                    st.success("🎉 Test maili başarıyla gönderildi! Gelen kutunuzu kontrol edin.")
-                except Exception as e:
-                    st.error(f"❌ Mail gönderilemedi. Hata: {e}")
-        st.markdown("---")
-        kullanici_db = st.session_state.kullanicilar
-
         # Tip güvenliği: maskeler ve yasaklı menüler düz liste olmalıdır
         for _kk, _kv in kullanici_db.items():
             if not isinstance(_kv.get("maskeli_alanlar"), list):
