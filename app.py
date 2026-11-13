@@ -5758,7 +5758,7 @@ elif menu == "Kullanıcı Ayarları":
         st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
         kullanici_db = st.session_state.kullanicilar
 
-                st.markdown("### 📧 Manuel Rapor Gönderimi")
+        st.markdown("### 📧 Manuel Rapor Gönderimi")
         st.info("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
         
         col_m1, col_m2, col_m3 = st.columns(3)
