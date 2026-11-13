@@ -5758,32 +5758,21 @@ elif menu == "Kullanıcı Ayarları":
         st.markdown("### 📧 Manuel Rapor Gönderimi")
         st.caption("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
         
-        # Butonlar için özel CSS (Tam genişlik, renkli arka plan ve hover efekti)
+        # Butonlar için özel CSS (Şık ve Modern Görünüm)
         st.markdown("""
         <style>
-            /* HTML butonlarını saran kapsayıcıyı esnet */
-            div[data-testid="stMarkdown"]:has(a.rapor-btn) {
-                width: 100%;
-            }
-            /* Buton Tasarımı */
-            a.rapor-btn {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
+            div[data-testid="column"] div.stButton > button {
                 background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
                 border: 1px solid rgba(16, 185, 129, 0.5) !important;
                 border-radius: 12px !important;
                 padding: 12px 20px !important;
-                color: #10b981 !important; /* İkinci görseldeki gibi yeşil yazı */
+                color: #10b981 !important;
                 font-weight: 700 !important;
                 font-size: 14px !important;
-                text-decoration: none !important;
                 transition: all 0.3s ease !important;
-                width: 100%;
+                width: 100% !important;
             }
-            /* Hover (Üzerine Gelme) Efekti */
-            a.rapor-btn:hover {
+            div[data-testid="column"] div.stButton > button:hover {
                 background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.1) 100%) !important;
                 border-color: #10b981 !important;
                 box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.6) !important;
@@ -5795,20 +5784,21 @@ elif menu == "Kullanıcı Ayarları":
 
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown('<a href="?mail=gunluk" target="_self" class="rapor-btn">📅 Dünün Raporunu Gönder</a>', unsafe_allow_html=True)
+            if st.button("📅 Dünün Raporunu Gönder", use_container_width=True, key="btn_manuel_gunluk"):
+                st.session_state["manuel_mail_tetik"] = "gunluk"
         with c2:
-            st.markdown('<a href="?mail=haftalik" target="_self" class="rapor-btn">🗓️ Haftalık Raporu Gönder</a>', unsafe_allow_html=True)
+            if st.button("🗓️ Haftalık Raporu Gönder", use_container_width=True, key="btn_manuel_haftalik"):
+                st.session_state["manuel_mail_tetik"] = "haftalik"
         with c3:
-            st.markdown('<a href="?mail=aylik" target="_self" class="rapor-btn">📆 Aylık Raporu Gönder</a>', unsafe_allow_html=True)
+            if st.button("📆 Aylık Raporu Gönder", use_container_width=True, key="btn_manuel_aylik"):
+                st.session_state["manuel_mail_tetik"] = "aylik"
 
-        # Tıklamayı Yakalayan Python Kodu
-        if "mail" in st.query_params:
-            mail_tipi = st.query_params["mail"]
-            del st.query_params["mail"] # URL'yi temizle
-            
-            with st.spinner("Rapor hazırlanıyor ve gönderiliyor..."):
+        # Mail Gönderme Tetikleyicisi (Sayfa yenilenmesini engeller)
+        if st.session_state.get("manuel_mail_tetik"):
+            mail_tipi = st.session_state.pop("manuel_mail_tetik") # İşaretçiyi hemen temizle
+            with st.spinner(f"{mail_tipi.capitalize()} raporu hazırlanıyor ve gönderiliyor..."):
                 if manuel_rapor_maili_gonder(mail_tipi):
-                    st.success(f"🎉 {mail_tipi.capitalize()} raporu başarıyla gönderildi!")
+                    st.success(f"🎉 Rapor başarıyla gönderildi! Lütfen mail kutunuzu kontrol edin.")
                 else:
                     st.error("❌ Mail gönderilemedi. Lütfen konsol loglarını kontrol edin.")
 
