@@ -4323,7 +4323,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     if not misafir_modu:
         st.markdown("---")
         st.subheader("🍲 Yeni Yemek Üretim Planı ve Malzeme Düşümü")
-        yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Yemek Adını Giriniz..")
+        yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", placeholder="Yemek Adını Giriniz...")
         kisi_sayisi = st.number_input(
             "Yararlanan Kişi Sayısı", min_value=1, value=200
         )
