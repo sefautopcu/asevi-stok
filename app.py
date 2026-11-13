@@ -4279,9 +4279,18 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     if not misafir_modu:
         st.markdown("---")
         st.subheader("🍲 Yeni Yemek Üretim Planı ve Malzeme Düşümü")
-        yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
+        yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Yemek Adını Giriniz..")
         kisi_sayisi = st.number_input(
             "Yararlanan Kişi Sayısı", min_value=1, value=200
+        )
+        # YENİ EKLENEN: Zorunlu Numune Seçimi
+        numune_durumu = st.radio(
+            "🧪 Numune Alındı mı? (Zorunlu)",
+            ["Numune Alındı", "Numune Alınmadı"],
+            index=None,
+            horizontal=True,
+            key="numune_secim_radio"
+        )
         )
         uretim_tarihi_input = st.date_input(
             "📅 Yemeğin Yapıldığı Tarih (Geçmiş / Bugün)",
@@ -4895,7 +4904,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 st.markdown("##### ⚡ Toplu Dağıtım Paneli (Aktif Vatandaşlar)")
                 with st.form("toplu_dagitim_formu"):
                     menu_adi_toplu = st.text_input(
-                        "Dağıtılacak Ortak Menü / Yemek Adı", "Ispanak Yemeği ve Pilav"
+                        "Dağıtılacak Ortak Menü / Yemek Adı", "Yemeğin Adını Giriniz..."
                     )
                     st.markdown("---")
                     st.markdown("**Aktif İhtiyaç Sahibi Listesi ve Porsiyon Belirleme**")
