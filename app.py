@@ -3389,6 +3389,100 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     time.sleep(1)
                     st.rerun()
 
+        # --- KAYIT GÜNCELLEME (DÜZENLEME) BÖLÜMÜ ---
+        st.markdown("---")
+        with st.expander("✏️ Hatalı / Eksik Kaydı Güncelle (Silmeden Düzelt)"):
+            if not st.session_state.girisler:
+                st.info("Sistemde güncellenecek kayıt bulunmuyor.")
+            else:
+                # Güncellenecek kaydı seçme
+                secenekler_guncelle = [
+                    f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')}, Miktar: {g.get('miktar', 0)} {g.get('birim', '')})"
+                    for g in st.session_state.girisler
+                ]
+                secilen_kayit_guncelle = st.selectbox(
+                    "Güncellenecek Kaydı Seçin", 
+                    secenekler_guncelle, 
+                    index=None, 
+                    placeholder="Düzeltilecek fatura/ürünü seçin...",
+                    key="gncl_secim_box"
+                )
+
+                if secilen_kayit_guncelle:
+                    secilen_id_g = secilen_kayit_guncelle.split(" - ")[0]
+                    # Seçilen kaydın orijinal verilerini bul
+                    ilgili_g = next((g for g in st.session_state.girisler if g["id"] == secilen_id_g), None)
+
+                    if ilgili_g:
+                        with st.form("guncelleme_formu"):
+                            st.markdown(f"**Kayıt ID:** `{ilgili_g['id']}` | **İlk Giriş Tarihi:** `{ilgili_g.get('tarih', '-')}`")
+                            
+                            # Form alanları (Mevcut verilerle dolu)
+                            c_g1, c_g2, c_g3 = st.columns(3)
+                            with c_g1:
+                                g_fatura_no = st.text_input("Fatura No", value=ilgili_g.get("fatura_no", ""))
+                                g_miktar = st.number_input("Toplam Miktar", min_value=0.1, value=float(ilgili_g.get("miktar", 1.0)), step=1.0)
+                            with c_g2:
+                                # Kategori seçimi (Mevcut kategori seçili gelir)
+                                mevcut_kategoriler = ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"]
+                                # Eğer özel bir kategori eklendiyse onu da listeye dahil et
+                                if ilgili_g.get("kategori") and ilgili_g.get("kategori") not in mevcut_kategoriler:
+                                    mevcut_kategoriler.append(ilgili_g.get("kategori"))
+                                
+                                kat_idx = mevcut_kategoriler.index(ilgili_g.get("kategori")) if ilgili_g.get("kategori") in mevcut_kategoriler else 0
+                                g_kategori = st.selectbox("Kategori", mevcut_kategoriler, index=kat_idx)
+                                
+                                # Birim seçimi
+                                birimler = ["Kg", "Adet", "Lt"]
+                                brm_idx = birimler.index(ilgili_g.get("birim")) if ilgili_g.get("birim") in birimler else 0
+                                g_birim = st.selectbox("Birim", birimler, index=brm_idx)
+                            with c_g3:
+                                g_fiyat = st.number_input("Birim Fiyat (TL)", min_value=0.01, value=float(ilgili_g.get("fiyat", 0.01)), step=0.1)
+                                
+                                # Depo seçimi
+                                depolar_list = st.session_state.depolar if st.session_state.depolar else ["Merkez Depo"]
+                                depo_idx = depolar_list.index(ilgili_g.get("depo")) if ilgili_g.get("depo") in depolar_list else 0
+                                g_depo = st.selectbox("Depo Yeri", depolar_list, index=depo_idx)
+
+                            # SKT Tarihi
+                            skt_mevcut = ilgili_g.get("skt")
+                            try:
+                                skt_dt_obj = datetime.datetime.strptime(skt_mevcut, "%Y-%m-%d").date() if skt_mevcut else None
+                            except:
+                                skt_dt_obj = None
+                            g_skt = st.date_input("📅 Son Tüketim Tarihi (SKT / STT)", value=skt_dt_obj)
+
+                            # Kaydet Butonu
+                            g_kaydet_btn = st.form_submit_button("Değişiklikleri Kaydet", type="primary")
+
+                            if g_kaydet_btn:
+                                # Stok (Kalan) Mantığı:
+                                # Eğer toplam miktar düşürülürse, kalandan da düşülür.
+                                # Eğer miktar artırılırsa, kalan da aynı oranda artırılır.
+                                eski_miktar = float(ilgili_g.get("miktar", 1.0))
+                                eski_kalan = float(ilgili_g.get("kalan", 1.0))
+                                fark = g_miktar - eski_miktar
+                                yeni_kalan = eski_kalan + fark
+                                
+                                if yeni_kalan < 0:
+                                    st.error(f"⚠️ Hata: Yeni miktar, stokta kalan miktardan ({eski_kalan}) daha az olamaz! Lütfen stoktan düşülmüş miktarı kontrol edin.")
+                                else:
+                                    # Değerleri güncelle
+                                    ilgili_g["fatura_no"] = g_fatura_no if g_fatura_no else "BELİRTİLMEMİŞ"
+                                    ilgili_g["miktar"] = g_miktar
+                                    ilgili_g["kalan"] = yeni_kalan
+                                    ilgili_g["fiyat"] = g_fiyat
+                                    ilgili_g["kategori"] = g_kategori
+                                    ilgili_g["birim"] = g_birim
+                                    ilgili_g["depo"] = g_depo
+                                    ilgili_g["skt"] = str(g_skt) if g_skt else ""
+
+                                    # Veritabanına kaydet
+                                    verileri_kaydet(st.session_state.girisler)
+                                    st.success("🎉 Başarılı! Kayıt başarıyla güncellendi.")
+                                    time.sleep(1)
+                                    st.rerun()
+        
         # --- FATURA ARŞİVİ TABLOSU (GERİ EKLENDİ) ---
         st.markdown("---")
         st.subheader("📋 Kayıtlı Fatura ve Mal Alım Arşivi")
@@ -3426,8 +3520,6 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             ozel_html_tablo_goster(fatura_tablo_verisi)
         else:
             st.info("Sistemde kayıtlı fatura veya mal alımı bulunmuyor.")
-
-# DEPO YÖNETİMİ
             
 # DEPO YÖNETİMİ
 elif menu == "Depo Yönetimi":
