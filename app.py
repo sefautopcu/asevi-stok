@@ -4663,9 +4663,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             st.info("Seçilen tarih aralığında kayıtlı yemek üretim ve maliyet arşivi bulunmuyor.")
 
 # 6. KALORİ HESAPLAMA ARACI
-# 6. KALORİ HESAPLAMA ARACI
 elif menu == "Kalori Hesaplama Aracı":
     st.header("🔥 Reçete ve Kalori Analiz Merkezi")
+    st.info("ℹ️ **Not:** Kalori değerleri, standart 100 gram/ml başına ortalama besin değerleri baz alınarak **yaklaşık olarak** hesaplanmaktadır. Tıbbi veya resmi diyet programları için kesin sonuç vermez.")
     
     if "kalori_sepeti" not in st.session_state:
         st.session_state.kalori_sepeti = []
@@ -4727,9 +4727,9 @@ elif menu == "Kalori Hesaplama Aracı":
             # Özet Metrikler
             m1, m2 = st.columns(2)
             with m1:
-                st.metric("Toplam Kalori", f"{toplam_kalori:,.0f} kcal")
+                st.metric("Toplam Kalori (Yaklaşık)", f"{toplam_kalori:,.0f} kcal")
             with m2:
-                st.metric(f"Kişi Başı ({kisi_sayisi_kalori} Kişi)", f"{kisi_basi_kalori:,.0f} kcal")
+                st.metric(f"Kişi Başı (Yaklaşık, {kisi_sayisi_kalori} Kişi)", f"{kisi_basi_kalori:,.0f} kcal")
             
             # Sepet Tablosu
             sepet_tablo = []
@@ -4769,9 +4769,10 @@ elif menu == "Kalori Hesaplama Aracı":
                         time.sleep(1)
                         st.rerun()
             with c3:
-                # Anlık sepeti indirme
-                excel_sepet = tablo_to_excel_bytes(sepet_tablo, f"Kalori Raporu - {recete_adi or 'Isimsiz'}")
-                pdf_sepet = tablo_to_html_pdf_bytes(f"Kalori Raporu - {recete_adi or 'Isimsiz'}", sepet_tablo)
+                # Anlık sepeti indirme (Uyarı notu eklendi)
+                rapor_basligi = f"Kalori Raporu - {recete_adi or 'Isimsiz'} (Not: Kalori değerleri yaklaşık olarak hesaplanmıştır.)"
+                excel_sepet = tablo_to_excel_bytes(sepet_tablo, rapor_basligi)
+                pdf_sepet = tablo_to_html_pdf_bytes(rapor_basligi, sepet_tablo)
                 st.download_button(
                     "📥 Raporu İndir", 
                     data=excel_sepet, 
@@ -4802,8 +4803,9 @@ elif menu == "Kalori Hesaplama Aracı":
         
         col_arsiv_bas, col_arsiv_indir = st.columns([2, 2])
         with col_arsiv_indir:
-            excel_arsiv = tablo_to_excel_bytes(arsiv_tablo_verisi, "Kayıtlı Reçeteler Arşivi")
-            pdf_arsiv = tablo_to_html_pdf_bytes("Kayıtlı Reçeteler Arşivi", arsiv_tablo_verisi)
+            arsiv_basligi = "Kayıtlı Reçeteler Arşivi (Not: Kalori değerleri yaklaşık olarak hesaplanmıştır.)"
+            excel_arsiv = tablo_to_excel_bytes(arsiv_tablo_verisi, arsiv_basligi)
+            pdf_arsiv = tablo_to_html_pdf_bytes(arsiv_basligi, arsiv_tablo_verisi)
             ortak_indirme_alani(excel_arsiv, pdf_arsiv, "kalori_recete_arsivi", "kalori_arsiv_indir_btn")
             
         ozel_html_tablo_goster(arsiv_tablo_verisi)
