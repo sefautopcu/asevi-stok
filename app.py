@@ -4796,7 +4796,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                             islem_yapan_kisi = st.session_state.aktif_kullanici
                             st.session_state.ihtiyac_sahipleri.append({
                                 "id": yeni_id_uret("IHT-", st.session_state.ihtiyac_sahipleri),
-                                "tc_hane": yeni_tc_hane,
+                                "hane": yeni_hane,
                                 "ad_soyad": yeni_ad,
                                 "telefon": yeni_tel,
                                 "adres": yeni_adres,
