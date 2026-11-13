@@ -5761,45 +5761,53 @@ elif menu == "Kullanıcı Ayarları":
         st.markdown("### 📧 Manuel Rapor Gönderimi")
         st.caption("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
         
-        # HTML Buton Tasarımı (Görseldeki gibi)
-        buton_stili = """
-            display: inline-flex; align-items: center; gap: 8px;
-            background: rgba(10, 15, 29, 0.85); 
-            border: 1px solid rgba(16, 185, 129, 0.35); 
-            border-radius: 20px; 
-            padding: 10px 20px; 
-            color: #f4f4f5; 
-            font-weight: 600; 
-            font-size: 14px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        """
-        
+        # Butonlar için özel CSS (Tam genişlik, renkli arka plan ve hover efekti)
+        st.markdown("""
+        <style>
+            /* HTML butonlarını saran kapsayıcıyı esnet */
+            div[data-testid="stMarkdown"]:has(a.rapor-btn) {
+                width: 100%;
+            }
+            /* Buton Tasarımı */
+            a.rapor-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%) !important;
+                border: 1px solid rgba(16, 185, 129, 0.5) !important;
+                border-radius: 12px !important;
+                padding: 12px 20px !important;
+                color: #10b981 !important; /* İkinci görseldeki gibi yeşil yazı */
+                font-weight: 700 !important;
+                font-size: 14px !important;
+                text-decoration: none !important;
+                transition: all 0.3s ease !important;
+                width: 100%;
+            }
+            /* Hover (Üzerine Gelme) Efekti */
+            a.rapor-btn:hover {
+                background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.1) 100%) !important;
+                border-color: #10b981 !important;
+                box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.6) !important;
+                transform: translateY(-3px) !important;
+                color: #ffffff !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown(f"""
-                <a href="?mail=gunluk" target="_self" style="{buton_stili}" onmouseover="this.style.borderColor='#10b981'; this.style.boxShadow='0 0 20px -5px rgba(16, 185, 129, 0.5)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.35)'; this.style.boxShadow='none'; this.style.transform='none';">
-                    📅 Dünün Raporunu Gönder
-                </a>
-            """, unsafe_allow_html=True)
+            st.markdown('<a href="?mail=gunluk" target="_self" class="rapor-btn">📅 Dünün Raporunu Gönder</a>', unsafe_allow_html=True)
         with c2:
-            st.markdown(f"""
-                <a href="?mail=haftalik" target="_self" style="{buton_stili}" onmouseover="this.style.borderColor='#10b981'; this.style.boxShadow='0 0 20px -5px rgba(16, 185, 129, 0.5)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.35)'; this.style.boxShadow='none'; this.style.transform='none';">
-                    🗓️ Haftalık Raporu Gönder
-                </a>
-            """, unsafe_allow_html=True)
+            st.markdown('<a href="?mail=haftalik" target="_self" class="rapor-btn">🗓️ Haftalık Raporu Gönder</a>', unsafe_allow_html=True)
         with c3:
-            st.markdown(f"""
-                <a href="?mail=aylik" target="_self" style="{buton_stili}" onmouseover="this.style.borderColor='#10b981'; this.style.boxShadow='0 0 20px -5px rgba(16, 185, 129, 0.5)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.35)'; this.style.boxShadow='none'; this.style.transform='none';">
-                    📆 Aylık Raporu Gönder
-                </a>
-            """, unsafe_allow_html=True)
+            st.markdown('<a href="?mail=aylik" target="_self" class="rapor-btn">📆 Aylık Raporu Gönder</a>', unsafe_allow_html=True)
 
         # Tıklamayı Yakalayan Python Kodu
         if "mail" in st.query_params:
             mail_tipi = st.query_params["mail"]
-            # URL'yi temizle ki sayfa yenilendiğinde tekrar mail atmasın
-            del st.query_params["mail"]
+            del st.query_params["mail"] # URL'yi temizle
             
             with st.spinner("Rapor hazırlanıyor ve gönderiliyor..."):
                 if manuel_rapor_maili_gonder(mail_tipi):
