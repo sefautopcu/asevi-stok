@@ -46,6 +46,149 @@ def bellek_kullanimi_al():
         return round(process.memory_info().rss / (1024 * 1024), 1)
     except Exception:
         return 0.0
+        
+def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
+    """Buton ile tetiklendiğinde çalışır, tarih/saat kontrolünü atlar ve veritabanına kayıt atmaz."""
+    import datetime
+    simdi = datetime.datetime.now()
+    bugun = simdi.date()
+    
+    if rapor_tipi == "gunluk":
+        baslangic_tarih = bugun - datetime.timedelta(days=1)
+        bitis_tarih = baslangic_tarih
+        rapor_baslik = "Günlük Rapor (Manuel)"
+        rapor_tarih_str = baslangic_tarih.strftime("%d.%m.%Y")
+    elif rapor_tipi == "haftalik":
+        baslangic_tarih = bugun - datetime.timedelta(days=7)
+        bitis_tarih = bugun - datetime.timedelta(days=1)
+        rapor_baslik = "Haftalık Rapor (Manuel)"
+        rapor_tarih_str = f"{baslangic_tarih.strftime('%d.%m.%Y')} - {bitis_tarih.strftime('%d.%m.%Y')}"
+    else: # aylik
+        ilk_gun = bugun.replace(day=1)
+        gecen_ay_son_gun = ilk_gun - datetime.timedelta(days=1)
+        baslangic_tarih = gecen_ay_son_gun.replace(day=1)
+        bitis_tarih = gecen_ay_son_gun
+        rapor_baslik = "Aylık Rapor (Manuel)"
+        rapor_tarih_str = baslangic_tarih.strftime("%B %Y")
+
+    baslangic_str = baslangic_tarih.strftime("%Y-%m-%d")
+    bitis_str = bitis_tarih.strftime("%Y-%m-%d")
+    
+    # Verileri çek
+    _, tum_girisler = _supabase_ham_oku("girisler")
+    _, tum_kullanim_loglari = _supabase_ham_oku("kullanim_loglari")
+    _, tum_silinenler = _supabase_ham_oku("silinen_urun_loglari")
+    _, tum_yemekler = _supabase_ham_oku("yemek_uretim_arsivi")
+    _, tum_izinler = _supabase_ham_oku("personel_izinleri")
+
+    tum_girisler = tum_girisler if isinstance(tum_girisler, list) else []
+    tum_kullanim_loglari = tum_kullanim_loglari if isinstance(tum_kullanim_loglari, list) else []
+    tum_silinenler = tum_silinenler if isinstance(tum_silinenler, list) else []
+    tum_yemekler = tum_yemekler if isinstance(tum_yemekler, list) else []
+    tum_izinler = tum_izinler if isinstance(tum_izinler, list) else []
+
+    def tarih_filtrele(liste, anahtar="tarih"):
+        return [item for item in liste if baslangic_str <= str(item.get(anahtar, ""))[:10] <= bitis_str]
+
+    secilen_girisler = tarih_filtrele(tum_girisler)
+    secilen_fireler = [l for l in tarih_filtrele(tum_kullanim_loglari) if l.get("tur") == "Fire/Zayiat"]
+    secilen_silinenler = tarih_filtrele(tum_silinenler)
+    secilen_yemekler = tarih_filtrele(tum_yemekler)
+    
+    secilen_izinler = []
+    for i in tum_izinler:
+        bas = str(i.get("baslangic", ""))
+        bit = str(i.get("bitis", ""))
+        if bas and bit and (baslangic_str <= bit and bitis_str >= bas):
+            secilen_izinler.append(i)
+
+    # HTML İçeriği (Aynı tasarım)
+    html = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }}
+            .container {{ max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }}
+            h2 {{ color: #10b981; margin-top: 0; }}
+            h3 {{ color: #374151; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-top: 30px; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }}
+            th {{ background-color: #f3f4f6; padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; color: #4b5563; font-size: 13px; }}
+            td {{ padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #1f2937; }}
+            .summary-table {{ width: 100%; border-collapse: separate; border-spacing: 10px 0; margin-bottom: 20px; }}
+            .summary-card {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; text-align: center; width: 33%; }}
+            .summary-title {{ font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: bold; }}
+            .summary-value {{ font-size: 24px; font-weight: bold; margin-top: 5px; }}
+            .yemek-box {{ background: #f9fafb; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 15px; border-radius: 4px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>🍲 Aziziye Aşevi - {rapor_baslik}</h2>
+            <p style="color: #6b7280; font-size: 15px;"><b>Tarih:</b> {rapor_tarih_str}</p>
+            
+            <table class="summary-table">
+                <tr>
+                    <td class="summary-card"><div class="summary-title">Yeni Stok Girişi</div><div class="summary-value" style="color: #10b981;">{len(secilen_girisler)}</div></td>
+                    <td class="summary-card"><div class="summary-title">Fire / Zayiat</div><div class="summary-value" style="color: #ef4444;">{len(secilen_fireler)}</div></td>
+                    <td class="summary-card"><div class="summary-title">Üretilen Yemek</div><div class="summary-value" style="color: #3b82f6;">{len(secilen_yemekler)}</div></td>
+                </tr>
+            </table>
+    """
+
+    if secilen_girisler:
+        html += f"<h3>📦 Gelen Stok Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Fatura No</th></tr>"
+        for g in secilen_girisler:
+            html += f"<tr><td>{g.get('urun')}</td><td>{g.get('miktar')} {g.get('birim', '')}</td><td>{g.get('fatura_no')}</td></tr>"
+        html += "</table>"
+
+    if secilen_fireler:
+        html += f"<h3>🗑️ Fire / Zayiat Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
+        for f in secilen_fireler:
+            html += f"<tr><td>{f.get('urun')}</td><td>{f.get('miktar')}</td><td>{f.get('tutar', 0):,.2f} ₺</td><td>{f.get('aciklama', '-')}</td></tr>"
+        html += "</table>"
+
+    if secilen_yemekler:
+        html += f"<h3>🍲 Üretilen Yemekler</h3>"
+        for y in secilen_yemekler:
+            toplam_maliyet = float(y.get('toplam_maliyet', 0))
+            kisi = int(y.get('kisi_sayisi', 1) or 1)
+            kisi_basi = toplam_maliyet / kisi if kisi > 0 else 0
+            html += f"<div class='yemek-box'><h4 style='margin: 0 0 10px 0; color: #111827;'>{y.get('tarih')} - {y.get('yemek_adi')} ({kisi} Kişilik)</h4>"
+            html += f"<p style='margin: 0 0 10px 0; font-size: 14px; color: #4b5563;'><b>Toplam Maliyet:</b> {toplam_maliyet:,.2f} ₺ | <b>Kişi Başı:</b> {kisi_basi:,.2f} ₺</p></div>"
+
+    if secilen_izinler:
+        html += f"<h3>👥 Personel İzinleri</h3><table><tr><th>Personel</th><th>İzin Türü</th><th>Başlangıç</th><th>Bitiş</th></tr>"
+        for i in secilen_izinler:
+            html += f"<tr><td>{i.get('personel_ad')}</td><td>{i.get('izin_turu')}</td><td>{i.get('baslangic')}</td><td>{i.get('bitis')}</td></tr>"
+        html += "</table>"
+
+    if not (secilen_girisler or secilen_fireler or secilen_silinenler or secilen_yemekler or secilen_izinler):
+        html += "<div style='text-align: center; padding: 30px; color: #6b7280;'><b>Bu dönemde sisteme girilmiş herhangi bir veri bulunmamaktadır.</b></div>"
+
+    html += "</div></body></html>"
+
+    try:
+        sender = st.secrets["MAIL_SENDER"]
+        password = st.secrets["MAIL_PASSWORD"]
+        recipient = st.secrets["MAIL_RECIPIENT"]
+        server_adresi = st.secrets.get("MAIL_SERVER", "smtp.gmail.com")
+        port = int(st.secrets.get("MAIL_PORT", 587))
+        
+        msg = MIMEMultipart()
+        msg['From'] = formataddr(("Aziziye Aşevi Otomasyon", sender))
+        msg['To'] = recipient
+        msg['Subject'] = f"Aziziye Aşevi {rapor_baslik} - {rapor_tarih_str}"
+        msg.attach(MIMEText(html, 'html', 'utf-8'))
+        
+        server = smtplib.SMTP(server_adresi, port)
+        server.starttls()
+        server.login(sender, password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Manuel mail hatası: {e}")
+        return False
 
 def gunluk_rapor_maili_gonder():
     """Günlük (08:30 sonrası), Haftalık (Pazartesi) ve Aylık (Ayın 1'i) raporları gönderir."""
@@ -5614,6 +5757,33 @@ elif menu == "Kullanıcı Ayarları":
     else:
         st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
         kullanici_db = st.session_state.kullanicilar
+
+                st.markdown("### 📧 Manuel Rapor Gönderimi")
+        st.info("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
+        
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            if st.button("📅 Dünün Raporunu Gönder", use_container_width=True):
+                with st.spinner("Gönderiliyor..."):
+                    if manuel_rapor_maili_gonder("gunluk"):
+                        st.success("Günlük rapor gönderildi!")
+                    else:
+                        st.error("Gönderilemedi.")
+        with col_m2:
+            if st.button("🗓️ Haftalık Raporu Gönder", use_container_width=True):
+                with st.spinner("Gönderiliyor..."):
+                    if manuel_rapor_maili_gonder("haftalik"):
+                        st.success("Haftalık rapor gönderildi!")
+                    else:
+                        st.error("Gönderilemedi.")
+        with col_m3:
+            if st.button("📆 Aylık Raporu Gönder", use_container_width=True):
+                with st.spinner("Gönderiliyor..."):
+                    if manuel_rapor_maili_gonder("aylik"):
+                        st.success("Aylık rapor gönderildi!")
+                    else:
+                        st.error("Gönderilemedi.")
+        st.markdown("---")
         
         # Tip güvenliği: maskeler ve yasaklı menüler düz liste olmalıdır
         for _kk, _kv in kullanici_db.items():
