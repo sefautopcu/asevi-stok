@@ -48,49 +48,108 @@ def bellek_kullanimi_al():
         return 0.0
 
 def gunluk_rapor_maili_gonder():
-    """Her sabah çalışır, hafta sonu ve resmi tatilleri atlar, dünün verilerini mail atar."""
+    """Günlük (08:30 sonrası), Haftalık (Pazartesi) ve Aylık (Ayın 1'i) raporları gönderir."""
     import datetime
     
-    bugun = datetime.date.today()
+    simdi = datetime.datetime.now()
+    bugun = simdi.date()
+    bugun_str = str(bugun)
     
-    # 1. Hafta Sonu Kontrolü
-    if bugun.weekday() >= 5:
+    # 1. Saat Kontrolü: Sabah 08:30'dan önceyse mail gönderme
+    if simdi.hour < 8 or (simdi.hour == 8 and simdi.minute < 30):
         return False
         
-    # 2. Resmi Tatil Kontrolü
+    # 2. Hafta Sonu Kontrolü (Cumartesi=5, Pazar=6) - Sadece Günlük Rapor İçin
+    # (Haftalık rapor Pazartesi, Aylık rapor Ayın 1'i olduğu için hafta sonuna denk gelmez)
+    if bugun.weekday() >= 5 and bugun.day != 1:
+        return False
+        
+    # 3. Resmi Tatil Kontrolü
     try:
         tr_holidays = holidays.Turkey()
-        if bugun in tr_holidays:
+        if bugun in tr_holidays and bugun.day != 1:
             return False
     except Exception:
         pass
 
-    # 3. Bugün mail zaten gönderildi mi?
-    if st.session_state.get("son_mail_tarihi") == str(bugun):
-        return False
-
-    # 4. Dünün tarihini belirle
-    dun = bugun - datetime.timedelta(days=1)
-    dun_str = dun.strftime("%Y-%m-%d")
-    dun_str_tr = dun.strftime("%d.%m.%Y")
+    # 4. Veritabanından Son Mail Tarihini Kontrol Et (Tekrarı önler)
+    durum, mail_log = _supabase_ham_oku("mail_loglari")
+    mail_log = mail_log if isinstance(mail_log, dict) else {}
     
-    # 5. VERİLERİ DOĞRUDAN SUPABASE'DEN ÇEK (Session state'e bağımlı kalmadan)
-    tum_girisler = supabase_veri_oku("girisler", [], kritik=False)
-    tum_kullanim_loglari = supabase_veri_oku("kullanim_loglari", [], kritik=False)
-    tum_silinenler = supabase_veri_oku("silinen_urun_loglari", [], kritik=False)
-    tum_yemekler = supabase_veri_oku("yemek_uretim_arsivi", [], kritik=False)
-    tum_izinler = supabase_veri_oku("personel_izinleri", [], kritik=False)
-
-    # 6. Dünün verilerini filtrele
-    dun_girisler = [g for g in tum_girisler if g.get("tarih", "").startswith(dun_str)]
-    dun_fireler = [l for l in tum_kullanim_loglari if l.get("tarih", "").startswith(dun_str) and l.get("tur") == "Fire/Zayiat"]
-    dun_silinenler = [s for s in tum_silinenler if s.get("tarih", "").startswith(dun_str)]
-    dun_yemekler = [y for y in tum_yemekler if y.get("tarih") == dun_str]
-    dun_izinler = [i for i in tum_izinler if i.get("baslangic", "") <= dun_str <= i.get("bitis", "")]
-
-    # --- HTML İÇERİK OLUŞTURMA (E-posta istemcilerine uygun) ---
-    # E-posta istemcileri flexbox'ı desteklemediği için tablo yapısı kullanıyoruz.
+    gonderilecek_rapor = None # "gunluk", "haftalik" veya "aylik"
     
+    # Aylık Rapor (Her ayın 1'i)
+    if bugun.day == 1 and mail_log.get("aylik") != bugun_str[:7]: # YYYY-MM
+        gonderilecek_rapor = "aylik"
+    # Haftalık Rapor (Her Pazartesi)
+    elif bugun.weekday() == 0 and mail_log.get("haftalik") != bugun_str:
+        gonderilecek_rapor = "haftalik"
+    # Günlük Rapor (Hafta içi her gün)
+    elif bugun.weekday() < 5 and mail_log.get("gunluk") != bugun_str:
+        gonderilecek_rapor = "gunluk"
+        
+    if not gonderilecek_rapor:
+        return False # Gönderilecek rapor yok (zaten gönderilmiş veya koşullar uymuyor)
+
+    # 5. Tarih Aralıklarını Belirle
+    if gonderilecek_rapor == "gunluk":
+        baslangic_tarih = bugun - datetime.timedelta(days=1)
+        bitis_tarih = baslangic_tarih
+        rapor_baslik = "Günlük Rapor"
+        rapor_tarih_str = baslangic_tarih.strftime("%d.%m.%Y")
+    elif gonderilecek_rapor == "haftalik":
+        baslangic_tarih = bugun - datetime.timedelta(days=7)
+        bitis_tarih = bugun - datetime.timedelta(days=1)
+        rapor_baslik = "Haftalık Rapor"
+        rapor_tarih_str = f"{baslangic_tarih.strftime('%d.%m.%Y')} - {bitis_tarih.strftime('%d.%m.%Y')}"
+    else: # aylik
+        ilk_gun = bugun.replace(day=1)
+        gecen_ay_son_gun = ilk_gun - datetime.timedelta(days=1)
+        baslangic_tarih = gecen_ay_son_gun.replace(day=1)
+        bitis_tarih = gecen_ay_son_gun
+        rapor_baslik = "Aylık Rapor"
+        rapor_tarih_str = baslangic_tarih.strftime("%B %Y")
+
+    baslangic_str = baslangic_tarih.strftime("%Y-%m-%d")
+    bitis_str = bitis_tarih.strftime("%Y-%m-%d")
+    
+    # 6. VERİLERİ DOĞRUDAN VERİTABANINDAN ÇEK
+    _, tum_girisler = _supabase_ham_oku("girisler")
+    _, tum_kullanim_loglari = _supabase_ham_oku("kullanim_loglari")
+    _, tum_silinenler = _supabase_ham_oku("silinen_urun_loglari")
+    _, tum_yemekler = _supabase_ham_oku("yemek_uretim_arsivi")
+    _, tum_izinler = _supabase_ham_oku("personel_izinleri")
+
+    # Güvenli listeler
+    tum_girisler = tum_girisler if isinstance(tum_girisler, list) else []
+    tum_kullanim_loglari = tum_kullanim_loglari if isinstance(tum_kullanim_loglari, list) else []
+    tum_silinenler = tum_silinenler if isinstance(tum_silinenler, list) else []
+    tum_yemekler = tum_yemekler if isinstance(tum_yemekler, list) else []
+    tum_izinler = tum_izinler if isinstance(tum_izinler, list) else []
+
+    # 7. Tarih Aralığına Göre Filtrele
+    def tarih_filtrele(liste, anahtar="tarih"):
+        sonuc = []
+        for item in liste:
+            t = str(item.get(anahtar, ""))[:10] # YYYY-MM-DD kısmını al
+            if baslangic_str <= t <= bitis_str:
+                sonuc.append(item)
+        return sonuc
+
+    secilen_girisler = tarih_filtrele(tum_girisler)
+    secilen_fireler = [l for l in tarih_filtrele(tum_kullanim_loglari) if l.get("tur") == "Fire/Zayiat"]
+    secilen_silinenler = tarih_filtrele(tum_silinenler)
+    secilen_yemekler = tarih_filtrele(tum_yemekler)
+    
+    # İzinler (Tarih aralığına denk gelenler)
+    secilen_izinler = []
+    for i in tum_izinler:
+        bas = str(i.get("baslangic", ""))
+        bit = str(i.get("bitis", ""))
+        if bas and bit and (baslangic_str <= bit and bitis_str >= bas):
+            secilen_izinler.append(i)
+
+    # --- HTML İÇERİK OLUŞTURMA ---
     html = f"""
     <html>
     <head>
@@ -111,27 +170,112 @@ def gunluk_rapor_maili_gonder():
     </head>
     <body>
         <div class="container">
-            <h2>🍲 Aziziye Aşevi - Günlük Rapor</h2>
-            <p style="color: #6b7280; font-size: 15px;"><b>Tarih:</b> {dun_str_tr}</p>
+            <h2>🍲 Aziziye Aşevi - {rapor_baslik}</h2>
+            <p style="color: #6b7280; font-size: 15px;"><b>Tarih:</b> {rapor_tarih_str}</p>
             
-            <!-- ÖZET KARTLARI (Tablo Yapısı ile) -->
             <table class="summary-table">
                 <tr>
                     <td class="summary-card">
                         <div class="summary-title">Yeni Stok Girişi</div>
-                        <div class="summary-value" style="color: #10b981;">{len(dun_girisler)}</div>
+                        <div class="summary-value" style="color: #10b981;">{len(secilen_girisler)}</div>
                     </td>
                     <td class="summary-card">
                         <div class="summary-title">Fire / Zayiat</div>
-                        <div class="summary-value" style="color: #ef4444;">{len(dun_fireler)}</div>
+                        <div class="summary-value" style="color: #ef4444;">{len(secilen_fireler)}</div>
                     </td>
                     <td class="summary-card">
                         <div class="summary-title">Üretilen Yemek</div>
-                        <div class="summary-value" style="color: #3b82f6;">{len(dun_yemekler)}</div>
+                        <div class="summary-value" style="color: #3b82f6;">{len(secilen_yemekler)}</div>
                     </td>
                 </tr>
             </table>
     """
+
+    if secilen_girisler:
+        html += f"<h3>📦 Gelen Stok Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Fatura No</th></tr>"
+        for g in secilen_girisler:
+            html += f"<tr><td>{g.get('urun')}</td><td>{g.get('miktar')} {g.get('birim', '')}</td><td>{g.get('fatura_no')}</td></tr>"
+        html += "</table>"
+
+    if secilen_fireler:
+        html += f"<h3>🗑️ Fire / Zayiat Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
+        for f in secilen_fireler:
+            html += f"<tr><td>{f.get('urun')}</td><td>{f.get('miktar')}</td><td>{f.get('tutar', 0):,.2f} ₺</td><td>{f.get('aciklama', '-')}</td></tr>"
+        html += "</table>"
+
+    if secilen_silinenler:
+        html += f"<h3>❌ Silinen Ürünler</h3><table><tr><th>Ürün</th><th>Kayıt ID</th><th>Neden</th></tr>"
+        for s in secilen_silinenler:
+            html += f"<tr><td>{s.get('urun')}</td><td>{s.get('kayit_id')}</td><td>{s.get('neden')}</td></tr>"
+        html += "</table>"
+
+    if secilen_yemekler:
+        html += f"<h3>🍲 Üretilen Yemekler</h3>"
+        for y in secilen_yemekler:
+            toplam_maliyet = float(y.get('toplam_maliyet', 0))
+            kisi = int(y.get('kisi_sayisi', 1) or 1)
+            kisi_basi = toplam_maliyet / kisi if kisi > 0 else 0
+            
+            html += f"<div class='yemek-box'>"
+            html += f"<h4 style='margin: 0 0 10px 0; color: #111827;'>{y.get('tarih')} - {y.get('yemek_adi')} ({kisi} Kişilik)</h4>"
+            html += f"<p style='margin: 0 0 10px 0; font-size: 14px; color: #4b5563;'><b>Toplam Maliyet:</b> {toplam_maliyet:,.2f} ₺ | <b>Kişi Başı:</b> {kisi_basi:,.2f} ₺</p>"
+            
+            if y.get("malzemeler"):
+                html += "<table style='margin: 0;'><tr><th>Kullanılan Malzeme</th><th>Miktar</th><th>Maliyet</th></tr>"
+                for m in y.get("malzemeler", []):
+                    html += f"<tr><td>{m.get('urun')}</td><td>{m.get('miktar')}</td><td>{m.get('tutar', 0):,.2f} ₺</td></tr>"
+                html += "</table>"
+            html += "</div>"
+
+    if secilen_izinler:
+        html += f"<h3>👥 Personel İzinleri</h3><table><tr><th>Personel</th><th>İzin Türü</th><th>Başlangıç</th><th>Bitiş</th></tr>"
+        for i in secilen_izinler:
+            html += f"<tr><td>{i.get('personel_ad')}</td><td>{i.get('izin_turu')}</td><td>{i.get('baslangic')}</td><td>{i.get('bitis')}</td></tr>"
+        html += "</table>"
+
+    if not (secilen_girisler or secilen_fireler or secilen_silinenler or secilen_yemekler or secilen_izinler):
+        html += "<div style='text-align: center; padding: 30px; color: #6b7280;'><b>Bu dönemde sisteme girilmiş herhangi bir veri bulunmamaktadır.</b></div>"
+
+    html += """
+        </div>
+    </body>
+    </html>
+    """
+
+    # 8. Mail Gönderim İşlemi
+    try:
+        sender = st.secrets["MAIL_SENDER"]
+        password = st.secrets["MAIL_PASSWORD"]
+        recipient = st.secrets["MAIL_RECIPIENT"]
+        server_adresi = st.secrets.get("MAIL_SERVER", "smtp.gmail.com")
+        port = int(st.secrets.get("MAIL_PORT", 587))
+        
+        msg = MIMEMultipart()
+        msg['From'] = formataddr(("Aziziye Aşevi Otomasyon", sender))
+        msg['To'] = recipient
+        msg['Subject'] = f"Aziziye Aşevi {rapor_baslik} - {rapor_tarih_str}"
+        msg.attach(MIMEText(html, 'html', 'utf-8'))
+        
+        server = smtplib.SMTP(server_adresi, port)
+        server.starttls()
+        server.login(sender, password)
+        server.send_message(msg)
+        server.quit()
+        
+        # 9. BAŞARILI OLURSA VERİTABANINA KAYDET
+        if gonderilecek_rapor == "gunluk":
+            mail_log["gunluk"] = bugun_str
+        elif gonderilecek_rapor == "haftalik":
+            mail_log["haftalik"] = bugun_str
+        elif gonderilecek_rapor == "aylik":
+            mail_log["aylik"] = bugun_str[:7]
+            
+        supabase_veri_kaydet("mail_loglari", mail_log, zorla=True)
+        return True
+        
+    except Exception as e:
+        print(f"Mail gönderim hatası: {e}")
+        return False
 
     # 1. Gelen Stok Girişleri
     if dun_girisler:
