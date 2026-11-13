@@ -4408,7 +4408,11 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 if st.button(
                     "🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"
                 ):
-                    tarih_simdi = simdi_tr_str("%Y-%m-%d %H:%M")
+                    # YENİ EKLENEN: Numune seçimi zorunluluğu kontrolü
+                    if not numune_durumu:
+                        st.error("⚠️ Lütfen üretimi tamamlamadan önce 'Numune Alındı / Alınmadı' seçeneğini işaretleyin!")
+                    else:
+                        tarih_simdi = simdi_tr_str("%Y-%m-%d %H:%M")
 
                     arsiv_malzemeler = []
                     dusulen_kayitlar = []
@@ -4461,6 +4465,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         "kisi_sayisi": kisi_sayisi,
                         "malzemeler": arsiv_malzemeler,
                         "toplam_maliyet": toplam_maliyet,
+                        "numune_durumu": numune_durumu,
                         "islem_yapan": st.session_state.aktif_kullanici,
                     }
                     st.session_state.yemek_uretim_arsivi.append(arsiv_obj)
@@ -4578,6 +4583,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Malzeme Maliyeti": f"{m.get('tutar', 0):,.2f} ₺",
                             "Menü Toplam Maliyeti": f"{toplam_maliyet_degeri:,.2f} ₺",
                             "Kişi Başı Maliyet": f"{kisi_basi_maliyet:,.2f} ₺",
+                            "Numune Durumu": u_kayit.get("numune_durumu", "-"), # 
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
                         excel_arsiv_listesi.append({
@@ -4588,6 +4594,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Malzeme Maliyeti (TL)": round(m.get("tutar", 0), 2),
                             "Menü Toplam Maliyeti (TL)": round(toplam_maliyet_degeri, 2),
                             "Kişi Başı Maliyet (TL)": round(kisi_basi_maliyet, 2),
+                            "Numune Durumu": u_kayit.get("numune_durumu", "-"), #
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
 
