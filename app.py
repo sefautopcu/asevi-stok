@@ -3383,7 +3383,45 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     time.sleep(1)
                     st.rerun()
 
-        # ... (Fatura Arşivi kısmı aynen kalacak, dilersen bu kısmı da SKT sütunu ile güncelleyebiliriz ama şu anlık dokunmuyoruz) ...
+        # --- FATURA ARŞİVİ TABLOSU (GERİ EKLENDİ) ---
+        st.markdown("---")
+        st.subheader("📋 Kayıtlı Fatura ve Mal Alım Arşivi")
+        
+        if st.session_state.girisler:
+            fatura_tablo_verisi = []
+            # En son eklenen en üstte görünsün diye reversed kullanıyoruz
+            for g in reversed(st.session_state.girisler):
+                fatura_tablo_verisi.append({
+                    "Kayıt ID": g.get("id", "-"),
+                    "Tarih / Saat": g.get("tarih", "-"),
+                    "Fatura No": g.get("fatura_no", "-"),
+                    "Ürün Adı": g.get("urun", "-"),
+                    "Kategori": g.get("kategori", "-"),
+                    "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
+                    "Birim Fiyat": f"{g.get('fiyat', 0):,.2f} ₺",
+                    "SKT / STT": g.get("skt", "-"),
+                    "Depo": g.get("depo", "-"),
+                    "İşlemi Yapan": g.get("islem_yapan", "admin"),
+                })
+            
+            # Excel ve PDF indirme butonları için veri hazırlığı
+            excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura ve Mal Alım Arşivi")
+            pdf_fatura_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fatura ve Mal Alım Arşivi", fatura_tablo_verisi)
+            
+            # İndirme alanını sağ üste yerleştir
+            col_b_fat, col_indir_fat = st.columns([2, 2])
+            with col_indir_fat:
+                ortak_indirme_alani(
+                    excel_fatura_data, pdf_fatura_data, 
+                    "fatura_mal_alim_arsivi", "fatura_arsiv_sayfasi"
+                )
+            
+            # Tabloyu ekrana bas
+            ozel_html_tablo_goster(fatura_tablo_verisi)
+        else:
+            st.info("Sistemde kayıtlı fatura veya mal alımı bulunmuyor.")
+
+# DEPO YÖNETİMİ
             
 # DEPO YÖNETİMİ
 elif menu == "Depo Yönetimi":
