@@ -53,6 +53,12 @@ st.set_page_config(
 APP_VERSION = "v2.0.0"
 LAST_UPDATE = "Kasım 2026"
 
+def simdi_tr_str(format_str="%Y-%m-%d %H:%M"):
+    """Gerçek Türkiye saatini (Europe/Istanbul) döndürür."""
+    try:
+        return datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).strftime(format_str)
+    except Exception:
+        return datetime.datetime.now().strftime(format_str)
 
 def bellek_kullanimi_al():
     """Python sürecinin sunucuda kullandığı anlık RAM miktarını (MB) hesaplar."""
