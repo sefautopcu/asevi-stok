@@ -5759,8 +5759,29 @@ elif menu == "Kullanıcı Ayarları":
         kullanici_db = st.session_state.kullanicilar
 
         st.markdown("### 📧 Manuel Rapor Gönderimi")
-        st.info("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
+        st.caption("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
         
+        # Butonları yan yana ve şık bir formatta göstermek için özel CSS
+        st.markdown("""
+        <style>
+            div[data-testid="column"] div.stButton > button {
+                background: rgba(10, 15, 29, 0.85) !important;
+                border: 1px solid rgba(16, 185, 129, 0.35) !important;
+                border-radius: 12px !important;
+                padding: 12px 20px !important;
+                color: #f4f4f5 !important;
+                font-weight: 600 !important;
+                transition: all 0.3s ease !important;
+                width: 100% !important;
+            }
+            div[data-testid="column"] div.stButton > button:hover {
+                border-color: #10b981 !important;
+                box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.5) !important;
+                transform: translateY(-2px) !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
         col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
             if st.button("📅 Dünün Raporunu Gönder", use_container_width=True):
