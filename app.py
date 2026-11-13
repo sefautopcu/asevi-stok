@@ -5761,49 +5761,52 @@ elif menu == "Kullanıcı Ayarları":
         st.markdown("### 📧 Manuel Rapor Gönderimi")
         st.caption("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
         
-        # Butonları yan yana ve şık bir formatta göstermek için özel CSS
-        st.markdown("""
-        <style>
-            div[data-testid="column"] div.stButton > button {
-                background: rgba(10, 15, 29, 0.85) !important;
-                border: 1px solid rgba(16, 185, 129, 0.35) !important;
-                border-radius: 12px !important;
-                padding: 12px 20px !important;
-                color: #f4f4f5 !important;
-                font-weight: 600 !important;
-                transition: all 0.3s ease !important;
-                width: 100% !important;
-            }
-            div[data-testid="column"] div.stButton > button:hover {
-                border-color: #10b981 !important;
-                box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.5) !important;
-                transform: translateY(-2px) !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
+        # HTML Buton Tasarımı (Görseldeki gibi)
+        buton_stili = """
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(10, 15, 29, 0.85); 
+            border: 1px solid rgba(16, 185, 129, 0.35); 
+            border-radius: 20px; 
+            padding: 10px 20px; 
+            color: #f4f4f5; 
+            font-weight: 600; 
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        """
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f"""
+                <a href="?mail=gunluk" target="_self" style="{buton_stili}" onmouseover="this.style.borderColor='#10b981'; this.style.boxShadow='0 0 20px -5px rgba(16, 185, 129, 0.5)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.35)'; this.style.boxShadow='none'; this.style.transform='none';">
+                    📅 Dünün Raporunu Gönder
+                </a>
+            """, unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"""
+                <a href="?mail=haftalik" target="_self" style="{buton_stili}" onmouseover="this.style.borderColor='#10b981'; this.style.boxShadow='0 0 20px -5px rgba(16, 185, 129, 0.5)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.35)'; this.style.boxShadow='none'; this.style.transform='none';">
+                    🗓️ Haftalık Raporu Gönder
+                </a>
+            """, unsafe_allow_html=True)
+        with c3:
+            st.markdown(f"""
+                <a href="?mail=aylik" target="_self" style="{buton_stili}" onmouseover="this.style.borderColor='#10b981'; this.style.boxShadow='0 0 20px -5px rgba(16, 185, 129, 0.5)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.35)'; this.style.boxShadow='none'; this.style.transform='none';">
+                    📆 Aylık Raporu Gönder
+                </a>
+            """, unsafe_allow_html=True)
 
-        col_m1, col_m2, col_m3 = st.columns(3)
-        with col_m1:
-            if st.button("📅 Dünün Raporunu Gönder", use_container_width=True):
-                with st.spinner("Gönderiliyor..."):
-                    if manuel_rapor_maili_gonder("gunluk"):
-                        st.success("Günlük rapor gönderildi!")
-                    else:
-                        st.error("Gönderilemedi.")
-        with col_m2:
-            if st.button("🗓️ Haftalık Raporu Gönder", use_container_width=True):
-                with st.spinner("Gönderiliyor..."):
-                    if manuel_rapor_maili_gonder("haftalik"):
-                        st.success("Haftalık rapor gönderildi!")
-                    else:
-                        st.error("Gönderilemedi.")
-        with col_m3:
-            if st.button("📆 Aylık Raporu Gönder", use_container_width=True):
-                with st.spinner("Gönderiliyor..."):
-                    if manuel_rapor_maili_gonder("aylik"):
-                        st.success("Aylık rapor gönderildi!")
-                    else:
-                        st.error("Gönderilemedi.")
+        # Tıklamayı Yakalayan Python Kodu
+        if "mail" in st.query_params:
+            mail_tipi = st.query_params["mail"]
+            # URL'yi temizle ki sayfa yenilendiğinde tekrar mail atmasın
+            del st.query_params["mail"]
+            
+            with st.spinner("Rapor hazırlanıyor ve gönderiliyor..."):
+                if manuel_rapor_maili_gonder(mail_tipi):
+                    st.success(f"🎉 {mail_tipi.capitalize()} raporu başarıyla gönderildi!")
+                else:
+                    st.error("❌ Mail gönderilemedi. Lütfen konsol loglarını kontrol edin.")
+
         st.markdown("---")
         
         # Tip güvenliği: maskeler ve yasaklı menüler düz liste olmalıdır
