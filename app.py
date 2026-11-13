@@ -4291,7 +4291,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             horizontal=True,
             key="numune_secim_radio"
         )
-        )
+        
         uretim_tarihi_input = st.date_input(
             "📅 Yemeğin Yapıldığı Tarih (Geçmiş / Bugün)",
             value=datetime.date.today(),
