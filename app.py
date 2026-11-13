@@ -1991,17 +1991,12 @@ for _anahtar, _deger in (("oturum_token", ""), ("oturum_bitis", 0)):
     if _anahtar not in st.session_state:
         st.session_state[_anahtar] = _deger
 
-# Giriş yapılmamışsa: çerezdeki (çerez desteği yoksa adresteki) token ile oturumu geri yüklemeyi dene
-# Uygulama her çalıştığında mail kontrolü yap (Hafta sonu/tatil değilse ve bugün atılmadıysa)
-gunluk_rapor_maili_gonder()
-
+# Giriş yapılmamışsa: URL'deki veya çerezdeki token ile oturumu geri yüklemeyi dene
 if not st.session_state.oturum_aktif:
-    if cerez_kontrol is not None:
+    aday_token = str(st.query_params.get("token", ""))
+    if not aday_token and cerez_kontrol is not None:
         aday_token = cerez_oku()
-        if "token" in query_params:
-            del query_params["token"]
-else:  # <-- BURASI EN SOLDA OLMALI (if not... ile aynı hizada)
-    aday_token = str(query_params.get("token", ""))
+        
     if aday_token:
         kayit = oturum_dogrula(aday_token)
         if kayit and kayit.get("kullanici") in st.session_state.kullanicilar:
@@ -2011,12 +2006,14 @@ else:  # <-- BURASI EN SOLDA OLMALI (if not... ile aynı hizada)
             st.session_state.oturum_bitis = kayit["bitis"]
             st.session_state["son_etkinlik"] = time.time()
             st.session_state["_oturum_son_dogrulama"] = time.time()
-        elif cerez_kontrol is None:
-            if "token" in query_params:
-                del query_params["token"]
-        elif not st.session_state.get("_cerez_temizlendi"):
-            cerez_sil()  # geçersiz/eski çerezi bir kez temizle
-            st.session_state["_cerez_temizlendi"] = True
+            if cerez_kontrol is None:
+                st.query_params["token"] = aday_token
+        else:
+            if "token" in st.query_params:
+                del st.query_params["token"]
+            if cerez_kontrol is not None and not st.session_state.get("_cerez_temizlendi"):
+                cerez_sil()
+                st.session_state["_cerez_temizlendi"] = True
 
 # Her çalışmada: token'sız (eski), süresi dolmuş veya kullanıcısı silinmiş oturumu kapat
 if st.session_state.oturum_aktif and (
