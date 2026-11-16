@@ -433,9 +433,31 @@ def gunluk_rapor_maili_gonder():
         print(f"Mail gönderim hatası: {e}")
         return False
 
+def _secrets_haritasi():
+    """st.secrets içeriğini (ust_anahtarlar, {bolum: {anahtar,...}}) olarak ayırır."""
+    ust_anahtarlar = set()
+    bolumler = {}
+    try:
+        for k in list(st.secrets.keys()):
+            try:
+                v = st.secrets[k]
+            except Exception:
+                continue
+            # Dict-benzeri (hasattr 'keys') = TOML bölümü; aksi hâlde üst düzey anahtar
+            if hasattr(v, "keys"):
+                try:
+                    bolumler[k] = set(v.keys())
+                except Exception:
+                    bolumler[k] = set()
+            else:
+                ust_anahtarlar.add(k)
+    except Exception:
+        pass
+    return ust_anahtarlar, bolumler
 
 def baglanti_tanilama_goster():
     """Bağlantı ve secrets ayarlarını teşhis eden ekran."""
+    ust_anahtarlar, bolumler = _secrets_haritasi()
     st.markdown("### 1) Secrets ayarları")
     for ad in ("SUPABASE_URL", "SUPABASE_KEY", "FERNET_KEY", "MASTER_RECOVERY_KEY"):
         if ad in ust_anahtarlar and ad not in bolumler:
