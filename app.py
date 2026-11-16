@@ -2328,7 +2328,88 @@ if yonetici_modu:  # sunucu bellek bilgisi yalnızca admin'e gösterilir
             st.cache_resource.clear()
             st.rerun()
 
+def test_verilerini_temizle():
+    """İçinde 'test' geçen tüm kayıtları ilgili listelerden ve loglardan temizler."""
+    silinen_sayisi = 0
+    
+    # 1. Girişler (Faturalar)
+    yeni_girisler = []
+    for g in st.session_state.girisler:
+        if "test" in str(g.get("urun", "")).lower() or "test" in str(g.get("fatura_no", "")).lower():
+            silinen_sayisi += 1
+        else:
+            yeni_girisler.append(g)
+    if len(yeni_girisler) != len(st.session_state.girisler):
+        st.session_state.girisler = yeni_girisler
+        verileri_kaydet(yeni_girisler)
+        
+    # 2. Personeller
+    yeni_personeller = []
+    for p in st.session_state.personeller:
+        if "test" in str(p.get("ad_soyad", "")).lower() or "test" in str(p.get("tc", "")).lower():
+            silinen_sayisi += 1
+        else:
+            yeni_personeller.append(p)
+    if len(yeni_personeller) != len(st.session_state.personeller):
+        st.session_state.personeller = yeni_personeller
+        personelleri_kaydet(yeni_personeller)
 
+    # 3. İhtiyaç Sahipleri
+    yeni_ihtiyac = []
+    for i in st.session_state.ihtiyac_sahipleri:
+        if "test" in str(i.get("ad_soyad", "")).lower() or "test" in str(i.get("adres", "")).lower():
+            silinen_sayisi += 1
+        else:
+            yeni_ihtiyac.append(i)
+    if len(yeni_ihtiyac) != len(st.session_state.ihtiyac_sahipleri):
+        st.session_state.ihtiyac_sahipleri = yeni_ihtiyac
+        ihtiyac_sahiplerini_kaydet(yeni_ihtiyac)
+        
+    # 4. Yemek Üretim
+    yeni_yemekler = []
+    for y in st.session_state.yemek_uretim_arsivi:
+        if "test" in str(y.get("yemek_adi", "")).lower():
+            silinen_sayisi += 1
+        else:
+            yeni_yemekler.append(y)
+    if len(yeni_yemekler) != len(st.session_state.yemek_uretim_arsivi):
+        st.session_state.yemek_uretim_arsivi = yeni_yemekler
+        yemek_uretim_arsivini_kaydet(yeni_yemekler)
+        
+    # 5. Demirbaşlar
+    yeni_demirbaslar = []
+    for d in st.session_state.demirbaslar:
+        if "test" in str(d.get("ad", "")).lower():
+            silinen_sayisi += 1
+        else:
+            yeni_demirbaslar.append(d)
+    if len(yeni_demirbaslar) != len(st.session_state.demirbaslar):
+        st.session_state.demirbaslar = yeni_demirbaslar
+        demirbasları_kaydet(yeni_demirbaslar)
+
+    # 6. Loglar (Kullanım ve Silinen Ürünler)
+    yeni_kullanim = []
+    for k in st.session_state.kullanim_loglari:
+        if "test" in str(k.get("urun", "")).lower():
+            silinen_sayisi += 1
+        else:
+            yeni_kullanim.append(k)
+    if len(yeni_kullanim) != len(st.session_state.kullanim_loglari):
+        st.session_state.kullanim_loglari = yeni_kullanim
+        loglari_kaydet(yeni_kullanim)
+        
+    yeni_silinenler = []
+    for s in st.session_state.silinen_urun_loglari:
+        if "test" in str(s.get("urun", "")).lower():
+            silinen_sayisi += 1
+        else:
+            yeni_silinenler.append(s)
+    if len(yeni_silinenler) != len(st.session_state.silinen_urun_loglari):
+        st.session_state.silinen_urun_loglari = yeni_silinenler
+        silinen_urun_loglarini_kaydet(yeni_silinenler)
+
+    return silinen_sayisi
+    
 def tablo_to_excel_bytes(veri_listesi, baslik_str):
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -6068,6 +6149,21 @@ elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
+        # Test Verisi Temizleme Aracı
+        st.markdown("---")
+        st.markdown("### 🧹 Test Verisi Temizleme Aracı")
+        st.warning("Sistemdeki (Fatura, Personel, İhtiyaç Sahibi, Yemek, Demirbaş, Log) tüm tablolarda adında veya detayında **'test'** kelimesi geçen kayıtları kalıcı olarak siler.")
+        
+        onay_test = st.checkbox("Test verilerini silmek istediğimi onaylıyorum.", key="chk_test_temizle")
+        
+        if st.button("Test Verilerini Temizle", type="primary", disabled=not onay_test):
+            silinen = test_verilerini_temizle()
+            if silinen > 0:
+                st.success(f"Başarılı! {silinen} adet test kaydı sistemden ve loglardan temizlendi.")
+                time.sleep(1.5)
+                st.rerun()
+            else:
+                st.info("İçinde 'test' geçen herhangi bir kayıt bulunamadı.")
         st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
         kullanici_db = st.session_state.kullanicilar
 
