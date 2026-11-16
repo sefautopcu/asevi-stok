@@ -836,8 +836,8 @@ def yedek_geri_yukle(paket):
 OTURUM_SURESI_SN = 8 * 60 * 60  # 8 saat
 MAKS_HATALI_GIRIS = 3           # kullanıcı + IP başına
 KILIT_SURESI_SN = 30            # ilk kilit süresi (her kilitte ikiye katlanır, en çok 15 dk)
-IP_MAKS_HATALI_GIRIS = 10       # yalnızca IP başına (kullanıcı adı denemelerine karşı)
-IP_KILIT_SURESI_SN = 60
+IP_MAKS_HATALI_GIRIS = 3        # IP başına deneme (kullanıcı adı ile aynı eşik)
+IP_KILIT_SURESI_SN = 30         # IP kilit süresi (kullanıcı adı ile aynı)
 COOKIE_ADI = "aziziye_oturum"
 OTURUM_DOGRULAMA_ARALIGI_SN = 60  # açık oturum bu aralıkla veritabanından yeniden doğrulanır
 
