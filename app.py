@@ -3354,11 +3354,13 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             birim = st.selectbox("Birim", ["Kg", "Adet", "Lt"])
             depo = st.selectbox("Depo Yeri", st.session_state.depolar if st.session_state.depolar else ["Merkez Depo"])
             
-            # YENİ EKLENEN: ZORUNLU SKT / STT TARİHİ
             skt_tarihi = st.date_input("📅 Son Tüketim Tarihi (SKT / STT) - Zorunlu", value=None)
 
             miktar = st.number_input("Toplam Miktar", min_value=0.1, step=1.0)
             fiyat = st.number_input("Birim Fiyat (TL)", min_value=0.01, step=0.1)
+            
+            # YENİ EKLENEN: Paket Başına Miktar
+            paket_miktari_input = st.number_input("Paket Başına Miktar (Kg/Lt) - Dökme ise 0", min_value=0.0, value=0.0, step=1.0, help="Eğer ürün paketli geliyorsa (örn: 2.5 kg un), buraya paket ağırlığını yazın. Dökme ürünler için 0 bırakın.")
 
             submitted = st.form_submit_button("Depoya Yeni Ürün / Fatura Ekle")
             if submitted:
@@ -3375,9 +3377,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                             st.warning(f"⚠️ Dikkat! Yazdığınız ürün mevcut '{benzerler[0]}' adına çok benziyor.")
 
                     islem_yapan_kisi = st.session_state.aktif_kullanici
-                    fatura_no_degeri = (
-                        fatura_no_input if fatura_no_input else "BELİRTİLMEMİŞ"
-                    )
+                    fatura_no_degeri = fatura_no_input if fatura_no_input else "BELİRTİLMEMİŞ"
                     yeni_kayit_id = yeni_id_uret("FAT-", st.session_state.girisler)
                     
                     yeni_kayit_obj = {
@@ -3390,8 +3390,9 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                         "miktar": miktar,
                         "kalan": miktar,
                         "fiyat": fiyat,
+                        "paket_miktari": paket_miktari_input, # YENİ EKLENDİ
                         "depo": depo,
-                        "skt": str(skt_tarihi), # YENİ EKLENEN VERİ
+                        "skt": str(skt_tarihi),
                         "islem_yapan": islem_yapan_kisi,
                     }
                     
@@ -3411,15 +3412,14 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     time.sleep(1)
                     st.rerun()
 
-                # --- KAYIT GÜNCELLEME (DÜZENLEME) BÖLÜMÜ ---
+        # --- KAYIT GÜNCELLEME (DÜZENLEME) BÖLÜMÜ ---
         st.markdown("---")
         with st.expander("✏️ Hatalı / Eksik Kaydı Güncelle (Silmeden Düzelt)"):
             if not st.session_state.girisler:
                 st.info("Sistemde güncellenecek kayıt bulunmuyor.")
             else:
-                # Güncellenecek kaydı seçme
                 secenekler_guncelle = [
-                    f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')}, Miktar: {g.get('miktar', 0)} {g.get('birim', '')})"
+                    f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')}, Kalan: {g.get('kalan', 0)} {g.get('birim', '')})"
                     for g in st.session_state.girisler
                 ]
                 secilen_kayit_guncelle = st.selectbox(
@@ -3432,41 +3432,33 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
 
                 if secilen_kayit_guncelle:
                     secilen_id_g = secilen_kayit_guncelle.split(" - ")[0]
-                    # Seçilen kaydın orijinal verilerini bul
                     ilgili_g = next((g for g in st.session_state.girisler if g["id"] == secilen_id_g), None)
 
                     if ilgili_g:
-                        # HATA ÇÖZÜMÜ: st.form kullanmıyoruz, doğrudan form elemanlarını yerleştiriyoruz.
-                        # Çünkü Streamlit form içinde sadece form_submit_button kabul eder.
                         st.markdown(f"**Kayıt ID:** `{ilgili_g['id']}` | **İlk Giriş Tarihi:** `{ilgili_g.get('tarih', '-')}`")
                         
-                        # Form alanları (Mevcut verilerle dolu)
                         c_g1, c_g2, c_g3 = st.columns(3)
                         with c_g1:
                             g_fatura_no = st.text_input("Fatura No", value=ilgili_g.get("fatura_no", ""), key="g_fat_no")
                             g_miktar = st.number_input("Toplam Miktar", min_value=0.1, value=float(ilgili_g.get("miktar", 1.0)), step=1.0, key="g_miktar")
+                            g_paket_miktari = st.number_input("Paket Başına Miktar (Kg/Lt - Dökme ise 0)", min_value=0.0, value=float(ilgili_g.get("paket_miktari", 0.0)), step=1.0, key="g_paket")
                         with c_g2:
-                            # Kategori seçimi
                             mevcut_kategoriler = ["SEBZE", "MEYVE", "KURU GIDA", "BAHARAT", "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ"]
                             if ilgili_g.get("kategori") and ilgili_g.get("kategori") not in mevcut_kategoriler:
                                 mevcut_kategoriler.append(ilgili_g.get("kategori"))
-                            
                             kat_idx = mevcut_kategoriler.index(ilgili_g.get("kategori")) if ilgili_g.get("kategori") in mevcut_kategoriler else 0
                             g_kategori = st.selectbox("Kategori", mevcut_kategoriler, index=kat_idx, key="g_kategori")
                             
-                            # Birim seçimi
                             birimler = ["Kg", "Adet", "Lt"]
                             brm_idx = birimler.index(ilgili_g.get("birim")) if ilgili_g.get("birim") in birimler else 0
                             g_birim = st.selectbox("Birim", birimler, index=brm_idx, key="g_birim")
                         with c_g3:
                             g_fiyat = st.number_input("Birim Fiyat (TL)", min_value=0.01, value=float(ilgili_g.get("fiyat", 0.01)), step=0.1, key="g_fiyat")
                             
-                            # Depo seçimi
                             depolar_list = st.session_state.depolar if st.session_state.depolar else ["Merkez Depo"]
                             depo_idx = depolar_list.index(ilgili_g.get("depo")) if ilgili_g.get("depo") in depolar_list else 0
                             g_depo = st.selectbox("Depo Yeri", depolar_list, index=depo_idx, key="g_depo")
 
-                        # SKT Tarihi
                         skt_mevcut = ilgili_g.get("skt")
                         try:
                             skt_dt_obj = datetime.datetime.strptime(skt_mevcut, "%Y-%m-%d").date() if skt_mevcut else None
@@ -3474,9 +3466,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                             skt_dt_obj = None
                         g_skt = st.date_input("📅 Son Tüketim Tarihi (SKT / STT)", value=skt_dt_obj, key="g_skt")
 
-                        # Kaydet Butonu (Form dışında olduğu için st.button kullanabiliriz)
                         if st.button("Değişiklikleri Kaydet", type="primary", key="g_kaydet_btn"):
-                            # Stok (Kalan) Mantığı
                             eski_miktar = float(ilgili_g.get("miktar", 1.0))
                             eski_kalan = float(ilgili_g.get("kalan", 1.0))
                             fark = g_miktar - eski_miktar
@@ -3493,46 +3483,64 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                                 ilgili_g["birim"] = g_birim
                                 ilgili_g["depo"] = g_depo
                                 ilgili_g["skt"] = str(g_skt) if g_skt else ""
+                                
+                                if ilgili_g.get("paket_miktari") != g_paket_miktari:
+                                    ilgili_g["paket_miktari"] = g_paket_miktari
+                                    ilgili_g.pop("paket_durumlari", None)
 
                                 verileri_kaydet(st.session_state.girisler)
                                 st.success("🎉 Başarılı! Kayıt başarıyla güncellendi.")
                                 time.sleep(1)
                                 st.rerun()
-        
+
         # --- FATURA ARŞİVİ TABLOSU ---
         st.markdown("---")
         st.subheader("📋 Kayıtlı Fatura ve Mal Alım Arşivi")
         
         if st.session_state.girisler:
             fatura_tablo_verisi = []
-            # En son eklenen en üstte görünsün diye reversed kullanıyoruz
             for g in reversed(st.session_state.girisler):
+                paket_miktari = float(g.get("paket_miktari", 0))
+                
+                if paket_miktari > 0:
+                    durumlar = g.get("paket_durumlari", {})
+                    paket_sayisi = int(float(g.get("miktar", 0)) // paket_miktari)
+                    ozet_liste = []
+                    for i in range(1, paket_sayisi + 1):
+                        p_id = f"{g['id']}-P{i}"
+                        if p_id in durumlar:
+                            kalan = durumlar[p_id]
+                            if kalan == paket_miktari:
+                                ozet_liste.append(f"P{i}: Tam")
+                            elif kalan == 0:
+                                ozet_liste.append(f"P{i}: Bitti")
+                            else:
+                                ozet_liste.append(f"P{i}: {kalan} {g.get('birim')} kaldı")
+                        else:
+                            ozet_liste.append(f"P{i}: Tam")
+                    paket_bilgi = f"{paket_miktari} {g.get('birim')} | (" + ", ".join(ozet_liste) + ")"
+                else:
+                    paket_bilgi = "Dökme (Paketsiz)"
+
                 fatura_tablo_verisi.append({
                     "Kayıt ID": g.get("id", "-"),
                     "Tarih / Saat": g.get("tarih", "-"),
                     "Fatura No": g.get("fatura_no", "-"),
                     "Ürün Adı": g.get("urun", "-"),
-                    "Kategori": g.get("kategori", "-"),
                     "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
-                    "Birim Fiyat": f"{g.get('fiyat', 0):,.2f} ₺",
+                    "Paket Yapısı": paket_bilgi,
                     "SKT / STT": g.get("skt", "-"),
                     "Depo": g.get("depo", "-"),
                     "İşlemi Yapan": g.get("islem_yapan", "admin"),
                 })
             
-            # Excel ve PDF indirme butonları için veri hazırlığı
-            excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura ve Mal Alım Arşivi")
-            pdf_fatura_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fatura ve Mal Alım Arşivi", fatura_tablo_verisi)
+            excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura Arşivi")
+            pdf_fatura_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fatura Arşivi", fatura_tablo_verisi)
             
-            # İndirme alanını sağ üste yerleştir
             col_b_fat, col_indir_fat = st.columns([2, 2])
             with col_indir_fat:
-                ortak_indirme_alani(
-                    excel_fatura_data, pdf_fatura_data, 
-                    "fatura_mal_alim_arsivi", "fatura_arsiv_sayfasi"
-                )
+                ortak_indirme_alani(excel_fatura_data, pdf_fatura_data, "fatura_mal_alim_arsivi", "fatura_arsiv_sayfasi")
             
-            # Tabloyu ekrana bas
             ozel_html_tablo_goster(fatura_tablo_verisi)
         else:
             st.info("Sistemde kayıtlı fatura veya mal alımı bulunmuyor.")
