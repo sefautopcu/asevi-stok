@@ -6579,7 +6579,7 @@ elif menu == "Kullanıcı Ayarları":
                         st.success("Şifreniz değiştirildi. Diğer cihazlardaki oturumlarınız kapatıldı.")
 
         # ------------------------------------------------ Giriş kayıtları
-        with sekme_l:
+     with sekme_l:
         st.subheader("📋 Giriş ve Güvenlik Kayıtları (son 200)")
         
         if not SUPABASE_URL or not SUPABASE_KEY:
