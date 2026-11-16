@@ -29,7 +29,7 @@ realtime==2.34.1
 requests==2.34.2
 storage3==2.34.1
 streamlit==1.67.0
-streamlit-cookies-controller==0.0.4
+extra-streamlit-components
 urllib3==2.8.0
 watchdog==7.1.0
 psutil==6.1.1
