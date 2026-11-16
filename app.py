@@ -3195,7 +3195,57 @@ elif menu == "Güncel Stok Durumu":
 
         st.markdown("---")
         
-        # --- MEVCUT ÜRÜNLER İÇİN QR KOD ÜRETİMİ ---
+        # --- YENİ EKLENEN: TOPLU SKT GÜNCELLEME FORMU ---
+        st.markdown("### 📅 Son Tüketim Tarihi (SKT / STT) Güncelle")
+        st.info("Sisteme daha önceden eklenmiş ve SKT tarihi girilmemiş ürünler için buradan toplu tarih güncellemesi yapabilirsiniz. Girilen tarih, seçilen ürünün en eski (en son kullanılacak) partisine atanır.")
+        
+        if not benzersiz_urunler:
+            st.info("Sistemde kayıtlı ürün bulunmuyor.")
+        else:
+            with st.form("skt_guncelle_formu"):
+                skt_sec_urun = st.selectbox("SKT Güncellenecek Ürünü Seçin", benzersiz_urunler, index=None, placeholder="Ürün Seçiniz...", key="skt_upd_urun")
+                skt_yeni_tarih = st.date_input("Yeni SKT / STT Tarihi", value=None)
+                skt_guncelle_btn = st.form_submit_button("SKT Tarihini Güncelle", type="primary")
+                
+                if skt_guncelle_btn:
+                    if not skt_sec_urun:
+                        st.error("⚠️ Lütfen SKT güncellenecek ürünü seçin!")
+                    elif skt_yeni_tarih is None:
+                        st.error("⚠️ Lütfen yeni SKT / STT tarihini seçin!")
+                    else:
+                        guncellendi = False
+                        # İlgili ürünün stokta kalanı > 0 olan en eski partisini bul (FIFO)
+                        ilgili_partiler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == skt_sec_urun and g.get("kalan", 0) > 0]
+                        if ilgili_partiler:
+                            en_eski_parti = min(ilgili_partiler, key=lambda x: str(x.get("tarih", "")))
+                            en_eski_parti["skt"] = str(skt_yeni_tarih)
+                            guncellendi = True
+                            
+                        if guncellendi:
+                            verileri_kaydet(st.session_state.girisler)
+                            st.success(f"🎉 Başarılı! {skt_sec_urun} ürününün SKT tarihi {skt_yeni_tarih} olarak güncellendi.")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.warning("⚠️ Seçilen ürünün stokta kalan partisi bulunmuyor, tarih atanamadı.")
+
+        # --- YENİ EKLENEN: ÜRÜN BAZLI KRİTİK EŞİK SINIRI ---
+        with st.expander("⚙️ Ürün Bazlı Kritik Eşik Sınırı Belirle"):
+            with st.form("kritik_ayar_form"):
+                secilen_k_urun = st.selectbox("Kritik Eşiği Değiştirilecek Ürün", benzersiz_urunler if benzersiz_urunler else ["Yok"])
+                mevcut_esin = st.session_state.kritik_seviyeler.get(secilen_k_urun, 10.0)
+                yeni_esin_deger = st.number_input("Kritik Miktar Sınırı", min_value=0.0, value=float(mevcut_esin), step=1.0)
+                kritik_kaydet_btn = st.form_submit_button("Kritik Eşiği Güncelle", type="primary")
+
+                if kritik_kaydet_btn and secilen_k_urun != "Yok":
+                    st.session_state.kritik_seviyeler[secilen_k_urun] = yeni_esin_deger
+                    kritik_seviyeleri_kaydet(st.session_state.kritik_seviyeler)
+                    st.success("🎉 Başarılı! Kritik sınır güncellendi.")
+                    st.balloons()
+                    st.rerun()
+
+        # --- YENİ EKLENEN: MEVCUT ÜRÜNLER İÇİN QR KOD ÜRETİMİ ---
+        st.markdown("---")
         st.markdown("### 🖨️ Mevcut Paketli Ürünler İçin QR Etiket Üret")
         st.info("Deponuzda daha önceden kayıtlı olan paketli ürünler için (örn: eski faturalar) buradan QR etiketlerini üretebilirsiniz. Paket miktarını sisteme girdiğinizde, sistem faturaya bağlı P1, P2... şeklinde etiketler oluşturur.")
         
@@ -3222,7 +3272,6 @@ elif menu == "Güncel Stok Durumu":
                         
                         mevcut_paket_miktari = float(secilen_fatura.get("paket_miktari", 0))
                         
-                        # Eğer paket miktarı girilmemişse, buradan girmesine izin ver
                         yeni_paket_miktari = st.number_input("Bu Ürünün Paket Miktarı (Kg/Lt)", min_value=0.1, value=mevcut_paket_miktari if mevcut_paket_miktari > 0 else 1.0, step=1.0, help="Sadece bu fatura/parti için geçerlidir.")
                         
                         if st.button("Paket Miktarını Kaydet ve QR Üret", type="primary"):
@@ -3232,10 +3281,6 @@ elif menu == "Güncel Stok Durumu":
                             st.rerun()
 
                         if mevcut_paket_miktari > 0 or yeni_paket_miktari > 0:
-                            # Toplam miktarı değil, KALAN miktarı baz alarak paket sayısını bulalım
-                            # Eğer 10 paket aldıysa 4 kaldıysa, sadece kalanlar için P1, P2 üretmek yerine
-                            # baştan itibaren tüm paketleri (P1...P10) üretmek daha güvenlidir. 
-                            # Çünkü P1 açılmış olabilir. Biz tüm orijinal paketleri etiketleyelim.
                             toplam_miktar = float(secilen_fatura.get("miktar", 0))
                             paket_sayisi = int(toplam_miktar // yeni_paket_miktari)
                             
@@ -3244,7 +3289,6 @@ elif menu == "Güncel Stok Durumu":
                             else:
                                 st.markdown(f"**Toplam {paket_sayisi} adet paket etiketi oluşturulacak.**")
                                 
-                                # Paket durumlarını kontrol et
                                 if "paket_durumlari" not in secilen_fatura:
                                     secilen_fatura["paket_durumlari"] = {}
 
@@ -3252,7 +3296,6 @@ elif menu == "Güncel Stok Durumu":
                                 for i in range(1, paket_sayisi + 1):
                                     p_id = f"{secilen_fatura['id']}-P{i}"
                                     
-                                    # Kalan miktarı bul (yoksa tamdır)
                                     kalan_paket_kg = secilen_fatura["paket_durumlari"].get(p_id, yeni_paket_miktari)
                                     
                                     qr = qrcode.QRCode(version=1, box_size=10, border=4)
