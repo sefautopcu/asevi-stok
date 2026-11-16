@@ -219,33 +219,33 @@ def gunluk_rapor_maili_gonder():
     simdi = datetime.datetime.now()
     bugun = simdi.date()
     bugun_str = str(bugun)
-        
-    # 1. Resmi Tatil Kontrolü (Sadece günlük rapor için)
+
+    # 1. Resmi Tatil Kontrolü (yalnızca günlük raporu engeller; haftalık/aylık etkilenmez)
+    resmi_tatil = False
     try:
-        tr_holidays = holidays.Turkey()
-        if bugun in tr_holidays and bugun.day != 1:
-            return False
+        resmi_tatil = bugun in holidays.Turkey()
     except Exception:
-        pass
+        resmi_tatil = False
 
     # 2. Veritabanından Son Mail Tarihini Kontrol Et (Aynı gün tekrar göndermeyi önler)
     durum, mail_log = _supabase_ham_oku("mail_loglari")
     mail_log = mail_log if isinstance(mail_log, dict) else {}
-    
+
     gonderilecek_rapor = None # "gunluk", "haftalik" veya "aylik"
-    
-    # Aylık Rapor (Her ayın 1'i)
-    if bugun.day == 1 and mail_log.get("aylik") != bugun_str[:7]: # YYYY-MM
+
+    # Öncelik sırası: aylık > haftalık > günlük. Aynı gün birden fazla tetiklenirse
+    # kapsam olarak en geniş rapor gönderilir (tek mail/gün).
+    if bugun.day == 1 and mail_log.get("aylik") != bugun_str[:7]:  # YYYY-MM
         gonderilecek_rapor = "aylik"
-    # Haftalık Rapor (Her Pazartesi)
     elif bugun.weekday() == 0 and mail_log.get("haftalik") != bugun_str:
         gonderilecek_rapor = "haftalik"
-    # Günlük Rapor (Günde 1 kez olmak şartıyla her gün)
-    elif mail_log.get("gunluk") != bugun_str:
+    elif not resmi_tatil and mail_log.get("gunluk") != bugun_str:
+        # Günlük rapor resmi tatilde gönderilmez; haftalık/aylık yukarıdaki dallarda
+        # öncelikli olduğu için tatil gününe denk gelen haftalık/aylık kaybolmaz.
         gonderilecek_rapor = "gunluk"
-        
+
     if not gonderilecek_rapor:
-        return False # Gönderilecek rapor yok (zaten gönderilmiş)
+        return False  # Gönderilecek rapor yok (zaten gönderilmiş)
 
     # 3. Tarih Aralıklarını Belirle
     if gonderilecek_rapor == "gunluk":
