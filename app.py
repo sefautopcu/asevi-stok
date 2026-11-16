@@ -4564,11 +4564,16 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             if st.button("↩️ Son Üretimi Geri Al", type="secondary", key="btn_undo_uretim_son"):
                 otomatik_yedek_al("Yemek üretimi geri alma: " + str(son_uretim.get("yemek_adi")))
                 
-                # 1. Stoktan düşülen miktarları depoya iade et
+                # 1. Stoktan düşülen miktarları depoya iade et (Paketli sistem uyumlu)
                 for item in son_uretim.get("dusulen_kayitlar", []):
                     for g in st.session_state.girisler:
                         if g.get("id") == item["id"]:
                             g["kalan"] = float(g.get("kalan", 0)) + float(item["miktar"])
+                            # Eğer paketli düşüm yapıldıysa paket durumunu da geri al
+                            if item.get("paket_id"):
+                                if "paket_durumlari" not in g: g["paket_durumlari"] = {}
+                                eski_paket = g["paket_durumlari"].get(item["paket_id"], 0.0)
+                                g["paket_durumlari"][item["paket_id"]] = eski_paket + float(item["miktar"])
 
                 # 2. Yemek üretim arşivinden kaydı sil
                 arsiv_target = son_uretim.get("arsiv_objesi")
@@ -4614,11 +4619,11 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     if not misafir_modu:
         st.markdown("---")
         st.subheader("🍲 Yeni Yemek Üretim Planı ve Malzeme Düşümü")
-        yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", placeholder="Yemek Adını Giriniz...")
+        yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
         kisi_sayisi = st.number_input(
             "Yararlanan Kişi Sayısı", min_value=1, value=200
         )
-        # YENİ EKLENEN: Zorunlu Numune Seçimi
+        # Zorunlu Numune Seçimi
         numune_durumu = st.radio(
             "🧪 Numune Alındı mı? (Zorunlu)",
             ["Numune Alındı", "Numune Alınmadı"],
@@ -4641,45 +4646,127 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             st.session_state.sepet = []
 
         if not salt_okunur_modu:
-            col1, col2, col3 = st.columns([2, 1, 1])
-            with col1:
-                secilen_urun = st.selectbox(
-                    "Malzeme Seç",
-                    benzersiz_urunler if benzersiz_urunler else [],
-                    index=None,
-                    placeholder="Malzeme Seçiniz...",
-                    key="yemek_urun"
-                )
-            with col2:
-                stok_max = 0.0
-                if secilen_urun:
-                    ilgili_girisler = [
-                        g
-                        for g in st.session_state.girisler
-                        if g.get("urun", "").strip().upper() == secilen_urun.strip().upper()
-                    ]
-                    stok_max = sum(g.get("kalan", 0) for g in ilgili_girisler)
+            # YENİ: SEÇİM ALANI (MANUEL VEYA QR)
+            st.markdown("#### 🛒 Malzeme Ekleme Yöntemi")
+            ekleme_yontemi = st.radio("Nasıl eklemek istersiniz?", ["Manuel Seçim", "📷 QR Kod ile Okut"], horizontal=True)
+            
+            secilen_urun = None
+            kullanilacak_miktar = 0.0
+            secilen_paket_id = None 
+            secilen_fatura_id = None
+
+            if ekleme_yontemi == "Manuel Seçim":
+                col1, col2, col3 = st.columns([2, 1, 1])
+                with col1:
+                    secilen_urun = st.selectbox(
+                        "Malzeme Seç",
+                        benzersiz_urunler if benzersiz_urunler else [],
+                        index=None,
+                        placeholder="Malzeme Seçiniz...",
+                        key="yemek_urun_manuel"
+                    )
+                with col2:
+                    stok_max = 0.0
+                    if secilen_urun:
+                        ilgili_girisler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == secilen_urun.strip().upper()]
+                        stok_max = sum(g.get("kalan", 0) for g in ilgili_girisler)
+                    
+                    kullanilacak_miktar = st.number_input(
+                        f"Miktar (Toplam Stok: {stok_max})",
+                        min_value=0.0, value=1.0, step=0.1, key="yemek_miktar_manuel",
+                    )
+                with col3:
+                    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+                    if st.button("Sepete Ekle", use_container_width=True, key="btn_sepete_ekle_manuel"):
+                        if not secilen_urun:
+                            st.error("⚠️ Lütfen sepete eklemek için bir malzeme seçin!")
+                        elif kullanilacak_miktar <= 0:
+                            st.error("⚠️ Lütfen 0'dan büyük bir miktar girin!")
+                        else:
+                            st.session_state.sepet.append({"urun": secilen_urun, "miktar": kullanilacak_miktar})
+                            st.success("Eklendi!")
+                            st.rerun()
+
+            elif ekleme_yontemi == "📷 QR Kod ile Okut":
+                st.info("Kamerayı açın ve paket üzerindeki QR kodu okutun. (Telefon veya Bilgisayar kamerası)")
+                img_file_buffer = st.camera_input("Kamera", label_visibility="collapsed", key="yemek_uretim_kamera")
                 
-                kullanilacak_miktar = st.number_input(
-                    f"Miktar (Toplam Stok: {stok_max})",
-                    min_value=0.0,
-                    value=1.0,
-                    step=0.1,
-                    key="yemek_miktar",
-                )
-            with col3:
-                st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-                if st.button("Sepete Ekle", use_container_width=True):
-                    if not secilen_urun:
-                        st.error("⚠️ Lütfen sepete eklemek için bir malzeme seçin!")
-                    elif kullanilacak_miktar <= 0:
-                        st.error("⚠️ Lütfen 0'dan büyük bir miktar girin!")
+                if img_file_buffer is not None:
+                    try:
+                        import cv2
+                        import numpy as np
+                    except ImportError:
+                        st.error("OpenCV kütüphanesi eksik. Lütfen requirements.txt dosyasını kontrol edin.")
+                        st.stop()
+                        
+                    bytes_data = img_file_buffer.getvalue()
+                    cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+                    detector = cv2.QRCodeDetector()
+                    data, bbox, _ = detector.detectAndDecode(cv2_img)
+                    
+                    if data:
+                        qr_okunan_id = data.strip()
+                        st.success(f"✅ Okundu: {qr_okunan_id}")
+                        
+                        ana_id = qr_okunan_id.split("-P")[0] if "-P" in qr_okunan_id else qr_okunan_id
+                        ilgili_g = next((g for g in st.session_state.girisler if g.get("id") == ana_id), None)
+                        
+                        if ilgili_g:
+                            urun_adi = ilgili_g.get("urun")
+                            
+                            # --- FIFO UYARISI (İlk Giren İlk Çıkar) ---
+                            tum_ayni_urunler = [g for g in st.session_state.girisler if g.get("urun") == urun_adi and float(g.get("kalan", 0)) > 0]
+                            en_eski_urun = min(tum_ayni_urunler, key=lambda x: str(x.get("tarih", ""))) if tum_ayni_urunler else None
+                            
+                            if en_eski_urun and en_eski_urun["id"] != ana_id:
+                                st.warning(f"⚠️ **FIFO UYARISI:** Depoda bu üründen daha eski bir parti var (Fatura: {en_eski_urun['id']}, Tarih: {en_eski_urun.get('tarih')}). Lütfen önce eski partiyi tüketin!")
+                            
+                            # --- AÇIK PAKET UYARISI ---
+                            if "-P" in qr_okunan_id:
+                                if "paket_durumlari" not in ilgili_g:
+                                    ilgili_g["paket_durumlari"] = {}
+                                    
+                                paket_miktari = float(ilgili_g.get("paket_miktari", 0))
+                                kalan_paket = ilgili_g["paket_durumlari"].get(qr_okunan_id, paket_miktari)
+                                
+                                # Başka açık paket var mı?
+                                acik_paketler = [(p_id, p_kg) for p_id, p_kg in ilgili_g.get("paket_durumlari", {}).items() if p_kg > 0 and p_kg < paket_miktari]
+                                if acik_paketler and acik_paketler[0][0] != qr_okunan_id:
+                                    st.warning(f"⚠️ **AÇIK PAKET UYARISI:** Bu ürüne ait açık bir paket var! ({acik_paketler[0][0]} - Kalan: {acik_paketler[0][1]} {ilgili_g.get('birim')}). Önce onu kullanmalısınız!")
+                                
+                                if kalan_paket <= 0:
+                                    st.error("❌ Bu paket tamamen tükenmiş! Lütfen başka bir paket okutun.")
+                                else:
+                                    st.info(f"**Paket:** {qr_okunan_id} | **Kalan:** {kalan_paket} {ilgili_g.get('birim')}")
+                                    secilen_urun = urun_adi
+                                    secilen_paket_id = qr_okunan_id
+                                    secilen_fatura_id = ana_id
+                                    kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=kalan_paket, value=1.0, step=0.1, key="qr_miktar_manuel")
+                                    
+                                    if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr"):
+                                        st.session_state.sepet.append({
+                                            "urun": urun_adi, 
+                                            "miktar": kullanilacak_miktar,
+                                            "paket_id": secilen_paket_id,
+                                            "fatura_id": secilen_fatura_id
+                                        })
+                                        st.success("QR ile Eklendi!")
+                                        st.rerun()
+                            else:
+                                # Dökme ürün
+                                toplam_kalan = float(ilgili_g.get("kalan", 0))
+                                st.info(f"**Dökme Ürün** | **Toplam Stok:** {toplam_kalan} {ilgili_g.get('birim')}")
+                                secilen_urun = urun_adi
+                                kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=toplam_kalan, value=1.0, step=0.1, key="qr_miktar_dokme")
+                                
+                                if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr_dokme"):
+                                    st.session_state.sepet.append({"urun": urun_adi, "miktar": kullanilacak_miktar})
+                                    st.success("QR ile Eklendi!")
+                                    st.rerun()
+                        else:
+                            st.error("Sistemde böyle bir kayıt bulunamadı.")
                     else:
-                        st.session_state.sepet.append(
-                            {"urun": secilen_urun, "miktar": kullanilacak_miktar}
-                        )
-                        st.success("Eklendi!")
-                        st.rerun()
+                        st.warning("⏳ QR Kod aranıyor... Kamerayı koda odaklayın.")
 
         st.markdown("---")
         st.subheader("Seçilen Malzemeler")
@@ -4716,9 +4803,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 item_maliyeti = istenen * ortalama_fiyat
                 toplam_maliyet += item_maliyeti
 
-                c_item_ad, c_item_mik, c_item_mal, c_item_sil = st.columns(
-                    [3, 2, 2, 1]
-                )
+                c_item_ad, c_item_mik, c_item_mal, c_item_sil = st.columns([3, 2, 2, 1])
                 with c_item_ad:
                     st.markdown(f"• **{urun}**")
                 with c_item_mik:
@@ -4740,92 +4825,106 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 st.rerun()
 
             if not salt_okunur_modu:
-                if st.button(
-                    "🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"
-                ):
-                    # YENİ EKLENEN: Numune seçimi zorunluluğu kontrolü
+                if st.button("🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"):
                     if not numune_durumu:
                         st.error("⚠️ Lütfen üretimi tamamlamadan önce 'Numune Alındı / Alınmadı' seçeneğini işaretleyin!")
                     else:
                         tarih_simdi = simdi_tr_str("%Y-%m-%d %H:%M")
 
-                    arsiv_malzemeler = []
-                    dusulen_kayitlar = []
-                    eklenen_loglar = []
+                        arsiv_malzemeler = []
+                        dusulen_kayitlar = []
+                        eklenen_loglar = []
 
-                    for item in st.session_state.sepet:
-                        urun = item["urun"]
-                        istenen = item["miktar"]
-                        kalan_dusulecek = istenen
-                        item_tutar = 0.0
-                        ilgili_g = [
-                            g
-                            for g in st.session_state.girisler
-                            if g.get("urun", "").strip().upper() == urun.strip().upper() and g.get("kalan", 0) > 0
-                        ]
-                        for g in ilgili_g:
-                            if kalan_dusulecek <= 0:
-                                break
-                            if float(g["kalan"]) >= kalan_dusulecek:
-                                dusulen_kayitlar.append({"id": g["id"], "miktar": kalan_dusulecek})
-                                g["kalan"] = float(g["kalan"]) - kalan_dusulecek
-                                item_tutar += kalan_dusulecek * float(g["fiyat"])
-                                kalan_dusulecek = 0
-                            else:
-                                dusulen = float(g["kalan"])
-                                dusulen_kayitlar.append({"id": g["id"], "miktar": dusulen})
-                                g["kalan"] = 0.0
-                                item_tutar += dusulen * float(g["fiyat"])
-                                kalan_dusulecek -= dusulen
+                        for item in st.session_state.sepet:
+                            urun = item["urun"]
+                            istenen = item["miktar"]
+                            kalan_dusulecek = istenen
+                            item_tutar = 0.0
+                            paket_id = item.get("paket_id")
+                            fatura_id = item.get("fatura_id")
 
-                        arsiv_malzemeler.append(
-                            {"urun": urun, "miktar": istenen, "tutar": item_tutar}
-                        )
+                            ilgili_g = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == urun.strip().upper() and g.get("kalan", 0) > 0]
+                            
+                            if paket_id and fatura_id:
+                                ilgili_g = [g for g in ilgili_g if g["id"] == fatura_id]
 
-                        log_obj = {
-                            "tarih": f"{uretim_tarih_str} 12:00",
-                            "urun": urun,
-                            "tur": f"Günlük Kullanım ({yemek_adi})",
-                            "miktar": istenen,
-                            "tutar": item_tutar,
+                            for g in ilgili_g:
+                                if kalan_dusulecek <= 0: break
+                                
+                                if paket_id and g["id"] == fatura_id:
+                                    # Paketli ürün düşümü
+                                    if "paket_durumlari" not in g: g["paket_durumlari"] = {}
+                                    mevcut_paket = g["paket_durumlari"].get(paket_id, float(g.get("paket_miktari", 0)))
+                                    
+                                    dusulecek = min(kalan_dusulecek, mevcut_paket)
+                                    g["paket_durumlari"][paket_id] = mevcut_paket - dusulecek
+                                    g["kalan"] = float(g["kalan"]) - dusulecek
+                                    item_tutar += dusulecek * float(g["fiyat"])
+                                    kalan_dusulecek -= dusulecek
+                                    
+                                    dusulen_kayitlar.append({"id": g["id"], "miktar": dusulecek, "paket_id": paket_id})
+                                else:
+                                    # Manuel eklendiyse (FIFO mantığıyla genel stoktan düş)
+                                    if float(g["kalan"]) >= kalan_dusulecek:
+                                        g["kalan"] = float(g["kalan"]) - kalan_dusulecek
+                                        item_tutar += kalan_dusulecek * float(g["fiyat"])
+                                        dusulen_kayitlar.append({"id": g["id"], "miktar": kalan_dusulecek, "paket_id": None})
+                                        kalan_dusulecek = 0
+                                    else:
+                                        dusulen = float(g["kalan"])
+                                        g["kalan"] = 0.0
+                                        item_tutar += dusulen * float(g["fiyat"])
+                                        dusulen_kayitlar.append({"id": g["id"], "miktar": dusulen, "paket_id": None})
+                                        kalan_dusulecek -= dusulen
+
+                            arsiv_malzemeler.append(
+                                {"urun": urun, "miktar": istenen, "tutar": item_tutar}
+                            )
+
+                            log_obj = {
+                                "tarih": f"{uretim_tarih_str} 12:00",
+                                "urun": urun,
+                                "tur": f"Günlük Kullanım ({yemek_adi})",
+                                "miktar": istenen,
+                                "tutar": item_tutar,
+                                "islem_yapan": st.session_state.aktif_kullanici,
+                            }
+                            st.session_state.kullanim_loglari.append(log_obj)
+                            eklenen_loglar.append(log_obj)
+
+                        arsiv_obj = {
+                            "tarih": uretim_tarih_str,
+                            "zaman": tarih_simdi,
+                            "yemek_adi": yemek_adi,
+                            "kisi_sayisi": kisi_sayisi,
+                            "numune_durumu": numune_durumu,
+                            "malzemeler": arsiv_malzemeler,
+                            "toplam_maliyet": toplam_maliyet,
                             "islem_yapan": st.session_state.aktif_kullanici,
                         }
-                        st.session_state.kullanim_loglari.append(log_obj)
-                        eklenen_loglar.append(log_obj)
+                        st.session_state.yemek_uretim_arsivi.append(arsiv_obj)
 
-                    arsiv_obj = {
-                        "tarih": uretim_tarih_str,
-                        "zaman": tarih_simdi,
-                        "yemek_adi": yemek_adi,
-                        "kisi_sayisi": kisi_sayisi,
-                        "malzemeler": arsiv_malzemeler,
-                        "toplam_maliyet": toplam_maliyet,
-                        "numune_durumu": numune_durumu,
-                        "islem_yapan": st.session_state.aktif_kullanici,
-                    }
-                    st.session_state.yemek_uretim_arsivi.append(arsiv_obj)
+                        # Son yemek üretim kaydını sakla (Geri Al için)
+                        st.session_state["son_yemek_uretim_kaydi"] = {
+                            "yemek_adi": yemek_adi,
+                            "kisi_sayisi": kisi_sayisi,
+                            "toplam_maliyet": toplam_maliyet,
+                            "tarih": uretim_tarih_str,
+                            "dusulen_kayitlar": dusulen_kayitlar,
+                            "arsiv_objesi": arsiv_obj,
+                            "eklenen_loglar": eklenen_loglar
+                        }
 
-                    # Son yemek üretim kaydını sakla (Geri Al için)
-                    st.session_state["son_yemek_uretim_kaydi"] = {
-                        "yemek_adi": yemek_adi,
-                        "kisi_sayisi": kisi_sayisi,
-                        "toplam_maliyet": toplam_maliyet,
-                        "tarih": uretim_tarih_str,
-                        "dusulen_kayitlar": dusulen_kayitlar,
-                        "arsiv_objesi": arsiv_obj,
-                        "eklenen_loglar": eklenen_loglar
-                    }
-
-                    yemek_uretim_arsivini_kaydet(st.session_state.yemek_uretim_arsivi)
-                    verileri_kaydet(st.session_state.girisler)
-                    loglari_kaydet(st.session_state.kullanim_loglari)
-                    st.session_state.sepet = []
-                    st.success(
-                        f"🎉 Başarılı! {uretim_tarih_str} tarihli üretim arşive kaydedildi."
-                    )
-                    st.balloons()
-                    time.sleep(1)
-                    st.rerun()
+                        yemek_uretim_arsivini_kaydet(st.session_state.yemek_uretim_arsivi)
+                        verileri_kaydet(st.session_state.girisler)
+                        loglari_kaydet(st.session_state.kullanim_loglari)
+                        st.session_state.sepet = []
+                        st.success(
+                            f"🎉 Başarılı! {uretim_tarih_str} tarihli üretim arşive kaydedildi."
+                        )
+                        st.balloons()
+                        time.sleep(1)
+                        st.rerun()
 
             st.markdown("---")
             kisi_basi_maliyet = (
@@ -4889,7 +4988,6 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             arsiv_tablo_verisi = []
             excel_arsiv_listesi = []
             for u_kayit in secilen_gun_uretimleri:
-                # Toplam Maliyet ve Kişi Başı Maliyet Hesabı
                 toplam_maliyet_degeri = float(u_kayit.get("toplam_maliyet", 0))
                 if toplam_maliyet_degeri == 0 and u_kayit.get("malzemeler"):
                     toplam_maliyet_degeri = sum(float(m.get("tutar", 0)) for m in u_kayit.get("malzemeler", []))
@@ -4902,11 +5000,13 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         "Tarih": u_kayit.get("tarih", "-"),
                         "Çıkan Yemek Adı": u_kayit.get("yemek_adi", "-"),
                         "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
+                        "Numune Durumu": u_kayit.get("numune_durumu", "-"),
                     })
                     excel_arsiv_listesi.append({
                         "Tarih": u_kayit.get("tarih", "-"),
                         "Çıkan Yemek Adı": u_kayit.get("yemek_adi", "-"),
                         "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
+                        "Numune Durumu": u_kayit.get("numune_durumu", "-"),
                     })
                 else:
                     for m in u_kayit.get("malzemeler", []):
@@ -4914,22 +5014,22 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Tarih": u_kayit.get("tarih", "-"),
                             "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
+                            "Numune Durumu": u_kayit.get("numune_durumu", "-"), # YENİ EKLENDİ
                             "Kullanılan Malzeme": m.get("urun", "-"),
                             "Malzeme Maliyeti": f"{m.get('tutar', 0):,.2f} ₺",
                             "Menü Toplam Maliyeti": f"{toplam_maliyet_degeri:,.2f} ₺",
                             "Kişi Başı Maliyet": f"{kisi_basi_maliyet:,.2f} ₺",
-                            "Numune Durumu": u_kayit.get("numune_durumu", "-"), # 
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
                         excel_arsiv_listesi.append({
                             "Tarih": u_kayit.get("tarih", "-"),
                             "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
+                            "Numune Durumu": u_kayit.get("numune_durumu", "-"), # YENİ EKLENDİ
                             "Kullanılan Malzeme": m.get("urun", "-"),
                             "Malzeme Maliyeti (TL)": round(m.get("tutar", 0), 2),
                             "Menü Toplam Maliyeti (TL)": round(toplam_maliyet_degeri, 2),
                             "Kişi Başı Maliyet (TL)": round(kisi_basi_maliyet, 2),
-                            "Numune Durumu": u_kayit.get("numune_durumu", "-"), #
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
 
