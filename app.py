@@ -28,7 +28,13 @@ import holidays
 import logging                                    # YENİ
 from concurrent.futures import ThreadPoolExecutor # YENİ
 
-log = logging.getLogger("aziziye")                # YENİ
+log = logging.getLogger("aziziye")
+# Log formatını ayarla (tarih, saat, seviye ve mesaj)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 from cekirdek import (
     SifrelemeHatasi,
@@ -424,7 +430,7 @@ YEDEK_ANAHTARLARI = [k for k in KAYIT_ESLEME if k != "kullanici_yetkileri"]
 # ATLAMALI. Aksi hâlde 60 sn'lik @st.cache_data penceresinde birbirini izleyen
 # "oku → değiştir → yaz" döngüleri eski sayacın üzerine yazar; hem kullanıcı
 # bazlı kilit (MAKS_HATALI_GIRIS) hem IP kilidi fiilen devre dışı kalır.
-ONBELLEKSIZ_ANAHTARLAR = {"giris_denemeleri", "aktif_oturumlar"}
+ONBELLEKSIZ_ANAHTARLAR = {"giris_denemeleri", "aktif_oturumlar", "kullanici_yetkileri"}
 
 def _supa_basliklar(ekstra=None):
     h = {"apikey": SUPABASE_KEY}
