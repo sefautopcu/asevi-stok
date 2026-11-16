@@ -687,6 +687,114 @@ def _guvenli_dict_guncelle(kayit_id, guncelleme_fn):
     supabase_veri_kaydet(kayit_id, yeni, zorla=True)
     return "ok", yeni
 
+# =========================================================================
+# ATOMİK YAZMA + ARKA PLAN MAIL  (K1, K3, K4)
+# =========================================================================
+_mail_havuzu = ThreadPoolExecutor(max_workers=2, thread_name_prefix="mail")
+
+
+def _smtp_gonder_senkron(konu, html_icerik):
+    """Sadece SMTP. Streamlit API'sine DOKUNMAZ. (basarili, hata_mesaji)."""
+    try:
+        sender = st.secrets["MAIL_SENDER"]
+        password = st.secrets["MAIL_PASSWORD"]
+        recipient = st.secrets["MAIL_RECIPIENT"]
+        server_adresi = st.secrets.get("MAIL_SERVER", "smtp.gmail.com")
+        port = int(st.secrets.get("MAIL_PORT", 587))
+
+        msg = MIMEMultipart()
+        msg["From"] = formataddr(("Aziziye Aşevi Otomasyon", sender))
+        msg["To"] = recipient
+        msg["Subject"] = konu
+        msg.attach(MIMEText(html_icerik, "html", "utf-8"))
+
+        # K1: timeout ZORUNLU (önceki kodda yoktu → thread 30-120sn kilitlenebiliyordu)
+        with smtplib.SMTP(server_adresi, port, timeout=10) as server:
+            server.starttls()
+            server.login(sender, password)
+            server.send_message(msg)
+        return True, ""
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
+
+
+def _supabase_ham_oku_versiyonlu(kayit_id):
+    """('ok', veri, versiyon) | ('yok', None, None) | ('hata', mesaj, None).
+    CAS için versiyon ile birlikte okur. CACHE KULLANMAZ."""
+    try:
+        r = get_http_session().get(
+            f"{SUPABASE_URL}/rest/v1/asevi_veritabani",
+            headers=_supa_basliklar(),
+            params={"id": f"eq.{kayit_id}", "select": "veri,versiyon"},
+            timeout=10,
+        )
+    except Exception as e:
+        return "hata", f"Bağlantı hatası: {type(e).__name__}", None
+    if r.status_code != 200:
+        return "hata", f"HTTP {r.status_code}", None
+    try:
+        data = r.json()
+    except Exception:
+        return "hata", "Geçersiz yanıt", None
+    if data and data[0].get("veri") is not None:
+        return "ok", data[0]["veri"], int(data[0].get("versiyon") or 0)
+    return "yok", None, None
+
+
+def _supabase_cas_yaz(kayit_id, beklenen_versiyon, yeni_veri):
+    """Compare-and-swap. (basarili, guncel_versiyon_veya_hata)."""
+    try:
+        if beklenen_versiyon is None:
+            r = get_http_session().post(
+                f"{SUPABASE_URL}/rest/v1/asevi_veritabani",
+                headers=_supa_basliklar({
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=ignore-duplicates,return=representation",
+                }),
+                json={"id": kayit_id, "veri": yeni_veri, "versiyon": 0},
+                timeout=10,
+            )
+            if r.status_code in (200, 201) and r.json():
+                return True, 0
+            return False, "insert-çakışma"
+        yeni_versiyon = beklenen_versiyon + 1
+        r = get_http_session().patch(
+            f"{SUPABASE_URL}/rest/v1/asevi_veritabani",
+            headers=_supa_basliklar({
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+            }),
+            params={"id": f"eq.{kayit_id}", "versiyon": f"eq.{beklenen_versiyon}"},
+            json={"veri": yeni_veri, "versiyon": yeni_versiyon},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            guncellenen = r.json()
+            if guncellenen:
+                return True, yeni_versiyon
+            return False, "versiyon-çakışma"
+        return False, f"HTTP {r.status_code}"
+    except Exception as e:
+        return False, f"Bağlantı hatası: {type(e).__name__}"
+
+
+def _atomik_dict_guncelle(kayit_id, guncelleme_fn, max_retry=8):
+    """K3: Okuma-değiştirme-yazma yarışını gideren atomik güncelleme.
+    Eski `_guvenli_dict_guncelle`'nin yerini alır. Çakışmada üstel geri çekilmeyle tekrar dener."""
+    son_hata = ""
+    for i in range(max_retry):
+        durum, mevcut, versiyon = _supabase_ham_oku_versiyonlu(kayit_id)
+        if durum == "hata":
+            return "hata", mevcut
+        mevcut_dict = dict(mevcut) if isinstance(mevcut, dict) else {}
+        yeni = guncelleme_fn(dict(mevcut_dict))
+        basarili, sonuc = _supabase_cas_yaz(kayit_id, versiyon, yeni)
+        if basarili:
+            return "ok", yeni
+        son_hata = sonuc
+        time.sleep(0.02 * (2 ** min(i, 4)))
+    return "hata", f"Çakışma ({max_retry} deneme): {son_hata}"
+
 def _taban_hashler():
     if "_db_hash" not in st.session_state:
         st.session_state["_db_hash"] = {}
