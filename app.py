@@ -1231,16 +1231,8 @@ def urun_kalori_hesapla(urun_adi, miktar, birim):
     return (miktar * carp * birim_kalori) / 100.0
 
 
-varsayilan_personeller = [
-    {
-        "tc": "11111111111",
-        "ad_soyad": "MUHAMMED İLKER ÇELİK",
-        "gorev": "Şoför",
-        "baslama": "2026-10-12",
-        "aktif": True,
-        "izinler": [],
-    },
-]
+# KVKK ve güvenlik gereği koda gömülü PII (Kişisel Veri) bırakılmamıştır.
+varsayilan_personeller = []
 
 varsayilan_resmi_tatiller = [
     {"tarih": "2026-01-01", "aciklama": "Yılbaşı"},
