@@ -5009,7 +5009,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
                 kisi_liste_gosterim.append({
                     "Kayıt No": k["id"],
                     "Durumu": durum_str,
-                    "T.C. Kimlik No / Hane No": tc_maskele,
+                    "Hane No": hane_maskele,
                     "Adı Soyadı": ad_maskele,
                     "Telefon": tel_maskele,
                     "Adres": adres_maskele,
