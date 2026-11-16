@@ -993,9 +993,12 @@ def cerez_yaz(deger, anahtar=COOKIE_ADI, max_age=OTURUM_SURESI_SN):
         return
     try:
         import datetime
-        bitis = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=max_age)
-        cerez_kontrol.set(anahtar, deger, expires_at=bitis)
-    except Exception:
+        # Zaman dilimi karmaşasını önlemek için yerel saat kullanıyoruz (stx bunu destekler)
+        bitis = datetime.datetime.now() + datetime.timedelta(seconds=max_age)
+        # path="/" EKLENDİ: Çerezin tüm sayfalarda geçerli olmasını sağlar
+        cerez_kontrol.set(anahtar, deger, expires_at=bitis, path="/")
+    except Exception as e:
+        log.error(f"Çerez yazma hatası: {e}")
         pass
 
 
@@ -1105,8 +1108,7 @@ def oturumu_baslat(kullanici_adi):
 
     if cerez_kontrol is not None:
         cerez_yaz(token)
-        time.sleep(0.5) # Çerezin yazılması için kısa bir bekleme
-        
+        time.sleep(1.5) # Çerezin yazılması için kısa bir bekleme   
     st.rerun()
    
 def oturumu_kapat():
