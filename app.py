@@ -1907,14 +1907,6 @@ def net_calisma_gunu_hesapla(
     return net_gun, toplam_izin_gunu, saglik_raporu_gun_sayisi, saatlik_izin_toplam_saat
 
 
-def simdi_tr_str(format_str="%Y-%m-%d %H:%M"):
-    """Gerçek Türkiye saatini (Europe/Istanbul) döndürür."""
-    try:
-        return datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).strftime(format_str)
-    except Exception:
-        return datetime.datetime.now().strftime(format_str)
-
-
 def bugunun_turkce_tarihi():
     simdi = datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Istanbul")).date() if hasattr(datetime, "datetime") else datetime.date.today()
     aylar = {
