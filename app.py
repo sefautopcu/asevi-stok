@@ -310,7 +310,7 @@ def _rapor_icerigi_olustur(rapor_baslik, rapor_tarih_str, baslangic_str, bitis_s
             if y.get("malzemeler"):
                 html += "<table style='margin:0;'><tr><th>Malzeme</th><th>Miktar</th><th>Maliyet</th></tr>"
                 for m in y.get("malzemeler", []):
-                    html += f"<tr><td>{m.get('urun')}</td><td>{m.get('miktar')}</td><td>{m.get('tutar',0):,.2f} ₺</td></tr>"
+                    html += f"<tr><td>{m.get('urun')}</td><td>{m.get('miktar')} {m.get('birim', '')}</td><td>{m.get('tutar',0):,.2f} ₺</td></tr>"
                 html += "</table>"
             html += "</div>"
 
@@ -4960,7 +4960,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                             "Numune Durumu": u_kayit.get("numune_durumu", "-"), # YENİ EKLENDİ
-                            "Kullanılan Malzeme": m.get("urun", "-"),
+                            "Kullanılan Malzeme": f"{m.get('urun', '-')} ({m.get('miktar', '-')} {m.get('birim', '')})".strip(),
                             "Malzeme Maliyeti (TL)": round(m.get("tutar", 0), 2),
                             "Menü Toplam Maliyeti (TL)": round(toplam_maliyet_degeri, 2),
                             "Kişi Başı Maliyet (TL)": round(kisi_basi_maliyet, 2),
