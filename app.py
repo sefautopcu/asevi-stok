@@ -192,372 +192,190 @@ def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
 
     html += "</div></body></html>"
 
-    try:
-        sender = st.secrets["MAIL_SENDER"]
-        password = st.secrets["MAIL_PASSWORD"]
-        recipient = st.secrets["MAIL_RECIPIENT"]
-        server_adresi = st.secrets.get("MAIL_SERVER", "smtp.gmail.com")
-        port = int(st.secrets.get("MAIL_PORT", 587))
-        
-        msg = MIMEMultipart()
-        msg['From'] = formataddr(("Aziziye Aşevi Otomasyon", sender))
-        msg['To'] = recipient
-        msg['Subject'] = f"Aziziye Aşevi {rapor_baslik} - {rapor_tarih_str}"
-        msg.attach(MIMEText(html, 'html', 'utf-8'))
-        
-        server = smtplib.SMTP(server_adresi, port)
-        server.starttls()
-        server.login(sender, password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"Manuel mail hatası: {e}")
+    # K1: Spinner göster ama toplam süre 10 sn ile sınırlı
+    with st.spinner("📤 Rapor gönderiliyor..."):
+        ok, hata = _smtp_gonder_senkron(
+            f"Aziziye Aşevi {rapor_baslik} - {rapor_tarih_str}", html
+        )
+    if not ok:
+        log.error("Manuel rapor hatası: %s", hata)
         return False
+    return True
 
-def gunluk_rapor_maili_gonder():
-    """Günlük, Haftalık ve Aylık raporları gönderir. (Saat ve Hafta sonu engelleri kaldırıldı)"""
-    
-    simdi = datetime.datetime.now()
-    bugun = simdi.date()
-    bugun_str = str(bugun)
+def _rapor_sahiplen(rapor_tipi, deger):
+    """K4: Aynı dönem için yalnızca BİR tetiklemenin geçmesini atomik olarak garanti eder."""
+    sonuc = {"sahiplendi": False}
+    def _mutate(mevcut):
+        if mevcut.get(rapor_tipi) == deger:
+            sonuc["sahiplendi"] = False
+            return mevcut
+        mevcut[rapor_tipi] = deger
+        sonuc["sahiplendi"] = True
+        return mevcut
+    durum, _ = _atomik_dict_guncelle("mail_loglari", _mutate)
+    return durum == "ok" and sonuc["sahiplendi"]
 
-    # 1. Resmi Tatil Kontrolü (yalnızca günlük raporu engeller; haftalık/aylık etkilenmez)
-    resmi_tatil = False
-    try:
-        resmi_tatil = bugun in holidays.Turkey()
-    except Exception:
-        resmi_tatil = False
+def _rapor_geri_al(rapor_tipi, deger):
+    """Gönderim başarısızsa sahiplenmeyi bırak → bir sonraki tetikleme yeniden denesin."""
+    def _mutate(mevcut):
+        if mevcut.get(rapor_tipi) == deger:
+            mevcut.pop(rapor_tipi, None)
+        return mevcut
+    _atomik_dict_guncelle("mail_loglari", _mutate)
 
-    # 2. Veritabanından Son Mail Tarihini Kontrol Et (Aynı gün tekrar göndermeyi önler)
-    durum, mail_log = _supabase_ham_oku("mail_loglari")
-    mail_log = mail_log if isinstance(mail_log, dict) else {}
-
-    gonderilecek_rapor = None # "gunluk", "haftalik" veya "aylik"
-
-    # Öncelik sırası: aylık > haftalık > günlük. Aynı gün birden fazla tetiklenirse
-    # kapsam olarak en geniş rapor gönderilir (tek mail/gün).
-    if bugun.day == 1 and mail_log.get("aylik") != bugun_str[:7]:  # YYYY-MM
-        gonderilecek_rapor = "aylik"
-    elif bugun.weekday() == 0 and mail_log.get("haftalik") != bugun_str:
-        gonderilecek_rapor = "haftalik"
-    elif not resmi_tatil and mail_log.get("gunluk") != bugun_str:
-        # Günlük rapor resmi tatilde gönderilmez; haftalık/aylık yukarıdaki dallarda
-        # öncelikli olduğu için tatil gününe denk gelen haftalık/aylık kaybolmaz.
-        gonderilecek_rapor = "gunluk"
-
-    if not gonderilecek_rapor:
-        return False  # Gönderilecek rapor yok (zaten gönderilmiş)
-
-    # 3. Tarih Aralıklarını Belirle
-    if gonderilecek_rapor == "gunluk":
-        baslangic_tarih = bugun - datetime.timedelta(days=1)
-        bitis_tarih = baslangic_tarih
-        rapor_baslik = "Günlük Rapor"
-        rapor_tarih_str = baslangic_tarih.strftime("%d.%m.%Y")
-    elif gonderilecek_rapor == "haftalik":
-        baslangic_tarih = bugun - datetime.timedelta(days=7)
-        bitis_tarih = bugun - datetime.timedelta(days=1)
-        rapor_baslik = "Haftalık Rapor"
-        rapor_tarih_str = f"{baslangic_tarih.strftime('%d.%m.%Y')} - {bitis_tarih.strftime('%d.%m.%Y')}"
-    else: # aylik
-        ilk_gun = bugun.replace(day=1)
-        gecen_ay_son_gun = ilk_gun - datetime.timedelta(days=1)
-        baslangic_tarih = gecen_ay_son_gun.replace(day=1)
-        bitis_tarih = gecen_ay_son_gun
-        rapor_baslik = "Aylık Rapor"
-        rapor_tarih_str = baslangic_tarih.strftime("%B %Y")
-
-    baslangic_str = baslangic_tarih.strftime("%Y-%m-%d")
-    bitis_str = bitis_tarih.strftime("%Y-%m-%d")
-    
-    # 4. VERİLERİ DOĞRUDAN VERİTABANINDAN ÇEK
+def _rapor_icerigi_olustur(rapor_baslik, rapor_tarih_str, baslangic_str, bitis_str):
+    """İki fonksiyondaki neredeyse birebir aynı HTML şablonunu birleştirir."""
     _, tum_girisler = _supabase_ham_oku("girisler")
     _, tum_kullanim_loglari = _supabase_ham_oku("kullanim_loglari")
     _, tum_silinenler = _supabase_ham_oku("silinen_urun_loglari")
     _, tum_yemekler = _supabase_ham_oku("yemek_uretim_arsivi")
     _, tum_izinler = _supabase_ham_oku("personel_izinleri")
 
-    # Güvenli listeler
-    tum_girisler = tum_girisler if isinstance(tum_girisler, list) else []
-    tum_kullanim_loglari = tum_kullanim_loglari if isinstance(tum_kullanim_loglari, list) else []
-    tum_silinenler = tum_silinenler if isinstance(tum_silinenler, list) else []
-    tum_yemekler = tum_yemekler if isinstance(tum_yemekler, list) else []
-    tum_izinler = tum_izinler if isinstance(tum_izinler, list) else []
+    tum_girisler        = tum_girisler if isinstance(tum_girisler, list) else []
+    tum_kullanim_loglari= tum_kullanim_loglari if isinstance(tum_kullanim_loglari, list) else []
+    tum_silinenler      = tum_silinenler if isinstance(tum_silinenler, list) else []
+    tum_yemekler        = tum_yemekler if isinstance(tum_yemekler, list) else []
+    tum_izinler         = tum_izinler if isinstance(tum_izinler, list) else []
 
-    # 5. Tarih Aralığına Göre Filtrele
-    def tarih_filtrele(liste, anahtar="tarih"):
-        sonuc = []
-        for item in liste:
-            t = str(item.get(anahtar, ""))[:10] # YYYY-MM-DD kısmını al
-            if baslangic_str <= t <= bitis_str:
-                sonuc.append(item)
-        return sonuc
+    def _filtre(liste, anahtar="tarih"):
+        return [i for i in liste if baslangic_str <= str(i.get(anahtar, ""))[:10] <= bitis_str]
 
-    secilen_girisler = tarih_filtrele(tum_girisler)
-    secilen_fireler = [l for l in tarih_filtrele(tum_kullanim_loglari) if l.get("tur") == "Fire/Zayiat"]
-    secilen_silinenler = tarih_filtrele(tum_silinenler)
-    secilen_yemekler = tarih_filtrele(tum_yemekler)
-    
-    # İzinler (Tarih aralığına denk gelenler)
-    secilen_izinler = []
-    for i in tum_izinler:
-        bas = str(i.get("baslangic", ""))
-        bit = str(i.get("bitis", ""))
-        if bas and bit and (baslangic_str <= bit and bitis_str >= bas):
-            secilen_izinler.append(i)
+    secilen_girisler = _filtre(tum_girisler)
+    secilen_fireler  = [l for l in _filtre(tum_kullanim_loglari) if l.get("tur") == "Fire/Zayiat"]
+    secilen_silinenler = _filtre(tum_silinenler)
+    secilen_yemekler = _filtre(tum_yemekler)
+    secilen_izinler = [
+        i for i in tum_izinler
+        if str(i.get("baslangic", "")) and str(i.get("bitis", ""))
+        and baslangic_str <= str(i.get("bitis", "")) and bitis_str >= str(i.get("baslangic", ""))
+    ]
 
-    # --- HTML İÇERİK OLUŞTURMA ---
-    html = f"""
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }}
-            .container {{ max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }}
-            h2 {{ color: #10b981; margin-top: 0; }}
-            h3 {{ color: #374151; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-top: 30px; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }}
-            th {{ background-color: #f3f4f6; padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; color: #4b5563; font-size: 13px; }}
-            td {{ padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #1f2937; }}
-            .summary-table {{ width: 100%; border-collapse: separate; border-spacing: 10px 0; margin-bottom: 20px; }}
-            .summary-card {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; text-align: center; width: 33%; }}
-            .summary-title {{ font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: bold; }}
-            .summary-value {{ font-size: 24px; font-weight: bold; margin-top: 5px; }}
-            .yemek-box {{ background: #f9fafb; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 15px; border-radius: 4px; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h2>🍲 Aziziye Aşevi - {rapor_baslik}</h2>
-            <p style="color: #6b7280; font-size: 15px;"><b>Tarih:</b> {rapor_tarih_str}</p>
-            
-            <table class="summary-table">
-                <tr>
-                    <td class="summary-card">
-                        <div class="summary-title">Yeni Stok Girişi</div>
-                        <div class="summary-value" style="color: #10b981;">{len(secilen_girisler)}</div>
-                    </td>
-                    <td class="summary-card">
-                        <div class="summary-title">Fire / Zayiat</div>
-                        <div class="summary-value" style="color: #ef4444;">{len(secilen_fireler)}</div>
-                    </td>
-                    <td class="summary-card">
-                        <div class="summary-title">Üretilen Yemek</div>
-                        <div class="summary-value" style="color: #3b82f6;">{len(secilen_yemekler)}</div>
-                    </td>
-                </tr>
-            </table>
-    """
+    html = f"""<html><head><style>
+      body {{ font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }}
+      .container {{ max-width: 800px; margin: 0 auto; background: #fff; padding: 30px;
+                   border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }}
+      h2 {{ color: #10b981; margin-top: 0; }}
+      h3 {{ color: #374151; border-bottom: 2px solid #10b981; padding-bottom: 8px; margin-top: 30px; }}
+      table {{ width: 100%; border-collapse: collapse; margin: 10px 0 20px; }}
+      th {{ background: #f3f4f6; padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;
+            color: #4b5563; font-size: 13px; }}
+      td {{ padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #1f2937; }}
+      .summary-table {{ width: 100%; border-collapse: separate; border-spacing: 10px 0; margin-bottom: 20px; }}
+      .summary-card {{ background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; text-align: center; }}
+      .summary-title {{ font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: bold; }}
+      .summary-value {{ font-size: 24px; font-weight: bold; margin-top: 5px; }}
+      .yemek-box {{ background: #f9fafb; border-left: 4px solid #10b981; padding: 15px;
+                    margin-bottom: 15px; border-radius: 4px; }}
+    </style></head><body><div class="container">
+      <h2>🍲 Aziziye Aşevi - {rapor_baslik}</h2>
+      <p style="color:#6b7280;font-size:15px;"><b>Tarih:</b> {rapor_tarih_str}</p>
+      <table class="summary-table"><tr>
+        <td class="summary-card"><div class="summary-title">Yeni Stok Girişi</div><div class="summary-value" style="color:#10b981;">{len(secilen_girisler)}</div></td>
+        <td class="summary-card"><div class="summary-title">Fire / Zayiat</div><div class="summary-value" style="color:#ef4444;">{len(secilen_fireler)}</div></td>
+        <td class="summary-card"><div class="summary-title">Üretilen Yemek</div><div class="summary-value" style="color:#3b82f6;">{len(secilen_yemekler)}</div></td>
+      </tr></table>"""
 
     if secilen_girisler:
-        html += f"<h3>📦 Gelen Stok Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Fatura No</th></tr>"
+        html += "<h3>📦 Gelen Stok Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Fatura No</th></tr>"
         for g in secilen_girisler:
-            html += f"<tr><td>{g.get('urun')}</td><td>{g.get('miktar')} {g.get('birim', '')}</td><td>{g.get('fatura_no')}</td></tr>"
+            html += f"<tr><td>{g.get('urun')}</td><td>{g.get('miktar')} {g.get('birim','')}</td><td>{g.get('fatura_no')}</td></tr>"
         html += "</table>"
 
     if secilen_fireler:
-        html += f"<h3>🗑️ Fire / Zayiat Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
+        html += "<h3>🗑️ Fire / Zayiat</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
         for f in secilen_fireler:
-            html += f"<tr><td>{f.get('urun')}</td><td>{f.get('miktar')}</td><td>{f.get('tutar', 0):,.2f} ₺</td><td>{f.get('aciklama', '-')}</td></tr>"
+            html += f"<tr><td>{f.get('urun')}</td><td>{f.get('miktar')}</td><td>{f.get('tutar',0):,.2f} ₺</td><td>{f.get('aciklama','-')}</td></tr>"
         html += "</table>"
 
     if secilen_silinenler:
-        html += f"<h3>❌ Silinen Ürünler</h3><table><tr><th>Ürün</th><th>Kayıt ID</th><th>Neden</th></tr>"
+        html += "<h3>❌ Silinen Ürünler</h3><table><tr><th>Ürün</th><th>Kayıt ID</th><th>Neden</th></tr>"
         for s in secilen_silinenler:
             html += f"<tr><td>{s.get('urun')}</td><td>{s.get('kayit_id')}</td><td>{s.get('neden')}</td></tr>"
         html += "</table>"
 
     if secilen_yemekler:
-        html += f"<h3>🍲 Üretilen Yemekler</h3>"
+        html += "<h3>🍲 Üretilen Yemekler</h3>"
         for y in secilen_yemekler:
-            toplam_maliyet = float(y.get('toplam_maliyet', 0))
+            toplam = float(y.get('toplam_maliyet', 0))
             kisi = int(y.get('kisi_sayisi', 1) or 1)
-            kisi_basi = toplam_maliyet / kisi if kisi > 0 else 0
-            
-            html += f"<div class='yemek-box'>"
-            html += f"<h4 style='margin: 0 0 10px 0; color: #111827;'>{y.get('tarih')} - {y.get('yemek_adi')} ({kisi} Kişilik)</h4>"
-            html += f"<p style='margin: 0 0 10px 0; font-size: 14px; color: #4b5563;'><b>Toplam Maliyet:</b> {toplam_maliyet:,.2f} ₺ | <b>Kişi Başı:</b> {kisi_basi:,.2f} ₺</p>"
-            
+            kisi_basi = toplam / kisi if kisi > 0 else 0
+            html += f"<div class='yemek-box'><h4 style='margin:0 0 10px;'>{y.get('tarih')} - {y.get('yemek_adi')} ({kisi} Kişilik)</h4>"
+            html += f"<p style='margin:0 0 10px;font-size:14px;'><b>Toplam:</b> {toplam:,.2f} ₺ | <b>Kişi Başı:</b> {kisi_basi:,.2f} ₺</p>"
             if y.get("malzemeler"):
-                html += "<table style='margin: 0;'><tr><th>Kullanılan Malzeme</th><th>Miktar</th><th>Maliyet</th></tr>"
+                html += "<table style='margin:0;'><tr><th>Malzeme</th><th>Miktar</th><th>Maliyet</th></tr>"
                 for m in y.get("malzemeler", []):
-                    html += f"<tr><td>{m.get('urun')}</td><td>{m.get('miktar')}</td><td>{m.get('tutar', 0):,.2f} ₺</td></tr>"
+                    html += f"<tr><td>{m.get('urun')}</td><td>{m.get('miktar')}</td><td>{m.get('tutar',0):,.2f} ₺</td></tr>"
                 html += "</table>"
             html += "</div>"
 
     if secilen_izinler:
-        html += f"<h3>👥 Personel İzinleri</h3><table><tr><th>Personel</th><th>İzin Türü</th><th>Başlangıç</th><th>Bitiş</th></tr>"
+        html += "<h3>👥 Personel İzinleri</h3><table><tr><th>Personel</th><th>Tür</th><th>Başlangıç</th><th>Bitiş</th></tr>"
         for i in secilen_izinler:
             html += f"<tr><td>{i.get('personel_ad')}</td><td>{i.get('izin_turu')}</td><td>{i.get('baslangic')}</td><td>{i.get('bitis')}</td></tr>"
         html += "</table>"
 
     if not (secilen_girisler or secilen_fireler or secilen_silinenler or secilen_yemekler or secilen_izinler):
-        html += "<div style='text-align: center; padding: 30px; color: #6b7280;'><b>Bu dönemde sisteme girilmiş herhangi bir veri bulunmamaktadır.</b></div>"
+        html += "<div style='text-align:center;padding:30px;color:#6b7280;'><b>Bu dönemde veri yok.</b></div>"
 
-    html += """
-        </div>
-    </body>
-    </html>
-    """
+    html += "</div></body></html>"
+    return html    
 
-    # 6. Mail Gönderim İşlemi
+def gunluk_rapor_maili_gonder():
+    """K1+K4: thread-safe, çift gönderim engelli, timeout'lu."""
+    simdi = datetime.datetime.now()
+    bugun = simdi.date()
+    bugun_str = str(bugun)
+
     try:
-        sender = st.secrets["MAIL_SENDER"]
-        password = st.secrets["MAIL_PASSWORD"]
-        recipient = st.secrets["MAIL_RECIPIENT"]
-        server_adresi = st.secrets.get("MAIL_SERVER", "smtp.gmail.com")
-        port = int(st.secrets.get("MAIL_PORT", 587))
-        
-        msg = MIMEMultipart()
-        msg['From'] = formataddr(("Aziziye Aşevi Otomasyon", sender))
-        msg['To'] = recipient
-        msg['Subject'] = f"Aziziye Aşevi {rapor_baslik} - {rapor_tarih_str}"
-        msg.attach(MIMEText(html, 'html', 'utf-8'))
-        
-        server = smtplib.SMTP(server_adresi, port)
-        server.starttls()
-        server.login(sender, password)
-        server.send_message(msg)
-        server.quit()
-        
-        # 7. BAŞARILI OLURSA VERİTABANINA KAYDET
-        if gonderilecek_rapor == "gunluk":
-            mail_log["gunluk"] = bugun_str
-        elif gonderilecek_rapor == "haftalik":
-            mail_log["haftalik"] = bugun_str
-        elif gonderilecek_rapor == "aylik":
-            mail_log["aylik"] = bugun_str[:7]
-            
-        supabase_veri_kaydet("mail_loglari", mail_log, zorla=True)
-        return True
-        
-    except Exception as e:
-        print(f"Mail gönderim hatası: {e}")
+        resmi_tatil = bugun in holidays.Turkey()
+    except Exception:
+        resmi_tatil = False
+
+    if bugun.day == 1:
+        rapor_tipi, rapor_degeri = "aylik", bugun_str[:7]
+    elif bugun.weekday() == 0:
+        rapor_tipi, rapor_degeri = "haftalik", bugun_str
+    elif not resmi_tatil:
+        rapor_tipi, rapor_degeri = "gunluk", bugun_str
+    else:
         return False
 
-def _secrets_haritasi():
-    """st.secrets içeriğini (ust_anahtarlar, {bolum: {anahtar,...}}) olarak ayırır."""
-    ust_anahtarlar = set()
-    bolumler = {}
-    try:
-        for k in list(st.secrets.keys()):
-            try:
-                v = st.secrets[k]
-            except Exception:
-                continue
-            # Dict-benzeri (hasattr 'keys') = TOML bölümü; aksi hâlde üst düzey anahtar
-            if hasattr(v, "keys"):
-                try:
-                    bolumler[k] = set(v.keys())
-                except Exception:
-                    bolumler[k] = set()
-            else:
-                ust_anahtarlar.add(k)
-    except Exception:
-        pass
-    return ust_anahtarlar, bolumler
+    # K4: ATOMİK SAHİPLENME — çift tetiklemede yalnızca biri devam eder.
+    if not _rapor_sahiplen(rapor_tipi, rapor_degeri):
+        return False
 
-def baglanti_tanilama_goster():
-    """Bağlantı ve secrets ayarlarını teşhis eden ekran."""
-    ust_anahtarlar, bolumler = _secrets_haritasi()
-    st.markdown("### 1) Secrets ayarları")
-    for ad in ("SUPABASE_URL", "SUPABASE_KEY", "FERNET_KEY", "MASTER_RECOVERY_KEY"):
-        if ad in ust_anahtarlar and ad not in bolumler:
-            deger = str(st.secrets.get(ad, ""))
-            if deger.strip() == "":
-                st.warning(f"**{ad}**: tanımlı ama BOŞ.")
-            elif deger != deger.strip():
-                st.warning(f"**{ad}**: değerin başında/sonunda boşluk veya satır sonu var; silin.")
-            elif any(c in deger for c in "“”‘’"):
-                st.warning(f"**{ad}**: değerde kıvrık tırnak karakteri var; düz tırnak kullanın.")
-            else:
-                st.success(f"**{ad}**: görünüyor.")
-        else:
-            yerler = [b for b, alt in bolumler.items() if ad in alt]
-            if yerler:
-                st.error(
-                    f"**{ad}**: bir `[{yerler[0]}]` bölümünün İÇİNDE kalmış, bu yüzden uygulama göremiyor. "
-                    f"Secrets metninde bu satırı, ilk `[bölüm]` başlığından ÖNCEKİ en üst kısma taşıyın."
-                )
-            else:
-                st.error(f"**{ad}**: bulunamadı (ad büyük/küçük harfe duyarlıdır, tam olarak bu yazılmalı).")
-    if bolumler:
-        st.info("Secrets içinde bölüm başlıkları var: " + ", ".join(f"[{b}]" for b in bolumler))
-    st.caption("Secrets'ta görünen en üst düzey ad sayısı: " + str(len([k for k in ust_anahtarlar if k not in bolumler])))
-
-    st.markdown("### 2) Supabase bağlantısı")
-    url = str(st.secrets.get("SUPABASE_URL", "") or "")
-    anahtar = str(st.secrets.get("SUPABASE_KEY", "") or "")
-    if not url or not anahtar:
-        st.error("SUPABASE_URL veya SUPABASE_KEY görünmüyor; uygulama yerel (geçici) modda çalışır ve hiçbir veri kaydedilmez.")
-        return
-    if not url.startswith("https://") or "/rest/" in url or url.endswith("/"):
-        st.warning("SUPABASE_URL biçimi şöyle olmalı: `https://PROJEKODU.supabase.co` (sonunda `/` ve `/rest/v1` OLMADAN).")
-    rol = "bilinmiyor"
-    if anahtar.startswith("sb_publishable"):
-        rol = "anon"
-    elif anahtar.startswith("sb_secret"):
-        rol = "service_role"
+    if rapor_tipi == "gunluk":
+        bas = bit = bugun - datetime.timedelta(days=1)
+        baslik = "Günlük Rapor"
+        tarih_str = bas.strftime("%d.%m.%Y")
+    elif rapor_tipi == "haftalik":
+        bas = bugun - datetime.timedelta(days=7)
+        bit = bugun - datetime.timedelta(days=1)
+        baslik = "Haftalık Rapor"
+        tarih_str = f"{bas.strftime('%d.%m.%Y')} - {bit.strftime('%d.%m.%Y')}"
     else:
-        try:
-            parca = anahtar.split(".")[1]
-            parca += "=" * (-len(parca) % 4)
-            rol = str(json.loads(base64.urlsafe_b64decode(parca)).get("role", "bilinmiyor"))
-        except Exception:
-            rol = "bilinmiyor"
-    if rol == "anon":
-        st.warning("Kullanılan anahtar **anon / publishable** türünde. RLS açıksa bu anahtar tablodan veri OKUYAMAZ ve YAZAMAZ. `service_role` (secret) anahtarına geçin.")
-    elif rol == "service_role":
-        st.success("Kullanılan anahtar **service_role / secret** türünde (doğru).")
-    else:
-        st.info("Anahtarın türü belirlenemedi. Anahtarı Supabase > Project Settings > API bölümünden yeniden kopyalayın.")
+        ilk = bugun.replace(day=1)
+        son = ilk - datetime.timedelta(days=1)
+        bas = son.replace(day=1)
+        bit = son
+        baslik = "Aylık Rapor"
+        tarih_str = bas.strftime("%B %Y")
 
-    basliklar = {"apikey": anahtar}
-    if not anahtar.startswith("sb_"):
-        basliklar["Authorization"] = f"Bearer {anahtar}"
     try:
-        r = requests.get(
-            f"{url}/rest/v1/asevi_veritabani", headers=basliklar,
-            params={"select": "id", "limit": "50"}, timeout=10,
+        html = _rapor_icerigi_olustur(
+            baslik, tarih_str,
+            bas.strftime("%Y-%m-%d"), bit.strftime("%Y-%m-%d"),
         )
+        konu = f"Aziziye Aşevi {baslik} - {tarih_str}"
+        ok, hata = _smtp_gonder_senkron(konu, html)
     except Exception as e:
-        st.error(f"Supabase'e ulaşılamadı ({type(e).__name__}). SUPABASE_URL yanlış olabilir.")
-        return
-    try:
-        govde = r.json()
-    except Exception:
-        govde = None
-    if r.status_code == 200:
-        satirlar = govde if isinstance(govde, list) else []
-        if satirlar:
-            st.success(f"Bağlantı ve okuma ÇALIŞIYOR. Tabloda görünen kayıt sayısı: {len(satirlar)} ({', '.join(str(x.get('id')) for x in satirlar[:8])}...)")
-        elif rol == "anon":
-            st.error("Okuma HTTP 200 döndü ama 0 satır görünüyor. Anon anahtar + RLS birleşiminde Supabase hata vermez, satırları sessizce GİZLER. Asıl sorun budur: `service_role` anahtarına geçin.")
-        else:
-            st.warning("Bağlantı çalışıyor ama tablo boş görünüyor. Uygulama ilk açılışta kayıtları kendisi oluşturur; ilk kayıttan sonra tablo dolar. Dolmuyorsa yazma yetkisini kontrol edin.")
-    elif r.status_code in (401, 403):
-        st.error(f"HTTP {r.status_code}: anahtar geçersiz veya yetkisiz. Anahtarı yeniden kopyalayın (başında/sonunda boşluk olmasın).")
-    elif r.status_code == 404:
-        st.error("HTTP 404: `asevi_veritabani` tablosu bulunamadı veya SUPABASE_URL yanlış. Tabloyu kontrol edin (id: text, veri: jsonb).")
-    else:
-        mesaj = govde.get("message") if isinstance(govde, dict) else ""
-        st.error(f"HTTP {r.status_code}: {mesaj}")
+        ok, hata = False, f"{type(e).__name__}: {e}"
 
-
-def _tani_acik_mi():
-    """Tanılama sayfası varsayılan olarak KAPALIDIR. Açmak için hem adreste ?tani=1 hem de
-    secrets içinde TANI_MODU = "1" bulunmalıdır. İşiniz bitince TANI_MODU satırını silin."""
-    if str(st.query_params.get("tani", "")) != "1":
+    if not ok:
+        _rapor_geri_al(rapor_tipi, rapor_degeri)  # sonraki tetikleme yeniden dener
+        log.error("Rapor maili hatası (%s): %s", rapor_tipi, hata)
         return False
-    try:
-        return str(st.secrets.get("TANI_MODU", "")).strip().lower() in ("1", "true", "evet")
-    except Exception:
-        return False
-
-
-if _tani_acik_mi():
-    baglanti_tanilama_goster()
-    st.stop()
+    return True
 
 # Şifreleme Anahtarı Kontrolü
 # FERNET_KEY tanımlı değilse uygulama BİLEREK durdurulur...
