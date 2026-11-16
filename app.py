@@ -6580,10 +6580,11 @@ elif menu == "Kullanıcı Ayarları":
 
         # ------------------------------------------------ Giriş kayıtları
         with sekme_l:
-            st.subheader("📜 Giriş ve Güvenlik Kayıtları (son 200)")
-            if not SUPABASE_URL or not SUPABASE_KEY:
-                st.info("Kayıtlar için Supabase bağlantısı gerekir.")
-    else:
+        st.subheader("📋 Giriş ve Güvenlik Kayıtları (son 200)")
+        
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            st.info("Kayıtlar için Supabase bağlantısı gerekir.")
+        else:
             # Yeni SQL tablosundan son 200 kaydı çek
             try:
                 r = requests.get(
@@ -6621,6 +6622,16 @@ elif menu == "Kullanıcı Ayarları":
                 }
                 for g in giris_kayitlari
             ]
+            
+            if log_satirlari:
+                ortak_indirme_alani(
+                    tablo_to_excel_bytes(log_satirlari, "Aziziye Aşevi - Giriş Kayıtları"),
+                    tablo_to_html_pdf_bytes("Aziziye Aşevi - Giriş Kayıtları", log_satirlari),
+                    "giris_kayitlari", "giris_kayit_sayfasi",
+                )
+                ozel_html_tablo_goster(log_satirlari)
+            else:
+                st.info("Henüz giriş kaydı yok.")
                 if log_satirlari:
                     ortak_indirme_alani(
                         tablo_to_excel_bytes(log_satirlari, "Aziziye Aşevi - Giriş Kayıtları"),
