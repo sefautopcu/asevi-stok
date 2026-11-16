@@ -436,6 +436,18 @@ def gunluk_rapor_maili_gonder():
 
 def baglanti_tanilama_goster():
     """Bağlantı ve secrets ayarlarını teşhis eden ekran."""
+    ust_anahtarlar = []
+    bolumler = {}
+    try:
+        secrets_dict = st.secrets.to_dict()
+        for k, v in secrets_dict.items():
+            if isinstance(v, dict):
+                bolumler[k] = list(v.keys())
+            else:
+                ust_anahtarlar.append(k)
+    except Exception:
+        pass
+
     st.markdown("### 1) Secrets ayarları")
     for ad in ("SUPABASE_URL", "SUPABASE_KEY", "FERNET_KEY", "MASTER_RECOVERY_KEY"):
         if ad in ust_anahtarlar and ad not in bolumler:
@@ -518,7 +530,6 @@ def baglanti_tanilama_goster():
     else:
         mesaj = govde.get("message") if isinstance(govde, dict) else ""
         st.error(f"HTTP {r.status_code}: {mesaj}")
-
 
 def _tani_acik_mi():
     """Tanılama sayfası varsayılan olarak KAPALIDIR. Açmak için hem adreste ?tani=1 hem de
@@ -698,8 +709,7 @@ def _cakisma_ve_dur():
 
 
 def supabase_veri_kaydet(kayit_id, veri_objesi, zorla=False):
-    """Veriyi kaydeder. Çakışma varsa ve kayıt başarısız olursa işlemi durdurur
-    (hata artık sessizce yutulmaz)."""
+    """Veriyi kaydeder. Çakışma varsa veya kayıt başarısız olursa işlemi durdurur."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         return
     if kayit_id in KAYIT_ESLEME and not zorla:
@@ -711,7 +721,8 @@ def supabase_veri_kaydet(kayit_id, veri_objesi, zorla=False):
         if taban is not None and taban != guncel:
             _cakisma_ve_dur()
     try:
-        r = requests.post(
+        session = get_http_session()
+        r = session.post(
             f"{SUPABASE_URL}/rest/v1/asevi_veritabani",
             headers=_supa_basliklar({
                 "Content-Type": "application/json",
@@ -729,6 +740,9 @@ def supabase_veri_kaydet(kayit_id, veri_objesi, zorla=False):
             _taban_hashler()[kayit_id] = _veri_hash(r.json()[0]["veri"])
         except Exception:
             _taban_hashler().pop(kayit_id, None)
+
+    # Önbelleği temizle ki yeni yazılan veri anında okunsun
+    _supabase_ham_oku_cached.clear()
     
 
 # =========================================================================
