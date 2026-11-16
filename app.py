@@ -854,22 +854,25 @@ def istemci_ip_bilgisi():
 
 
 def giris_logla(kullanici, durum):
-    """Giriş/çıkış/yönetim olaylarını (kim, ne zaman, hangi IP) kaydeder. Şifre KAYDEDİLMEZ."""
+    """Giriş/çıkış/yönetim olaylarını yeni ve güvenli SQL tablosuna kaydeder. Şifre KAYDEDİLMEZ."""
     if not SUPABASE_URL or not SUPABASE_KEY:
         return
-    d, mevcut = _supabase_ham_oku("giris_loglari")
-    if d == "hata":
-        return
-    kayitlar = mevcut if d == "ok" and isinstance(mevcut, list) else []
     ip, xff = istemci_ip_bilgisi()
-    kayitlar.append({
-        "zaman": simdi_tr_str("%Y-%m-%d %H:%M:%S"),
-        "kullanici": str(kullanici)[:50],
-        "durum": str(durum)[:80],
-        "ip": ip,
-        "xff": xff,
-    })
-    supabase_veri_kaydet("giris_loglari", kayitlar[-1000:])
+    try:
+        # Artık JSON listesine değil, doğrudan yeni SQL tablosuna INSERT (ekleme) yapıyoruz
+        requests.post(
+            f"{SUPABASE_URL}/rest/v1/giris_kayitlari",
+            headers=_supa_basliklar({"Content-Type": "application/json", "Prefer": "return=minimal"}),
+            json={
+                "kullanici": str(kullanici)[:50],
+                "durum": str(durum)[:80],
+                "ip": ip,
+                "xff": xff
+            },
+            timeout=5
+        )
+    except Exception as e:
+        log.error(f"Log kaydı hatası: {e}")
 
 
 def _token_hashle(token):
@@ -6581,19 +6584,43 @@ elif menu == "Kullanıcı Ayarları":
             if not SUPABASE_URL or not SUPABASE_KEY:
                 st.info("Kayıtlar için Supabase bağlantısı gerekir.")
             else:
-                giris_kayitlari = supabase_veri_oku("giris_loglari", [], kritik=False)
-                if not isinstance(giris_kayitlari, list):
-                    giris_kayitlari = []
-                log_satirlari = [
-                    {
-                        "Zaman": g.get("zaman", "-"),
-                        "Kullanıcı": g.get("kullanici", "-"),
-                        "Olay": g.get("durum", "-"),
-                        "IP": g.get("ip", "-"),
-                        "X-Forwarded-For": g.get("xff", ""),
-                    }
-                    for g in reversed(giris_kayitlari[-200:])
-                ]
+            # Yeni SQL tablosundan son 200 kaydı çek
+            try:
+                r = requests.get(
+                    f"{SUPABASE_URL}/rest/v1/giris_kayitlari",
+                    headers=_supa_basliklar(),
+                    params={"select": "*", "order": "zaman.desc", "limit": "200"},
+                    timeout=10
+                )
+                giris_kayitlari = r.json() if r.status_code == 200 else []
+            except Exception:
+                giris_kayitlari = []
+
+            # Eski JSON loglarını da listeye ekle (Geçmiş kayıtlar kaybolmasın diye)
+            _, eski_loglar = _supabase_ham_oku("giris_loglari")
+            if isinstance(eski_loglar, list):
+                for e in eski_loglar:
+                    giris_kayitlari.append({
+                        "zaman": e.get("zaman", "-"),
+                        "kullanici": e.get("kullanici", "-"),
+                        "durum": e.get("durum", "-"),
+                        "ip": e.get("ip", "-"),
+                        "xff": e.get("xff", "")
+                    })
+
+            # Tarihe göre yeniden eskiye sırala ve tablo formatına çevir
+            giris_kayitlari = sorted(giris_kayitlari, key=lambda x: str(x.get("zaman", "")), reverse=True)[:200]
+            
+            log_satirlari = [
+                {
+                    "Zaman": g.get("zaman", "-"),
+                    "Kullanıcı": g.get("kullanici", "-"),
+                    "Olay": g.get("durum", "-"),
+                    "IP": g.get("ip", "-"),
+                    "X-Forwarded-For": g.get("xff", ""),
+                }
+                for g in giris_kayitlari
+            ]
                 if log_satirlari:
                     ortak_indirme_alani(
                         tablo_to_excel_bytes(log_satirlari, "Aziziye Aşevi - Giriş Kayıtları"),
