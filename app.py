@@ -982,6 +982,16 @@ if CookieController is not None:
 
 
 def cerez_oku(anahtar=COOKIE_ADI):
+    # Öncelik 1: Streamlit'in kendi senkron çerez okuyucusu (1.35+)
+    try:
+        if hasattr(st, "context") and hasattr(st.context, "cookies"):
+            deger = st.context.cookies.get(anahtar)
+            if deger:
+                return str(deger)
+    except Exception:
+        pass
+        
+    # Öncelik 2: streamlit-cookies-controller (Fallback)
     if cerez_kontrol is None:
         return ""
     try:
@@ -994,10 +1004,11 @@ def cerez_yaz(deger, anahtar=COOKIE_ADI, max_age=OTURUM_SURESI_SN):
     if cerez_kontrol is None:
         return
     try:
-        cerez_kontrol.set(anahtar, deger, max_age=max_age, same_site="lax")
+        # Streamlit Cloud HTTPS kullandığı için secure=True, same_site="none" güvenlidir.
+        cerez_kontrol.set(anahtar, deger, max_age=max_age, same_site="none", secure=True)
     except TypeError:
         try:
-            cerez_kontrol.set(anahtar, deger)
+            cerez_kontrol.set(anahtar, deger, max_age=max_age)
         except Exception:
             pass
     except Exception:
@@ -1106,7 +1117,7 @@ def oturumu_baslat(kullanici_adi):
         st.session_state.pop("ilk_kurulum_sifreleri", None)
     if cerez_kontrol is not None:
         cerez_yaz(token)
-        time.sleep(0.2)  # tarayıcı bileşeninin çerezi yazabilmesi için kısa bekleme
+        time.sleep(0.5)  # tarayıcı bileşeninin çerezi yazabilmesi için kısa bekleme
    
 def oturumu_kapat():
     """Oturumu sunucuda iptal eder, çerezi ve oturum durumunu temizler."""
