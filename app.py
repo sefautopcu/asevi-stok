@@ -3069,77 +3069,54 @@ elif menu == "Güncel Stok Durumu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        col_baslik, col_indir_alan = st.columns([2, 2])
-        with col_baslik:
-            st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
+        st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
+        bugun = datetime.date.today()
 
+        # Excel ve Raporlama için Hazırlık
         benzersiz_urunler_Excel = sorted(
             list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
         )
-        
-        bugun = datetime.date.today()
-
         excel_liste = []
         for u in benzersiz_urunler_Excel:
-            toplam_kalan_ex = sum(
-                g.get("kalan", 0) for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u
-            )
-            kategori_ex = next(
-                (g.get("kategori", "GENEL") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u),
-                "GENEL",
-            )
-            birim_ex = next(
-                (g.get("birim", "Kg") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u),
-                "Kg",
-            )
-            depo_ex = next(
-                (g.get("depo", "Merkez Depo") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u),
-                "Merkez Depo",
-            )
-            islem_yapan_ex = next(
-                (
-                    g.get("islem_yapan", "admin")
-                    for g in st.session_state.girisler
-                    if g.get("urun", "").strip().upper() == u
-                ),
-                "admin",
-            )
-            en_son_tarih_ex = max(
-                (
-                    g.get("tarih", "-")
-                    for g in st.session_state.girisler
-                    if g.get("urun", "").strip().upper() == u
-                ),
-                default="-",
-            )
-            # En yakın SKT'yi bul
-            skt_listesi = [g.get("skt") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u and g.get("skt")]
+            ilgili_kayitlar = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u]
+            toplam_kalan_ex = sum(float(g.get("kalan", 0)) for g in ilgili_kayitlar)
+            
+            # Devreden Bakiye (En eski tarihli partiden kalan)
+            sirali_kayitlar = sorted(ilgili_kayitlar, key=lambda x: str(x.get("tarih", "")))
+            devreden_bakiye_ex = float(sirali_kayitlar[0].get("kalan", 0)) if sirali_kayitlar else 0.0
+            
+            kategori_ex = ilgili_kayitlar[0].get("kategori", "GENEL")
+            birim_ex = ilgili_kayitlar[0].get("birim", "Kg")
+            depo_ex = ilgili_kayitlar[0].get("depo", "Merkez Depo")
+            islem_yapan_ex = ilgili_kayitlar[-1].get("islem_yapan", "admin")
+            en_son_tarih_ex = ilgili_kayitlar[-1].get("tarih", "-")
+            
+            skt_listesi = [g.get("skt") for g in ilgili_kayitlar if g.get("skt")]
             en_yakin_skt = min(skt_listesi) if skt_listesi else "Belirtilmemiş"
             
             gosterilen_kalan_excel = "🔒 Gizli" if "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri else toplam_kalan_ex
-            
+            devreden_excel = "🔒 Gizli" if "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri else devreden_bakiye_ex
+
             excel_liste.append({
                 "Ürün Adı": u,
                 "Kategori": kategori_ex,
                 "Birim": birim_ex,
-                "Kalan Miktar": gosterilen_kalan_excel,
+                "Toplam Kalan": gosterilen_kalan_excel,
+                "Devreden Bakiye": devreden_excel,
                 "En Yakın SKT / STT": en_yakin_skt,
                 "Depo Yeri": depo_ex,
-                "Eklenme/Güncelleme Tarihi": en_son_tarih_ex,
+                "Son İşlem Tarihi": en_son_tarih_ex,
                 "Son İşlemi Yapan": islem_yapan_ex,
             })
 
-        excel_data = tablo_to_excel_bytes(
-            excel_liste, "Aziziye Aşevi - Güncel Stok Raporu"
-        )
-        pdf_data = tablo_to_html_pdf_bytes(
-            "Aziziye Aşevi - Güncel Stok Raporu", excel_liste
-        )
+        excel_data = tablo_to_excel_bytes(excel_liste, "Aziziye Aşevi - Güncel Stok Raporu")
+        pdf_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Güncel Stok Raporu", excel_liste)
 
+        col_baslik, col_indir_alan = st.columns([2, 2])
+        with col_baslik:
+            st.markdown("Aşağıda depodaki tüm ürünlerin toplam miktarları ve eski partilerden devreden bakiyeleri listelenmiştir.")
         with col_indir_alan:
-            ortak_indirme_alani(
-                excel_data, pdf_data, "asevi_guncel_stok_raporu", "stok_sayfasi"
-            )
+            ortak_indirme_alani(excel_data, pdf_data, "asevi_guncel_stok_raporu", "stok_sayfasi")
 
         depolar = ["Tümü"] + st.session_state.depolar
         secilen_depo = st.selectbox("Depo Konumuna Göre Filtrele", depolar)
@@ -3151,43 +3128,22 @@ elif menu == "Güncel Stok Durumu":
         kritik_urunler_tablosu = []
         
         for u in benzersiz_urunler:
-            toplam_kalan = sum(
-                g.get("kalan", 0) for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u
-            )
-            kategori = next(
-                (g.get("kategori", "GENEL") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u),
-                "GENEL",
-            )
-            birim = next(
-                (g.get("birim", "Kg") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u),
-                "Kg",
-            )
-            depo = next(
-                (g.get("depo", "Merkez Depo") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u),
-                "Merkez Depo",
-            )
-            islem_yapan = next(
-                (
-                    g.get("islem_yapan", "admin")
-                    for g in st.session_state.girisler
-                    if g.get("urun", "").strip().upper() == u
-                ),
-                "admin",
-            )
-            en_son_tarih = max(
-                (
-                    g.get("tarih", "-")
-                    for g in st.session_state.girisler
-                    if g.get("urun", "").strip().upper() == u
-                ),
-                default="-",
-            )
+            ilgili_kayitlar = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u]
+            toplam_kalan = sum(float(g.get("kalan", 0)) for g in ilgili_kayitlar)
             
-            # En yakın SKT'yi bul (Ekranda Göstermek İçin)
-            skt_listesi = [g.get("skt") for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u and g.get("skt")]
+            # Devreden Bakiye Hesaplama (En eski tarihli parti)
+            sirali_kayitlar = sorted(ilgili_kayitlar, key=lambda x: str(x.get("tarih", "")))
+            devreden_bakiye = float(sirali_kayitlar[0].get("kalan", 0)) if sirali_kayitlar else 0.0
+            
+            kategori = ilgili_kayitlar[0].get("kategori", "GENEL")
+            birim = ilgili_kayitlar[0].get("birim", "Kg")
+            depo = ilgili_kayitlar[0].get("depo", "Merkez Depo")
+            islem_yapan = ilgili_kayitlar[-1].get("islem_yapan", "admin")
+            en_son_tarih = ilgili_kayitlar[-1].get("tarih", "-")
+            
+            skt_listesi = [g.get("skt") for g in ilgili_kayitlar if g.get("skt")]
             en_yakin_skt = min(skt_listesi) if skt_listesi else "Belirtilmemiş"
             
-            # SKT Rengi Belirleme
             skt_gosterim = en_yakin_skt
             if en_yakin_skt != "Belirtilmemiş":
                 try:
@@ -3203,16 +3159,18 @@ elif menu == "Güncel Stok Durumu":
                     pass
 
             final_kalan_gosterim = "🔒 Gizli" if "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri else toplam_kalan
+            devreden_gosterim = "🔒 Gizli" if "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri else devreden_bakiye
 
             if secilen_depo == "Tümü" or depo == secilen_depo:
                 stok_tablosu.append({
                     "Ürün Adı": u,
                     "Kategori": kategori,
                     "Birim": birim,
-                    "Kalan Miktar": final_kalan_gosterim,
+                    "Toplam Kalan": final_kalan_gosterim,
+                    "Devreden Bakiye": devreden_gosterim, # YENİ EKLENDİ
                     "SKT / STT": skt_gosterim,
                     "Depo Yeri": depo,
-                    "Eklenme Tarihi": en_son_tarih,
+                    "Son Giriş Tarihi": en_son_tarih,
                     "İşlemi Yapan": islem_yapan,
                 })
 
@@ -3237,54 +3195,85 @@ elif menu == "Güncel Stok Durumu":
 
         st.markdown("---")
         
-        # YENİ EKLENEN: TOPLU SKT GÜNCELLEME FORMU
-        st.markdown("### 📅 Son Tüketim Tarihi (SKT / STT) Güncelle")
-        st.info("Sisteme daha önceden eklenmiş ve SKT tarihi girilmemiş ürünler için buradan toplu tarih güncellemesi yapabilirsiniz. Girilen tarih, seçilen ürünün en eski (en son kullanılacak) partisine atanır.")
+        # --- MEVCUT ÜRÜNLER İÇİN QR KOD ÜRETİMİ ---
+        st.markdown("### 🖨️ Mevcut Paketli Ürünler İçin QR Etiket Üret")
+        st.info("Deponuzda daha önceden kayıtlı olan paketli ürünler için (örn: eski faturalar) buradan QR etiketlerini üretebilirsiniz. Paket miktarını sisteme girdiğinizde, sistem faturaya bağlı P1, P2... şeklinde etiketler oluşturur.")
         
-        if not benzersiz_urunler:
-            st.info("Sistemde kayıtlı ürün bulunmuyor.")
-        else:
-            with st.form("skt_guncelle_formu"):
-                skt_sec_urun = st.selectbox("SKT Güncellenecek Ürünü Seçin", benzersiz_urunler, index=None, placeholder="Ürün Seçiniz...", key="skt_upd_urun")
-                skt_yeni_tarih = st.date_input("Yeni SKT / STT Tarihi", value=None)
-                skt_guncelle_btn = st.form_submit_button("SKT Tarihini Güncelle", type="primary")
+        try:
+            import qrcode
+        except ImportError:
+            st.error("QR Kod kütüphanesi eksik. Lütfen `requirements.txt` dosyasına `qrcode[pil]` ekleyin.")
+            qrcode = None
+
+        if qrcode and benzersiz_urunler:
+            secilen_qr_urun = st.selectbox("QR Kodu Üretilecek Ürünü Seçin", benzersiz_urunler, index=None, placeholder="Ürün Seçiniz...", key="qr_stok_secim")
+            
+            if secilen_qr_urun:
+                ilgili_faturalar = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == secilen_qr_urun and float(g.get("kalan", 0)) > 0]
                 
-                if skt_guncelle_btn:
-                    if not skt_sec_urun:
-                        st.error("⚠️ Lütfen SKT güncellenecek ürünü seçin!")
-                    elif skt_yeni_tarih is None:
-                        st.error("⚠️ Lütfen yeni SKT / STT tarihini seçin!")
-                    else:
-                        guncellendi = False
-                        # İlgili ürünün stokta kalanı > 0 olan en eski partisini bul (FIFO)
-                        ilgili_partiler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == skt_sec_urun and g.get("kalan", 0) > 0]
-                        if ilgili_partiler:
-                            en_eski_parti = min(ilgili_partiler, key=lambda x: str(x.get("tarih", "")))
-                            en_eski_parti["skt"] = str(skt_yeni_tarih)
-                            guncellendi = True
-                            
-                        if guncellendi:
+                if not ilgili_faturalar:
+                    st.warning("Bu ürünün stokta kalan aktif bir partisi (faturası) bulunmuyor.")
+                else:
+                    fatura_secenekleri = {f"{f['id']} - (Kalan: {f['kalan']} {f['birim']}, Fiyat: {f.get('fiyat', 0)} TL)": f for f in ilgili_faturalar}
+                    secilen_fatura_str = st.selectbox("Hangi Faturaya (Partiye) Ait QR Kod Üretilecek?", list(fatura_secenekleri.keys()), key="qr_fatura_secim")
+                    
+                    if secilen_fatura_str:
+                        secilen_fatura = fatura_secenekleri[secilen_fatura_str]
+                        
+                        mevcut_paket_miktari = float(secilen_fatura.get("paket_miktari", 0))
+                        
+                        # Eğer paket miktarı girilmemişse, buradan girmesine izin ver
+                        yeni_paket_miktari = st.number_input("Bu Ürünün Paket Miktarı (Kg/Lt)", min_value=0.1, value=mevcut_paket_miktari if mevcut_paket_miktari > 0 else 1.0, step=1.0, help="Sadece bu fatura/parti için geçerlidir.")
+                        
+                        if st.button("Paket Miktarını Kaydet ve QR Üret", type="primary"):
+                            secilen_fatura["paket_miktari"] = yeni_paket_miktari
                             verileri_kaydet(st.session_state.girisler)
-                            st.success(f"🎉 Başarılı! {skt_sec_urun} ürününün SKT tarihi {skt_yeni_tarih} olarak güncellendi.")
-                            time.sleep(1)
+                            st.success("Paket miktarı kaydedildi! QR kodlar aşağıda oluşturuldu.")
                             st.rerun()
-                        else:
-                            st.warning("⚠️ Seçilen ürünün stokta kalan partisi bulunmuyor, tarih atanamadı.")
 
-        with st.expander("⚙️ Ürün Bazlı Kritik Eşik Sınırı Belirle"):
-            with st.form("kritik_ayar_form"):
-                secilen_k_urun = st.selectbox("Kritik Eşiği Değiştirilecek Ürün", benzersiz_urunler if benzersiz_urunler else ["Yok"])
-                mevcut_esin = st.session_state.kritik_seviyeler.get(secilen_k_urun, 10.0)
-                yeni_esin_deger = st.number_input("Kritik Miktar Sınırı", min_value=0.0, value=float(mevcut_esin), step=1.0)
-                kritik_kaydet_btn = st.form_submit_button("Kritik Eşiği Güncelle", type="primary")
+                        if mevcut_paket_miktari > 0 or yeni_paket_miktari > 0:
+                            # Toplam miktarı değil, KALAN miktarı baz alarak paket sayısını bulalım
+                            # Eğer 10 paket aldıysa 4 kaldıysa, sadece kalanlar için P1, P2 üretmek yerine
+                            # baştan itibaren tüm paketleri (P1...P10) üretmek daha güvenlidir. 
+                            # Çünkü P1 açılmış olabilir. Biz tüm orijinal paketleri etiketleyelim.
+                            toplam_miktar = float(secilen_fatura.get("miktar", 0))
+                            paket_sayisi = int(toplam_miktar // yeni_paket_miktari)
+                            
+                            if paket_sayisi == 0:
+                                st.warning("Toplam miktar, paket miktarından küçük. Lütfen paket miktarını kontrol edin.")
+                            else:
+                                st.markdown(f"**Toplam {paket_sayisi} adet paket etiketi oluşturulacak.**")
+                                
+                                # Paket durumlarını kontrol et
+                                if "paket_durumlari" not in secilen_fatura:
+                                    secilen_fatura["paket_durumlari"] = {}
 
-                if kritik_kaydet_btn and secilen_k_urun != "Yok":
-                    st.session_state.kritik_seviyeler[secilen_k_urun] = yeni_esin_deger
-                    kritik_seviyeleri_kaydet(st.session_state.kritik_seviyeler)
-                    st.success("🎉 Başarılı! Kritik sınır güncellendi.")
-                    st.balloons()
-                    st.rerun()
-
+                                cols = st.columns(4)
+                                for i in range(1, paket_sayisi + 1):
+                                    p_id = f"{secilen_fatura['id']}-P{i}"
+                                    
+                                    # Kalan miktarı bul (yoksa tamdır)
+                                    kalan_paket_kg = secilen_fatura["paket_durumlari"].get(p_id, yeni_paket_miktari)
+                                    
+                                    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+                                    qr.add_data(p_id)
+                                    qr.make(fit=True)
+                                    img = qr.make_image(fill_color="black", back_color="white")
+                                    
+                                    img_buffer = io.BytesIO()
+                                    img.save(img_buffer, format="PNG")
+                                    img_bytes = img_buffer.getvalue()
+                                    
+                                    with cols[(i - 1) % 4]:
+                                        st.image(img_bytes, caption=f"{p_id} | Kalan: {kalan_paket_kg} {secilen_fatura['birim']}", width=140)
+                                        st.download_button(
+                                            label=f"📥 {p_id} İndir",
+                                            data=img_bytes,
+                                            file_name=f"QR_{p_id}.png",
+                                            mime="image/png",
+                                            key=f"dl_{p_id}"
+                                        )
+                                        
 # 2. YENİ MAL ALIMI / FATURA EKLE
 elif menu == "Yeni Mal Alımı / Fatura Ekle":
     if salt_okunur_modu:
