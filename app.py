@@ -670,6 +670,20 @@ def _supabase_ham_oku_cached(kayit_id):
     """Veritabanı okumalarını 60 saniye boyunca bellek seviyesinde hızlı tutar.
     Güvenlik açısından kritik anahtarlar bu cache'i KULLANMAZ; bkz. ONBELLEKSIZ_ANAHTARLAR."""
     return _supabase_ham_oku(kayit_id)
+    
+def _guvenli_dict_guncelle(kayit_id, guncelleme_fn):
+    """Oku-değiştir-yaz. İki eşzamanlı yazma aynı dict'i okuyup son yazan kazanır;
+    bu pencerede biri kaybedebilir. Kaybedilen güncellemenin etkisi:
+      - oturum: kullanıcı bir kez daha giriş yapar.
+      - giriş denemesi: bir deneme sayılmaz; IP bazlı limit yine devrededir.
+    Kesin atomiklik için Postgres RPC gerekir; bu ölçekte pragmatik ödün."""
+    durum, mevcut = _supabase_ham_oku(kayit_id)
+    if durum == "hata":
+        return durum, mevcut
+    mevcut_dict = mevcut if isinstance(mevcut, dict) else {}
+    yeni = guncelleme_fn(dict(mevcut_dict))
+    supabase_veri_kaydet(kayit_id, yeni, zorla=True)
+    return "ok", yeni
 
 def _taban_hashler():
     if "_db_hash" not in st.session_state:
@@ -933,12 +947,11 @@ def oturum_olustur(kullanici_adi):
     token = secrets.token_urlsafe(32)
     simdi = time.time()
     bitis = simdi + OTURUM_SURESI_SN
-    oturumlar = supabase_veri_oku("aktif_oturumlar", {})
-    if not isinstance(oturumlar, dict):
-        oturumlar = {}
-    oturumlar = {h: o for h, o in oturumlar.items() if o.get("bitis", 0) > simdi}
-    oturumlar[_token_hashle(token)] = {"kullanici": kullanici_adi, "bitis": bitis}
-    supabase_veri_kaydet("aktif_oturumlar", oturumlar)
+    def _ekle(oturumlar):
+        oturumlar = {h: o for h, o in oturumlar.items() if o.get("bitis", 0) > simdi}
+        oturumlar[_token_hashle(token)] = {"kullanici": kullanici_adi, "bitis": bitis}
+        return oturumlar
+    _guvenli_dict_guncelle("aktif_oturumlar", _ekle)
     return token, bitis
 
 
@@ -957,25 +970,20 @@ def oturum_dogrula(token):
 def oturum_sil(token):
     if not token:
         return
-    oturumlar = supabase_veri_oku("aktif_oturumlar", {})
-    if not isinstance(oturumlar, dict):
-        return
     h = _token_hashle(token)
-    if h in oturumlar:
-        del oturumlar[h]
-        supabase_veri_kaydet("aktif_oturumlar", oturumlar)
+    def _sil(oturumlar):
+        oturumlar.pop(h, None)
+        return oturumlar
+    _guvenli_dict_guncelle("aktif_oturumlar", _sil)
 
 
 def kullanici_oturumlarini_kapat(kullanici, haric_token=None):
     """Bir kullanıcının tüm açık oturumlarını (isteğe bağlı biri hariç) sonlandırır."""
-    oturumlar = supabase_veri_oku("aktif_oturumlar", {})
-    if not isinstance(oturumlar, dict):
-        return
     haric = _token_hashle(haric_token) if haric_token else None
-    yeni = {h: o for h, o in oturumlar.items() if o.get("kullanici") != kullanici or h == haric}
-    if len(yeni) != len(oturumlar):
-        supabase_veri_kaydet("aktif_oturumlar", yeni)
-
+    def _filtrele(oturumlar):
+        return {h: o for h, o in oturumlar.items()
+                if o.get("kullanici") != kullanici or h == haric}
+    _guvenli_dict_guncelle("aktif_oturumlar", _filtrele)
 
 def oturumu_baslat(kullanici_adi):
     token, bitis = oturum_olustur(kullanici_adi)
@@ -1050,39 +1058,45 @@ def giris_kilit_kalan(anahtar):
 def hatali_giris_kaydet(anahtar, maks=MAKS_HATALI_GIRIS, taban_sn=KILIT_SURESI_SN):
     """(kalan_hak, kilitlendi_mi) döndürür. Her ardışık kilitte süre ikiye katlanır (en çok 15 dk)."""
     simdi = time.time()
-    kayitlar = supabase_veri_oku("giris_denemeleri", {})
-    if not isinstance(kayitlar, dict):
-        kayitlar = {}
-    kayitlar = {
-        k: v for k, v in kayitlar.items()
-        if v.get("kilit_bitis", 0) > simdi or simdi - v.get("son", 0) < 3600
-    }
-    kayit = kayitlar.get(anahtar, {"sayi": 0, "kilit_sayisi": 0, "kilit_bitis": 0, "son": 0})
-    if simdi - kayit.get("son", 0) > 3600:
-        kayit["sayi"] = 0
-        kayit["kilit_sayisi"] = 0
-    kayit["sayi"] = kayit.get("sayi", 0) + 1
-    kayit["son"] = simdi
-    kilitlendi = kayit["sayi"] >= maks
-    if kilitlendi:
-        kayit["kilit_sayisi"] = kayit.get("kilit_sayisi", 0) + 1
-        sure = min(taban_sn * (2 ** (kayit["kilit_sayisi"] - 1)), 900)
-        kayit["kilit_bitis"] = simdi + sure
-        kayit["sayi"] = 0
-    kayitlar[anahtar] = kayit
-    supabase_veri_kaydet("giris_denemeleri", kayitlar)
-    return max(maks - kayit["sayi"], 0), kilitlendi
+    sonuc = {"kalan": maks, "kilit": False}
+    
+    def _guncelle(kayitlar):
+        kayitlar = {k: v for k, v in kayitlar.items()
+                    if v.get("kilit_bitis", 0) > simdi or simdi - v.get("son", 0) < 3600}
+        kayit = kayitlar.get(anahtar, {"sayi": 0, "kilit_sayisi": 0, "kilit_bitis": 0, "son": 0})
+        
+        if simdi - kayit.get("son", 0) > 3600:
+            kayit["sayi"] = 0
+            kayit["kilit_sayisi"] = 0
+            
+        kayit["sayi"] = kayit.get("sayi", 0) + 1
+        kayit["son"] = simdi
+        
+        if kayit["sayi"] >= maks:
+            kayit["kilit_sayisi"] = kayit.get("kilit_sayisi", 0) + 1
+            sure = min(taban_sn * (2 ** (kayit["kilit_sayisi"] - 1)), 900)
+            kayit["kilit_bitis"] = simdi + sure
+            kayit["sayi"] = 0
+            sonuc["kilit"] = True
+            
+        sonuc["kalan"] = max(maks - kayit["sayi"], 0)
+        kayitlar[anahtar] = kayit
+        return kayitlar
+        
+    _guvenli_dict_guncelle("giris_denemeleri", _guncelle)
+    return sonuc["kalan"], sonuc["kilit"]
 
 
 def giris_denemesini_sifirla(anahtar=None):
     """anahtar verilirse yalnızca onu, verilmezse tüm kilitleri temizler."""
     if anahtar is None:
-        supabase_veri_kaydet("giris_denemeleri", {})
+        _guvenli_dict_guncelle("giris_denemeleri", lambda _: {})
         return
-    kayitlar = supabase_veri_oku("giris_denemeleri", {})
-    if isinstance(kayitlar, dict) and anahtar in kayitlar:
-        del kayitlar[anahtar]
-        supabase_veri_kaydet("giris_denemeleri", kayitlar)
+        
+    def _sil(kayitlar):
+        kayitlar.pop(anahtar, None)
+        return kayitlar
+    _guvenli_dict_guncelle("giris_denemeleri", _sil)
 
 
 # =========================================================
