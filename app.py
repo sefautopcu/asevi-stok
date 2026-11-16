@@ -871,37 +871,36 @@ if CookieController is not None:
         cerez_kontrol = None
 
 
-def cerez_oku():
+def cerez_oku(anahtar=COOKIE_ADI):
     if cerez_kontrol is None:
         return ""
     try:
-        return str(cerez_kontrol.get(COOKIE_ADI) or "")
+        return str(cerez_kontrol.get(anahtar) or "")
     except Exception:
         return ""
 
 
-def cerez_yaz(token):
+def cerez_yaz(deger, anahtar=COOKIE_ADI, max_age=OTURUM_SURESI_SN):
     if cerez_kontrol is None:
         return
     try:
-        cerez_kontrol.set(COOKIE_ADI, token, max_age=OTURUM_SURESI_SN, same_site="strict")
+        cerez_kontrol.set(anahtar, deger, max_age=max_age, same_site="lax")
     except TypeError:
         try:
-            cerez_kontrol.set(COOKIE_ADI, token)
+            cerez_kontrol.set(anahtar, deger)
         except Exception:
             pass
     except Exception:
         pass
 
 
-def cerez_sil():
+def cerez_sil(anahtar=COOKIE_ADI):
     if cerez_kontrol is None:
         return
     try:
-        cerez_kontrol.remove(COOKIE_ADI)
+        cerez_kontrol.remove(anahtar)
     except Exception:
         pass
-
 
 def istemci_ip_bilgisi():
     """(kilit için kullanılan IP, tam X-Forwarded-For). Kilitte EN SAĞDAKİ adres kullanılır:
@@ -1736,16 +1735,17 @@ if "hatali_giris_sayisi" not in st.session_state:
 if "kilitlenme_bitis_zamani" not in st.session_state:
     st.session_state.kilitlenme_bitis_zamani = 0
 
-# F5 sonrası kilit bilgisini URL'den geri yükle
-if "kilit_zamani" in st.query_params:
+# F5 sonrası kilit bilgisini çerezden geri yükle
+kilit_cerez = cerez_oku("kilit_zamani")
+if kilit_cerez:
     try:
-        url_kilit = float(st.query_params["kilit_zamani"])
-        if url_kilit > time.time():
-            st.session_state.kilitlenme_bitis_zamani = url_kilit
+        kilit_zamani = float(kilit_cerez)
+        if kilit_zamani > time.time():
+            st.session_state.kilitlenme_bitis_zamani = kilit_zamani
         else:
-            del st.query_params["kilit_zamani"]
+            cerez_sil("kilit_zamani")
     except Exception:
-        del st.query_params["kilit_zamani"]
+        cerez_sil("kilit_zamani")
 
 query_params = st.query_params
 
@@ -2036,8 +2036,7 @@ if not st.session_state.oturum_aktif:
                                 kullanıcıları_kaydet(kullanici_db)
                             st.session_state.hatali_giris_sayisi = 0
                             giris_denemesini_sifirla(u_anahtar)
-                            if "kilit_zamani" in st.query_params:
-                                del st.query_params["kilit_zamani"]
+                            cerez_sil("kilit_zamani")
                             giris_logla(k_adi_inp, "başarılı giriş")
                             oturumu_baslat(k_adi_inp)
                             st.rerun()
@@ -2052,7 +2051,7 @@ if not st.session_state.oturum_aktif:
                             if kilit_u or kilit_ip:
                                 st.session_state.kilitlenme_bitis_zamani = time.time() + KILIT_SURESI_SN
                                 st.session_state.hatali_giris_sayisi = 0
-                                st.query_params["kilit_zamani"] = str(int(st.session_state.kilitlenme_bitis_zamani))
+                                cerez_yaz(str(int(st.session_state.kilitlenme_bitis_zamani)), "kilit_zamani", max_age=3600)
                                 st.rerun()
                             else:
                                 st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {max(kalan_hak, 0)}")
