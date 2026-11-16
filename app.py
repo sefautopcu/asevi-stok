@@ -1053,15 +1053,20 @@ def _token_hashle(token):
 
 
 def oturum_olustur(kullanici_adi):
-    """Rastgele token üretir; veritabanında yalnızca hash'ini saklar."""
     token = secrets.token_urlsafe(32)
     simdi = time.time()
     bitis = simdi + OTURUM_SURESI_SN
+    
     def _ekle(oturumlar):
+        # Süresi geçmiş oturumları temizle
         oturumlar = {h: o for h, o in oturumlar.items() if o.get("bitis", 0) > simdi}
+        # Yeni oturumu ekle
         oturumlar[_token_hashle(token)] = {"kullanici": kullanici_adi, "bitis": bitis}
         return oturumlar
-    _guvenli_dict_guncelle("aktif_oturumlar", _ekle)
+        
+    durum, sonuc = _atomik_dict_guncelle("aktif_oturumlar", _ekle)
+    if durum != "ok":
+        _veritabani_hatasi_dur(f"oturum oluşturulamadı ({sonuc})")
     return token, bitis
 
 
@@ -1084,16 +1089,15 @@ def oturum_sil(token):
     def _sil(oturumlar):
         oturumlar.pop(h, None)
         return oturumlar
-    _guvenli_dict_guncelle("aktif_oturumlar", _sil)
+    _atomik_dict_guncelle("aktif_oturumlar", _sil)
 
 
 def kullanici_oturumlarini_kapat(kullanici, haric_token=None):
-    """Bir kullanıcının tüm açık oturumlarını (isteğe bağlı biri hariç) sonlandırır."""
     haric = _token_hashle(haric_token) if haric_token else None
     def _filtrele(oturumlar):
         return {h: o for h, o in oturumlar.items()
                 if o.get("kullanici") != kullanici or h == haric}
-    _guvenli_dict_guncelle("aktif_oturumlar", _filtrele)
+    _atomik_dict_guncelle("aktif_oturumlar", _filtrele)
 
 def oturumu_baslat(kullanici_adi):
     token, bitis = oturum_olustur(kullanici_adi)
@@ -1170,6 +1174,7 @@ def hatali_giris_kaydet(anahtar, maks=MAKS_HATALI_GIRIS, taban_sn=KILIT_SURESI_S
     sonuc = {"kalan": maks, "kilit": False}
     
     def _guncelle(kayitlar):
+        # Eski ve süresi geçmiş kayıtları temizle
         kayitlar = {k: v for k, v in kayitlar.items()
                     if v.get("kilit_bitis", 0) > simdi or simdi - v.get("son", 0) < 3600}
         kayit = kayitlar.get(anahtar, {"sayi": 0, "kilit_sayisi": 0, "kilit_bitis": 0, "son": 0})
@@ -1192,20 +1197,23 @@ def hatali_giris_kaydet(anahtar, maks=MAKS_HATALI_GIRIS, taban_sn=KILIT_SURESI_S
         kayitlar[anahtar] = kayit
         return kayitlar
         
-    _guvenli_dict_guncelle("giris_denemeleri", _guncelle)
+    durum, _ = _atomik_dict_guncelle("giris_denemeleri", _guncelle)
+    if durum != "ok":
+        # Güvenlik gereği yazamıyorsak fail-safe olarak kilitli say
+        return 0, True
     return sonuc["kalan"], sonuc["kilit"]
 
 
 def giris_denemesini_sifirla(anahtar=None):
     """anahtar verilirse yalnızca onu, verilmezse tüm kilitleri temizler."""
     if anahtar is None:
-        _guvenli_dict_guncelle("giris_denemeleri", lambda _: {})
+        _atomik_dict_guncelle("giris_denemeleri", lambda _: {})
         return
         
     def _sil(kayitlar):
         kayitlar.pop(anahtar, None)
         return kayitlar
-    _guvenli_dict_guncelle("giris_denemeleri", _sil)
+    _atomik_dict_guncelle("giris_denemeleri", _sil)
 
 
 # =========================================================
