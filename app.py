@@ -3081,9 +3081,13 @@ elif menu == "Güncel Stok Durumu":
             ilgili_kayitlar = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u]
             toplam_kalan_ex = sum(float(g.get("kalan", 0)) for g in ilgili_kayitlar)
             
-            # Devreden Bakiye (En eski tarihli partiden kalan)
-            sirali_kayitlar = sorted(ilgili_kayitlar, key=lambda x: str(x.get("tarih", "")))
-            devreden_bakiye_ex = float(sirali_kayitlar[0].get("kalan", 0)) if sirali_kayitlar else 0.0
+            # Devreden Bakiye (En son fatura hariç önceki stokların toplamı)
+            sirali_kayitlar = sorted(ilgili_kayitlar, key=lambda x: str(x.get("tarih", "")), reverse=True)
+            if len(sirali_kayitlar) > 1:
+                en_son_kalan = float(sirali_kayitlar[0].get("kalan", 0))
+                devreden_bakiye_ex = toplam_kalan_ex - en_son_kalan
+            else:
+                devreden_bakiye_ex = 0.0
             
             kategori_ex = ilgili_kayitlar[0].get("kategori", "GENEL")
             birim_ex = ilgili_kayitlar[0].get("birim", "Kg")
@@ -3131,9 +3135,13 @@ elif menu == "Güncel Stok Durumu":
             ilgili_kayitlar = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == u]
             toplam_kalan = sum(float(g.get("kalan", 0)) for g in ilgili_kayitlar)
             
-            # Devreden Bakiye Hesaplama (En eski tarihli parti)
-            sirali_kayitlar = sorted(ilgili_kayitlar, key=lambda x: str(x.get("tarih", "")))
-            devreden_bakiye = float(sirali_kayitlar[0].get("kalan", 0)) if sirali_kayitlar else 0.0
+            # Devreden Bakiye Hesaplama (En son fatura hariç önceki stokların toplamı)
+            sirali_kayitlar = sorted(ilgili_kayitlar, key=lambda x: str(x.get("tarih", "")), reverse=True)
+            if len(sirali_kayitlar) > 1:
+                en_son_kalan = float(sirali_kayitlar[0].get("kalan", 0))
+                devreden_bakiye = toplam_kalan - en_son_kalan
+            else:
+                devreden_bakiye = 0.0
             
             kategori = ilgili_kayitlar[0].get("kategori", "GENEL")
             birim = ilgili_kayitlar[0].get("birim", "Kg")
