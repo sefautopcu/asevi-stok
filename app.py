@@ -6584,3 +6584,7 @@ elif menu == "Kullanıcı Ayarları":
                     st.error("Otomatik yedek bilgisi okunamadı.")
                 else:
                     st.caption("Henüz otomatik yedek alınmadı.")
+
+
+# Uygulama her açıldığında/yenilendiğinde mail kontrolünü çalıştırır
+gunluk_rapor_maili_gonder()
