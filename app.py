@@ -1736,6 +1736,17 @@ if "hatali_giris_sayisi" not in st.session_state:
 if "kilitlenme_bitis_zamani" not in st.session_state:
     st.session_state.kilitlenme_bitis_zamani = 0
 
+# F5 sonrası kilit bilgisini URL'den geri yükle
+if "kilit_zamani" in st.query_params:
+    try:
+        url_kilit = float(st.query_params["kilit_zamani"])
+        if url_kilit > time.time():
+            st.session_state.kilitlenme_bitis_zamani = url_kilit
+        else:
+            del st.query_params["kilit_zamani"]
+    except Exception:
+        del st.query_params["kilit_zamani"]
+
 query_params = st.query_params
 
 # Eski, güvensiz parametreleri URL'den temizle
@@ -2025,6 +2036,8 @@ if not st.session_state.oturum_aktif:
                                 kullanıcıları_kaydet(kullanici_db)
                             st.session_state.hatali_giris_sayisi = 0
                             giris_denemesini_sifirla(u_anahtar)
+                            if "kilit_zamani" in st.query_params:
+                                del st.query_params["kilit_zamani"]
                             giris_logla(k_adi_inp, "başarılı giriş")
                             oturumu_baslat(k_adi_inp)
                             st.rerun()
@@ -2039,6 +2052,7 @@ if not st.session_state.oturum_aktif:
                             if kilit_u or kilit_ip:
                                 st.session_state.kilitlenme_bitis_zamani = time.time() + KILIT_SURESI_SN
                                 st.session_state.hatali_giris_sayisi = 0
+                                st.query_params["kilit_zamani"] = str(int(st.session_state.kilitlenme_bitis_zamani))
                                 st.rerun()
                             else:
                                 st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {max(kalan_hak, 0)}")
