@@ -789,6 +789,8 @@ def otomatik_yedek_al(neden):
 
 def yedek_geri_yukle(paket):
     """Yedek paketini veritabanına yazar. (basarili, mesaj) döndürür."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return False, "Supabase yapılandırılmamış; geri yükleme yapılamadı."
     if not isinstance(paket, dict) or not isinstance(paket.get("veri"), dict):
         return False, "Geçersiz yedek dosyası."
     yazilacak = {k: v for k, v in paket["veri"].items() if k in YEDEK_ANAHTARLARI}
@@ -798,14 +800,21 @@ def yedek_geri_yukle(paket):
         beklenen = dict if k == "kritik_seviyeler" else list
         if not isinstance(v, beklenen):
             return False, f"'{k}' bölümü hatalı biçimde, geri yükleme iptal edildi."
-    otomatik_yedek_al("Geri yükleme öncesi otomatik yedek")
+            
+    # Önce güvenlik yedeği — başarısızsa iptal
+    if not otomatik_yedek_al("Geri yükleme öncesi otomatik yedek"):
+        return False, "Geri yükleme öncesi otomatik yedek alınamadı; güvenlik için iptal edildi."
+        
     for k, v in yazilacak.items():
         supabase_veri_kaydet(k, v, zorla=True)
+        
+    # Bellekteki eski verileri temizle ki güncel veriler yüklensin
     for sk in set(KAYIT_ESLEME.values()):
         st.session_state.pop(sk, None)
     st.session_state.pop("_db_hash", None)
+    
     return True, f"{len(yazilacak)} bölüm geri yüklendi."
-
+    
 
 # =========================================================================
 # OTURUM GÜVENLİĞİ
