@@ -993,7 +993,7 @@ def cerez_yaz(deger, anahtar=COOKIE_ADI, max_age=OTURUM_SURESI_SN):
         return
     try:
         import datetime
-        bitis = datetime.datetime.now() + datetime.timedelta(seconds=max_age)
+        bitis = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=max_age)
         cerez_kontrol.set(anahtar, deger, expires_at=bitis)
     except Exception:
         pass
@@ -1886,6 +1886,13 @@ if not st.session_state.oturum_aktif:
 
     aday_token = cerez_oku() if cerez_kontrol is not None else ""
     
+    # F5 sonrası stx kütüphanesinin çerezi okuyabilmesi için 1 kerelik bekleme (BURAYI EKLE)
+    
+    if not aday_token and cerez_kontrol is not None:
+        if not st.session_state.get("_cerez_beklemesi_yapildi"):
+            st.session_state["_cerez_beklemesi_yapildi"] = True
+            time.sleep(0.5)
+            st.rerun()
     if aday_token:
         kayit = oturum_dogrula(aday_token)
         if kayit and kayit.get("kullanici") in st.session_state.kullanicilar:
