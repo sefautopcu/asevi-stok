@@ -1964,13 +1964,7 @@ if not st.session_state.oturum_aktif:
             unsafe_allow_html=True,
         )
 
-        # GEÇİCİ TEŞHİS KODU
-        if cerez_kontrol is None:
-            st.error("🚨 Çerez kontrolcüsü (CookieController) YÜKLENEMEDİ! requirements.txt dosyasını kontrol edin.")
-        else:
-            st.info(f"🔍 Teşhis: Çerezden okunan değer: '{cerez_oku('kilit_zamani')}'")
-        # TEŞHİS SONU
-        
+            
         if st.session_state.get("oturum_mesaji"):
             st.warning(st.session_state.pop("oturum_mesaji"))
 
