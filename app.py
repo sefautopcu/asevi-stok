@@ -4949,7 +4949,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "Yemek Adı": u_kayit.get("yemek_adi", "-"),
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                             "Numune Durumu": u_kayit.get("numune_durumu", "-"), # YENİ EKLENDİ
-                            "Kullanılan Malzeme": m.get("urun", "-"),
+                            "Kullanılan Malzeme": f"{m.get('urun', '-')} ({m.get('miktar', '-')} {m.get('birim', '')})".strip(),
                             "Malzeme Maliyeti": f"{m.get('tutar', 0):,.2f} ₺",
                             "Menü Toplam Maliyeti": f"{toplam_maliyet_degeri:,.2f} ₺",
                             "Kişi Başı Maliyet": f"{kisi_basi_maliyet:,.2f} ₺",
