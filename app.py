@@ -25,6 +25,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr
 import holidays
+import logging                                    # YENİ
+from concurrent.futures import ThreadPoolExecutor # YENİ
+
+log = logging.getLogger("aziziye")                # YENİ
 
 from cekirdek import (
     SifrelemeHatasi,
