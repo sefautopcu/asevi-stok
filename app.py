@@ -961,24 +961,19 @@ def bosta_kalma_suresi_sn():
         dk = 30
     return max(5, min(dk, 480)) * 60
 
-# Çerez desteği: `streamlit-cookies-controller` paketi kuruluysa token adres çubuğu yerine
-# çerezde tutulur. Kurulu değilse eski yönteme (adreste token) güvenli şekilde geri düşer.
+# Çerez desteği: `extra-streamlit-components` kütüphanesi ile stabil çerez yönetimi.
 try:
-    from streamlit_cookies_controller import CookieController
+    import extra_streamlit_components as stx
 except Exception:
-    CookieController = None
+    stx = None
 
-cerez_kontrol = None
-if CookieController is not None:
-    try:
-        cerez_kontrol = CookieController(key="aziziye_cerez")
-    except TypeError:
-        try:
-            cerez_kontrol = CookieController()
-        except Exception:
-            cerez_kontrol = None
-    except Exception:
-        cerez_kontrol = None
+@st.cache_resource
+def get_cookie_manager():
+    if stx is not None:
+        return stx.CookieManager(key="aziziye_cerez")
+    return None
+
+cerez_kontrol = get_cookie_manager()
 
 
 def cerez_oku(anahtar=COOKIE_ADI):
@@ -991,7 +986,7 @@ def cerez_oku(anahtar=COOKIE_ADI):
     except Exception:
         pass
         
-    # Öncelik 2: streamlit-cookies-controller (Fallback)
+    # Öncelik 2: extra-streamlit-components (Fallback)
     if cerez_kontrol is None:
         return ""
     try:
@@ -1004,13 +999,9 @@ def cerez_yaz(deger, anahtar=COOKIE_ADI, max_age=OTURUM_SURESI_SN):
     if cerez_kontrol is None:
         return
     try:
-        # Localhost (http) ve Streamlit Cloud (https) uyumluluğu için same_site="lax" kullanıyoruz.
-        cerez_kontrol.set(anahtar, deger, max_age=max_age, same_site="lax")
-    except TypeError:
-        try:
-            cerez_kontrol.set(anahtar, deger, max_age=max_age)
-        except Exception:
-            pass
+        import datetime
+        bitis = datetime.datetime.now() + datetime.timedelta(seconds=max_age)
+        cerez_kontrol.set(anahtar, deger, expires_at=bitis)
     except Exception:
         pass
 
@@ -1021,7 +1012,10 @@ def cerez_sil(anahtar=COOKIE_ADI):
     try:
         cerez_kontrol.remove(anahtar)
     except Exception:
-        pass
+        try:
+            cerez_kontrol.delete(anahtar)
+        except Exception:
+            pass
 
 def istemci_ip_bilgisi():
     """(kilit için kullanılan IP, tam X-Forwarded-For). Kilitte EN SAĞDAKİ adres kullanılır:
