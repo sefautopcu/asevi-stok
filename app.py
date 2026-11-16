@@ -3105,7 +3105,7 @@ elif menu == "Güncel Stok Durumu":
                 "Ürün Adı": u,
                 "Kategori": kategori_ex,
                 "Birim": birim_ex,
-                "Toplam Kalan": gosterilen_kalan_excel,
+                "Güncel Stok Miktarı": gosterilen_kalan_excel,
                 "Devreden Bakiye": devreden_excel,
                 "En Yakın SKT / STT": en_yakin_skt,
                 "Depo Yeri": depo_ex,
@@ -3174,7 +3174,7 @@ elif menu == "Güncel Stok Durumu":
                     "Ürün Adı": u,
                     "Kategori": kategori,
                     "Birim": birim,
-                    "Toplam Kalan": final_kalan_gosterim,
+                    "Güncel Stok Miktarı": final_kalan_gosterim,
                     "Devreden Bakiye": devreden_gosterim, # YENİ EKLENDİ
                     "SKT / STT": skt_gosterim,
                     "Depo Yeri": depo,
