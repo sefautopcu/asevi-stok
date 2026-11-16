@@ -71,7 +71,6 @@ def bellek_kullanimi_al():
         
 def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
     """Buton ile tetiklendiğinde çalışır, tarih/saat kontrolünü atlar ve veritabanına kayıt atmaz."""
-    import datetime
     simdi = datetime.datetime.now()
     bugun = simdi.date()
     
@@ -214,7 +213,6 @@ def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
 
 def gunluk_rapor_maili_gonder():
     """Günlük, Haftalık ve Aylık raporları gönderir. (Saat ve Hafta sonu engelleri kaldırıldı)"""
-    import datetime
     
     simdi = datetime.datetime.now()
     bugun = simdi.date()
@@ -1684,7 +1682,9 @@ def eski_izinleri_tasi():
         p["izinler"] = []
         degisti = True
     if degisti:
-        personel_izinlerini_kaydet(mevcut)   # önce yeni liste, sonra eski kayıtların boşaltılması
+        # ÖNEMLİ SIRA: önce yeni listeyi yaz, sonra eski kayıtları boşalt.
+        # Ters sıra yapılırsa ve arada bir hata olursa veri kaybı yaşanır.
+        personel_izinlerini_kaydet(mevcut)
         personelleri_kaydet(st.session_state.personeller)
 
 
@@ -2361,7 +2361,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
                 st.query_params["menu"] = m
                 st.rerun()
 
-st.sidebar.markdown("<div style='margin-top: 150px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
 if st.sidebar.button(
