@@ -1965,11 +1965,17 @@ if not st.session_state.oturum_aktif:
                 "İlk girişte yeni şifre belirlemeniz istenecek:\n\n" + _satirlar
             )
 
-        simdikiekran_zaman = time.time()
-        kilitli_mi = st.session_state.kilitlenme_bitis_zamani > simdikiekran_zaman
+        simdikiekran_zaman = time.time() 
+        
+        # F5 (sayfa yenileme) atlatmasını önlemek için sunucudan (IP bazlı) kilidi kontrol et
+        istemci_ip, _xff = istemci_ip_bilgisi()
+        ip_anahtar = f"ip|{istemci_ip}"
+        kalan_kilit_db = giris_kilit_kalan(ip_anahtar) if istemci_ip and istemci_ip != "bilinmiyor" else 0
+
+        kilitli_mi = st.session_state.kilitlenme_bitis_zamani > simdikiekran_zaman or kalan_kilit_db > 0
 
         if kilitli_mi:
-            kalan_sure = int(st.session_state.kilitlenme_bitis_zamani - simdikiekran_zaman)
+            kalan_sure = max(int(st.session_state.kilitlenme_bitis_zamani - simdikiekran_zaman), kalan_kilit_db)
             st.error(f"⚠️ Çok fazla hatalı giriş yaptınız! Güvenlik nedeniyle girişler {kalan_sure} saniye süreyle kilitlendi.")
         else:
             with st.form("merkezi_giris_formu"):
