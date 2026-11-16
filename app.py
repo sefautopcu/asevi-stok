@@ -996,7 +996,7 @@ def oturumu_baslat(kullanici_adi):
         st.session_state.pop("ilk_kurulum_sifreleri", None)
     if cerez_kontrol is not None:
         cerez_yaz(token)
-        time.sleep(1.0)  # tarayıcı bileşeninin çerezi yazabilmesi için kısa bekleme
+        time.sleep(0.3)  # tarayıcı bileşeninin çerezi yazabilmesi için kısa bekleme
     else:
         st.query_params["token"] = token
 
@@ -1009,7 +1009,7 @@ def oturumu_kapat():
     oturum_sil(token)
     if cerez_kontrol is not None:
         cerez_sil()
-        time.sleep(0.6)
+        time.sleep(0.2)
     st.session_state.oturum_aktif = False
     st.session_state.aktif_kullanici = "misafir"
     st.session_state.oturum_token = ""
@@ -1379,10 +1379,7 @@ def varsayilan_misafir_kaydi():
 
 
 def varsayilan_kullanicilar_olustur():
-    """İlk kurulumda kullanıcıları oluşturur. Kodda sabit şifre YOKTUR:
-    şifre `secrets` içinde (ADMIN_INITIAL_PASSWORD vb.) verilmişse o kullanılır,
-    verilmemişse rastgele üretilir, giriş ekranında BİR KEZ gösterilir ve ilk girişte
-    değiştirilmesi zorunlu tutulur."""
+    """İlk kurulumda kullanıcıları oluşturur. Kodda sabit şifre YOKTUR."""
     kayit = {}
     uretilenler = {}
     for ad, tip, salt_okunur, secret_adi in (
@@ -1394,10 +1391,17 @@ def varsayilan_kullanicilar_olustur():
             sifre = str(st.secrets.get(secret_adi, "") or "")
         except Exception:
             sifre = ""
-        rastgele = not sifre
-        if rastgele:
+
+        rastgele = False
+        if not sifre:
             sifre = secrets.token_urlsafe(9)
             uretilenler[ad] = sifre
+            rastgele = True
+            uygun = True
+        else:
+            # Secrets'taki şifre politikaya uymuyorsa (zayıfsa) uyarı verilir
+            uygun = not sifre_politika_hatasi(sifre)
+
         kayit[ad] = {
             "sifre": sifre_hashle_yeni(sifre),
             "tip": tip,
@@ -1405,13 +1409,15 @@ def varsayilan_kullanicilar_olustur():
             "maskeli_alanlar": [],
             "salt_okunur": salt_okunur,
         }
-        if rastgele:
+        
+        # Şifre rastgele üretildiyse VEYA zayıfsa ilk girişte değiştirilmesi zorunlu tutulur
+        if rastgele or not uygun:
             kayit[ad]["sifre_degistirilmeli"] = True
+            
     kayit["misafir"] = varsayilan_misafir_kaydi()
     if uretilenler:
         st.session_state["ilk_kurulum_sifreleri"] = uretilenler
     return kayit
-
 
 varsayilan_widgets = [
     {
