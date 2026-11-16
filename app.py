@@ -3497,6 +3497,8 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "Paket Yapısı": paket_bilgi,
                     "SKT / STT": g.get("skt", "-"),
                     "Depo": g.get("depo", "-"),
+                    "Birim Fiyat": f"{float(g.get('birim_fiyat', 0) or 0):,.2f} ₺",
+                    "Toplam Tutar": f"{float(g.get('tutar', 0) or 0):,.2f} ₺",
                     "İşlemi Yapan": g.get("islem_yapan", "admin"),
                 })
             
