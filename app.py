@@ -6583,10 +6583,10 @@ elif menu == "Kullanıcı Ayarları":
             st.subheader("📜 Giriş ve Güvenlik Kayıtları (son 200)")
             if not SUPABASE_URL or not SUPABASE_KEY:
                 st.info("Kayıtlar için Supabase bağlantısı gerekir.")
-            else:
-                # Yeni SQL tablosundan son 200 kaydı çek
-                try:
-                 r = requests.get(
+        else:
+            # Yeni SQL tablosundan son 200 kaydı çek
+            try:
+                r = requests.get(
                     f"{SUPABASE_URL}/rest/v1/giris_kayitlari",
                     headers=_supa_basliklar(),
                     params={"select": "*", "order": "zaman.desc", "limit": "200"},
