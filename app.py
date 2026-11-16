@@ -964,17 +964,10 @@ def bosta_kalma_suresi_sn():
 # Çerez desteği: `extra-streamlit-components` kütüphanesi ile stabil çerez yönetimi.
 try:
     import extra_streamlit_components as stx
+    # Streamlit widget uyarısını önlemek için doğrudan ana kodda başlatıyoruz.
+    cerez_kontrol = stx.CookieManager(key="aziziye_cerez")
 except Exception:
-    stx = None
-
-@st.cache_resource
-def get_cookie_manager():
-    if stx is not None:
-        return stx.CookieManager(key="aziziye_cerez")
-    return None
-
-cerez_kontrol = get_cookie_manager()
-
+    cerez_kontrol = None
 
 def cerez_oku(anahtar=COOKIE_ADI):
     # Öncelik 1: Streamlit'in kendi senkron çerez okuyucusu (1.35+)
