@@ -1964,6 +1964,13 @@ if not st.session_state.oturum_aktif:
             unsafe_allow_html=True,
         )
 
+        # GEÇİCİ TEŞHİS KODU
+        if cerez_kontrol is None:
+            st.error("🚨 Çerez kontrolcüsü (CookieController) YÜKLENEMEDİ! requirements.txt dosyasını kontrol edin.")
+        else:
+            st.info(f"🔍 Teşhis: Çerezden okunan değer: '{cerez_oku('kilit_zamani')}'")
+        # TEŞHİS SONU
+        
         if st.session_state.get("oturum_mesaji"):
             st.warning(st.session_state.pop("oturum_mesaji"))
 
@@ -2052,6 +2059,7 @@ if not st.session_state.oturum_aktif:
                                 st.session_state.kilitlenme_bitis_zamani = time.time() + KILIT_SURESI_SN
                                 st.session_state.hatali_giris_sayisi = 0
                                 cerez_yaz(str(int(st.session_state.kilitlenme_bitis_zamani)), "kilit_zamani", max_age=3600)
+                                time.sleep(0.8)  # Çerezin tarayıcıya yazılması için bekle
                                 st.rerun()
                             else:
                                 st.error(f"Hatalı kullanıcı adı veya şifre! Kalan deneme hakkı: {max(kalan_hak, 0)}")
