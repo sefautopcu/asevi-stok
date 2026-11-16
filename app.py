@@ -1118,12 +1118,9 @@ def oturumu_baslat(kullanici_adi):
 
     if cerez_kontrol is not None:
         cerez_yaz(token)
-        # Çerezin tarayıcıya yazılması için JS ile sayfayı yenile
-        import streamlit.components.v1 as components
-        components.html("<script>window.parent.location.reload();</script>", height=0)
-        st.stop()
-    else:
-        st.rerun()
+        time.sleep(0.5) # Çerezin yazılması için kısa bir bekleme
+        
+    st.rerun()
    
 def oturumu_kapat():
     """Oturumu sunucuda iptal eder, çerezi ve oturum durumunu temizler."""
