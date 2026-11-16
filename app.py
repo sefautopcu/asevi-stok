@@ -6586,7 +6586,7 @@ elif menu == "Kullanıcı Ayarları":
             else:
                 # Yeni SQL tablosundan son 200 kaydı çek
                 try:
-                r = requests.get(
+                 r = requests.get(
                     f"{SUPABASE_URL}/rest/v1/giris_kayitlari",
                     headers=_supa_basliklar(),
                     params={"select": "*", "order": "zaman.desc", "limit": "200"},
