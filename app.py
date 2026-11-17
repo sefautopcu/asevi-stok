@@ -3489,14 +3489,20 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 else:
                     paket_bilgi = "Dökme (Paketsiz)"
             
-        # Veritabanındaki değerleri çek
-        toplam_tutar = float(g.get("fiyat") or 0)
-        
-        if g.get("birim_fiyat") is not None:
-            birim_fiyat = float(g.get("birim_fiyat"))
-        else:
-            miktar_degeri = float(g.get("miktar") or 1)
-            birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0
+        # Veritabanındaki değerleri çek (Hata olsa bile döngü devam eder, eski veriler kaybolmaz)
+        try:
+            toplam_tutar = float(g.get("fiyat") or 0)
+        except (ValueError, TypeError):
+            toplam_tutar = 0.0
+
+        try:
+            if g.get("birim_fiyat") is not None:
+                birim_fiyat = float(g.get("birim_fiyat"))
+            else:
+                miktar_degeri = float(g.get("miktar") or 1)
+                birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0.0
+        except (ValueError, TypeError, ZeroDivisionError):
+            birim_fiyat = 0.0
 
         fatura_tablo_verisi.append({
             "Kayıt ID": g.get("id", "-"),
@@ -3511,11 +3517,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             "Toplam Tutar": f"{toplam_tutar:,.2f} ₺",
             "İşlemi Yapan": g.get("islem_yapan", "admin"),
         })
-            
-    # ... (for g in ...: döngüsü ve içindeki append işlemleri)
-        fatura_tablo_verisi.append({
-            # ...
-        })
+        
     if fatura_tablo_verisi:
         excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura Arşivi")
         pdf_fatura_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fatura Arşivi", fatura_tablo_verisi)
