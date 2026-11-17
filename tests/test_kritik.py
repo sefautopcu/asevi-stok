@@ -12,7 +12,7 @@ os.environ["FERNET_KEY"] = Fernet.generate_key().decode("utf-8")
 from cekirdek import (
     metni_sifrele, metni_coz, SifrelemeHatasi,
     sifre_hashle_yeni, sifre_dogrula, sifre_politika_hatasi,
-    _veri_hash, yeni_id_uret, idleri_benzersiz_yap
+    giris_sayaclarini_sifirla, _veri_hash, yeni_id_uret, idleri_benzersiz_yap
 )
 
 # ==========================================
@@ -47,6 +47,24 @@ def test_sifre_hashleme_ve_dogrulama():
     assert hash_degeri.startswith("s1$")
     assert sifre_dogrula("GüvenliSifre123", hash_degeri) is True
     assert sifre_dogrula("YanlisSifre", hash_degeri) is False
+
+def test_bos_hash_her_zaman_reddedilir():
+    assert sifre_dogrula("", "") is False
+    assert sifre_dogrula("herhangi-bir-sifre", "") is False
+
+def test_basarili_giris_sayaclari_sifirlama_sadece_hedefleri_kaldirir():
+    kayitlar = {
+        "u|admin|10.0.0.1": {"sayi": 2},
+        "ip|10.0.0.1": {"sayi": 4},
+        "u|personel|10.0.0.1": {"sayi": 1},
+    }
+
+    sifirlanan = giris_sayaclarini_sifirla(
+        kayitlar, ("u|admin|10.0.0.1", "ip|10.0.0.1")
+    )
+
+    assert sifirlanan == {"u|personel|10.0.0.1": {"sayi": 1}}
+    assert len(kayitlar) == 3
 
 def test_sifre_politikasi():
     # 10 karakterden kısa

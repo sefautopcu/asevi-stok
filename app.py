@@ -41,6 +41,7 @@ from cekirdek import (
     ESKI_VARSAYILAN_HASHLER,
     _veri_hash,
     fernet_motoru,
+    giris_sayaclarini_sifirla,
     idleri_benzersiz_yap,
     metni_coz,
     metni_sifrele,
@@ -51,6 +52,33 @@ from cekirdek import (
     sifre_yukseltilmeli_mi,
     yeni_id_uret,
 )
+
+ARCTIC_HARBOR_COLORS = (
+    "#08131F",
+    "#16314A",
+    "#2E4F6B",
+    "#5F7F98",
+    "#A9BDC9",
+    "#E8EFF3",
+)
+
+
+def arctic_harbor_renk_kartlari_html():
+    kartlar = []
+    for renk in ARCTIC_HARBOR_COLORS:
+        yazi_rengi = "#08131F" if renk in ("#A9BDC9", "#E8EFF3") else "#E8EFF3"
+        kartlar.append(
+            f'<div title="{renk}" style="background:{renk};color:{yazi_rengi};'
+            f'border:1px solid rgba(232,239,243,.35);border-radius:10px;'
+            f'min-height:42px;display:flex;align-items:center;justify-content:center;'
+            f'font-size:10px;font-weight:700;letter-spacing:.02em;">{renk}</div>'
+        )
+    return (
+        '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));'
+        'gap:6px;margin-top:8px;">'
+        + "".join(kartlar)
+        + "</div>"
+    )
 
 # Sayfa Yapılandırması: Streamlit'te İLK komut olmak zorundadır
 # (kenar çubuğu, önbellek vb. komutlardan önce çağrılmalıdır).
@@ -1031,16 +1059,17 @@ def hatali_giris_kaydet(anahtar, maks=MAKS_HATALI_GIRIS, taban_sn=KILIT_SURESI_S
     return sonuc["kalan"], sonuc["kilit"]
 
 
-def giris_denemesini_sifirla(anahtar=None):
-    """anahtar verilirse yalnızca onu, verilmezse tüm kilitleri temizler."""
+def giris_denemesini_sifirla(anahtar=None, *ek_anahtarlar):
+    """Anahtar verilirse belirtilen sayaçları, verilmezse tüm sayaçları temizler."""
     if anahtar is None:
         _atomik_dict_guncelle("giris_denemeleri", lambda _: {})
         return
-        
-    def _sil(kayitlar):
-        kayitlar.pop(anahtar, None)
-        return kayitlar
-    _atomik_dict_guncelle("giris_denemeleri", _sil)
+
+    anahtarlar = (anahtar,) + ek_anahtarlar
+    _atomik_dict_guncelle(
+        "giris_denemeleri",
+        lambda kayitlar: giris_sayaclarini_sifirla(kayitlar, anahtarlar),
+    )
 
 
 # =========================================================
@@ -1062,14 +1091,24 @@ if "tema" not in st.session_state:
     else:
         st.session_state.tema = "Dark"
 
-border_color = "rgba(16, 185, 129, 0.35)"
-bg_color = "#040711"
-card_bg = "rgba(10, 15, 29, 0.75)"
-sidebar_bg = "rgba(6, 10, 20, 0.85)"
-text_color = "#f4f4f5"
-subtext_color = "#94a3b8"
-input_bg = "rgba(15, 23, 42, 0.85)"
-popover_bg = "#0b1329"
+if st.session_state.tema == "Arctic":
+    border_color = "rgba(95, 127, 152, 0.55)"
+    bg_color = "#08131F"
+    card_bg = "rgba(22, 49, 74, 0.78)"
+    sidebar_bg = "rgba(22, 49, 74, 0.88)"
+    text_color = "#E8EFF3"
+    subtext_color = "#A9BDC9"
+    input_bg = "rgba(46, 79, 107, 0.75)"
+    popover_bg = "#16314A"
+else:
+    border_color = "rgba(16, 185, 129, 0.35)"
+    bg_color = "#040711"
+    card_bg = "rgba(10, 15, 29, 0.75)"
+    sidebar_bg = "rgba(6, 10, 20, 0.85)"
+    text_color = "#f4f4f5"
+    subtext_color = "#94a3b8"
+    input_bg = "rgba(15, 23, 42, 0.85)"
+    popover_bg = "#0b1329"
 
 # STİL ENJEKSİYONU
 st.markdown("""
@@ -1181,6 +1220,79 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+if st.session_state.tema == "Arctic":
+    st.markdown("""
+    <style>
+        :root {
+            --primary-color: #5F7F98;
+            --background-color: #08131F;
+            --secondary-background-color: #16314A;
+            --text-color: #E8EFF3;
+        }
+        .stApp, [data-testid="stAppViewContainer"] {
+            background-color: #08131F !important;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(46, 79, 107, 0.38) 0%, transparent 45%),
+                radial-gradient(circle at 90% 80%, rgba(95, 127, 152, 0.22) 0%, transparent 45%) !important;
+            color: #E8EFF3 !important;
+        }
+        [data-testid="stHeader"] { background: transparent !important; }
+        section[data-testid="stSidebar"] {
+            background: rgba(22, 49, 74, 0.88) !important;
+            border-right: 1px solid rgba(95, 127, 152, 0.55) !important;
+        }
+        section[data-testid="stSidebar"] *,
+        .stApp, .stApp label, .stApp p, .stApp h1, .stApp h2, .stApp h3 {
+            color: #E8EFF3 !important;
+        }
+        section[data-testid="stSidebar"] div.stButton > button {
+            color: #A9BDC9 !important;
+        }
+        div[data-testid="stMetric"],
+        div[data-testid="stForm"],
+        div[data-testid="stExpander"] {
+            background: rgba(22, 49, 74, 0.78) !important;
+            border-color: rgba(95, 127, 152, 0.55) !important;
+            box-shadow: 0 0 25px -3px rgba(46, 79, 107, 0.45) !important;
+        }
+        input, textarea,
+        div[data-baseweb="input"] > div,
+        div[data-baseweb="select"] > div {
+            background-color: rgba(46, 79, 107, 0.75) !important;
+            color: #E8EFF3 !important;
+            border-color: #5F7F98 !important;
+        }
+        input::placeholder, textarea::placeholder { color: #A9BDC9 !important; }
+        button[data-testid="baseButton-primary"] {
+            background: linear-gradient(135deg, #5F7F98 0%, #2E4F6B 100%) !important;
+            color: #E8EFF3 !important;
+            box-shadow: 0 4px 20px rgba(46, 79, 107, 0.55) !important;
+        }
+        button[data-testid="baseButton-secondary"], div.stButton > button {
+            background: rgba(22, 49, 74, 0.88) !important;
+            color: #E8EFF3 !important;
+            border-color: #5F7F98 !important;
+        }
+        section[data-testid="stSidebar"] div.stButton > button:hover {
+            background: rgba(46, 79, 107, 0.75) !important;
+            border-color: #A9BDC9 !important;
+            box-shadow: 0 0 25px -3px rgba(95, 127, 152, 0.55) !important;
+        }
+        .custom-table {
+            background: rgba(22, 49, 74, 0.78) !important;
+            border-color: rgba(95, 127, 152, 0.55) !important;
+            box-shadow: 0 0 25px -3px rgba(46, 79, 107, 0.45) !important;
+        }
+        .custom-table th { background: #16314A !important; color: #E8EFF3 !important; }
+        .custom-table td { color: #A9BDC9 !important; border-color: #2E4F6B !important; }
+        .metric-card, .cost-card {
+            background: rgba(22, 49, 74, 0.78) !important;
+            border-color: rgba(95, 127, 152, 0.55) !important;
+            box-shadow: 0 0 25px -3px rgba(46, 79, 107, 0.45) !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 def silme_onay_kutusu(anahtar):
     return st.checkbox(
@@ -1991,7 +2103,10 @@ if not st.session_state.oturum_aktif:
                                 kullanici_db[k_adi_inp]["sifre"] = sifre_hashle_yeni(sifre_inp)
                                 kullanıcıları_kaydet(kullanici_db)
                             st.session_state.hatali_giris_sayisi = 0
-                            giris_denemesini_sifirla(u_anahtar)
+                            if istemci_ip and istemci_ip != "bilinmiyor":
+                                giris_denemesini_sifirla(u_anahtar, ip_anahtar)
+                            else:
+                                giris_denemesini_sifirla(u_anahtar)
                             cerez_sil("kilit_zamani")
                             giris_logla(k_adi_inp, "başarılı giriş")
                             oturumu_baslat(k_adi_inp)
@@ -2177,6 +2292,8 @@ with st.sidebar.expander(f"🎨 Tema · {_tema_etiketleri[st.session_state.tema]
         key="tema_radio_widget",
         label_visibility="collapsed",
     )
+    st.caption("Arctic Harbor · Renk paleti")
+    st.markdown(arctic_harbor_renk_kartlari_html(), unsafe_allow_html=True)
     if _secim != st.session_state.tema:
         st.session_state.tema = _secim
         try:

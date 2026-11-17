@@ -120,11 +120,8 @@ def sifre_dogrula(girilen, kayitli):
     """
     Hem yeni (scrypt) hem eski (SHA-256) kayıtları sabit zamanlı karşılaştırır.
 
-    GÜVENLİK NOTU (Adım 3'te düzeltilecek bug):
-    Boş `kayitli` değeri şu an sadece `girilen == ""` ise True döner.
-    Bu, boş şifreli bir hesap varsa (misafir hariç) giriş açığı yaratır.
-    Adım 3'te bu davranış düzeltilecek; şimdilik mevcut davranış korunuyor
-    ki testler mevcut davranışı doğrulasın.
+    Boş kayıtlı hash hiçbir zaman geçerli sayılmaz; misafir hesabı da uygulama
+    tarafından özel olarak ele alınmalı, boş hash ile doğrulanmamalıdır.
     """
     girilen = str(girilen or "")
     kayitli = str(kayitli or "")
@@ -141,6 +138,14 @@ def sifre_dogrula(girilen, kayitli):
         except Exception:
             return False
     return hmac.compare_digest(sifre_hashle(girilen), kayitli)
+
+
+def giris_sayaclarini_sifirla(kayitlar, anahtarlar):
+    """Belirtilen giriş denemesi sayaçlarını korunan diğer kayıtları değiştirmeden siler."""
+    sifirlanan = dict(kayitlar)
+    for anahtar in anahtarlar:
+        sifirlanan.pop(anahtar, None)
+    return sifirlanan
 
 
 def sifre_yukseltilmeli_mi(kayitli):
