@@ -3464,60 +3464,66 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
         st.markdown("---")
         st.subheader("📋 Kayıtlı Fatura ve Mal Alım Arşivi")
         
-        if st.session_state.girisler:
-            fatura_tablo_verisi = []
-            for g in reversed(st.session_state.girisler):
-                paket_miktari = float(g.get("paket_miktari", 0))
-                
-                if paket_miktari > 0:
-                    durumlar = g.get("paket_durumlari", {})
-                    paket_sayisi = int(float(g.get("miktar", 0)) // paket_miktari)
-                    ozet_liste = []
-                    for i in range(1, paket_sayisi + 1):
-                        p_id = f"{g['id']}-P{i}"
-                        if p_id in durumlar:
-                            kalan = durumlar[p_id]
-                            if kalan == paket_miktari:
-                                ozet_liste.append(f"P{i}: Tam")
-                            elif kalan == 0:
-                                ozet_liste.append(f"P{i}: Bitti")
+    if st.session_state.girisler:
+        fatura_tablo_verisi = []
+        for g in reversed(st.session_state.girisler):
+            try:
+                # 1. Paket bilgisini güvenli hesapla
+                paket_bilgi = "Dökme (Paketsiz)"
+                try:
+                    paket_miktari = float(g.get("paket_miktari") or 0)
+                    if paket_miktari > 0:
+                        durumlar = g.get("paket_durumlari", {})
+                        paket_sayisi = int(float(g.get("miktar") or 0) // paket_miktari)
+                        ozet_liste = []
+                        for i in range(1, paket_sayisi + 1):
+                            p_id = f"{g.get('id')}-P{i}"
+                            if p_id in durumlar:
+                                kalan = durumlar[p_id]
+                                if kalan == paket_miktari:
+                                    ozet_liste.append(f"P{i}: Tam")
+                                elif kalan == 0:
+                                    ozet_liste.append(f"P{i}: Bitti")
+                                else:
+                                    ozet_liste.append(f"P{i}: {kalan} {g.get('birim', '')} kaldı")
                             else:
-                                ozet_liste.append(f"P{i}: {kalan} {g.get('birim')} kaldı")
-                        else:
-                            ozet_liste.append(f"P{i}: Tam")
-                    paket_bilgi = f"{paket_miktari} {g.get('birim')} | (" + ", ".join(ozet_liste) + ")"
-                else:
-                    paket_bilgi = "Dökme (Paketsiz)"
-            
-            # Veritabanındaki değerleri çek (Hata olsa bile döngü devam eder, eski veriler kaybolmaz)
-            try:
-                toplam_tutar = float(g.get("fiyat") or 0)
-            except (ValueError, TypeError):
-                toplam_tutar = 0.0
+                                ozet_liste.append(f"P{i}: Tam")
+                        paket_bilgi = f"{paket_miktari} {g.get('birim', 'Kg')} | (" + ", ".join(ozet_liste) + ")"
+                except Exception:
+                    pass # Paket hesabında hata olursa dökme kabul et, döngüyü durdurma
 
-            try:
-                if g.get("birim_fiyat") is not None:
-                    birim_fiyat = float(g.get("birim_fiyat"))
-                else:
-                    miktar_degeri = float(g.get("miktar") or 1)
-                    birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0.0
-            except (ValueError, TypeError, ZeroDivisionError):
-                birim_fiyat = 0.0
+                # 2. Fiyatları güvenli çek
+                try:
+                    toplam_tutar = float(g.get("fiyat") or 0)
+                except (ValueError, TypeError):
+                    toplam_tutar = 0.0
 
-            # Veriyi tabloya ekle
-            fatura_tablo_verisi.append({
-                "Kayıt ID": g.get("id", "-"),
-                "Tarih / Saat": g.get("tarih", "-"),
-                "Fatura No": g.get("fatura_no", "-"),
-                "Ürün Adı": g.get("urun", "-"),
-                "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
-                "Paket Yapısı": paket_bilgi,  # <-- Buraya yukarıda hesapladığınız detaylı paket bilgisi geliyor
-                "SKT / STT": g.get("skt", "-"),
-                "Depo": g.get("depo", "-"),
-                "Birim Fiyat": f"{birim_fiyat:,.2f} ₺",
-                "Toplam Tutar": f"{toplam_tutar:,.2f} ₺",
-                "İşlemi Yapan": g.get("islem_yapan", "admin"),
-            })
+                try:
+                    if g.get("birim_fiyat") is not None:
+                        birim_fiyat = float(g.get("birim_fiyat"))
+                    else:
+                        miktar_degeri = float(g.get("miktar") or 1)
+                        birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0.0
+                except (ValueError, TypeError, ZeroDivisionError):
+                    birim_fiyat = 0.0
+
+                # 3. Veriyi tabloya ekle
+                fatura_tablo_verisi.append({
+                    "Kayıt ID": g.get("id", "-"),
+                    "Tarih / Saat": g.get("tarih", "-"),
+                    "Fatura No": g.get("fatura_no", "-"),
+                    "Ürün Adı": g.get("urun", "-"),
+                    "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
+                    "Paket Yapısı": paket_bilgi,
+                    "SKT / STT": g.get("skt", "-"),
+                    "Depo": g.get("depo", "-"),
+                    "Birim Fiyat": f"{birim_fiyat:,.2f} ₺",
+                    "Toplam Tutar": f"{toplam_tutar:,.2f} ₺",
+                    "İşlemi Yapan": g.get("islem_yapan", "admin"),
+                })
+            except Exception as e:
+                # Ne olursa olsun sistem çökmesin, diğer ürünlere geçsin
+                pass
         
     if fatura_tablo_verisi:
         excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura Arşivi")
