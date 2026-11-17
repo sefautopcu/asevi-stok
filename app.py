@@ -61,14 +61,40 @@ def _tema_tercihini_yukle(url_temasi, cerez_temasi):
     return "Dark"
 
 
+def _dashboard_arka_plan_data_uri(yuklenen_resim):
+    from PIL import Image, ImageOps
+
+    try:
+        with Image.open(io.BytesIO(yuklenen_resim.getvalue())) as acilan_resim:
+            resim = ImageOps.exif_transpose(acilan_resim)
+            resim.thumbnail((1920, 1080), Image.Resampling.LANCZOS)
+            if "A" in resim.getbands() or "transparency" in resim.info:
+                rgba = resim.convert("RGBA")
+                optimize_edilmis = Image.new("RGB", rgba.size, "#08131F")
+                optimize_edilmis.paste(rgba, mask=rgba.getchannel("A"))
+            else:
+                optimize_edilmis = resim.convert("RGB")
+
+            cikti = io.BytesIO()
+            optimize_edilmis.save(cikti, format="JPEG", quality=85, optimize=True)
+    except (OSError, ValueError, Image.DecompressionBombError) as exc:
+        raise ValueError("Görsel okunamadı. Lütfen geçerli bir JPG veya PNG seçin.") from exc
+
+    b64 = base64.b64encode(cikti.getvalue()).decode("ascii")
+    return f"data:image/jpeg;base64,{b64}"
+
+
 def _dashboard_arka_plan_yukleme_callback():
     yuklenen_resim = st.session_state.get("dashboard_bg_uploader")
     if yuklenen_resim is None:
         return
-    b64 = base64.b64encode(yuklenen_resim.getvalue()).decode("ascii")
-    st.session_state.dashboard_arka_plan = (
-        f"data:{yuklenen_resim.type};base64,{b64}"
-    )
+    try:
+        st.session_state.dashboard_arka_plan = _dashboard_arka_plan_data_uri(
+            yuklenen_resim
+        )
+    except ValueError as exc:
+        st.session_state["_dashboard_bg_upload_error"] = str(exc)
+        return
     st.session_state["_dashboard_bg_upload_success"] = True
 
 
@@ -2928,7 +2954,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         body {{ background: transparent; margin: 0; padding: 0; }}
         
         .main-hero-container {{
-            background-image: linear-gradient(rgba(4, 7, 17, 0.75), rgba(4, 7, 17, 0.95)), url('{arka_plan_url}'); 
+            background-image: linear-gradient(rgba(4, 7, 17, 0.35), rgba(4, 7, 17, 0.65)), url('{arka_plan_url}');
             background-size: cover; background-position: center; 
             border-radius: 24px; padding: 35px; margin-bottom: 25px; 
             border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.6); 
@@ -3127,6 +3153,9 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 key="dashboard_bg_uploader",
                 on_change=_dashboard_arka_plan_yukleme_callback,
             )
+            hata_mesaji = st.session_state.pop("_dashboard_bg_upload_error", None)
+            if hata_mesaji:
+                st.error(hata_mesaji)
             if st.session_state.pop("_dashboard_bg_upload_success", False):
                 st.success("✅ Arka plan resmi güncellendi!")
             if st.button("🔄 Varsayılan Resme Dön", key="dashboard_bg_reset"):
