@@ -53,32 +53,9 @@ from cekirdek import (
     yeni_id_uret,
 )
 
-ARCTIC_HARBOR_COLORS = (
-    "#08131F",
-    "#16314A",
-    "#2E4F6B",
-    "#5F7F98",
-    "#A9BDC9",
-    "#E8EFF3",
-)
-
-
-def arctic_harbor_renk_kartlari_html():
-    kartlar = []
-    for renk in ARCTIC_HARBOR_COLORS:
-        yazi_rengi = "#08131F" if renk in ("#A9BDC9", "#E8EFF3") else "#E8EFF3"
-        kartlar.append(
-            f'<div title="{renk}" style="background:{renk};color:{yazi_rengi};'
-            f'border:1px solid rgba(232,239,243,.35);border-radius:10px;'
-            f'min-height:42px;display:flex;align-items:center;justify-content:center;'
-            f'font-size:10px;font-weight:700;letter-spacing:.02em;">{renk}</div>'
-        )
-    return (
-        '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));'
-        'gap:6px;margin-top:8px;">'
-        + "".join(kartlar)
-        + "</div>"
-    )
+def _tema_tercihini_yukle(cerez_temasi):
+    """Geçerli temayı çerezden yükler; bilinmeyen tercihler Dark'a döner."""
+    return cerez_temasi if cerez_temasi in ("Dark", "Arctic") else "Dark"
 
 # Sayfa Yapılandırması: Streamlit'te İLK komut olmak zorundadır
 # (kenar çubuğu, önbellek vb. komutlardan önce çağrılmalıdır).
@@ -1079,17 +1056,7 @@ def giris_denemesini_sifirla(anahtar=None, *ek_anahtarlar):
 # Kodun alt kısımlarındaki KeyError ve NameError hatalarını engelleyen değişkenler:
 # Tema state'i: önce çerezden oku, yoksa varsayılan "Dark"
 if "tema" not in st.session_state:
-    _cerez_tema = ""
-    try:
-        # cerez_oku fonksiyonu bu noktadan sonra tanımlanıyor, geçici olarak st.context kullan
-        if hasattr(st, "context") and hasattr(st.context, "cookies"):
-            _cerez_tema = st.context.cookies.get("aziziye_tema", "")
-    except Exception:
-        pass
-    if _cerez_tema in ("Dark", "Arctic"):
-        st.session_state.tema = _cerez_tema
-    else:
-        st.session_state.tema = "Dark"
+    st.session_state.tema = _tema_tercihini_yukle(cerez_oku("aziziye_tema"))
 
 if st.session_state.tema == "Arctic":
     border_color = "rgba(95, 127, 152, 0.55)"
@@ -2292,8 +2259,6 @@ with st.sidebar.expander(f"🎨 Tema · {_tema_etiketleri[st.session_state.tema]
         key="tema_radio_widget",
         label_visibility="collapsed",
     )
-    st.caption("Arctic Harbor · Renk paleti")
-    st.markdown(arctic_harbor_renk_kartlari_html(), unsafe_allow_html=True)
     if _secim != st.session_state.tema:
         st.session_state.tema = _secim
         try:
