@@ -60,6 +60,18 @@ def _tema_tercihini_yukle(url_temasi, cerez_temasi):
             return tercih
     return "Dark"
 
+
+def _dashboard_arka_plan_yukleme_callback():
+    yuklenen_resim = st.session_state.get("dashboard_bg_uploader")
+    if yuklenen_resim is None:
+        return
+    b64 = base64.b64encode(yuklenen_resim.getvalue()).decode("ascii")
+    st.session_state.dashboard_arka_plan = (
+        f"data:{yuklenen_resim.type};base64,{b64}"
+    )
+    st.session_state["_dashboard_bg_upload_success"] = True
+
+
 # Sayfa Yapılandırması: Streamlit'te İLK komut olmak zorundadır
 # (kenar çubuğu, önbellek vb. komutlardan önce çağrılmalıdır).
 st.set_page_config(
@@ -2706,6 +2718,8 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     # --- ARKA PLAN RESMİ YÖNETİMİ ---
     varsayilan_arka_plan = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
     
+    if st.session_state.pop("_dashboard_bg_clear_upload", False):
+        st.session_state.pop("dashboard_bg_uploader", None)
     if "dashboard_arka_plan" not in st.session_state:
         st.session_state.dashboard_arka_plan = varsayilan_arka_plan
     
@@ -3107,13 +3121,17 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     if yonetici_modu:
         st.markdown("---")
         with st.expander("🎨 Dashboard Arka Plan Resmini Değiştir (Admin)"):
-            yeni_resim = st.file_uploader("Yeni arka plan resmi yükleyin (JPG, PNG)", type=["jpg", "jpeg", "png"], key="dashboard_bg_uploader")
-            if yeni_resim is not None:
-                b64 = base64.b64encode(yeni_resim.getvalue()).decode()
-                st.session_state.dashboard_arka_plan = f"data:{yeni_resim.type};base64,{b64}"
+            st.file_uploader(
+                "Yeni arka plan resmi yükleyin (JPG, PNG)",
+                type=["jpg", "jpeg", "png"],
+                key="dashboard_bg_uploader",
+                on_change=_dashboard_arka_plan_yukleme_callback,
+            )
+            if st.session_state.pop("_dashboard_bg_upload_success", False):
                 st.success("✅ Arka plan resmi güncellendi!")
             if st.button("🔄 Varsayılan Resme Dön", key="dashboard_bg_reset"):
                 st.session_state.dashboard_arka_plan = varsayilan_arka_plan
+                st.session_state["_dashboard_bg_clear_upload"] = True
                 st.rerun()
             
 # 1. GÜNCEL STOK DURUMU
