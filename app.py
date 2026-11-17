@@ -3488,6 +3488,12 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 else:
                     paket_bilgi = "Dökme (Paketsiz)"
 
+                # Birim fiyatı hesapla (Toplam Tutar / Miktar)
+                # Veritabanınızda fiyat alanı 'tutar' veya 'toplam_fiyat' olarak geçebilir, ikisini de kontrol ediyoruz:
+                toplam_tutar = float(g.get("tutar") or g.get("toplam_fiyat") or 0)
+                miktar_degeri = float(g.get("miktar") or 1)
+                birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0
+                
                 fatura_tablo_verisi.append({
                     "Kayıt ID": g.get("id", "-"),
                     "Tarih / Saat": g.get("tarih", "-"),
@@ -3497,9 +3503,10 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     "Paket Yapısı": paket_bilgi,
                     "SKT / STT": g.get("skt", "-"),
                     "Depo": g.get("depo", "-"),
-                    "Birim Fiyat": f"{float(g.get('birim_fiyat', 0) or 0):,.2f} ₺",
-                    "Toplam Tutar": f"{float(g.get('tutar', 0) or 0):,.2f} ₺",
+                    "Birim Fiyat": f"{birim_fiyat:,.2f} ₺",        # <-- HESAPLANAN BİRİM FİYAT
+                    "Toplam Tutar": f"{toplam_tutar:,.2f} ₺",     # <-- TOPLAM FİYAT
                     "İşlemi Yapan": g.get("islem_yapan", "admin"),
+                    
                 })
             
             excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura Arşivi")
