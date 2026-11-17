@@ -1048,8 +1048,19 @@ def giris_denemesini_sifirla(anahtar=None):
 # =========================================================
 
 # Kodun alt kısımlarındaki KeyError ve NameError hatalarını engelleyen değişkenler:
+# Tema state'i: önce çerezden oku, yoksa varsayılan "Dark"
 if "tema" not in st.session_state:
-    st.session_state.tema = "Dark"
+    _cerez_tema = ""
+    try:
+        # cerez_oku fonksiyonu bu noktadan sonra tanımlanıyor, geçici olarak st.context kullan
+        if hasattr(st, "context") and hasattr(st.context, "cookies"):
+            _cerez_tema = st.context.cookies.get("aziziye_tema", "")
+    except Exception:
+        pass
+    if _cerez_tema in ("Dark", "Arctic"):
+        st.session_state.tema = _cerez_tema
+    else:
+        st.session_state.tema = "Dark"
 
 border_color = "rgba(16, 185, 129, 0.35)"
 bg_color = "#040711"
@@ -2152,6 +2163,28 @@ st.sidebar.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+# =========================================================================
+# TEMA SEÇİCİ (Sidebar)
+# =========================================================================
+_tema_etiketleri = {"Dark": "🌙 Karanlık", "Arctic": "❄️ Arctic Harbor"}
+with st.sidebar.expander(f"🎨 Tema · {_tema_etiketleri[st.session_state.tema]}", expanded=False):
+    _secim = st.radio(
+        "Tema Seçiniz",
+        options=["Dark", "Arctic"],
+        format_func=lambda x: _tema_etiketleri[x],
+        index=["Dark", "Arctic"].index(st.session_state.tema),
+        key="tema_radio_widget",
+        label_visibility="collapsed",
+    )
+    if _secim != st.session_state.tema:
+        st.session_state.tema = _secim
+        try:
+            if cerez_kontrol is not None:
+                cerez_yaz(_secim, "aziziye_tema", max_age=365 * 24 * 3600)
+        except Exception:
+            pass
+        st.rerun()
 
 sidebar_arama = st.sidebar.text_input(
     "🔍 Hızlı Arama",
