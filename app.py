@@ -3492,20 +3492,20 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 except Exception:
                     pass # Paket hesabında hata olursa dökme kabul et, döngüyü durdurma
 
-                # 2. Fiyatları güvenli çek
-                try:
-                    toplam_tutar = float(g.get("fiyat") or 0)
-                except (ValueError, TypeError):
-                    toplam_tutar = 0.0
-
+                # 2. Fiyatları güvenli çek (Eski ve Yeni kayıt mantığı)
                 try:
                     if g.get("birim_fiyat") is not None:
-                        birim_fiyat = float(g.get("birim_fiyat"))
+                        # YENİ KAYIT: Birim fiyat ve toplam tutar ayrı kaydedilmiş
+                        birim_fiyat = float(g.get("birim_fiyat") or 0)
+                        toplam_tutar = float(g.get("fiyat") or 0)
                     else:
-                        miktar_degeri = float(g.get("miktar") or 1)
-                        birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0.0
-                except (ValueError, TypeError, ZeroDivisionError):
+                        # ESKİ KAYIT: Veritabanındaki 'fiyat' aslında Birim Fiyat'tır!
+                        birim_fiyat = float(g.get("fiyat") or 0)
+                        miktar_degeri = float(g.get("miktar") or 0)
+                        toplam_tutar = birim_fiyat * miktar_degeri
+                except (ValueError, TypeError):
                     birim_fiyat = 0.0
+                    toplam_tutar = 0.0
 
                 # 3. Veriyi tabloya ekle
                 fatura_tablo_verisi.append({
