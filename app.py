@@ -3527,7 +3527,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
         
     ozel_html_tablo_goster(fatura_tablo_verisi)
 
-else:
+  else:
     st.info("Sistemde kayıtlı fatura veya mal alımı bulunmuyor.")
             
 # DEPO YÖNETİMİ
