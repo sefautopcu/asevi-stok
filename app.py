@@ -3356,7 +3356,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                         "miktar": miktar,
                         "kalan": miktar,
                         "birim_fiyat": fiyat,
-                        "fiyat": fiyat*miktar    
+                        "fiyat": fiyat*miktar,    
                         "paket_miktari": paket_miktari_input, # YENİ EKLENDİ
                         "depo": depo,
                         "skt": str(skt_tarihi),
