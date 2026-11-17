@@ -41,10 +41,14 @@ from cekirdek import (
     ESKI_VARSAYILAN_HASHLER,
     _veri_hash,
     fernet_motoru,
+    fire_partisi_detayi,
+    fire_partisi_etiketi,
     giris_sayaclarini_sifirla,
     idleri_benzersiz_yap,
     metni_coz,
     metni_sifrele,
+    qr_paket_kalanini_hesapla,
+    qr_paket_secim_engeli,
     RAPOR_YENIDEN_DENEME_SANIYE,
     rapor_mail_durumunu_guncelle,
     rapor_verilerini_oku,
@@ -228,9 +232,9 @@ def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
         html += "</table>"
 
     if secilen_fireler:
-        html += f"<h3>🗑️ Fire / Zayiat Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
+        html += f"<h3>🗑️ Fire / Zayiat Girişleri</h3><table><tr><th>Ürün</th><th>Fatura No</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
         for f in secilen_fireler:
-            html += f"<tr><td>{_rapor_html_metni(f.get('urun'))}</td><td>{_rapor_html_metni(f.get('miktar'))}</td><td>{float(f.get('tutar', 0)):,.2f} ₺</td><td>{_rapor_html_metni(f.get('aciklama'))}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(f.get('urun'))}</td><td>{_rapor_html_metni(f.get('fatura_no'))}</td><td>{_rapor_html_metni(f.get('miktar'))}</td><td>{float(f.get('tutar', 0)):,.2f} ₺</td><td>{_rapor_html_metni(f.get('aciklama'))}</td></tr>"
         html += "</table>"
 
     if secilen_yemekler:
@@ -354,9 +358,9 @@ def _rapor_icerigi_olustur(rapor_baslik, rapor_tarih_str, baslangic_str, bitis_s
         html += "</table>"
 
     if secilen_fireler:
-        html += "<h3>🗑️ Fire / Zayiat</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
+        html += "<h3>🗑️ Fire / Zayiat</h3><table><tr><th>Ürün</th><th>Fatura No</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
         for f in secilen_fireler:
-            html += f"<tr><td>{_rapor_html_metni(f.get('urun'))}</td><td>{_rapor_html_metni(f.get('miktar'))}</td><td>{float(f.get('tutar', 0)):,.2f} ₺</td><td>{_rapor_html_metni(f.get('aciklama'))}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(f.get('urun'))}</td><td>{_rapor_html_metni(f.get('fatura_no'))}</td><td>{_rapor_html_metni(f.get('miktar'))}</td><td>{float(f.get('tutar', 0)):,.2f} ₺</td><td>{_rapor_html_metni(f.get('aciklama'))}</td></tr>"
         html += "</table>"
 
     if secilen_silinenler:
@@ -4382,7 +4386,7 @@ elif menu == "Fire / Zayiat Girişi":
                 son_fire = st.session_state["son_fire_kaydi"]
                 c_undo1, c_undo2 = st.columns([3, 1])
                 with c_undo1:
-                    st.info(f"💡 **Son Fire Kaydı:** {son_fire.get('urun')} ({son_fire.get('miktar')} Miktar - Zarar: {son_fire.get('tutar', 0):,.2f} ₺ - Tarih: {son_fire.get('tarih')})")
+                    st.info(f"💡 **Son Fire Kaydı:** {son_fire.get('urun')} (Fatura: {son_fire.get('fatura_no', '-')}, {son_fire.get('miktar')} Miktar - Zarar: {son_fire.get('tutar', 0):,.2f} ₺ - Tarih: {son_fire.get('tarih')})")
                 with c_undo2:
                     if st.button("↩️ Son Fire İşlemini Geri Al", type="secondary", key="btn_undo_fire_son"):
                         otomatik_yedek_al("Fire girişi geri alma: " + str(son_fire.get("urun")))
@@ -4406,12 +4410,13 @@ elif menu == "Fire / Zayiat Girişi":
                         time.sleep(1)
                         st.rerun()
 
-            benzersiz_urunler = sorted(
-                list(set(str(g.get("urun", "")).strip().upper() for g in st.session_state.girisler if g.get("urun")))
-            )
-            
-            if not benzersiz_urunler:
-                st.info("Sistemde kayıtlı ürün bulunmuyor.")
+            aktif_fire_partileri = [
+                g for g in st.session_state.girisler
+                if g.get("urun") and float(g.get("kalan", 0) or 0) > 0
+            ]
+
+            if not aktif_fire_partileri:
+                st.info("Fire düşülebilecek kullanılabilir stok kaydı bulunmuyor.")
             else:
                 col_f_t1, col_f_t2 = st.columns(2)
                 with col_f_t1:
@@ -4420,40 +4425,33 @@ elif menu == "Fire / Zayiat Girişi":
                     fire_saati_secim = st.time_input("⏰ Fire Saati", value=datetime.datetime.now().time(), key="fire_saat_inp")
                 fire_tarih_str = f"{fire_tarihi_secim.strftime('%Y-%m-%d')} {fire_saati_secim.strftime('%H:%M')}"
 
-                secilen_gercek_urun = st.selectbox(
-                    "Fire Düşülecek Ürünü Seçin",
-                    benzersiz_urunler,
+                fire_parti_secenekleri = {
+                    fire_partisi_etiketi(g): g
+                    for g in aktif_fire_partileri
+                }
+                secilen_fire_etiketi = st.selectbox(
+                    "Fire Düşülecek Ürün / Fatura Kaydını Seçin",
+                    list(fire_parti_secenekleri),
                     index=None,
-                    placeholder="Ürün Seçiniz...",
-                    key="fire_urun_secim_box"
+                    placeholder="Ürün ve fatura kaydı seçiniz...",
+                    key="fire_fatura_giris_secim_box"
                 )
                 
-                if secilen_gercek_urun:
-                    ilgili_girisler = [
-                        g
-                        for g in st.session_state.girisler
-                        if str(g.get("urun", "")).strip().upper() == str(secilen_gercek_urun).strip().upper()
-                    ]
-                    toplam_stok = sum(float(g.get("kalan", 0)) for g in ilgili_girisler)
-                    aktif_ilgili_girisler = [g for g in ilgili_girisler if float(g.get("kalan", 0)) > 0]
-
-                    en_son_fiyat = 0.0
-                    if ilgili_girisler:
-                        en_son_kayit = max(
-                            ilgili_girisler, key=lambda x: str(x.get("tarih", ""))
-                        )
-                        en_son_fiyat = float(en_son_kayit.get("fiyat", 0.0))
-
+                if secilen_fire_etiketi:
+                    secilen_fire_girisi = fire_parti_secenekleri[secilen_fire_etiketi]
+                    secilen_parti_kalani = float(secilen_fire_girisi.get("kalan", 0))
                     st.info(
-                        f"Güncel Toplam Stok ({secilen_gercek_urun}): {toplam_stok} | Baz Alınan Birim Fiyat: {en_son_fiyat:,.2f} ₺"
+                        f"Seçilen kayıt: **{secilen_fire_girisi.get('urun')}** | "
+                        f"Fatura: **{secilen_fire_girisi.get('fatura_no') or 'BELİRTİLMEMİŞ'}** | "
+                        f"Bu faturadaki kalan stok: **{secilen_parti_kalani:g} {secilen_fire_girisi.get('birim', '')}**"
                     )
                     
                     fire_miktari = st.number_input(
                         "Fire Miktarı",
-                        min_value=0.1,
-                        value=1.0,
+                        min_value=min(0.1, secilen_parti_kalani),
+                        value=min(1.0, secilen_parti_kalani),
                         step=0.1,
-                        key="fire_miktar_inp"
+                        key=f"fire_miktar_inp_{secilen_fire_girisi['id']}"
                     )
                     fire_aciklama = st.text_input(
                         "Fire Açıklaması / Nedeni",
@@ -4462,35 +4460,25 @@ elif menu == "Fire / Zayiat Girişi":
                     ).strip()
 
                     if st.button("Fireyi Düş ve Kaydet", type="primary", key="fire_kaydet_button"):
-                        if fire_miktari <= 0:
-                            st.error("⚠️ Lütfen 0'dan büyük bir fire miktarı girin!")
-                        elif fire_miktari > toplam_stok:
-                            st.error(f"⚠️ Hata: Girilen fire miktarı ({fire_miktari}), güncel toplam stoktan ({toplam_stok}) büyük olamaz!")
+                        try:
+                            fire_detayi = fire_partisi_detayi(
+                                secilen_fire_girisi, fire_miktari
+                            )
+                        except ValueError as hata:
+                            st.error(f"⚠️ Fire kaydı oluşturulamadı: {hata}")
                         else:
-                            kalan_dusulecek = fire_miktari
-                            dusulen_kayitlar = []
-
-                            for g in aktif_ilgili_girisler:
-                                if kalan_dusulecek <= 0:
-                                    break
-                                if float(g["kalan"]) >= kalan_dusulecek:
-                                    dusulen_kayitlar.append({"id": g["id"], "miktar": kalan_dusulecek})
-                                    g["kalan"] = float(g["kalan"]) - kalan_dusulecek
-                                    kalan_dusulecek = 0
-                                else:
-                                    dusulen = float(g["kalan"])
-                                    dusulen_kayitlar.append({"id": g["id"], "miktar": dusulen})
-                                    g["kalan"] = 0.0
-                                    kalan_dusulecek -= dusulen
-
-                            toplam_zarar = fire_miktari * en_son_fiyat
-
+                            secilen_fire_girisi["kalan"] = (
+                                secilen_parti_kalani - fire_detayi["miktar"]
+                            )
                             yeni_log = {
                                 "tarih": fire_tarih_str,
-                                "urun": secilen_gercek_urun,
+                                "urun": secilen_fire_girisi.get("urun"),
+                                "giris_id": fire_detayi["giris_id"],
+                                "fatura_no": fire_detayi["fatura_no"],
                                 "tur": "Fire/Zayiat",
-                                "miktar": fire_miktari,
-                                "tutar": toplam_zarar,
+                                "miktar": fire_detayi["miktar"],
+                                "birim_fiyat": fire_detayi["birim_fiyat"],
+                                "tutar": fire_detayi["tutar"],
                                 "aciklama": (fire_aciklama if fire_aciklama else "Belirtilmedi"),
                                 "islem_yapan": st.session_state.aktif_kullanici,
                             }
@@ -4499,11 +4487,15 @@ elif menu == "Fire / Zayiat Girişi":
                             
                             # Son fire kaydını session_state içinde sakla
                             st.session_state["son_fire_kaydi"] = {
-                                "urun": secilen_gercek_urun,
-                                "miktar": fire_miktari,
-                                "tutar": toplam_zarar,
+                                "urun": secilen_fire_girisi.get("urun"),
+                                "fatura_no": fire_detayi["fatura_no"],
+                                "miktar": fire_detayi["miktar"],
+                                "tutar": fire_detayi["tutar"],
                                 "tarih": fire_tarih_str,
-                                "dusulen_kayitlar": dusulen_kayitlar,
+                                "dusulen_kayitlar": [{
+                                    "id": fire_detayi["giris_id"],
+                                    "miktar": fire_detayi["miktar"],
+                                }],
                                 "log_objesi": yeni_log
                             }
 
@@ -4511,7 +4503,9 @@ elif menu == "Fire / Zayiat Girişi":
                             loglari_kaydet(st.session_state.kullanim_loglari)
 
                             st.success(
-                                f"🎉 Başarılı! {secilen_gercek_urun} için fire düşüldü ({fire_tarih_str}). Toplam zarar: {toplam_zarar:,.2f} ₺"
+                                f"🎉 Başarılı! {secilen_fire_girisi.get('urun')} "
+                                f"(Fatura: {fire_detayi['fatura_no']}) için fire düşüldü "
+                                f"({fire_tarih_str}). Toplam zarar: {fire_detayi['tutar']:,.2f} ₺"
                             )
                             st.balloons()
                             time.sleep(1)
@@ -4537,6 +4531,7 @@ elif menu == "Fire / Zayiat Girişi":
                     fire_tablo_verisi.append({
                         "Tarih / Saat": f_log.get("tarih", "-"),
                         "Ürün Adı": f_log.get("urun", "-"),
+                        "Fatura No": f_log.get("fatura_no", "-"),
                         "Fire Miktarı": f"{f_log.get('miktar', 0)}",
                         "Toplam Tutar": f"{f_log.get('tutar', 0):,.2f} ₺",
                         "İşlemi Yapan": f_log.get("islem_yapan", "admin"),
@@ -4876,37 +4871,75 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             if en_eski_urun and en_eski_urun["id"] != ana_id:
                                 st.warning(f"⚠️ **FIFO UYARISI:** Depoda bu üründen daha eski bir parti var (Fatura: {en_eski_urun['id']}, Tarih: {en_eski_urun.get('tarih')}). Lütfen önce eski partiyi tüketin!")
                             
-                            # --- AÇIK PAKET UYARISI ---
                             if "-P" in qr_okunan_id:
                                 if "paket_durumlari" not in ilgili_g:
                                     ilgili_g["paket_durumlari"] = {}
                                     
-                                paket_miktari = float(ilgili_g.get("paket_miktari", 0))
-                                kalan_paket = ilgili_g["paket_durumlari"].get(qr_okunan_id, paket_miktari)
-                                
-                                # Başka açık paket var mı?
-                                acik_paketler = [(p_id, p_kg) for p_id, p_kg in ilgili_g.get("paket_durumlari", {}).items() if p_kg > 0 and p_kg < paket_miktari]
-                                if acik_paketler and acik_paketler[0][0] != qr_okunan_id:
-                                    st.warning(f"⚠️ **AÇIK PAKET UYARISI:** Bu ürüne ait açık bir paket var! ({acik_paketler[0][0]} - Kalan: {acik_paketler[0][1]} {ilgili_g.get('birim')}). Önce onu kullanmalısınız!")
-                                
-                                if kalan_paket <= 0:
+                                kalan_paket = qr_paket_kalanini_hesapla(
+                                    ilgili_g, st.session_state.sepet, qr_okunan_id
+                                )
+                                baska_acik_paket = qr_paket_secim_engeli(
+                                    st.session_state.girisler,
+                                    st.session_state.sepet,
+                                    urun_adi,
+                                    qr_okunan_id,
+                                )
+
+                                if baska_acik_paket:
+                                    st.warning(
+                                        f"⚠️ **AÇIK PAKET UYARISI:** Bu ürüne ait açık paket "
+                                        f"bitmeden yeni paketten malzeme ekleyemezsiniz "
+                                        f"({baska_acik_paket['paket_id']} - Kalan: "
+                                        f"{baska_acik_paket['kalan']:g} "
+                                        f"{baska_acik_paket['birim']}). Önce bu paketi tüketin."
+                                    )
+                                elif kalan_paket <= 0:
                                     st.error("❌ Bu paket tamamen tükenmiş! Lütfen başka bir paket okutun.")
                                 else:
                                     st.info(f"**Paket:** {qr_okunan_id} | **Kalan:** {kalan_paket} {ilgili_g.get('birim')}")
                                     secilen_urun = urun_adi
                                     secilen_paket_id = qr_okunan_id
                                     secilen_fatura_id = ana_id
-                                    kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=kalan_paket, value=1.0, step=0.1, key="qr_miktar_manuel")
+                                    kullanilacak_miktar = st.number_input(
+                                        f"Kullanılacak Miktar ({ilgili_g.get('birim')})",
+                                        min_value=min(0.1, kalan_paket),
+                                        max_value=kalan_paket,
+                                        value=min(1.0, kalan_paket),
+                                        step=0.1,
+                                        key=f"qr_miktar_manuel_{qr_okunan_id}",
+                                    )
                                     
                                     if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr"):
-                                        st.session_state.sepet.append({
-                                            "urun": urun_adi, 
-                                            "miktar": kullanilacak_miktar,
-                                            "paket_id": secilen_paket_id,
-                                            "fatura_id": secilen_fatura_id
-                                        })
-                                        st.success("QR ile Eklendi!")
-                                        st.rerun()
+                                        baska_acik_paket = qr_paket_secim_engeli(
+                                            st.session_state.girisler,
+                                            st.session_state.sepet,
+                                            urun_adi,
+                                            secilen_paket_id,
+                                        )
+                                        guncel_kalan = qr_paket_kalanini_hesapla(
+                                            ilgili_g, st.session_state.sepet, secilen_paket_id
+                                        )
+                                        if baska_acik_paket:
+                                            st.error(
+                                                f"Önce açık paketi tüketin: "
+                                                f"{baska_acik_paket['paket_id']} "
+                                                f"(Kalan: {baska_acik_paket['kalan']:g} "
+                                                f"{baska_acik_paket['birim']})."
+                                            )
+                                        elif kullanilacak_miktar <= 0 or kullanilacak_miktar > guncel_kalan:
+                                            st.error(
+                                                f"Seçilen pakette yalnızca {guncel_kalan:g} "
+                                                f"{ilgili_g.get('birim')} kullanılabilir."
+                                            )
+                                        else:
+                                            st.session_state.sepet.append({
+                                                "urun": urun_adi,
+                                                "miktar": kullanilacak_miktar,
+                                                "paket_id": secilen_paket_id,
+                                                "fatura_id": secilen_fatura_id
+                                            })
+                                            st.success("QR ile Eklendi!")
+                                            st.rerun()
                             else:
                                 # Dökme ürün
                                 toplam_kalan = float(ilgili_g.get("kalan", 0))

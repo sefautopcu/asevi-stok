@@ -8,7 +8,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from cekirdek import rapor_mail_durumunu_guncelle, rapor_verilerini_oku
+from cekirdek import (
+    fire_partisi_detayi,
+    fire_partisi_etiketi,
+    rapor_mail_durumunu_guncelle,
+    rapor_verilerini_oku,
+)
 
 
 _RAPOR_ANAHTARLARI = (
@@ -22,6 +27,68 @@ _RAPOR_ANAHTARLARI = (
 
 def _sonuclardan_oku(sonuclar):
     return rapor_verilerini_oku(lambda anahtar: sonuclar[anahtar])
+
+
+def test_fire_secimi_urunle_birlikte_fatura_ve_kalan_miktari_gosterir():
+    etiket = fire_partisi_etiketi({
+        "id": "FAT-002",
+        "urun": "mercimek",
+        "fatura_no": "FAT-2026-002",
+        "kalan": 4,
+        "birim": "Kg",
+        "tarih": "2026-11-17",
+    })
+
+    assert "MERCIMEK" in etiket
+    assert "FAT-2026-002" in etiket
+    assert "Kalan: 4 Kg" in etiket
+
+
+def test_fire_detayi_secilen_fatura_partisinin_fiyatini_ve_kimligini_kullanir():
+    ikinci_fatura = {
+        "id": "FAT-002",
+        "urun": "MERCİMEK",
+        "fatura_no": "FAT-2026-002",
+        "miktar": 5,
+        "kalan": 2,
+        "birim_fiyat": 7,
+        "fiyat": 35,
+    }
+
+    detay = fire_partisi_detayi(ikinci_fatura, 1.5)
+
+    assert detay == {
+        "giris_id": "FAT-002",
+        "fatura_no": "FAT-2026-002",
+        "miktar": 1.5,
+        "birim_fiyat": 7,
+        "tutar": 10.5,
+    }
+    assert ikinci_fatura["kalan"] == 2
+
+
+def test_fire_miktari_secilen_fatura_stogunu_asamaz():
+    with pytest.raises(ValueError, match="seçilen fatura"):
+        fire_partisi_detayi(
+            {"id": "FAT-001", "fatura_no": "FAT-1", "miktar": 5, "kalan": 1},
+            1.1,
+        )
+
+
+def test_fire_detayi_eski_kayitta_toplam_fiyattan_birim_fiyat_hesaplar():
+    detay = fire_partisi_detayi(
+        {
+            "id": "FAT-OLD",
+            "fatura_no": "ESKİ-FATURA",
+            "miktar": 4,
+            "kalan": 3,
+            "fiyat": 12,
+        },
+        2,
+    )
+
+    assert detay["birim_fiyat"] == 3
+    assert detay["tutar"] == 6
 
 
 def test_rapor_okumalari_yok_durumunu_bos_liste_kabul_eder():
@@ -197,7 +264,15 @@ def test_manuel_rapor_html_inde_kullanici_metni_escape_edilir():
             "birim": "kg",
             "fatura_no": "<svg onload=alert(1)>",
         }],
-        "kullanim_loglari": [],
+        "kullanim_loglari": [{
+            "tarih": str(bugun - datetime.timedelta(days=1)),
+            "urun": "MERCİMEK",
+            "fatura_no": "FIRE-<svg onload=alert(1)>",
+            "tur": "Fire/Zayiat",
+            "miktar": 1,
+            "tutar": 3,
+            "aciklama": "Fire",
+        }],
         "silinen_urun_loglari": [],
         "yemek_uretim_arsivi": [],
         "personel_izinleri": [],
@@ -220,6 +295,7 @@ def test_manuel_rapor_html_inde_kullanici_metni_escape_edilir():
     gonderilen_html = smtp.call_args.args[1]
     assert "&lt;img src=x onerror=alert(1)&gt;" in gonderilen_html
     assert "&lt;script&gt;" in gonderilen_html
+    assert "FIRE-&lt;svg onload=alert(1)&gt;" in gonderilen_html
     assert "<img src=x onerror=alert(1)>" not in gonderilen_html
 
 
@@ -232,7 +308,15 @@ def test_otomatik_rapor_html_inde_kullanici_metni_escape_edilir():
             "birim": "kg",
             "fatura_no": "<svg onload=alert(1)>",
         }],
-        "kullanim_loglari": [],
+        "kullanim_loglari": [{
+            "tarih": "2026-11-16",
+            "urun": "MERCİMEK",
+            "fatura_no": "FIRE-<svg onload=alert(1)>",
+            "tur": "Fire/Zayiat",
+            "miktar": 1,
+            "tutar": 3,
+            "aciklama": "Fire",
+        }],
         "silinen_urun_loglari": [],
         "yemek_uretim_arsivi": [],
         "personel_izinleri": [],
@@ -251,6 +335,7 @@ def test_otomatik_rapor_html_inde_kullanici_metni_escape_edilir():
     )
     assert "&lt;img src=x onerror=alert(1)&gt;" in gonderilen_html
     assert "&lt;svg onload=alert(1)&gt;" in gonderilen_html
+    assert "FIRE-&lt;svg onload=alert(1)&gt;" in gonderilen_html
     assert "<img src=x onerror=alert(1)>" not in gonderilen_html
 
 

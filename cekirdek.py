@@ -148,6 +148,113 @@ def giris_sayaclarini_sifirla(kayitlar, anahtarlar):
     return sifirlanan
 
 
+def fire_partisi_etiketi(giris):
+    """Fire seçicisinde stok girişini ürün, fatura ve kalan miktarla ayırt eder."""
+    return (
+        f"{str(giris.get('urun', '')).strip().upper()} | "
+        f"Fatura: {giris.get('fatura_no') or 'BELİRTİLMEMİŞ'} | "
+        f"Kalan: {giris.get('kalan', 0)} {giris.get('birim', '')} | "
+        f"Tarih: {giris.get('tarih', '-')} | Kayıt: {giris.get('id', '-')}"
+    )
+
+
+def fire_partisi_detayi(giris, miktar):
+    """Seçilen stok girişinin fatura ve birim fiyat bilgileriyle fire tutarını hesaplar."""
+    if not isinstance(giris, dict):
+        raise ValueError("Seçilen stok giriş kaydı geçersiz.")
+    try:
+        miktar = float(miktar)
+        kalan = float(giris.get("kalan", 0) or 0)
+    except (TypeError, ValueError) as hata:
+        raise ValueError("Fire miktarı veya kalan stok sayısal değil.") from hata
+    if miktar <= 0:
+        raise ValueError("Fire miktarı 0'dan büyük olmalıdır.")
+    if miktar > kalan:
+        raise ValueError("Fire miktarı seçilen fatura kaydındaki stoktan büyük olamaz.")
+
+    birim_fiyat = giris.get("birim_fiyat")
+    try:
+        if birim_fiyat in (None, ""):
+            giris_miktari = float(giris.get("miktar", 0) or 0)
+            toplam_fiyat = float(giris.get("fiyat", 0) or 0)
+            birim_fiyat = toplam_fiyat / giris_miktari if giris_miktari > 0 else toplam_fiyat
+        else:
+            birim_fiyat = float(birim_fiyat)
+    except (TypeError, ValueError) as hata:
+        raise ValueError("Seçilen fatura kaydının birim fiyatı geçersiz.") from hata
+
+    return {
+        "giris_id": str(giris.get("id", "")),
+        "fatura_no": str(giris.get("fatura_no") or "BELİRTİLMEMİŞ"),
+        "miktar": miktar,
+        "birim_fiyat": birim_fiyat,
+        "tutar": miktar * birim_fiyat,
+    }
+
+
+def qr_paket_kalanini_hesapla(giris, sepet, paket_id):
+    """QR paketin mevcut kalanından bu üretim sepetinde planlanan miktarı düşer."""
+    try:
+        paket_miktari = float(giris.get("paket_miktari", 0) or 0)
+        durumlar = giris.get("paket_durumlari", {})
+        if not isinstance(durumlar, dict):
+            durumlar = {}
+        kalan = float(durumlar.get(paket_id, paket_miktari) or 0)
+        for item in sepet:
+            if (
+                item.get("paket_id") == paket_id
+                and str(item.get("fatura_id")) == str(giris.get("id"))
+            ):
+                kalan -= float(item.get("miktar", 0) or 0)
+    except (AttributeError, TypeError, ValueError) as hata:
+        raise ValueError("QR paket miktar bilgisi geçersiz.") from hata
+    return max(0.0, kalan)
+
+
+def qr_acik_paketleri_bul(girisler, sepet, urun):
+    """Ürünün kayıtlı veya mevcut üretim sepetinde açılmış paketlerini bulur."""
+    aranan_urun = str(urun or "").strip().upper()
+    acik_paketler = []
+    for giris in girisler:
+        if str(giris.get("urun", "")).strip().upper() != aranan_urun:
+            continue
+        try:
+            paket_miktari = float(giris.get("paket_miktari", 0) or 0)
+            durumlar = giris.get("paket_durumlari", {})
+            if not isinstance(durumlar, dict):
+                durumlar = {}
+            paket_idleri = set(durumlar)
+            paket_idleri.update(
+                item.get("paket_id")
+                for item in sepet
+                if item.get("paket_id")
+                and str(item.get("fatura_id")) == str(giris.get("id"))
+            )
+        except (AttributeError, TypeError, ValueError) as hata:
+            raise ValueError("QR paket durum bilgisi geçersiz.") from hata
+        if paket_miktari <= 0:
+            continue
+
+        for paket_id in sorted(paket_idleri, key=str):
+            kalan = qr_paket_kalanini_hesapla(giris, sepet, paket_id)
+            if 0 < kalan < paket_miktari:
+                acik_paketler.append({
+                    "paket_id": paket_id,
+                    "fatura_id": giris.get("id"),
+                    "kalan": kalan,
+                    "birim": giris.get("birim", ""),
+                })
+    return acik_paketler
+
+
+def qr_paket_secim_engeli(girisler, sepet, urun, secilen_paket_id):
+    """Açık paket varken önce onu bitirmeyi zorunlu kılar."""
+    acik_paketler = qr_acik_paketleri_bul(girisler, sepet, urun)
+    if acik_paketler and acik_paketler[0]["paket_id"] != secilen_paket_id:
+        return acik_paketler[0]
+    return None
+
+
 RAPOR_VERI_ANAHTARLARI = (
     "girisler",
     "kullanim_loglari",
