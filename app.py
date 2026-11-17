@@ -2182,6 +2182,7 @@ with st.sidebar.expander(f"🎨 Tema · {_tema_etiketleri[st.session_state.tema]
         try:
             if cerez_kontrol is not None:
                 cerez_yaz(_secim, "aziziye_tema", max_age=365 * 24 * 3600)
+                time.sleep(1.0)  # Çerezin tarayıcıya yazılması için bekle
         except Exception:
             pass
         st.rerun()
