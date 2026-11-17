@@ -3490,7 +3490,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
 
                 # Birim fiyatı hesapla (Toplam Tutar / Miktar)
                 # Veritabanınızda fiyat alanı 'tutar' veya 'toplam_fiyat' olarak geçebilir, ikisini de kontrol ediyoruz:
-                toplam_tutar = float(g.get("tutar") or g.get("toplam_fiyat") or 0)
+                toplam_tutar = float(g.get("fiyat") or g.get("tutar") or g.get("toplam_fiyat") or 0)
                 miktar_degeri = float(g.get("miktar") or 1)
                 birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0
                 
