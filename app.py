@@ -45,6 +45,9 @@ from cekirdek import (
     idleri_benzersiz_yap,
     metni_coz,
     metni_sifrele,
+    RAPOR_YENIDEN_DENEME_SANIYE,
+    rapor_mail_durumunu_guncelle,
+    rapor_verilerini_oku,
     sifre_dogrula,
     sifre_hashle,
     sifre_hashle_yeni,
@@ -125,6 +128,12 @@ def bellek_kullanimi_al():
     except Exception:
         return 0.0
         
+
+def _rapor_html_metni(deger, varsayilan="-"):
+    """Rapor HTML'inde kullanıcı/veritabanı kaynaklı metni güvenli biçimde gösterir."""
+    return html_escape(str(varsayilan if deger is None else deger))
+
+
 def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
     """Buton ile tetiklendiğinde çalışır, tarih/saat kontrolünü atlar ve veritabanına kayıt atmaz."""
     simdi = datetime.datetime.now()
@@ -151,18 +160,18 @@ def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
     baslangic_str = baslangic_tarih.strftime("%Y-%m-%d")
     bitis_str = bitis_tarih.strftime("%Y-%m-%d")
     
-    # Verileri çek
-    _, tum_girisler = _supabase_ham_oku("girisler")
-    _, tum_kullanim_loglari = _supabase_ham_oku("kullanim_loglari")
-    _, tum_silinenler = _supabase_ham_oku("silinen_urun_loglari")
-    _, tum_yemekler = _supabase_ham_oku("yemek_uretim_arsivi")
-    _, tum_izinler = _supabase_ham_oku("personel_izinleri")
+    try:
+        rapor_verileri = rapor_verilerini_oku(_supabase_ham_oku)
+    except (RuntimeError, ValueError) as e:
+        log.error("Manuel rapor verileri okunamadı: %s", e)
+        st.error("Rapor oluşturulamadı; veritabanı verileri alınamadı. Lütfen tekrar deneyin.")
+        return False
 
-    tum_girisler = tum_girisler if isinstance(tum_girisler, list) else []
-    tum_kullanim_loglari = tum_kullanim_loglari if isinstance(tum_kullanim_loglari, list) else []
-    tum_silinenler = tum_silinenler if isinstance(tum_silinenler, list) else []
-    tum_yemekler = tum_yemekler if isinstance(tum_yemekler, list) else []
-    tum_izinler = tum_izinler if isinstance(tum_izinler, list) else []
+    tum_girisler = rapor_verileri["girisler"]
+    tum_kullanim_loglari = rapor_verileri["kullanim_loglari"]
+    tum_silinenler = rapor_verileri["silinen_urun_loglari"]
+    tum_yemekler = rapor_verileri["yemek_uretim_arsivi"]
+    tum_izinler = rapor_verileri["personel_izinleri"]
 
     def tarih_filtrele(liste, anahtar="tarih"):
         return [item for item in liste if baslangic_str <= str(item.get(anahtar, ""))[:10] <= bitis_str]
@@ -200,8 +209,8 @@ def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
     </head>
     <body>
         <div class="container">
-            <h2>🍲 Aziziye Aşevi - {rapor_baslik}</h2>
-            <p style="color: #6b7280; font-size: 15px;"><b>Tarih:</b> {rapor_tarih_str}</p>
+            <h2>🍲 Aziziye Aşevi - {_rapor_html_metni(rapor_baslik)}</h2>
+            <p style="color: #6b7280; font-size: 15px;"><b>Tarih:</b> {_rapor_html_metni(rapor_tarih_str)}</p>
             
             <table class="summary-table">
                 <tr>
@@ -215,13 +224,13 @@ def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
     if secilen_girisler:
         html += f"<h3>📦 Gelen Stok Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Fatura No</th></tr>"
         for g in secilen_girisler:
-            html += f"<tr><td>{g.get('urun')}</td><td>{g.get('miktar')} {g.get('birim', '')}</td><td>{g.get('fatura_no')}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(g.get('urun'))}</td><td>{_rapor_html_metni(g.get('miktar'))} {_rapor_html_metni(g.get('birim', ''), '')}</td><td>{_rapor_html_metni(g.get('fatura_no'))}</td></tr>"
         html += "</table>"
 
     if secilen_fireler:
         html += f"<h3>🗑️ Fire / Zayiat Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
         for f in secilen_fireler:
-            html += f"<tr><td>{f.get('urun')}</td><td>{f.get('miktar')}</td><td>{f.get('tutar', 0):,.2f} ₺</td><td>{f.get('aciklama', '-')}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(f.get('urun'))}</td><td>{_rapor_html_metni(f.get('miktar'))}</td><td>{float(f.get('tutar', 0)):,.2f} ₺</td><td>{_rapor_html_metni(f.get('aciklama'))}</td></tr>"
         html += "</table>"
 
     if secilen_yemekler:
@@ -230,13 +239,13 @@ def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
             toplam_maliyet = float(y.get('toplam_maliyet', 0))
             kisi = int(y.get('kisi_sayisi', 1) or 1)
             kisi_basi = toplam_maliyet / kisi if kisi > 0 else 0
-            html += f"<div class='yemek-box'><h4 style='margin: 0 0 10px 0; color: #111827;'>{y.get('tarih')} - {y.get('yemek_adi')} ({kisi} Kişilik)</h4>"
+            html += f"<div class='yemek-box'><h4 style='margin: 0 0 10px 0; color: #111827;'>{_rapor_html_metni(y.get('tarih'))} - {_rapor_html_metni(y.get('yemek_adi'))} ({kisi} Kişilik)</h4>"
             html += f"<p style='margin: 0 0 10px 0; font-size: 14px; color: #4b5563;'><b>Toplam Maliyet:</b> {toplam_maliyet:,.2f} ₺ | <b>Kişi Başı:</b> {kisi_basi:,.2f} ₺</p></div>"
 
     if secilen_izinler:
         html += f"<h3>👥 Personel İzinleri</h3><table><tr><th>Personel</th><th>İzin Türü</th><th>Başlangıç</th><th>Bitiş</th></tr>"
         for i in secilen_izinler:
-            html += f"<tr><td>{i.get('personel_ad')}</td><td>{i.get('izin_turu')}</td><td>{i.get('baslangic')}</td><td>{i.get('bitis')}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(i.get('personel_ad'))}</td><td>{_rapor_html_metni(i.get('izin_turu'))}</td><td>{_rapor_html_metni(i.get('baslangic'))}</td><td>{_rapor_html_metni(i.get('bitis'))}</td></tr>"
         html += "</table>"
 
     if not (secilen_girisler or secilen_fireler or secilen_silinenler or secilen_yemekler or secilen_izinler):
@@ -255,39 +264,50 @@ def manuel_rapor_maili_gonder(rapor_tipi="gunluk"):
     return True
 
 def _rapor_sahiplen(rapor_tipi, deger):
-    """K4: Aynı dönem için yalnızca BİR tetiklemenin geçmesini atomik olarak garanti eder."""
+    """Aynı dönemin raporunu tekilleştirir ve gönderim için süreli sahiplenme alır."""
     sonuc = {"sahiplendi": False}
+    claim_id = secrets.token_urlsafe(16)
     def _mutate(mevcut):
-        if mevcut.get(rapor_tipi) == deger:
-            sonuc["sahiplendi"] = False
-            return mevcut
-        mevcut[rapor_tipi] = deger
-        sonuc["sahiplendi"] = True
-        return mevcut
+        yeni, sonuc["sahiplendi"] = rapor_mail_durumunu_guncelle(
+            mevcut, rapor_tipi, deger, time.time(), "sahiplen", claim_id
+        )
+        return yeni
     durum, _ = _atomik_dict_guncelle("mail_loglari", _mutate)
-    return durum == "ok" and sonuc["sahiplendi"]
+    return claim_id if durum == "ok" and sonuc["sahiplendi"] else None
 
-def _rapor_geri_al(rapor_tipi, deger):
+def _rapor_geri_al(rapor_tipi, deger, claim_id):
     """Gönderim başarısızsa sahiplenmeyi bırak → bir sonraki tetikleme yeniden denesin."""
     def _mutate(mevcut):
-        if mevcut.get(rapor_tipi) == deger:
-            mevcut.pop(rapor_tipi, None)
-        return mevcut
-    _atomik_dict_guncelle("mail_loglari", _mutate)
+        yeni, _ = rapor_mail_durumunu_guncelle(
+            mevcut, rapor_tipi, deger, time.time(), "basarisiz", claim_id
+        )
+        return yeni
+    durum, sonuc = _atomik_dict_guncelle("mail_loglari", _mutate)
+    if durum != "ok":
+        log.error("Rapor gönderim durumu kaydedilemedi (basarisiz): %s", sonuc)
+
+def _rapor_gonderim_tamamlandi(rapor_tipi, deger, claim_id):
+    def _mutate(mevcut):
+        yeni, _ = rapor_mail_durumunu_guncelle(
+            mevcut, rapor_tipi, deger, time.time(), "tamamlandi", claim_id
+        )
+        return yeni
+
+    durum, sonuc = _atomik_dict_guncelle("mail_loglari", _mutate)
+    if durum != "ok":
+        log.error("Rapor gönderildi fakat durumu kaydedilemedi: %s", sonuc)
+        return False
+    return True
+
 
 def _rapor_icerigi_olustur(rapor_baslik, rapor_tarih_str, baslangic_str, bitis_str):
     """İki fonksiyondaki neredeyse birebir aynı HTML şablonunu birleştirir."""
-    _, tum_girisler = _supabase_ham_oku("girisler")
-    _, tum_kullanim_loglari = _supabase_ham_oku("kullanim_loglari")
-    _, tum_silinenler = _supabase_ham_oku("silinen_urun_loglari")
-    _, tum_yemekler = _supabase_ham_oku("yemek_uretim_arsivi")
-    _, tum_izinler = _supabase_ham_oku("personel_izinleri")
-
-    tum_girisler        = tum_girisler if isinstance(tum_girisler, list) else []
-    tum_kullanim_loglari= tum_kullanim_loglari if isinstance(tum_kullanim_loglari, list) else []
-    tum_silinenler      = tum_silinenler if isinstance(tum_silinenler, list) else []
-    tum_yemekler        = tum_yemekler if isinstance(tum_yemekler, list) else []
-    tum_izinler         = tum_izinler if isinstance(tum_izinler, list) else []
+    rapor_verileri = rapor_verilerini_oku(_supabase_ham_oku)
+    tum_girisler = rapor_verileri["girisler"]
+    tum_kullanim_loglari = rapor_verileri["kullanim_loglari"]
+    tum_silinenler = rapor_verileri["silinen_urun_loglari"]
+    tum_yemekler = rapor_verileri["yemek_uretim_arsivi"]
+    tum_izinler = rapor_verileri["personel_izinleri"]
 
     def _filtre(liste, anahtar="tarih"):
         return [i for i in liste if baslangic_str <= str(i.get(anahtar, ""))[:10] <= bitis_str]
@@ -319,8 +339,8 @@ def _rapor_icerigi_olustur(rapor_baslik, rapor_tarih_str, baslangic_str, bitis_s
       .yemek-box {{ background: #f9fafb; border-left: 4px solid #10b981; padding: 15px;
                     margin-bottom: 15px; border-radius: 4px; }}
     </style></head><body><div class="container">
-      <h2>🍲 Aziziye Aşevi - {rapor_baslik}</h2>
-      <p style="color:#6b7280;font-size:15px;"><b>Tarih:</b> {rapor_tarih_str}</p>
+      <h2>🍲 Aziziye Aşevi - {_rapor_html_metni(rapor_baslik)}</h2>
+      <p style="color:#6b7280;font-size:15px;"><b>Tarih:</b> {_rapor_html_metni(rapor_tarih_str)}</p>
       <table class="summary-table"><tr>
         <td class="summary-card"><div class="summary-title">Yeni Stok Girişi</div><div class="summary-value" style="color:#10b981;">{len(secilen_girisler)}</div></td>
         <td class="summary-card"><div class="summary-title">Fire / Zayiat</div><div class="summary-value" style="color:#ef4444;">{len(secilen_fireler)}</div></td>
@@ -330,19 +350,19 @@ def _rapor_icerigi_olustur(rapor_baslik, rapor_tarih_str, baslangic_str, bitis_s
     if secilen_girisler:
         html += "<h3>📦 Gelen Stok Girişleri</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Fatura No</th></tr>"
         for g in secilen_girisler:
-            html += f"<tr><td>{g.get('urun')}</td><td>{g.get('miktar')} {g.get('birim','')}</td><td>{g.get('fatura_no')}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(g.get('urun'))}</td><td>{_rapor_html_metni(g.get('miktar'))} {_rapor_html_metni(g.get('birim', ''), '')}</td><td>{_rapor_html_metni(g.get('fatura_no'))}</td></tr>"
         html += "</table>"
 
     if secilen_fireler:
         html += "<h3>🗑️ Fire / Zayiat</h3><table><tr><th>Ürün</th><th>Miktar</th><th>Tutar</th><th>Açıklama</th></tr>"
         for f in secilen_fireler:
-            html += f"<tr><td>{f.get('urun')}</td><td>{f.get('miktar')}</td><td>{f.get('tutar',0):,.2f} ₺</td><td>{f.get('aciklama','-')}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(f.get('urun'))}</td><td>{_rapor_html_metni(f.get('miktar'))}</td><td>{float(f.get('tutar', 0)):,.2f} ₺</td><td>{_rapor_html_metni(f.get('aciklama'))}</td></tr>"
         html += "</table>"
 
     if secilen_silinenler:
         html += "<h3>❌ Silinen Ürünler</h3><table><tr><th>Ürün</th><th>Kayıt ID</th><th>Neden</th></tr>"
         for s in secilen_silinenler:
-            html += f"<tr><td>{s.get('urun')}</td><td>{s.get('kayit_id')}</td><td>{s.get('neden')}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(s.get('urun'))}</td><td>{_rapor_html_metni(s.get('kayit_id'))}</td><td>{_rapor_html_metni(s.get('neden'))}</td></tr>"
         html += "</table>"
 
     if secilen_yemekler:
@@ -351,19 +371,19 @@ def _rapor_icerigi_olustur(rapor_baslik, rapor_tarih_str, baslangic_str, bitis_s
             toplam = float(y.get('toplam_maliyet', 0))
             kisi = int(y.get('kisi_sayisi', 1) or 1)
             kisi_basi = toplam / kisi if kisi > 0 else 0
-            html += f"<div class='yemek-box'><h4 style='margin:0 0 10px;'>{y.get('tarih')} - {y.get('yemek_adi')} ({kisi} Kişilik)</h4>"
+            html += f"<div class='yemek-box'><h4 style='margin:0 0 10px;'>{_rapor_html_metni(y.get('tarih'))} - {_rapor_html_metni(y.get('yemek_adi'))} ({kisi} Kişilik)</h4>"
             html += f"<p style='margin:0 0 10px;font-size:14px;'><b>Toplam:</b> {toplam:,.2f} ₺ | <b>Kişi Başı:</b> {kisi_basi:,.2f} ₺</p>"
             if y.get("malzemeler"):
                 html += "<table style='margin:0;'><tr><th>Malzeme</th><th>Miktar</th><th>Maliyet</th></tr>"
                 for m in y.get("malzemeler", []):
-                    html += f"<tr><td>{m.get('urun')}</td><td>{m.get('miktar')} {m.get('birim', '')}</td><td>{m.get('tutar',0):,.2f} ₺</td></tr>"
+                    html += f"<tr><td>{_rapor_html_metni(m.get('urun'))}</td><td>{_rapor_html_metni(m.get('miktar'))} {_rapor_html_metni(m.get('birim', ''), '')}</td><td>{float(m.get('tutar', 0)):,.2f} ₺</td></tr>"
                 html += "</table>"
             html += "</div>"
 
     if secilen_izinler:
         html += "<h3>👥 Personel İzinleri</h3><table><tr><th>Personel</th><th>Tür</th><th>Başlangıç</th><th>Bitiş</th></tr>"
         for i in secilen_izinler:
-            html += f"<tr><td>{i.get('personel_ad')}</td><td>{i.get('izin_turu')}</td><td>{i.get('baslangic')}</td><td>{i.get('bitis')}</td></tr>"
+            html += f"<tr><td>{_rapor_html_metni(i.get('personel_ad'))}</td><td>{_rapor_html_metni(i.get('izin_turu'))}</td><td>{_rapor_html_metni(i.get('baslangic'))}</td><td>{_rapor_html_metni(i.get('bitis'))}</td></tr>"
         html += "</table>"
 
     if not (secilen_girisler or secilen_fireler or secilen_silinenler or secilen_yemekler or secilen_izinler):
@@ -393,7 +413,8 @@ def gunluk_rapor_maili_gonder():
         return False
 
     # K4: ATOMİK SAHİPLENME — çift tetiklemede yalnızca biri devam eder.
-    if not _rapor_sahiplen(rapor_tipi, rapor_degeri):
+    claim_id = _rapor_sahiplen(rapor_tipi, rapor_degeri)
+    if not claim_id:
         return False
 
     if rapor_tipi == "gunluk":
@@ -424,9 +445,10 @@ def gunluk_rapor_maili_gonder():
         ok, hata = False, f"{type(e).__name__}: {e}"
 
     if not ok:
-        _rapor_geri_al(rapor_tipi, rapor_degeri)  # sonraki tetikleme yeniden dener
+        _rapor_geri_al(rapor_tipi, rapor_degeri, claim_id)
         log.error("Rapor maili hatası (%s): %s", rapor_tipi, hata)
         return False
+    _rapor_gonderim_tamamlandi(rapor_tipi, rapor_degeri, claim_id)
     return True
 
 # Şifreleme Anahtarı Kontrolü
@@ -6927,4 +6949,8 @@ elif menu == "Kullanıcı Ayarları":
 
 
 # Uygulama her açıldığında/yenilendiğinde mail kontrolünü çalıştırır
-gunluk_rapor_maili_gonder()
+_rapor_kontrol_zamani = time.time()
+_rapor_son_kontrol = st.session_state.get("_otomatik_rapor_son_kontrol", 0)
+if _rapor_kontrol_zamani - _rapor_son_kontrol >= RAPOR_YENIDEN_DENEME_SANIYE:
+    st.session_state["_otomatik_rapor_son_kontrol"] = _rapor_kontrol_zamani
+    gunluk_rapor_maili_gonder()

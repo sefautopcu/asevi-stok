@@ -148,6 +148,107 @@ def giris_sayaclarini_sifirla(kayitlar, anahtarlar):
     return sifirlanan
 
 
+RAPOR_VERI_ANAHTARLARI = (
+    "girisler",
+    "kullanim_loglari",
+    "silinen_urun_loglari",
+    "yemek_uretim_arsivi",
+    "personel_izinleri",
+)
+RAPOR_YENIDEN_DENEME_SANIYE = 15 * 60
+RAPOR_GONDERIM_KILIT_SANIYE = 10 * 60
+
+
+def rapor_verilerini_oku(oku_fn):
+    """Rapor için gerekli listeleri okur; eksik veya hatalı okumada raporu durdurur."""
+    veriler = {}
+    for anahtar in RAPOR_VERI_ANAHTARLARI:
+        durum, veri = oku_fn(anahtar)
+        if durum == "hata":
+            raise RuntimeError(f"'{anahtar}' okunamadı: {veri}")
+        if durum == "yok":
+            veriler[anahtar] = []
+        elif durum == "ok" and isinstance(veri, list):
+            if not all(isinstance(kayit, dict) for kayit in veri):
+                raise ValueError(f"'{anahtar}' kayıtları nesne biçiminde değil.")
+            veriler[anahtar] = veri
+        elif durum == "ok":
+            raise ValueError(f"'{anahtar}' verisi liste biçiminde değil.")
+        else:
+            raise ValueError(f"'{anahtar}' için geçersiz okuma durumu: {durum}")
+    return veriler
+
+
+def rapor_mail_durumunu_guncelle(
+    kayitlar,
+    rapor_tipi,
+    donem,
+    simdi,
+    islem,
+    claim_id=None,
+    kilit_saniye=RAPOR_GONDERIM_KILIT_SANIYE,
+    yeniden_deneme_saniye=RAPOR_YENIDEN_DENEME_SANIYE,
+):
+    """Otomatik rapor e-postası için atomik güncelleme fonksiyonunun saf durum geçişi."""
+    yeni = dict(kayitlar) if isinstance(kayitlar, dict) else {}
+    durumlar = yeni.get("_rapor_durum")
+    durumlar = dict(durumlar) if isinstance(durumlar, dict) else {}
+    mevcut_durum = durumlar.get(rapor_tipi)
+    ayni_donem = yeni.get(rapor_tipi) == donem
+
+    if islem == "sahiplen":
+        if not claim_id:
+            raise ValueError("Rapor sahiplenme anahtarı gereklidir.")
+        if ayni_donem:
+            if not isinstance(mevcut_durum, dict) or mevcut_durum.get("donem") != donem:
+                return yeni, False
+            durum = mevcut_durum.get("durum")
+            if durum == "gonderildi":
+                return yeni, False
+            if durum == "gonderiliyor":
+                kilit_sonu = mevcut_durum.get("kilit_sonu")
+                if not isinstance(kilit_sonu, (int, float)) or simdi < kilit_sonu:
+                    return yeni, False
+            if durum == "basarisiz":
+                yeniden_deneme = mevcut_durum.get("yeniden_deneme")
+                if (
+                    not isinstance(yeniden_deneme, (int, float))
+                    or simdi < yeniden_deneme
+                ):
+                    return yeni, False
+            if durum not in ("gonderiliyor", "basarisiz"):
+                return yeni, False
+
+        yeni[rapor_tipi] = donem
+        durumlar[rapor_tipi] = {
+            "donem": donem,
+            "durum": "gonderiliyor",
+            "claim_id": claim_id,
+            "kilit_sonu": simdi + kilit_saniye,
+        }
+    elif islem in ("tamamlandi", "basarisiz"):
+        if (
+            not isinstance(mevcut_durum, dict)
+            or mevcut_durum.get("donem") != donem
+            or mevcut_durum.get("durum") != "gonderiliyor"
+            or mevcut_durum.get("claim_id") != claim_id
+        ):
+            return yeni, False
+        if islem == "tamamlandi":
+            durumlar[rapor_tipi] = {"donem": donem, "durum": "gonderildi"}
+        else:
+            durumlar[rapor_tipi] = {
+                "donem": donem,
+                "durum": "basarisiz",
+                "yeniden_deneme": simdi + yeniden_deneme_saniye,
+            }
+    else:
+        raise ValueError(f"Geçersiz rapor işlemi: {islem}")
+
+    yeni["_rapor_durum"] = durumlar
+    return yeni, True
+
+
 def sifre_yukseltilmeli_mi(kayitli):
     """Kayıtlı hash eski biçimdeyse (SHA-256) True döner."""
     return bool(kayitli) and not str(kayitli).startswith("s1$")
