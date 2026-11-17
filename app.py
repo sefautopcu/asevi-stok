@@ -3516,7 +3516,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
         fatura_tablo_verisi.append({
             # ...
         })
-        if fatura_tablo_verisi:
+    if fatura_tablo_verisi:
         excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura Arşivi")
         pdf_fatura_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fatura Arşivi", fatura_tablo_verisi)
 
