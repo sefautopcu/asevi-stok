@@ -8,12 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from cekirdek import (
-    fire_partisi_detayi,
-    fire_partisi_etiketi,
-    rapor_mail_durumunu_guncelle,
-    rapor_verilerini_oku,
-)
+from cekirdek import rapor_mail_durumunu_guncelle, rapor_verilerini_oku
 
 
 _RAPOR_ANAHTARLARI = (
@@ -29,8 +24,8 @@ def _sonuclardan_oku(sonuclar):
     return rapor_verilerini_oku(lambda anahtar: sonuclar[anahtar])
 
 
-def test_fire_secimi_urunle_birlikte_fatura_ve_kalan_miktari_gosterir():
-    etiket = fire_partisi_etiketi({
+def test_fire_secimi_urunle_birlikte_fatura_ve_kalan_miktari_gosterir(fire_helpers):
+    etiket = fire_helpers["fire_partisi_etiketi"]({
         "id": "FAT-002",
         "urun": "mercimek",
         "fatura_no": "FAT-2026-002",
@@ -44,7 +39,7 @@ def test_fire_secimi_urunle_birlikte_fatura_ve_kalan_miktari_gosterir():
     assert "Kalan: 4 Kg" in etiket
 
 
-def test_fire_detayi_secilen_fatura_partisinin_fiyatini_ve_kimligini_kullanir():
+def test_fire_detayi_secilen_fatura_partisinin_fiyatini_ve_kimligini_kullanir(fire_helpers):
     ikinci_fatura = {
         "id": "FAT-002",
         "urun": "MERCİMEK",
@@ -55,7 +50,7 @@ def test_fire_detayi_secilen_fatura_partisinin_fiyatini_ve_kimligini_kullanir():
         "fiyat": 35,
     }
 
-    detay = fire_partisi_detayi(ikinci_fatura, 1.5)
+    detay = fire_helpers["fire_partisi_detayi"](ikinci_fatura, 1.5)
 
     assert detay == {
         "giris_id": "FAT-002",
@@ -67,16 +62,16 @@ def test_fire_detayi_secilen_fatura_partisinin_fiyatini_ve_kimligini_kullanir():
     assert ikinci_fatura["kalan"] == 2
 
 
-def test_fire_miktari_secilen_fatura_stogunu_asamaz():
+def test_fire_miktari_secilen_fatura_stogunu_asamaz(fire_helpers):
     with pytest.raises(ValueError, match="seçilen fatura"):
-        fire_partisi_detayi(
+        fire_helpers["fire_partisi_detayi"](
             {"id": "FAT-001", "fatura_no": "FAT-1", "miktar": 5, "kalan": 1},
             1.1,
         )
 
 
-def test_fire_detayi_eski_kayitta_toplam_fiyattan_birim_fiyat_hesaplar():
-    detay = fire_partisi_detayi(
+def test_fire_detayi_eski_kayitta_toplam_fiyattan_birim_fiyat_hesaplar(fire_helpers):
+    detay = fire_helpers["fire_partisi_detayi"](
         {
             "id": "FAT-OLD",
             "fatura_no": "ESKİ-FATURA",
@@ -232,6 +227,14 @@ def _uygulama_fonksiyonlarini_yukle(adlar, namespace):
     )
     exec(compile(module, str(app_path), "exec"), namespace)
     return namespace
+
+
+@pytest.fixture(scope="module")
+def fire_helpers():
+    return _uygulama_fonksiyonlarini_yukle(
+        {"fire_partisi_detayi", "fire_partisi_etiketi"},
+        {},
+    )
 
 
 def test_manuel_rapor_okuma_hatasinda_mail_gondermez():
