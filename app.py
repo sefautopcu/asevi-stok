@@ -3516,19 +3516,17 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
         fatura_tablo_verisi.append({
             # ...
         })
-    # Döngü BURADA BİTTİ. Aşağıdaki kodlar döngünün DIŞINDA olmalı.
+        if fatura_tablo_verisi:
+        excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura Arşivi")
+        pdf_fatura_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fatura Arşivi", fatura_tablo_verisi)
 
-    excel_fatura_data = tablo_to_excel_bytes(...)
-    pdf_fatura_data = tablo_to_html_pdf_bytes(...)
-    
-    col_b_fat, col_indir_fat = st.columns([2, 2])
-    with col_indir_fat:
-        ortak_indirme_alani(...)
-        
-    ozel_html_tablo_goster(fatura_tablo_verisi)
+        col_b_fat, col_indir_fat = st.columns([2, 2])
+        with col_indir_fat:
+            ortak_indirme_alani(excel_fatura_data, pdf_fatura_data, "fatura_mal_alim_arsivi", "fatura_arsiv_sayfasi")
 
-  else:
-    st.info("Sistemde kayıtlı fatura veya mal alımı bulunmuyor.")
+        ozel_html_tablo_goster(fatura_tablo_verisi)
+    else:
+        st.info("Sistemde kayıtlı fatura veya mal alımı bulunmuyor.")
             
 # DEPO YÖNETİMİ
 elif menu == "Depo Yönetimi":
