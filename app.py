@@ -3355,7 +3355,8 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                         "birim": birim,
                         "miktar": miktar,
                         "kalan": miktar,
-                        "fiyat": fiyat,
+                        "birim_fiyat": fiyat,
+                        "fiyat": fiyat*miktar    
                         "paket_miktari": paket_miktari_input, # YENİ EKLENDİ
                         "depo": depo,
                         "skt": str(skt_tarihi),
@@ -3487,13 +3488,17 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                     paket_bilgi = f"{paket_miktari} {g.get('birim')} | (" + ", ".join(ozet_liste) + ")"
                 else:
                     paket_bilgi = "Dökme (Paketsiz)"
-
-                # Birim fiyatı hesapla (Toplam Tutar / Miktar)
-                # Veritabanınızda fiyat alanı 'tutar' veya 'toplam_fiyat' olarak geçebilir, ikisini de kontrol ediyoruz:
-                toplam_tutar = float(g.get("fiyat") or g.get("tutar") or g.get("toplam_fiyat") or 0)
-                miktar_degeri = float(g.get("miktar") or 1)
-                birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0
-                
+            
+        # Veritabanındaki toplam tutarı al
+        toplam_tutar = float(g.get("fiyat") or 0)
+        
+        # Eğer veritabanında kayıtlı birim_fiyat varsa onu kullan, yoksa eski kayıtlar için (toplam/miktar) hesapla
+        if g.get("birim_fiyat") is not None:
+            birim_fiyat = float(g.get("birim_fiyat"))
+        else:
+            miktar_degeri = float(g.get("miktar") or 1)
+            birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0    
+                             
                 fatura_tablo_verisi.append({
                     "Kayıt ID": g.get("id", "-"),
                     "Tarih / Saat": g.get("tarih", "-"),
