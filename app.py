@@ -11,6 +11,7 @@ import time
 from html import escape as html_escape
 import difflib
 import zoneinfo
+from decimal import Decimal, InvalidOperation
 import requests
 from cryptography.fernet import Fernet
 import openpyxl
@@ -162,6 +163,29 @@ def qr_paket_secim_engeli(girisler, sepet, urun, secilen_paket_id):
     if acik_paketler and acik_paketler[0]["paket_id"] != secilen_paket_id:
         return acik_paketler[0]
     return None
+
+
+def qr_kod_degerleri(giris):
+    """Stok girişindeki her paket için ayrı QR değeri, dökme stok için tek ID üretir."""
+    giris_id = str(giris.get("id", "")).strip()
+    if not giris_id:
+        raise ValueError("Stok giriş kaydının ID bilgisi bulunamadı.")
+    try:
+        toplam_miktar = Decimal(str(giris.get("miktar", 0) or 0))
+        paket_miktari = Decimal(str(giris.get("paket_miktari", 0) or 0))
+    except (InvalidOperation, ValueError) as hata:
+        raise ValueError("Stok veya paket miktarı geçersiz.") from hata
+    if not toplam_miktar.is_finite() or not paket_miktari.is_finite():
+        raise ValueError("Stok veya paket miktarı sonlu bir sayı olmalıdır.")
+    if toplam_miktar < 0 or paket_miktari < 0:
+        raise ValueError("Stok veya paket miktarı negatif olamaz.")
+    if toplam_miktar == 0:
+        return []
+    if paket_miktari == 0:
+        return [giris_id]
+
+    paket_sayisi = int(toplam_miktar // paket_miktari)
+    return [f"{giris_id}-P{sira}" for sira in range(1, paket_sayisi + 1)]
 
 
 def _tema_tercihini_yukle(url_temasi, cerez_temasi):
@@ -4311,35 +4335,61 @@ elif menu == "QR Kod ile Hızlı Sarfiyat":
             if not st.session_state.girisler:
                 st.info("Sistemde kayıtlı ürün bulunmuyor.")
             else:
-                secenekler_qr = [f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')})" for g in st.session_state.girisler]
-                secilen_qr_urun = st.selectbox("QR Kodu Oluşturulacak Kaydı Seçin", secenekler_qr, index=None, placeholder="Seçiniz...")
-                
-                if secilen_qr_urun:
-                    secilen_id_qr = secilen_qr_urun.split(" - ")[0]
-                    
-                    # QR Kod oluşturma
-                    qr = qrcode.QRCode(version=1, box_size=10, border=4)
-                    qr.add_data(secilen_id_qr)
-                    qr.make(fit=True)
-                    img = qr.make_image(fill_color="black", back_color="white")
-                    
-                    # Görüntüyü Streamlit'e uygun hale getirme
-                    img_buffer = io.BytesIO()
-                    img.save(img_buffer, format="PNG")
-                    img_bytes = img_buffer.getvalue()
-                    
-                    col_qr_img, col_qr_btn = st.columns([1, 2])
-                    with col_qr_img:
-                        st.image(img_bytes, caption=f"Etiket: {secilen_id_qr}", width=200)
-                    with col_qr_btn:
-                        st.markdown("<div style='margin-top: 50px;'></div>", unsafe_allow_html=True)
-                        st.download_button(
-                            label="📥 QR Kodu İndir (PNG)",
-                            data=img_bytes,
-                            file_name=f"QR_{secilen_id_qr}.png",
-                            mime="image/png",
-                            type="primary"
-                        )
+                qr_kayit_secenekleri = {
+                    f"{g['id']} - {g['urun']} (Fatura: {g.get('fatura_no', '-')})": g
+                    for g in st.session_state.girisler
+                }
+                secilen_qr_kayit = st.selectbox(
+                    "QR Kodu Oluşturulacak Kaydı Seçin",
+                    list(qr_kayit_secenekleri),
+                    index=None,
+                    placeholder="Seçiniz...",
+                    key="qr_yazdir_kayit_secimi",
+                )
+
+                if secilen_qr_kayit:
+                    secilen_giris_qr = qr_kayit_secenekleri[secilen_qr_kayit]
+                    try:
+                        qr_degerleri = qr_kod_degerleri(secilen_giris_qr)
+                    except ValueError as hata:
+                        st.error(f"QR etiketleri oluşturulamadı: {hata}")
+                    else:
+                        paket_miktari = float(secilen_giris_qr.get("paket_miktari", 0) or 0)
+                        if not qr_degerleri:
+                            if paket_miktari > 0:
+                                st.warning(
+                                    "Bu kayıttaki miktar bir tam paket QR kodu oluşturmak için yetersiz."
+                                )
+                            else:
+                                st.warning("QR kodu oluşturulacak stok miktarı bulunmuyor.")
+                        else:
+                            st.info(
+                                f"Bu kayıt için **{len(qr_degerleri)} ayrı QR etiketi** oluşturuldu."
+                            )
+                            qr_kolonlari = st.columns(3)
+                            for sira, qr_degeri in enumerate(qr_degerleri, start=1):
+                                qr = qrcode.QRCode(version=1, box_size=10, border=4)
+                                qr.add_data(qr_degeri)
+                                qr.make(fit=True)
+                                img = qr.make_image(fill_color="black", back_color="white")
+
+                                img_buffer = io.BytesIO()
+                                img.save(img_buffer, format="PNG")
+                                img_bytes = img_buffer.getvalue()
+
+                                with qr_kolonlari[(sira - 1) % len(qr_kolonlari)]:
+                                    st.image(
+                                        img_bytes,
+                                        caption=f"{sira}. Etiket: {qr_degeri}",
+                                        width=180,
+                                    )
+                                    st.download_button(
+                                        label=f"📥 {qr_degeri} PNG indir",
+                                        data=img_bytes,
+                                        file_name=f"QR_{qr_degeri}.png",
+                                        mime="image/png",
+                                        key=f"qr_yazdir_indir_{qr_degeri}",
+                                    )
 
 # 3. ÜRÜN SİL / DÜZENLE
 elif menu == "Ürün Sil / Düzenle":
