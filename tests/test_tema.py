@@ -16,10 +16,11 @@ def _app_tema_tercih_fonksiyonunu_yukle():
     return ad_alani["_tema_tercihini_yukle"]
 
 
-def test_tema_cookie_preference_survives_reload():
+def test_tema_preference_persisted_in_url_survives_reload():
     tema_yukle = _app_tema_tercih_fonksiyonunu_yukle()
 
-    assert tema_yukle("Arctic") == "Arctic"
-    assert tema_yukle("Dark") == "Dark"
-    assert tema_yukle("") == "Dark"
-    assert tema_yukle("unknown") == "Dark"
+    assert tema_yukle("Arctic", "") == "Arctic"
+    assert tema_yukle("Dark", "Arctic") == "Dark"
+    assert tema_yukle("", "Arctic") == "Arctic"
+    assert tema_yukle("", "") == "Dark"
+    assert tema_yukle("unknown", "unknown") == "Dark"

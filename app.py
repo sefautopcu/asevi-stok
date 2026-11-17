@@ -53,9 +53,12 @@ from cekirdek import (
     yeni_id_uret,
 )
 
-def _tema_tercihini_yukle(cerez_temasi):
-    """Geçerli temayı çerezden yükler; bilinmeyen tercihler Dark'a döner."""
-    return cerez_temasi if cerez_temasi in ("Dark", "Arctic") else "Dark"
+def _tema_tercihini_yukle(url_temasi, cerez_temasi):
+    """Geçerli URL veya çerez tercihini yükler; bilinmeyen değerler Dark'a döner."""
+    for tercih in (url_temasi, cerez_temasi):
+        if tercih in ("Dark", "Arctic"):
+            return tercih
+    return "Dark"
 
 # Sayfa Yapılandırması: Streamlit'te İLK komut olmak zorundadır
 # (kenar çubuğu, önbellek vb. komutlardan önce çağrılmalıdır).
@@ -960,7 +963,10 @@ def oturumu_kapat():
     st.session_state.aktif_kullanici = "misafir"
     st.session_state.oturum_token = ""
     st.session_state.oturum_bitis = 0
+    secili_tema = st.session_state.get("tema")
     st.query_params.clear()
+    if secili_tema in ("Dark", "Arctic"):
+        st.query_params["tema"] = secili_tema
 
 
 def oturumu_zorla_kapat(mesaj, log_durumu):
@@ -1056,7 +1062,10 @@ def giris_denemesini_sifirla(anahtar=None, *ek_anahtarlar):
 # Kodun alt kısımlarındaki KeyError ve NameError hatalarını engelleyen değişkenler:
 # Tema state'i: önce çerezden oku, yoksa varsayılan "Dark"
 if "tema" not in st.session_state:
-    st.session_state.tema = _tema_tercihini_yukle(cerez_oku("aziziye_tema"))
+    st.session_state.tema = _tema_tercihini_yukle(
+        st.query_params.get("tema", ""),
+        cerez_oku("aziziye_tema"),
+    )
 
 if st.session_state.tema == "Arctic":
     border_color = "rgba(95, 127, 152, 0.55)"
@@ -2261,6 +2270,7 @@ with st.sidebar.expander(f"🎨 Tema · {_tema_etiketleri[st.session_state.tema]
     )
     if _secim != st.session_state.tema:
         st.session_state.tema = _secim
+        st.query_params["tema"] = _secim
         try:
             if cerez_kontrol is not None:
                 cerez_yaz(_secim, "aziziye_tema", max_age=365 * 24 * 3600)
