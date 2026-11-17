@@ -3489,30 +3489,28 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
                 else:
                     paket_bilgi = "Dökme (Paketsiz)"
             
-        # Veritabanındaki toplam tutarı al
+        # Veritabanındaki değerleri çek
         toplam_tutar = float(g.get("fiyat") or 0)
         
-        # Eğer veritabanında kayıtlı birim_fiyat varsa onu kullan, yoksa eski kayıtlar için (toplam/miktar) hesapla
         if g.get("birim_fiyat") is not None:
             birim_fiyat = float(g.get("birim_fiyat"))
         else:
             miktar_degeri = float(g.get("miktar") or 1)
-            birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0    
-                             
-                fatura_tablo_verisi.append({
-                    "Kayıt ID": g.get("id", "-"),
-                    "Tarih / Saat": g.get("tarih", "-"),
-                    "Fatura No": g.get("fatura_no", "-"),
-                    "Ürün Adı": g.get("urun", "-"),
-                    "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
-                    "Paket Yapısı": paket_bilgi,
-                    "SKT / STT": g.get("skt", "-"),
-                    "Depo": g.get("depo", "-"),
-                    "Birim Fiyat": f"{birim_fiyat:,.2f} ₺",        # <-- HESAPLANAN BİRİM FİYAT
-                    "Toplam Tutar": f"{toplam_tutar:,.2f} ₺",     # <-- TOPLAM FİYAT
-                    "İşlemi Yapan": g.get("islem_yapan", "admin"),
-                    
-                })
+            birim_fiyat = toplam_tutar / miktar_degeri if miktar_degeri > 0 else 0
+
+        fatura_tablo_verisi.append({
+            "Kayıt ID": g.get("id", "-"),
+            "Tarih / Saat": g.get("tarih", "-"),
+            "Fatura No": g.get("fatura_no", "-"),
+            "Ürün Adı": g.get("urun", "-"),
+            "Miktar": f"{g.get('miktar', 0)} {g.get('birim', 'Kg')}",
+            "Paket Yapısı": paket_bilgi,
+            "SKT / STT": g.get("skt", "-"),
+            "Depo": g.get("depo", "-"),
+            "Birim Fiyat": f"{birim_fiyat:,.2f} ₺",
+            "Toplam Tutar": f"{toplam_tutar:,.2f} ₺",
+            "İşlemi Yapan": g.get("islem_yapan", "admin"),
+        })
             
             excel_fatura_data = tablo_to_excel_bytes(fatura_tablo_verisi, "Aziziye Aşevi - Fatura Arşivi")
             pdf_fatura_data = tablo_to_html_pdf_bytes("Aziziye Aşevi - Fatura Arşivi", fatura_tablo_verisi)
