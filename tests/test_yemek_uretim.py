@@ -16,6 +16,7 @@ def yemek_helpers():
         "yemek_menu_alanlari",
         "yemek_menu_ogelerini_temizle",
         "yemek_menu_ogelerini_kayittan_al",
+        "yemek_arsiv_menu_kolonlari",
         "yemek_kaydi_menu_ogelerini_guncelle",
         "yemek_malzeme_kullanim_istatistikleri",
         "yemek_malzeme_kullanim_uyarilari",
@@ -414,3 +415,38 @@ def test_eski_tek_yemek_kaydi_ana_yemek_olarak_eslesir(yemek_helpers):
     )
 
     assert stats["ISPANAK"]["beklenen_miktar"] == pytest.approx(50)
+
+
+def test_arsiv_tablo_menuyu_dort_ayri_sutunda_gosterir(yemek_helpers):
+    kolonlar = yemek_helpers["yemek_arsiv_menu_kolonlari"]({
+        "yemek_adi": "Ispanak Yemeği / Makarna / Yoğurt",
+        "menu_ogeleri": {
+            "ana_yemek": "Ispanak Yemeği",
+            "yardimci_yemek": "Makarna",
+            "corba": "",
+            "tatli_meyve_yogurt": "Yoğurt",
+        },
+    })
+
+    assert kolonlar == {
+        "Ana Yemek": "Ispanak Yemeği",
+        "Yardımcı Yemek / Ara Yemek": "Makarna",
+        "Çorba": "-",
+        "Tatlı / Meyve / Yoğurt": "Yoğurt",
+    }
+
+
+def test_kategorize_edilmemis_eski_menu_arsiv_tabloya_yanlis_dagitilmaz(
+    yemek_helpers,
+):
+    kolonlar = yemek_helpers["yemek_arsiv_menu_kolonlari"]({
+        "yemek_adi": "Ispanak Yemeği / Makarna / Yoğurt",
+    })
+
+    assert set(kolonlar) == {
+        "Ana Yemek",
+        "Yardımcı Yemek / Ara Yemek",
+        "Çorba",
+        "Tatlı / Meyve / Yoğurt",
+    }
+    assert set(kolonlar.values()) == {"-"}

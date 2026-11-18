@@ -321,6 +321,14 @@ def yemek_menu_ogelerini_kayittan_al(kayit):
     return menu_ogeleri
 
 
+def yemek_arsiv_menu_kolonlari(kayit):
+    menu_ogeleri = yemek_menu_ogelerini_kayittan_al(kayit)
+    return {
+        etiket: menu_ogeleri[alan] or "-"
+        for alan, etiket in yemek_menu_alanlari()
+    }
+
+
 def yemek_kaydi_menu_ogelerini_guncelle(kayit, menu_ogeleri):
     temiz_menu = yemek_menu_ogelerini_temizle(menu_ogeleri)
     if not any(temiz_menu.values()):
@@ -5874,17 +5882,18 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 
                 kisi_sayisi_degeri = int(u_kayit.get("kisi_sayisi", 1) or 1)
                 kisi_basi_maliyet = toplam_maliyet_degeri / kisi_sayisi_degeri if kisi_sayisi_degeri > 0 else 0.0
+                menu_tablo_alanlari = yemek_arsiv_menu_kolonlari(u_kayit)
 
                 if misafir_modu:
                     arsiv_tablo_verisi.append({
                         "Tarih": u_kayit.get("tarih", "-"),
-                        "Çıkan Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                        **menu_tablo_alanlari,
                         "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                         "Numune Durumu": u_kayit.get("numune_durumu", "-"),
                     })
                     excel_arsiv_listesi.append({
                         "Tarih": u_kayit.get("tarih", "-"),
-                        "Çıkan Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                        **menu_tablo_alanlari,
                         "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                         "Numune Durumu": u_kayit.get("numune_durumu", "-"),
                     })
@@ -5892,7 +5901,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     for m in u_kayit.get("malzemeler", []):
                         arsiv_tablo_verisi.append({
                             "Tarih": u_kayit.get("tarih", "-"),
-                            "Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                            **menu_tablo_alanlari,
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                             "Numune Durumu": u_kayit.get("numune_durumu", "-"), # YENİ EKLENDİ
                             "Kullanılan Malzeme": f"{m.get('urun', '-')} ({m.get('miktar', '-')} {m.get('birim', '')})".strip(),
@@ -5903,7 +5912,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         })
                         excel_arsiv_listesi.append({
                             "Tarih": u_kayit.get("tarih", "-"),
-                            "Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                            **menu_tablo_alanlari,
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                             "Numune Durumu": u_kayit.get("numune_durumu", "-"), # YENİ EKLENDİ
                             "Kullanılan Malzeme": f"{m.get('urun', '-')} ({m.get('miktar', '-')} {m.get('birim', '')})".strip(),
