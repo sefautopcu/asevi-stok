@@ -12,6 +12,8 @@ def yemek_helpers():
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     names = {
         "yemek_sepeti_stok_hatalari",
+        "_yemek_ana_adi",
+        "_malzeme_kullanim_anahtari",
         "yemek_malzeme_kullanim_istatistikleri",
         "yemek_malzeme_kullanim_uyarilari",
     }
@@ -288,3 +290,29 @@ def test_70_kg_giris_onceki_50_kg_uretimine_gore_uyari_uretir(yemek_helpers):
     assert len(uyarilar) == 1
     assert "bugün 70 Kg" in uyarilar[0]
     assert "beklenen yaklaşık miktar 50" in uyarilar[0]
+
+
+def test_arsivdeki_menu_adi_ve_malzeme_bosluk_farki_uyariyi_engellemez(
+    yemek_helpers,
+):
+    arsiv = [{
+        "yemek_adi": "Ispanak Yemeği / Makarna / Yoğurt",
+        "tarih": "2026-11-02",
+        "kisi_sayisi": 200,
+        "malzemeler": [{"urun": "KUŞBAŞI ET", "miktar": 5}],
+    }]
+    stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
+        arsiv, "Ispanak Yemeği", 200, "2026-11-18"
+    )
+
+    assert stats["KUŞBAŞIET"]["beklenen_miktar"] == pytest.approx(5)
+    uyarilar = yemek_helpers["yemek_malzeme_kullanim_uyarilari"](
+        stats,
+        [{"urun": "KUŞBAŞIET", "miktar": 15}],
+        200,
+        {"KUŞBAŞIET": "Kg"},
+    )
+
+    assert len(uyarilar) == 1
+    assert "bugün 15 Kg" in uyarilar[0]
+    assert "beklenen yaklaşık miktar 5" in uyarilar[0]

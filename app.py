@@ -290,15 +290,25 @@ def yemek_sepeti_stok_hatalari(girisler, sepet):
     return hatalar
 
 
+def _yemek_ana_adi(yemek_adi):
+    return "".join(str(yemek_adi or "").split("/")[0].split()).upper()
+
+
+def _malzeme_kullanim_anahtari(urun_adi):
+    return "".join(str(urun_adi or "").split()).upper()
+
+
 def yemek_malzeme_kullanim_istatistikleri(
     arsiv, yemek_adi, kisi_sayisi, referans_tarihi=None, referans_zamani=None
 ):
     """Aynı yemeğin geçmiş kayıtlarından kişi başı malzeme ortalaması ve sapması."""
-    aranan_yemek = str(yemek_adi or "").strip().upper()
+    aranan_yemek = _yemek_ana_adi(yemek_adi)
+    if not aranan_yemek:
+        return {}
     uretimler = []
     malzeme_adlari = set()
     for kayit in arsiv:
-        if str(kayit.get("yemek_adi", "")).strip().upper() != aranan_yemek:
+        if _yemek_ana_adi(kayit.get("yemek_adi")) != aranan_yemek:
             continue
         if referans_tarihi:
             kayit_tarihi = str(kayit.get("tarih", ""))[:10]
@@ -335,7 +345,7 @@ def yemek_malzeme_kullanim_istatistikleri(
                 continue
             if not math.isfinite(miktar) or miktar < 0:
                 continue
-            anahtar = ad.upper()
+            anahtar = _malzeme_kullanim_anahtari(ad)
             malzeme_adlari.add(anahtar)
             malzeme_miktarlari[anahtar] = (
                 malzeme_miktarlari.get(anahtar, {"ad": ad, "miktar": 0.0})
@@ -388,7 +398,7 @@ def yemek_malzeme_kullanim_uyarilari(
         ad = str(item.get("urun", "")).strip()
         if not ad:
             continue
-        anahtar = ad.upper()
+        anahtar = _malzeme_kullanim_anahtari(ad)
         try:
             miktar = float(item.get("miktar", 0) or 0)
         except (TypeError, ValueError):
@@ -5200,8 +5210,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 mevcut_stok = next(
                     (
                         g for g in st.session_state.girisler
-                        if str(g.get("urun", "")).strip().upper()
-                        == istatistik["ad"].upper()
+                        if _malzeme_kullanim_anahtari(g.get("urun"))
+                        == _malzeme_kullanim_anahtari(istatistik["ad"])
                     ),
                     {},
                 )
@@ -5539,7 +5549,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 st.session_state.sepet,
                 kisi_sayisi,
                 {
-                    str(g.get("urun", "")).strip().upper(): g.get("birim", "")
+                    _malzeme_kullanim_anahtari(g.get("urun")): g.get("birim", "")
                     for g in st.session_state.girisler
                 },
             )
