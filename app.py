@@ -2529,12 +2529,12 @@ if not st.session_state.oturum_aktif:
             }}
             .login-hero h1 {{
                 margin: 16px 0 3px;
-                color: #f4f4f5;
-                font-size: clamp(2.5rem, 4.4vw, 3.3rem);
+                color: #f4f4f5 !important;
+                font-size: clamp(2.5rem, 4.4vw, 3.3rem) !important;
                 line-height: 1.12;
                 letter-spacing: -0.06em;
             }}
-            .login-hero h1 span {{ color: #10b981; }}
+            .login-hero h1 .login-brand-accent {{ color: #10b981 !important; }}
             .login-hero h3 {{
                 margin: 0 0 12px;
                 color: {subtext_color};
@@ -2610,7 +2610,7 @@ if not st.session_state.oturum_aktif:
             """
             <section class="login-hero">
                 <div class="login-eyebrow">🍲 AŞEVİ OTOMASYONU</div>
-                <h1>Aziziye <span>Aşevi</span></h1>
+                <h1>Aziziye <span class="login-brand-accent">Aşevi</span></h1>
                 <h3>Yönetim &amp; Takip Sistemi</h3>
                 <p>Stok girişinden yemek dağıtımına, fire takibinden personel
                 yönetimine kadar tüm süreçler tek panelde. Sadece giriş yapın,
