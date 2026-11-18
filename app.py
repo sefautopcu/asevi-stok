@@ -4,12 +4,14 @@ import hashlib
 import hmac
 import io
 import json
+import math
 import os
 import re
 import secrets
 import time
 from html import escape as html_escape
 import difflib
+import statistics
 import zoneinfo
 from decimal import Decimal, InvalidOperation
 import requests
@@ -186,6 +188,231 @@ def qr_kod_degerleri(giris):
 
     paket_sayisi = int(toplam_miktar // paket_miktari)
     return [f"{giris_id}-P{sira}" for sira in range(1, paket_sayisi + 1)]
+
+
+def yemek_sepeti_stok_hatalari(girisler, sepet):
+    """Üretim sepetindeki tüm miktarların mevcut stoktan karşılanabildiğini doğrular."""
+    stoklar = {}
+    for giris in girisler:
+        urun = str(giris.get("urun", "")).strip().upper()
+        if not urun:
+            continue
+        try:
+            kalan = float(giris.get("kalan", 0) or 0)
+        except (TypeError, ValueError) as hata:
+            raise ValueError(f"{urun} stok miktarı sayısal değil.") from hata
+        if not math.isfinite(kalan):
+            raise ValueError(f"{urun} stok miktarı geçersiz.")
+        if kalan < 0:
+            raise ValueError(f"{urun} stok miktarı negatif olamaz.")
+        kayit_id = str(giris.get("id", ""))
+        stoklar[kayit_id] = kalan
+
+    paket_kalanlari = {}
+    hatalar = []
+    for sira, item in enumerate(sepet, start=1):
+        urun = str(item.get("urun", "")).strip().upper()
+        try:
+            istenen = float(item.get("miktar", 0) or 0)
+        except (TypeError, ValueError) as hata:
+            raise ValueError(f"{urun or sira} için sepet miktarı sayısal değil.") from hata
+        if not math.isfinite(istenen):
+            raise ValueError(f"{urun or sira} için sepet miktarı geçersiz.")
+        if not urun or istenen <= 0:
+            hatalar.append(f"{urun or 'Malzeme'} için miktar 0'dan büyük olmalıdır.")
+            continue
+
+        paket_id = item.get("paket_id")
+        fatura_id = str(item.get("fatura_id", "")) if item.get("fatura_id") else None
+        uygun_kayitlar = [
+            g for g in girisler
+            if str(g.get("urun", "")).strip().upper() == urun
+            and stoklar.get(str(g.get("id", "")), 0) > 0
+            and (not fatura_id or str(g.get("id", "")) == fatura_id)
+        ]
+        kalan_dusulecek = istenen
+        for giris in uygun_kayitlar:
+            kayit_id = str(giris.get("id", ""))
+            if paket_id:
+                try:
+                    durumlar = giris.get("paket_durumlari", {})
+                    if not isinstance(durumlar, dict):
+                        durumlar = {}
+                    paket_miktari = float(giris.get("paket_miktari", 0) or 0)
+                    paket_kalan = paket_kalanlari.get(
+                        (kayit_id, str(paket_id)),
+                        float(durumlar.get(
+                            paket_id, paket_miktari
+                        ) or 0),
+                    )
+                except (TypeError, ValueError) as hata:
+                    raise ValueError(f"{urun} paket stok bilgisi geçersiz.") from hata
+                if not math.isfinite(paket_kalan) or not math.isfinite(paket_miktari):
+                    raise ValueError(f"{urun} paket stok bilgisi geçersiz.")
+                dusulecek = min(kalan_dusulecek, paket_kalan, stoklar[kayit_id])
+                paket_kalanlari[(kayit_id, str(paket_id))] = paket_kalan - dusulecek
+            else:
+                dusulecek = min(kalan_dusulecek, stoklar[kayit_id])
+
+            stoklar[kayit_id] -= dusulecek
+            kalan_dusulecek -= dusulecek
+            if kalan_dusulecek <= 1e-9:
+                break
+
+        if kalan_dusulecek > 1e-9:
+            toplam_istenen = 0.0
+            for baska in sepet:
+                if str(baska.get("urun", "")).strip().upper() != urun:
+                    continue
+                try:
+                    baska_miktar = float(baska.get("miktar", 0) or 0)
+                except (TypeError, ValueError):
+                    continue
+                if math.isfinite(baska_miktar):
+                    toplam_istenen += baska_miktar
+            toplam_kalan = sum(
+                float(g.get("kalan", 0) or 0)
+                for g in girisler
+                if str(g.get("urun", "")).strip().upper() == urun
+            )
+            mesaj = (
+                f"{urun}: sepette toplam istenen miktar ({toplam_istenen:g}), "
+                f"mevcut stoktan karşılanamıyor (stok: {toplam_kalan:g})."
+            )
+            if paket_id:
+                mesaj = (
+                    f"{urun} ({paket_id}): bu fatura/paket kaydında "
+                    f"istenen miktarın tamamı mevcut değil."
+                )
+            if mesaj not in hatalar:
+                hatalar.append(mesaj)
+
+    return hatalar
+
+
+def yemek_malzeme_kullanim_istatistikleri(
+    arsiv, yemek_adi, kisi_sayisi, referans_tarihi=None
+):
+    """Aynı yemeğin geçmiş kayıtlarından kişi başı malzeme ortalaması ve sapması."""
+    aranan_yemek = str(yemek_adi or "").strip().upper()
+    uretimler = []
+    malzeme_adlari = set()
+    for kayit in arsiv:
+        if str(kayit.get("yemek_adi", "")).strip().upper() != aranan_yemek:
+            continue
+        if referans_tarihi:
+            kayit_tarihi = str(kayit.get("tarih", ""))[:10]
+            if not kayit_tarihi or kayit_tarihi >= str(referans_tarihi)[:10]:
+                continue
+        try:
+            kisi = float(kayit.get("kisi_sayisi", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(kisi) or kisi <= 0:
+            continue
+        malzeme_miktarlari = {}
+        kayit_malzemeleri = kayit.get("malzemeler", [])
+        if not isinstance(kayit_malzemeleri, list):
+            continue
+        for malzeme in kayit_malzemeleri:
+            if not isinstance(malzeme, dict):
+                continue
+            ad = str(malzeme.get("urun", "")).strip()
+            if not ad:
+                continue
+            try:
+                miktar = float(malzeme.get("miktar", 0) or 0)
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(miktar) or miktar < 0:
+                continue
+            anahtar = ad.upper()
+            malzeme_adlari.add(anahtar)
+            malzeme_miktarlari[anahtar] = (
+                malzeme_miktarlari.get(anahtar, {"ad": ad, "miktar": 0.0})
+            )
+            malzeme_miktarlari[anahtar]["miktar"] += miktar
+        uretimler.append((kisi, malzeme_miktarlari))
+
+    istatistikler = {}
+    for anahtar in malzeme_adlari:
+        kisi_basi_miktarlar = [
+            miktarlar.get(anahtar, {}).get("miktar", 0.0) / kisi
+            for kisi, miktarlar in uretimler
+        ]
+        istatistikler[anahtar] = {
+            "ad": next(
+                (miktarlar[anahtar]["ad"] for _, miktarlar in uretimler if anahtar in miktarlar),
+                anahtar,
+            ),
+            "uretim_sayisi": len(kisi_basi_miktarlar),
+            "ortalama_kisi_basi": statistics.fmean(kisi_basi_miktarlar),
+            "sapma_kisi_basi": (
+                statistics.pstdev(kisi_basi_miktarlar)
+                if len(kisi_basi_miktarlar) > 1 else 0.0
+            ),
+        }
+
+    try:
+        bugunku_kisi = float(kisi_sayisi)
+    except (TypeError, ValueError):
+        bugunku_kisi = 0.0
+    if not math.isfinite(bugunku_kisi):
+        bugunku_kisi = 0.0
+    for istatistik in istatistikler.values():
+        ortalama = istatistik["ortalama_kisi_basi"]
+        sapma = istatistik["sapma_kisi_basi"]
+        tolerans = max(sapma, abs(ortalama) * 0.1)
+        istatistik["beklenen_miktar"] = ortalama * bugunku_kisi
+        istatistik["alt_sinir"] = max(0.0, (ortalama - tolerans) * bugunku_kisi)
+        istatistik["ust_sinir"] = (ortalama + tolerans) * bugunku_kisi
+    return istatistikler
+
+
+def yemek_malzeme_kullanim_uyarilari(
+    istatistikler, sepet, kisi_sayisi, birimler=None
+):
+    """Geçmişe göre kişi başı kullanımı belirgin farklı malzemeleri listeler."""
+    bugunku_miktarlar = {}
+    adlar = {}
+    for item in sepet:
+        ad = str(item.get("urun", "")).strip()
+        if not ad:
+            continue
+        anahtar = ad.upper()
+        try:
+            miktar = float(item.get("miktar", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(miktar):
+            continue
+        bugunku_miktarlar[anahtar] = bugunku_miktarlar.get(anahtar, 0.0) + miktar
+        adlar[anahtar] = ad
+
+    uyarilar = []
+    for anahtar, miktar in bugunku_miktarlar.items():
+        istatistik = istatistikler.get(anahtar)
+        if not istatistik:
+            continue
+        if miktar < istatistik["alt_sinir"] or miktar > istatistik["ust_sinir"]:
+            try:
+                bugunku_kisi = float(kisi_sayisi)
+            except (TypeError, ValueError):
+                bugunku_kisi = 0.0
+            kisi_basi_miktar = miktar / bugunku_kisi if bugunku_kisi > 0 else 0.0
+            birim = (birimler or {}).get(anahtar, "")
+            birim_eki = f" {birim}" if birim else ""
+            uyarilar.append(
+                f"{adlar[anahtar]}: bugün {miktar:g}{birim_eki} "
+                f"(kişi başı {kisi_basi_miktar:g} "
+                f"{birim_eki.strip()}/kişi) kullanılıyor; "
+                f"{istatistik['uretim_sayisi']} geçmiş üretimde kişi başı ortalama "
+                f"{istatistik['ortalama_kisi_basi']:g}, bugünkü kişi sayısına göre "
+                f"beklenen yaklaşık miktar {istatistik['beklenen_miktar']:g} "
+                f"(alışılagelen aralık {istatistik['alt_sinir']:g}–"
+                f"{istatistik['ust_sinir']:g})."
+            )
+    return uyarilar
 
 
 def _tema_tercihini_yukle(url_temasi, cerez_temasi):
@@ -4942,6 +5169,39 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         )
         uretim_tarih_str = uretim_tarihi_input.strftime("%Y-%m-%d")
 
+        yemek_istatistikleri = yemek_malzeme_kullanim_istatistikleri(
+            st.session_state.yemek_uretim_arsivi,
+            yemek_adi,
+            kisi_sayisi,
+            uretim_tarih_str,
+        )
+        if yemek_istatistikleri:
+            with st.expander("📊 Bu yemek için geçmiş malzeme kullanım ortalamaları"):
+                st.caption(
+                    "Yalnızca seçilen üretim tarihinden önceki kayıtlar kullanılır. "
+                    "Kişi başı ortalama ve standart sapma (en az %10 tolerans) aralığı "
+                    "bilgilendirme amaçlıdır; üretimi engellemez."
+                )
+                for istatistik in yemek_istatistikleri.values():
+                    mevcut_stok = next(
+                        (
+                            g for g in st.session_state.girisler
+                            if str(g.get("urun", "")).strip().upper()
+                            == istatistik["ad"].upper()
+                        ),
+                        {},
+                    )
+                    birim = mevcut_stok.get("birim", "")
+                    birim_eki = f" {birim}" if birim else ""
+                    st.write(
+                        f"**{istatistik['ad']}** — kişi başı ortalama "
+                        f"{istatistik['ortalama_kisi_basi']:g}{birim_eki}; "
+                        f"bugün için yaklaşık {istatistik['beklenen_miktar']:g}{birim_eki} "
+                        f"(alışılagelen aralık {istatistik['alt_sinir']:g}–"
+                        f"{istatistik['ust_sinir']:g}{birim_eki}, "
+                        f"{istatistik['uretim_sayisi']} geçmiş üretim)."
+                    )
+
         benzersiz_urunler = sorted(
             list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
         )
@@ -4973,11 +5233,22 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     stok_max = 0.0
                     if secilen_urun:
                         ilgili_girisler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == secilen_urun.strip().upper()]
-                        stok_max = sum(g.get("kalan", 0) for g in ilgili_girisler)
+                        toplam_stok = sum(float(g.get("kalan", 0) or 0) for g in ilgili_girisler)
+                        sepetteki_miktar = sum(
+                            float(item.get("miktar", 0) or 0)
+                            for item in st.session_state.sepet
+                            if str(item.get("urun", "")).strip().upper()
+                            == secilen_urun.strip().upper()
+                        )
+                        stok_max = max(0.0, toplam_stok - sepetteki_miktar)
                     
                     kullanilacak_miktar = st.number_input(
-                        f"Miktar (Toplam Stok: {stok_max})",
-                        min_value=0.0, value=1.0, step=0.1, key="yemek_miktar_manuel",
+                        f"Miktar (Sepete eklenebilir stok: {stok_max:g})",
+                        min_value=0.0,
+                        max_value=stok_max,
+                        value=min(1.0, stok_max),
+                        step=0.1,
+                        key=f"yemek_miktar_manuel_{secilen_urun or 'yok'}",
                     )
                 with col3:
                     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
@@ -4987,9 +5258,22 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                         elif kullanilacak_miktar <= 0:
                             st.error("⚠️ Lütfen 0'dan büyük bir miktar girin!")
                         else:
-                            st.session_state.sepet.append({"urun": secilen_urun, "miktar": kullanilacak_miktar})
-                            st.success("Eklendi!")
-                            st.rerun()
+                            yeni_sepet = [
+                                *st.session_state.sepet,
+                                {"urun": secilen_urun, "miktar": kullanilacak_miktar},
+                            ]
+                            stok_hatalari = yemek_sepeti_stok_hatalari(
+                                st.session_state.girisler, yeni_sepet
+                            )
+                            if stok_hatalari:
+                                st.error("⚠️ " + " ".join(stok_hatalari))
+                            else:
+                                st.session_state.sepet.append({
+                                    "urun": secilen_urun,
+                                    "miktar": kullanilacak_miktar,
+                                })
+                                st.success("Eklendi!")
+                                st.rerun()
 
             elif ekleme_yontemi == "📷 QR Kod ile Okut":
                 st.info("Kamerayı açın ve paket üzerindeki QR kodu okutun. (Telefon veya Bilgisayar kamerası)")
@@ -5086,14 +5370,22 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                                                 f"{ilgili_g.get('birim')} kullanılabilir."
                                             )
                                         else:
-                                            st.session_state.sepet.append({
+                                            yeni_qr_item = {
                                                 "urun": urun_adi,
                                                 "miktar": kullanilacak_miktar,
                                                 "paket_id": secilen_paket_id,
                                                 "fatura_id": secilen_fatura_id
-                                            })
-                                            st.success("QR ile Eklendi!")
-                                            st.rerun()
+                                            }
+                                            stok_hatalari = yemek_sepeti_stok_hatalari(
+                                                st.session_state.girisler,
+                                                [*st.session_state.sepet, yeni_qr_item],
+                                            )
+                                            if stok_hatalari:
+                                                st.error("⚠️ " + " ".join(stok_hatalari))
+                                            else:
+                                                st.session_state.sepet.append(yeni_qr_item)
+                                                st.success("QR ile Eklendi!")
+                                                st.rerun()
                             else:
                                 # Dökme ürün
                                 toplam_kalan = float(ilgili_g.get("kalan", 0))
@@ -5102,9 +5394,20 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                                 kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=toplam_kalan, value=1.0, step=0.1, key="qr_miktar_dokme")
                                 
                                 if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr_dokme"):
-                                    st.session_state.sepet.append({"urun": urun_adi, "miktar": kullanilacak_miktar})
-                                    st.success("QR ile Eklendi!")
-                                    st.rerun()
+                                    yeni_qr_item = {
+                                        "urun": urun_adi,
+                                        "miktar": kullanilacak_miktar,
+                                    }
+                                    stok_hatalari = yemek_sepeti_stok_hatalari(
+                                        st.session_state.girisler,
+                                        [*st.session_state.sepet, yeni_qr_item],
+                                    )
+                                    if stok_hatalari:
+                                        st.error("⚠️ " + " ".join(stok_hatalari))
+                                    else:
+                                        st.session_state.sepet.append(yeni_qr_item)
+                                        st.success("QR ile Eklendi!")
+                                        st.rerun()
                         else:
                             st.error("Sistemde böyle bir kayıt bulunamadı.")
                     else:
@@ -5166,8 +5469,31 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 st.session_state.sepet.pop(silinecek_index)
                 st.rerun()
 
+            stok_hatalari = yemek_sepeti_stok_hatalari(
+                st.session_state.girisler,
+                st.session_state.sepet,
+            )
+            for stok_hatasi in stok_hatalari:
+                st.error("⚠️ " + stok_hatasi)
+
+            kullanim_uyarilari = yemek_malzeme_kullanim_uyarilari(
+                yemek_istatistikleri,
+                st.session_state.sepet,
+                kisi_sayisi,
+                {
+                    str(g.get("urun", "")).strip().upper(): g.get("birim", "")
+                    for g in st.session_state.girisler
+                },
+            )
+            for kullanim_uyarisi in kullanim_uyarilari:
+                st.warning("📊 Geçmiş kullanıma göre bilgilendirme: " + kullanim_uyarisi)
+
             if not salt_okunur_modu:
-                if st.button("🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"):
+                if st.button(
+                    "🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş",
+                    type="primary",
+                    disabled=bool(stok_hatalari),
+                ):
                     if not numune_durumu:
                         st.error("⚠️ Lütfen üretimi tamamlamadan önce 'Numune Alındı / Alınmadı' seçeneğini işaretleyin!")
                     else:
