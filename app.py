@@ -5284,11 +5284,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         menu_ogeleri = {}
         menu_kolonlari = st.columns(2)
         for sira, (alan, etiket) in enumerate(yemek_menu_alanlari()):
-            varsayilan = "Ispanak Yemeği" if alan == "ana_yemek" else ""
             with menu_kolonlari[sira % 2]:
                 menu_ogeleri[alan] = st.text_input(
                     etiket,
-                    value=varsayilan,
                     key=f"uretim_menu_{alan}",
                 )
         yemek_adi = " / ".join(
