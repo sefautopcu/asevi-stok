@@ -290,25 +290,71 @@ def yemek_sepeti_stok_hatalari(girisler, sepet):
     return hatalar
 
 
-def _yemek_ana_adi(yemek_adi):
-    return "".join(str(yemek_adi or "").split("/")[0].split()).upper()
+def yemek_menu_alanlari():
+    return (
+        ("ana_yemek", "Ana Yemek"),
+        ("yardimci_yemek", "Yardımcı Yemek / Ara Yemek"),
+        ("corba", "Çorba"),
+        ("tatli_meyve_yogurt", "Tatlı / Meyve / Yoğurt"),
+    )
 
 
 def _malzeme_kullanim_anahtari(urun_adi):
     return "".join(str(urun_adi or "").split()).upper()
 
 
+def yemek_menu_ogelerini_temizle(menu_ogeleri):
+    if not isinstance(menu_ogeleri, dict):
+        return {alan: "" for alan, _ in yemek_menu_alanlari()}
+    return {
+        alan: str(menu_ogeleri.get(alan, "") or "").strip()
+        for alan, _ in yemek_menu_alanlari()
+    }
+
+
+def yemek_menu_ogelerini_kayittan_al(kayit):
+    menu_ogeleri = yemek_menu_ogelerini_temizle(kayit.get("menu_ogeleri"))
+    if not any(menu_ogeleri.values()):
+        eski_ad = str(kayit.get("yemek_adi", "") or "").strip()
+        if eski_ad and "/" not in eski_ad:
+            menu_ogeleri["ana_yemek"] = eski_ad
+    return menu_ogeleri
+
+
+def yemek_kaydi_menu_ogelerini_guncelle(kayit, menu_ogeleri):
+    temiz_menu = yemek_menu_ogelerini_temizle(menu_ogeleri)
+    if not any(temiz_menu.values()):
+        return False
+    kayit["menu_ogeleri"] = temiz_menu
+    kayit["yemek_adi"] = " / ".join(
+        deger for deger in temiz_menu.values() if deger
+    )
+    return True
+
+
 def yemek_malzeme_kullanim_istatistikleri(
-    arsiv, yemek_adi, kisi_sayisi, referans_tarihi=None, referans_zamani=None
+    arsiv, menu_ogeleri, kisi_sayisi, referans_tarihi=None, referans_zamani=None
 ):
-    """Aynı yemeğin geçmiş kayıtlarından kişi başı malzeme ortalaması ve sapması."""
-    aranan_yemek = _yemek_ana_adi(yemek_adi)
-    if not aranan_yemek:
+    """Aynı menü bölümlerinden geçmiş kişi başı malzeme ortalaması ve sapması."""
+    if isinstance(menu_ogeleri, str):
+        menu_ogeleri = {"ana_yemek": menu_ogeleri}
+    aranan_menu = yemek_menu_ogelerini_temizle(menu_ogeleri)
+    aranan_menu = {
+        alan: _malzeme_kullanim_anahtari(ad)
+        for alan, ad in aranan_menu.items()
+        if ad
+    }
+    if not aranan_menu:
         return {}
     uretimler = []
     malzeme_adlari = set()
     for kayit in arsiv:
-        if _yemek_ana_adi(kayit.get("yemek_adi")) != aranan_yemek:
+        kayit_menu = yemek_menu_ogelerini_kayittan_al(kayit)
+        if not any(
+            _malzeme_kullanim_anahtari(kayit_menu.get(alan))
+            == aranan_ad
+            for alan, aranan_ad in aranan_menu.items()
+        ):
             continue
         if referans_tarihi:
             kayit_tarihi = str(kayit.get("tarih", ""))[:10]
@@ -5168,8 +5214,78 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
     if not misafir_modu:
         st.markdown("---")
+        st.subheader("🗂️ Geçmiş Menü Kayıtlarını Bölümlere Ayır")
+        st.caption(
+            "Eski kayıtları seçip dört yemek bölümüne dağıtın. Örneğin "
+            "“Ispanak Yemeği / Makarna / Yoğurt” kaydını ana yemek, yardımcı "
+            "yemek ve tatlı/meyve/yoğurt alanlarına ayırabilirsiniz."
+        )
+        if st.session_state.yemek_uretim_arsivi:
+            arsiv_secim_etiketleri = {
+                indeks: (
+                    f"{indeks + 1} | {kayit.get('tarih', '-')} | "
+                    f"{kayit.get('yemek_adi', 'Adsız menü')}"
+                )
+                for indeks, kayit in enumerate(st.session_state.yemek_uretim_arsivi)
+            }
+            with st.expander("Geçmiş yemek kaydını düzenle"):
+                secilen_arsiv_indeksi = st.selectbox(
+                    "Düzenlenecek geçmiş üretim",
+                    list(arsiv_secim_etiketleri),
+                    format_func=lambda indeks: arsiv_secim_etiketleri[indeks],
+                    key="yemek_arsiv_duzenle_secim",
+                )
+                secilen_arsiv_kaydi = st.session_state.yemek_uretim_arsivi[
+                    secilen_arsiv_indeksi
+                ]
+                duzenlenen_menu = yemek_menu_ogelerini_kayittan_al(
+                    secilen_arsiv_kaydi
+                )
+                st.caption(
+                    f"{secilen_arsiv_kaydi.get('kisi_sayisi', '-')} kişilik üretim "
+                    f"· {len(secilen_arsiv_kaydi.get('malzemeler', []))} malzeme kaydı"
+                )
+                arsiv_menu_kolonlari = st.columns(2)
+                for sira, (alan, etiket) in enumerate(yemek_menu_alanlari()):
+                    with arsiv_menu_kolonlari[sira % 2]:
+                        duzenlenen_menu[alan] = st.text_input(
+                            etiket,
+                            value=duzenlenen_menu[alan],
+                            key=f"arsiv_menu_{secilen_arsiv_indeksi}_{alan}",
+                        )
+                if not salt_okunur_modu and st.button(
+                    "Geçmiş Menü Bilgilerini Kaydet",
+                    key=f"btn_arsiv_menu_kaydet_{secilen_arsiv_indeksi}",
+                ):
+                    if yemek_kaydi_menu_ogelerini_guncelle(
+                        secilen_arsiv_kaydi, duzenlenen_menu
+                    ):
+                        yemek_uretim_arsivini_kaydet(
+                            st.session_state.yemek_uretim_arsivi
+                        )
+                        st.success("Geçmiş menü bölümleri güncellendi.")
+                        st.rerun()
+                    else:
+                        st.error("Kaydetmek için en az bir yemek bölümünü doldurun.")
+        else:
+            st.info("Henüz düzenlenebilecek bir geçmiş yemek kaydı yok.")
+
+        st.markdown("---")
         st.subheader("🍲 Yeni Yemek Üretim Planı ve Malzeme Düşümü")
-        yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
+        st.markdown("#### Çıkan Yemek / Menü Adı")
+        menu_ogeleri = {}
+        menu_kolonlari = st.columns(2)
+        for sira, (alan, etiket) in enumerate(yemek_menu_alanlari()):
+            varsayilan = "Ispanak Yemeği" if alan == "ana_yemek" else ""
+            with menu_kolonlari[sira % 2]:
+                menu_ogeleri[alan] = st.text_input(
+                    etiket,
+                    value=varsayilan,
+                    key=f"uretim_menu_{alan}",
+                )
+        yemek_adi = " / ".join(
+            deger.strip() for deger in menu_ogeleri.values() if deger.strip()
+        )
         kisi_sayisi = st.number_input(
             "Yararlanan Kişi Sayısı", min_value=1, value=200
         )
@@ -5194,37 +5310,58 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         )
         yemek_istatistikleri = yemek_malzeme_kullanim_istatistikleri(
             st.session_state.yemek_uretim_arsivi,
-            yemek_adi,
+            menu_ogeleri,
             kisi_sayisi,
             uretim_tarih_str,
             uretim_referans_zamani,
         )
         if yemek_istatistikleri:
-            st.subheader("📊 Bu yemek için geçmiş malzeme kullanım ortalamaları")
+            st.subheader("📊 Seçilen menü bölümlerine göre geçmiş kullanım")
             st.caption(
-                "Seçilen tarihteki önceki üretimler de hesaba katılır. Kişi başı "
-                "ortalama ve standart sapma (en az %10 tolerans) aralığı "
-                "bilgilendirme amaçlıdır; üretimi engellemez."
+                "Her yemek adı yalnızca kendi bölümündeki geçmiş kayıtlarla "
+                "eşleştirilir. Eski arşivlerde malzemeler menünün bütünü için "
+                "kaydedildiğinden, her bölümün altında eşleşen üretimlerin toplam "
+                "malzeme kullanımı gösterilir. Uyarı bilgilendirme amaçlıdır."
             )
-            for istatistik in yemek_istatistikleri.values():
-                mevcut_stok = next(
-                    (
-                        g for g in st.session_state.girisler
-                        if _malzeme_kullanim_anahtari(g.get("urun"))
-                        == _malzeme_kullanim_anahtari(istatistik["ad"])
-                    ),
-                    {},
+            for alan, etiket in yemek_menu_alanlari():
+                if not menu_ogeleri[alan].strip():
+                    continue
+                bolum_istatistikleri = yemek_malzeme_kullanim_istatistikleri(
+                    st.session_state.yemek_uretim_arsivi,
+                    {alan: menu_ogeleri[alan]},
+                    kisi_sayisi,
+                    uretim_tarih_str,
+                    uretim_referans_zamani,
                 )
-                birim = mevcut_stok.get("birim", "")
-                birim_eki = f" {birim}" if birim else ""
-                st.write(
-                    f"**{istatistik['ad']}** — kişi başı ortalama "
-                    f"{istatistik['ortalama_kisi_basi']:g}{birim_eki}; "
-                    f"bugün için yaklaşık {istatistik['beklenen_miktar']:g}{birim_eki} "
-                    f"(alışılagelen aralık {istatistik['alt_sinir']:g}–"
-                    f"{istatistik['ust_sinir']:g}{birim_eki}, "
-                    f"{istatistik['uretim_sayisi']} geçmiş üretim)."
-                )
+                if not bolum_istatistikleri:
+                    st.info(f"{etiket} “{menu_ogeleri[alan]}” için eşleşen geçmiş kayıt yok.")
+                    continue
+                st.markdown(f"**{etiket}: {menu_ogeleri[alan]}**")
+                for istatistik in bolum_istatistikleri.values():
+                    mevcut_stok = next(
+                        (
+                            g for g in st.session_state.girisler
+                            if _malzeme_kullanim_anahtari(g.get("urun"))
+                            == _malzeme_kullanim_anahtari(istatistik["ad"])
+                        ),
+                        {},
+                    )
+                    birim = mevcut_stok.get("birim", "")
+                    birim_eki = f" {birim}" if birim else ""
+                    st.write(
+                        f"{istatistik['ad']} — kişi başı ortalama "
+                        f"{istatistik['ortalama_kisi_basi']:g}{birim_eki}; "
+                        f"bu üretimde yaklaşık {istatistik['beklenen_miktar']:g}"
+                        f"{birim_eki} (alışılagelen aralık "
+                        f"{istatistik['alt_sinir']:g}–{istatistik['ust_sinir']:g}"
+                        f"{birim_eki}, {istatistik['uretim_sayisi']} geçmiş üretim)."
+                    )
+        elif any(deger.strip() for deger in menu_ogeleri.values()):
+            st.info(
+                "Seçilen menü bölümleri için eşleşen geçmiş kayıt bulunamadı. "
+                "Eski birleşik menüleri yukarıdaki geçmiş kayıt düzenleyicisinden "
+                "bölümlere ayırabilirsiniz."
+            )
 
         benzersiz_urunler = sorted(
             list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
@@ -5557,10 +5694,14 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 st.warning("📊 Geçmiş kullanıma göre bilgilendirme: " + kullanim_uyarisi)
 
             if not salt_okunur_modu:
+                if not yemek_adi:
+                    st.error("⚠️ Üretimi tamamlamadan önce en az bir yemek bölümünü doldurun.")
                 if st.button(
                     "🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş",
                     type="primary",
-                    disabled=bool(stok_hatalari or uretim_giris_hatalari),
+                    disabled=bool(
+                        stok_hatalari or uretim_giris_hatalari or not yemek_adi
+                    ),
                 ):
                     if not numune_durumu:
                         st.error("⚠️ Lütfen üretimi tamamlamadan önce 'Numune Alındı / Alınmadı' seçeneğini işaretleyin!")
@@ -5632,6 +5773,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "tarih": uretim_tarih_str,
                             "zaman": tarih_simdi,
                             "yemek_adi": yemek_adi,
+                            "menu_ogeleri": yemek_menu_ogelerini_temizle(
+                                menu_ogeleri
+                            ),
                             "kisi_sayisi": kisi_sayisi,
                             "numune_durumu": numune_durumu,
                             "malzemeler": arsiv_malzemeler,

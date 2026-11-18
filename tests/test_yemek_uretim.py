@@ -12,8 +12,11 @@ def yemek_helpers():
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     names = {
         "yemek_sepeti_stok_hatalari",
-        "_yemek_ana_adi",
         "_malzeme_kullanim_anahtari",
+        "yemek_menu_alanlari",
+        "yemek_menu_ogelerini_temizle",
+        "yemek_menu_ogelerini_kayittan_al",
+        "yemek_kaydi_menu_ogelerini_guncelle",
         "yemek_malzeme_kullanim_istatistikleri",
         "yemek_malzeme_kullanim_uyarilari",
     }
@@ -297,12 +300,21 @@ def test_arsivdeki_menu_adi_ve_malzeme_bosluk_farki_uyariyi_engellemez(
 ):
     arsiv = [{
         "yemek_adi": "Ispanak Yemeği / Makarna / Yoğurt",
+        "menu_ogeleri": {
+            "ana_yemek": "Ispanak Yemeği",
+            "yardimci_yemek": "Makarna",
+            "corba": "",
+            "tatli_meyve_yogurt": "Yoğurt",
+        },
         "tarih": "2026-11-02",
         "kisi_sayisi": 200,
         "malzemeler": [{"urun": "KUŞBAŞI ET", "miktar": 5}],
     }]
     stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
-        arsiv, "Ispanak Yemeği", 200, "2026-11-18"
+        arsiv,
+        {"ana_yemek": "Ispanak Yemeği", "yardimci_yemek": "Makarna"},
+        200,
+        "2026-11-18",
     )
 
     assert stats["KUŞBAŞIET"]["beklenen_miktar"] == pytest.approx(5)
@@ -316,3 +328,89 @@ def test_arsivdeki_menu_adi_ve_malzeme_bosluk_farki_uyariyi_engellemez(
     assert len(uyarilar) == 1
     assert "bugün 15 Kg" in uyarilar[0]
     assert "beklenen yaklaşık miktar 5" in uyarilar[0]
+
+
+def test_menu_ortalamasi_yalnizca_ayni_bolumdeki_eslesen_gecmisi_kullanir(
+    yemek_helpers,
+):
+    arsiv = [
+        {
+            "menu_ogeleri": {
+                "ana_yemek": "Ispanak",
+                "yardimci_yemek": "Pilav",
+            },
+            "tarih": "2026-11-01",
+            "kisi_sayisi": 100,
+            "malzemeler": [{"urun": "ISPANAK", "miktar": 25}],
+        },
+        {
+            "menu_ogeleri": {
+                "ana_yemek": "Kuru Fasulye",
+                "yardimci_yemek": "Ispanak",
+            },
+            "tarih": "2026-11-02",
+            "kisi_sayisi": 100,
+            "malzemeler": [{"urun": "ISPANAK", "miktar": 100}],
+        },
+    ]
+
+    stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
+        arsiv, {"ana_yemek": "Ispanak"}, 200, "2026-11-18"
+    )
+
+    assert stats["ISPANAK"]["beklenen_miktar"] == pytest.approx(50)
+    assert stats["ISPANAK"]["uretim_sayisi"] == 1
+
+
+def test_eski_birlesik_menu_kaydi_duzenlenip_dort_bolume_kaydedilebilir(
+    yemek_helpers,
+):
+    kayit = {
+        "yemek_adi": "Ispanak Yemeği / Makarna / Yoğurt",
+        "tarih": "2026-11-02",
+        "kisi_sayisi": 200,
+        "malzemeler": [{"urun": "Kuşbaşı Et", "miktar": 5}],
+    }
+
+    assert yemek_helpers["yemek_menu_ogelerini_kayittan_al"](kayit) == {
+        "ana_yemek": "",
+        "yardimci_yemek": "",
+        "corba": "",
+        "tatli_meyve_yogurt": "",
+    }
+    assert yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
+        [kayit], {"ana_yemek": "Ispanak Yemeği"}, 200, "2026-11-18"
+    ) == {}
+    assert yemek_helpers["yemek_kaydi_menu_ogelerini_guncelle"](
+        kayit,
+        {
+            "ana_yemek": "Ispanak Yemeği",
+            "yardimci_yemek": "Makarna",
+            "corba": "",
+            "tatli_meyve_yogurt": "Yoğurt",
+        },
+    )
+
+    assert kayit["yemek_adi"] == "Ispanak Yemeği / Makarna / Yoğurt"
+    assert kayit["menu_ogeleri"]["ana_yemek"] == "Ispanak Yemeği"
+    assert kayit["malzemeler"] == [{"urun": "Kuşbaşı Et", "miktar": 5}]
+    stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
+        [kayit], {"ana_yemek": "Ispanak Yemeği"}, 200, "2026-11-18"
+    )
+    assert stats["KUŞBAŞIET"]["beklenen_miktar"] == pytest.approx(5)
+
+
+def test_eski_tek_yemek_kaydi_ana_yemek_olarak_eslesir(yemek_helpers):
+    stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
+        [{
+            "yemek_adi": "Ispanak Yemeği",
+            "tarih": "2026-11-02",
+            "kisi_sayisi": 200,
+            "malzemeler": [{"urun": "Ispanak", "miktar": 50}],
+        }],
+        {"ana_yemek": "Ispanak Yemeği"},
+        200,
+        "2026-11-18",
+    )
+
+    assert stats["ISPANAK"]["beklenen_miktar"] == pytest.approx(50)
