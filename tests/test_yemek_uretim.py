@@ -219,7 +219,7 @@ def test_farkli_yemek_icin_gecmis_istatistik_bildirilmez(yemek_helpers):
     assert stats == {}
 
 
-def test_ayni_gun_ve_gelecekteki_uretimler_ortalama_icin_kullanilmaz(yemek_helpers):
+def test_ayni_gun_onceki_ve_gelecekteki_uretimleri_zamana_gore_ayirir(yemek_helpers):
     arsiv = [
         {
             "yemek_adi": "Ispanak",
@@ -230,14 +230,61 @@ def test_ayni_gun_ve_gelecekteki_uretimler_ortalama_icin_kullanilmaz(yemek_helpe
         {
             "yemek_adi": "Ispanak",
             "tarih": "2026-11-17",
+            "zaman": "2026-11-17 09:00",
+            "kisi_sayisi": 100,
+            "malzemeler": [{"urun": "Ispanak", "miktar": 40}],
+        },
+        {
+            "yemek_adi": "Ispanak",
+            "tarih": "2026-11-17",
+            "zaman": "2026-11-17 11:00",
             "kisi_sayisi": 100,
             "malzemeler": [{"urun": "Ispanak", "miktar": 100}],
         },
     ]
 
     stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
-        arsiv, "Ispanak", 200, "2026-11-17"
+        arsiv, "Ispanak", 200, "2026-11-17", "2026-11-17 10:00"
     )
 
-    assert stats["ISPANAK"]["uretim_sayisi"] == 1
-    assert stats["ISPANAK"]["ortalama_kisi_basi"] == pytest.approx(0.2)
+    assert stats["ISPANAK"]["uretim_sayisi"] == 2
+    assert stats["ISPANAK"]["ortalama_kisi_basi"] == pytest.approx(0.3)
+
+
+def test_yeterli_stogu_asan_guncel_giris_uretim_sepetiyle_birlikte_bloklanir(
+    yemek_helpers,
+):
+    stok = [{"id": "FAT-1", "urun": "ISPANAK", "kalan": 22}]
+    sepet = [{"urun": "ISPANAK", "miktar": 1}]
+    giris = {"urun": "ISPANAK", "miktar": 25}
+
+    hatalar = yemek_helpers["yemek_sepeti_stok_hatalari"](
+        stok, [*sepet, giris]
+    )
+
+    assert hatalar
+    assert "26" in hatalar[0]
+    assert "22" in hatalar[0]
+
+
+def test_70_kg_giris_onceki_50_kg_uretimine_gore_uyari_uretir(yemek_helpers):
+    arsiv = [{
+        "yemek_adi": "Ispanak Yemeği",
+        "tarih": "2026-11-16",
+        "kisi_sayisi": 200,
+        "malzemeler": [{"urun": "Ispanak", "miktar": 50}],
+    }]
+    stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
+        arsiv, "Ispanak Yemeği", 200, "2026-11-17"
+    )
+
+    uyarilar = yemek_helpers["yemek_malzeme_kullanim_uyarilari"](
+        stats,
+        [{"urun": "Ispanak", "miktar": 70}],
+        200,
+        {"ISPANAK": "Kg"},
+    )
+
+    assert len(uyarilar) == 1
+    assert "bugün 70 Kg" in uyarilar[0]
+    assert "beklenen yaklaşık miktar 50" in uyarilar[0]

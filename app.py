@@ -291,7 +291,7 @@ def yemek_sepeti_stok_hatalari(girisler, sepet):
 
 
 def yemek_malzeme_kullanim_istatistikleri(
-    arsiv, yemek_adi, kisi_sayisi, referans_tarihi=None
+    arsiv, yemek_adi, kisi_sayisi, referans_tarihi=None, referans_zamani=None
 ):
     """Aynı yemeğin geçmiş kayıtlarından kişi başı malzeme ortalaması ve sapması."""
     aranan_yemek = str(yemek_adi or "").strip().upper()
@@ -302,8 +302,17 @@ def yemek_malzeme_kullanim_istatistikleri(
             continue
         if referans_tarihi:
             kayit_tarihi = str(kayit.get("tarih", ""))[:10]
-            if not kayit_tarihi or kayit_tarihi >= str(referans_tarihi)[:10]:
+            hedef_tarih = str(referans_tarihi)[:10]
+            if not kayit_tarihi or kayit_tarihi > hedef_tarih:
                 continue
+            if (
+                kayit_tarihi == hedef_tarih
+                and referans_zamani
+                and kayit.get("zaman")
+            ):
+                kayit_zamani = str(kayit.get("zaman", ""))
+                if kayit_zamani >= str(referans_zamani):
+                    continue
         try:
             kisi = float(kayit.get("kisi_sayisi", 0) or 0)
         except (TypeError, ValueError):
@@ -5169,38 +5178,43 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         )
         uretim_tarih_str = uretim_tarihi_input.strftime("%Y-%m-%d")
 
+        uretim_simdi = simdi_tr_str("%Y-%m-%d %H:%M")
+        uretim_referans_zamani = (
+            uretim_simdi if uretim_tarih_str == uretim_simdi[:10] else None
+        )
         yemek_istatistikleri = yemek_malzeme_kullanim_istatistikleri(
             st.session_state.yemek_uretim_arsivi,
             yemek_adi,
             kisi_sayisi,
             uretim_tarih_str,
+            uretim_referans_zamani,
         )
         if yemek_istatistikleri:
-            with st.expander("📊 Bu yemek için geçmiş malzeme kullanım ortalamaları"):
-                st.caption(
-                    "Yalnızca seçilen üretim tarihinden önceki kayıtlar kullanılır. "
-                    "Kişi başı ortalama ve standart sapma (en az %10 tolerans) aralığı "
-                    "bilgilendirme amaçlıdır; üretimi engellemez."
+            st.subheader("📊 Bu yemek için geçmiş malzeme kullanım ortalamaları")
+            st.caption(
+                "Seçilen tarihteki önceki üretimler de hesaba katılır. Kişi başı "
+                "ortalama ve standart sapma (en az %10 tolerans) aralığı "
+                "bilgilendirme amaçlıdır; üretimi engellemez."
+            )
+            for istatistik in yemek_istatistikleri.values():
+                mevcut_stok = next(
+                    (
+                        g for g in st.session_state.girisler
+                        if str(g.get("urun", "")).strip().upper()
+                        == istatistik["ad"].upper()
+                    ),
+                    {},
                 )
-                for istatistik in yemek_istatistikleri.values():
-                    mevcut_stok = next(
-                        (
-                            g for g in st.session_state.girisler
-                            if str(g.get("urun", "")).strip().upper()
-                            == istatistik["ad"].upper()
-                        ),
-                        {},
-                    )
-                    birim = mevcut_stok.get("birim", "")
-                    birim_eki = f" {birim}" if birim else ""
-                    st.write(
-                        f"**{istatistik['ad']}** — kişi başı ortalama "
-                        f"{istatistik['ortalama_kisi_basi']:g}{birim_eki}; "
-                        f"bugün için yaklaşık {istatistik['beklenen_miktar']:g}{birim_eki} "
-                        f"(alışılagelen aralık {istatistik['alt_sinir']:g}–"
-                        f"{istatistik['ust_sinir']:g}{birim_eki}, "
-                        f"{istatistik['uretim_sayisi']} geçmiş üretim)."
-                    )
+                birim = mevcut_stok.get("birim", "")
+                birim_eki = f" {birim}" if birim else ""
+                st.write(
+                    f"**{istatistik['ad']}** — kişi başı ortalama "
+                    f"{istatistik['ortalama_kisi_basi']:g}{birim_eki}; "
+                    f"bugün için yaklaşık {istatistik['beklenen_miktar']:g}{birim_eki} "
+                    f"(alışılagelen aralık {istatistik['alt_sinir']:g}–"
+                    f"{istatistik['ust_sinir']:g}{birim_eki}, "
+                    f"{istatistik['uretim_sayisi']} geçmiş üretim)."
+                )
 
         benzersiz_urunler = sorted(
             list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
@@ -5218,6 +5232,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
             kullanilacak_miktar = 0.0
             secilen_paket_id = None 
             secilen_fatura_id = None
+            uretim_giris_hatalari = []
 
             if ekleme_yontemi == "Manuel Seçim":
                 col1, col2, col3 = st.columns([2, 1, 1])
@@ -5245,11 +5260,22 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     kullanilacak_miktar = st.number_input(
                         f"Miktar (Sepete eklenebilir stok: {stok_max:g})",
                         min_value=0.0,
-                        max_value=stok_max,
                         value=min(1.0, stok_max),
                         step=0.1,
-                        key=f"yemek_miktar_manuel_{secilen_urun or 'yok'}",
+                        key=(
+                            f"yemek_miktar_manuel_{secilen_urun or 'yok'}_"
+                            f"{len(st.session_state.sepet)}"
+                        ),
                     )
+                    if secilen_urun:
+                        aday_hatalari = yemek_sepeti_stok_hatalari(
+                            st.session_state.girisler,
+                            [
+                                *st.session_state.sepet,
+                                {"urun": secilen_urun, "miktar": kullanilacak_miktar},
+                            ],
+                        )
+                        uretim_giris_hatalari.extend(aday_hatalari)
                 with col3:
                     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
                     if st.button("Sepete Ekle", use_container_width=True, key="btn_sepete_ekle_manuel"):
@@ -5340,11 +5366,25 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                                     secilen_fatura_id = ana_id
                                     kullanilacak_miktar = st.number_input(
                                         f"Kullanılacak Miktar ({ilgili_g.get('birim')})",
-                                        min_value=min(0.1, kalan_paket),
-                                        max_value=kalan_paket,
+                                        min_value=0.0,
                                         value=min(1.0, kalan_paket),
                                         step=0.1,
-                                        key=f"qr_miktar_manuel_{qr_okunan_id}",
+                                        key=(
+                                            f"qr_miktar_manuel_{qr_okunan_id}_"
+                                            f"{len(st.session_state.sepet)}"
+                                        ),
+                                    )
+                                    aday_qr_item = {
+                                        "urun": urun_adi,
+                                        "miktar": kullanilacak_miktar,
+                                        "paket_id": qr_okunan_id,
+                                        "fatura_id": ana_id,
+                                    }
+                                    uretim_giris_hatalari.extend(
+                                        yemek_sepeti_stok_hatalari(
+                                            st.session_state.girisler,
+                                            [*st.session_state.sepet, aday_qr_item],
+                                        )
                                     )
                                     
                                     if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr"):
@@ -5391,7 +5431,22 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                                 toplam_kalan = float(ilgili_g.get("kalan", 0))
                                 st.info(f"**Dökme Ürün** | **Toplam Stok:** {toplam_kalan} {ilgili_g.get('birim')}")
                                 secilen_urun = urun_adi
-                                kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=toplam_kalan, value=1.0, step=0.1, key="qr_miktar_dokme")
+                                kullanilacak_miktar = st.number_input(
+                                    f"Kullanılacak Miktar ({ilgili_g.get('birim')})",
+                                    min_value=0.0,
+                                    value=min(1.0, toplam_kalan),
+                                    step=0.1,
+                                    key=f"qr_miktar_dokme_{len(st.session_state.sepet)}",
+                                )
+                                uretim_giris_hatalari.extend(
+                                    yemek_sepeti_stok_hatalari(
+                                        st.session_state.girisler,
+                                        [
+                                            *st.session_state.sepet,
+                                            {"urun": urun_adi, "miktar": kullanilacak_miktar},
+                                        ],
+                                    )
+                                )
                                 
                                 if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr_dokme"):
                                     yeni_qr_item = {
@@ -5412,6 +5467,9 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             st.error("Sistemde böyle bir kayıt bulunamadı.")
                     else:
                         st.warning("⏳ QR Kod aranıyor... Kamerayı koda odaklayın.")
+
+            for giris_hatasi in dict.fromkeys(uretim_giris_hatalari):
+                st.error("⚠️ " + giris_hatasi)
 
         st.markdown("---")
         st.subheader("Seçilen Malzemeler")
@@ -5492,7 +5550,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 if st.button(
                     "🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş",
                     type="primary",
-                    disabled=bool(stok_hatalari),
+                    disabled=bool(stok_hatalari or uretim_giris_hatalari),
                 ):
                     if not numune_durumu:
                         st.error("⚠️ Lütfen üretimi tamamlamadan önce 'Numune Alındı / Alınmadı' seçeneğini işaretleyin!")
