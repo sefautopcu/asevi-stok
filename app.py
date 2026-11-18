@@ -2482,19 +2482,186 @@ def bugunun_turkce_tarihi():
 # GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI
 # =========================================================================
 if not st.session_state.oturum_aktif:
+    login_accent = "#5F7F98" if st.session_state.tema == "Arctic" else "#10b981"
     st.markdown(
-        "<div style='text-align: center; margin-top: 40px;'></div>",
+        f"""
+        <style>
+            .st-key-login-card {{
+                min-height: 500px;
+                padding: 28px 30px 24px;
+                background: {card_bg} !important;
+                border: 1px solid {border_color} !important;
+                border-radius: 24px !important;
+                box-shadow: 0 18px 55px rgba(0, 0, 0, 0.28) !important;
+            }}
+            .st-key-login-card h2 {{
+                margin: 0;
+                text-align: center;
+                color: {text_color} !important;
+                font-size: 1.55rem;
+                letter-spacing: -0.04em;
+            }}
+            .st-key-login-card .login-subtitle {{
+                margin: 2px 0 20px;
+                text-align: center;
+                color: {subtext_color};
+                font-size: 0.86rem;
+            }}
+            .st-key-login-card div[data-testid="stForm"] {{
+                padding: 0 !important;
+                background: transparent !important;
+                border: 0 !important;
+                box-shadow: none !important;
+            }}
+            .login-hero {{
+                padding: 8px 0 22px;
+            }}
+            .login-eyebrow {{
+                display: inline-block;
+                padding: 7px 13px;
+                border: 1px solid {border_color};
+                border-radius: 999px;
+                color: {login_accent};
+                background: {card_bg};
+                font-size: 0.76rem;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+            }}
+            .login-hero h1 {{
+                margin: 16px 0 3px;
+                color: {text_color};
+                font-size: clamp(2.2rem, 4vw, 3rem);
+                line-height: 1.12;
+                letter-spacing: -0.06em;
+            }}
+            .login-hero h1 span {{ color: {login_accent}; }}
+            .login-hero h3 {{
+                margin: 0 0 12px;
+                color: {subtext_color};
+                font-size: 1.05rem;
+                font-weight: 600;
+            }}
+            .login-hero p {{
+                max-width: 520px;
+                color: {subtext_color};
+                font-size: 0.92rem;
+                line-height: 1.7;
+            }}
+            .login-feature-grid {{
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 14px;
+                margin-top: 10px;
+            }}
+            .login-feature-card {{
+                min-height: 112px;
+                padding: 17px 18px;
+                border: 1px solid {border_color};
+                border-radius: 18px;
+                background: {card_bg};
+                transition: transform 180ms ease, border-color 180ms ease,
+                    box-shadow 180ms ease, background 180ms ease;
+            }}
+            .login-feature-card:hover {{
+                transform: translateY(-5px);
+                border-color: {login_accent};
+                background: {card_bg};
+                box-shadow: 0 12px 30px {border_color};
+            }}
+            .login-feature-icon {{
+                margin-bottom: 8px;
+                font-size: 1.35rem;
+            }}
+            .login-feature-card h4 {{
+                margin: 0 0 4px;
+                color: {text_color};
+                font-size: 0.92rem;
+                font-weight: 700;
+            }}
+            .login-feature-card p {{
+                margin: 0;
+                color: {subtext_color};
+                font-size: 0.76rem;
+                line-height: 1.5;
+            }}
+            .login-version {{
+                margin-top: 45px;
+                color: {subtext_color};
+                font-size: 0.72rem;
+                text-align: center;
+                opacity: 0.7;
+            }}
+            @media (max-width: 760px) {{
+                .login-feature-grid {{ gap: 9px; }}
+                .login-feature-card {{ padding: 13px; }}
+                .st-key-login-card {{ min-height: 0; padding: 22px 18px; }}
+            }}
+            @media (prefers-reduced-motion: reduce) {{
+                .login-feature-card {{ transition: none; }}
+                .login-feature-card:hover {{ transform: none; }}
+            }}
+        </style>
+        """,
         unsafe_allow_html=True,
     )
-    c1, c2, c3 = st.columns([1, 1.3, 1])
-    with c2:
+    login_left, login_right = st.columns([1.05, 1], gap="large")
+    with login_left:
+        st.markdown(
+            """
+            <section class="login-hero">
+                <div class="login-eyebrow">🍲 AŞEVİ OTOMASYONU</div>
+                <h1>Aziziye <span>Aşevi</span></h1>
+                <h3>Yönetim &amp; Takip Sistemi</h3>
+                <p>Stok girişinden yemek dağıtımına, fire takibinden personel
+                yönetimine kadar tüm süreçler tek panelde. Sadece giriş yapın,
+                gerisini sistem halletsin.</p>
+            </section>
+            <section class="login-feature-grid">
+                <article class="login-feature-card">
+                    <div class="login-feature-icon">📦</div>
+                    <h4>Stok Yönetimi</h4>
+                    <p>Fatura bazlı giriş, anlık kalan, kritik seviye uyarıları</p>
+                </article>
+                <article class="login-feature-card">
+                    <div class="login-feature-icon">🍲</div>
+                    <h4>Yemek Üretimi</h4>
+                    <p>Kişi başı maliyet, kalori ve porsiyon hesabı</p>
+                </article>
+                <article class="login-feature-card">
+                    <div class="login-feature-icon">🗑️</div>
+                    <h4>Fire &amp; Zayiat</h4>
+                    <p>Parti bazlı fire tutarı ve neden analizi</p>
+                </article>
+                <article class="login-feature-card">
+                    <div class="login-feature-icon">📱</div>
+                    <h4>QR Sarfiyat</h4>
+                    <p>QR ile hızlı düşüm ve paket takibi</p>
+                </article>
+                <article class="login-feature-card">
+                    <div class="login-feature-icon">👥</div>
+                    <h4>Personel</h4>
+                    <p>İzin, çalışma süresi ve demirbaş zimmet takibi</p>
+                </article>
+                <article class="login-feature-card">
+                    <div class="login-feature-icon">📊</div>
+                    <h4>Raporlama</h4>
+                    <p>Günlük, haftalık ve aylık otomatik e-posta raporları</p>
+                </article>
+            </section>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"<div class='login-version'>{APP_VERSION} · {LAST_UPDATE}</div>",
+            unsafe_allow_html=True,
+        )
+
+    with login_right.container(key="login-card"):
         st.markdown(
             f"""
-                <div style="text-align: center; margin-bottom: 28px; background: {card_bg}; border: 1px solid {border_color}; padding: 32px; border-radius: 20px; box-shadow: 0 16px 40px rgba(0,0,0,0.08);">
-                    <div style="font-size: 36px; margin-bottom: 12px;">🍲</div>
-                    <h2 style="font-weight: 700; letter-spacing: -0.03em; margin: 0; color: {text_color};">AZİZİYE AŞEVİ</h2>
-                    <p style="opacity: 0.6; font-size: 13.5px; margin-top: 6px; color: {subtext_color};">Yönetim & Takip Sistemi</p>
-                </div>
+                <div style="text-align:center; font-size:30px; margin:10px 0 5px;">🍲</div>
+                <h2>Giriş Yap</h2>
+                <p class="login-subtitle">Devam etmek için hesabınızla giriş yapın</p>
             """,
             unsafe_allow_html=True,
         )
