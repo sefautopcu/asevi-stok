@@ -2529,12 +2529,12 @@ if not st.session_state.oturum_aktif:
             }}
             .login-hero h1 {{
                 margin: 16px 0 3px;
-                color: {text_color};
-                font-size: clamp(2.2rem, 4vw, 3rem);
+                color: #f4f4f5;
+                font-size: clamp(2.5rem, 4.4vw, 3.3rem);
                 line-height: 1.12;
                 letter-spacing: -0.06em;
             }}
-            .login-hero h1 span {{ color: {login_accent}; }}
+            .login-hero h1 span {{ color: #10b981; }}
             .login-hero h3 {{
                 margin: 0 0 12px;
                 color: {subtext_color};
