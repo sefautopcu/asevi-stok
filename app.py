@@ -104,6 +104,40 @@ def fire_partisi_detayi(giris, miktar):
     }
 
 
+def dashboard_skt_sayilarini_hesapla(girisler, bugun=None):
+    """Yalnızca kalan stoğu olan ürünlerin SKT durumunu ürün bazında sayar."""
+    bugun = bugun or datetime.date.today()
+    urun_sktleri = {}
+
+    for giris in girisler:
+        urun = str(giris.get("urun", "")).strip().upper()
+        if not urun:
+            continue
+        kalan = float(giris.get("kalan", 0) or 0)
+        if not kalan > 0:
+            continue
+
+        skt = giris.get("skt")
+        if not skt:
+            continue
+        try:
+            skt_tarihi = datetime.datetime.strptime(str(skt), "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            continue
+        urun_sktleri.setdefault(urun, []).append(skt_tarihi)
+
+    skt_kirmizi = 0
+    skt_turuncu = 0
+    for skt_tarihleri in urun_sktleri.values():
+        kalan_gun = (min(skt_tarihleri) - bugun).days
+        if kalan_gun < 0:
+            skt_kirmizi += 1
+        elif kalan_gun <= 7:
+            skt_turuncu += 1
+
+    return skt_kirmizi, skt_turuncu
+
+
 def qr_paket_kalanini_hesapla(giris, sepet, paket_id):
     """QR paketin mevcut kalanından bu üretim sepetinde planlanan miktarı düşer."""
     try:
@@ -3498,24 +3532,10 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             kritik_urun_sayisi += 1
 
     guvenli_urun_sayisi = urun_cesidi_sayisi - kritik_urun_sayisi if urun_cesidi_sayisi > kritik_urun_sayisi else 0
-        # --- SKT / STT UYARILARI (Operasyonel Sağlık için) ---
-    skt_kirmizi = 0
-    skt_turuncu = 0
-    bugun_tarih = datetime.date.today()
-    
-    for u in set(g.get("urun", "").strip().upper() for g in st.session_state.get("girisler", []) if g.get("urun")):
-        skt_listesi = [g.get("skt") for g in st.session_state.get("girisler", []) if g.get("urun", "").strip().upper() == u and g.get("skt")]
-        en_yakin_skt = min(skt_listesi) if skt_listesi else None
-        if en_yakin_skt:
-            try:
-                skt_date = datetime.datetime.strptime(en_yakin_skt, "%Y-%m-%d").date()
-                kalan_gun = (skt_date - bugun_tarih).days
-                if kalan_gun < 0:
-                    skt_kirmizi += 1
-                elif kalan_gun <= 7:
-                    skt_turuncu += 1
-            except Exception:
-                pass
+    # --- SKT / STT UYARILARI (yalnızca kalan stoğu olan ürünler) ---
+    skt_kirmizi, skt_turuncu = dashboard_skt_sayilarini_hesapla(
+        st.session_state.get("girisler", [])
+    )
     yuzde_kritik = int((kritik_urun_sayisi / urun_cesidi_sayisi) * 100) if urun_cesidi_sayisi > 0 else 0
     yuzde_guvenli = 100 - yuzde_kritik
 
