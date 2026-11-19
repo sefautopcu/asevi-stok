@@ -7983,160 +7983,6 @@ elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
-        with st.expander("🧩 Kod Yazmadan Sayfa Düzenleyici", expanded=False):
-            admin_sayfa_duzenleyici()
-
-        # Sayfa ve kayıt bazlı test verisi temizleme aracı
-        st.markdown("---")
-        st.markdown("### 🧹 Test Verisi Temizleme Aracı")
-        st.warning(
-            "Önce sayfayı, ardından silinecek kayıtları tek tek seçin. "
-            "Kayıt adında “test” bulunması gerekmez; deneme amacıyla eklenmiş "
-            "farklı isimli kayıtları da seçebilirsiniz."
-        )
-        test_sayfa_koleksiyonlari = test_verisi_sayfa_koleksiyonlari()
-        test_sayfasi = st.selectbox(
-            "Temizlenecek Sayfa",
-            list(test_sayfa_koleksiyonlari),
-            key="test_temizleme_sayfasi",
-        )
-        test_secimleri = {}
-        test_secim_etiketleri = []
-
-        if test_sayfasi == "Depo Yönetimi" and "kategoriler" not in st.session_state:
-            varsayilan_kategoriler = [
-                "SEBZE", "MEYVE", "KURU GIDA", "BAHARAT",
-                "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ",
-            ]
-            yuklenen_kategoriler = supabase_veri_oku(
-                "kategoriler_listesi", varsayilan_kategoriler, kritik=False
-            )
-            st.session_state.kategoriler = (
-                yuklenen_kategoriler
-                if isinstance(yuklenen_kategoriler, list) and yuklenen_kategoriler
-                else list(varsayilan_kategoriler)
-            )
-
-        if test_sayfasi in (
-            "Güncel Stok Durumu",
-            "Yeni Mal Alımı / Fatura Ekle",
-            "Ürün Sil / Düzenle",
-        ):
-            st.info(
-                "Bu sayfalar aynı fatura/stok partisi kayıtlarını kullanır. "
-                "Buradan sildiğiniz parti bu sayfaların tamamındaki görünümden kaldırılır."
-            )
-        elif test_sayfasi == "Fire / Zayiat Girişi":
-            st.info(
-                "Yalnızca seçtiğiniz fire kayıtları ve logları silinir; stok miktarı "
-                "otomatik olarak geri eklenmez."
-            )
-        elif test_sayfasi == "Günlük Yemek Üretimi & Maliyet Raporu":
-            st.info(
-                "Seçilen üretim arşivi ve günlük kullanım logları silinir; "
-                "tüketilmiş stok miktarları geri yüklenmez."
-            )
-        elif test_sayfasi == "Depo Yönetimi":
-            st.info(
-                "Ürün girişlerinde kullanılan depo ve kategoriler silme listesinden "
-                "çıkarılır; böylece mevcut stok kayıtları sahipsiz kalmaz."
-            )
-        elif test_sayfasi == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
-            st.info(
-                "İhtiyaç sahibi ve dağıtım kayıtları ayrı ayrı seçilir; ilişkili "
-                "kayıtlar otomatik olarak silinmez."
-            )
-        elif test_sayfasi == "Personel & Çalışma Süresi Takibi":
-            st.info(
-                "Personel ve izin kayıtları ayrı ayrı seçilir; ilişkili geçmiş "
-                "kayıtlar otomatik olarak silinmez."
-            )
-
-        for koleksiyon, state_key, _kaydet, kapsam in test_sayfa_koleksiyonlari[test_sayfasi]:
-            kayitlar = st.session_state.get(state_key, [])
-            secilebilir = [
-                (indeks, kayit)
-                for indeks, kayit in enumerate(kayitlar)
-                if test_verisi_kayit_uygun_mu(
-                    kayit, kapsam, st.session_state.get("girisler", [])
-                )
-            ]
-            basliklar = {
-                "stok": "Stok partileri",
-                "faturalar": "Fatura / mal alımı kayıtları",
-                "silinen_urunler": "Silinen ürün kayıtları",
-                "fire": "Fire / zayiat kayıtları",
-                "depolar": "Kullanılmayan depolar",
-                "kategoriler": "Kullanılmayan kategoriler",
-                "demirbaslar": "Demirbaş kayıtları",
-                "yemek_arsivi": "Yemek üretim arşivi",
-                "yemek_kullanim": "Günlük kullanım logları",
-                "ihtiyac_sahipleri": "İhtiyaç sahibi kayıtları",
-                "dagitimlar": "Yemek dağıtım kayıtları",
-                "personeller": "Personel kayıtları",
-                "personel_izinleri": "İzin / çalışma süresi kayıtları",
-            }
-            st.markdown(f"**{basliklar[koleksiyon]}**")
-            if not secilebilir:
-                st.caption("Bu bölümde seçilebilir kayıt bulunmuyor.")
-                continue
-
-            etiketler = {
-                str(indeks): test_verisi_kayit_etiketi_olustur(
-                    koleksiyon, kayit, indeks
-                )
-                for indeks, kayit in secilebilir
-            }
-            liste_surumu = hashlib.sha256(
-                json.dumps(list(etiketler.values()), ensure_ascii=False).encode(
-                    "utf-8"
-                )
-            ).hexdigest()[:10]
-            secim = st.multiselect(
-                "Silinecek kayıtları seçin",
-                options=list(etiketler),
-                format_func=lambda deger, etiketler=etiketler: etiketler[deger],
-                key=f"test_temizle_{test_sayfasi}_{koleksiyon}_{liste_surumu}",
-                label_visibility="collapsed",
-            )
-            test_secimleri[koleksiyon] = secim
-            test_secim_etiketleri.extend(etiketler[deger] for deger in secim)
-
-        toplam_secim = sum(len(secim) for secim in test_secimleri.values())
-        secim_ozeti = ", ".join(sorted(
-            f"{koleksiyon}:{','.join(secim)}"
-            for koleksiyon, secim in test_secimleri.items()
-            if secim
-        ))
-        onay_anahtari = hashlib.sha256(
-            f"{test_sayfasi}|{secim_ozeti}".encode("utf-8")
-        ).hexdigest()[:12]
-        onay_test = st.checkbox(
-            f"Bu sayfadaki seçili {toplam_secim} kaydı kalıcı olarak silmek istiyorum.",
-            key=f"chk_test_temizle_{onay_anahtari}",
-            disabled=toplam_secim == 0,
-        )
-        if test_secim_etiketleri:
-            with st.expander("Silinecek kayıtları son kez gözden geçir"):
-                for etiket in test_secim_etiketleri:
-                    st.write(f"- {etiket}")
-
-        if st.button(
-            "Seçili Test / Deneme Verilerini Sil",
-            type="primary",
-            disabled=not onay_test or toplam_secim == 0,
-            key="test_verilerini_temizle_btn",
-        ):
-            silinen = test_verilerini_temizle(test_sayfasi, test_secimleri)
-            if silinen:
-                st.success(f"{silinen} seçili kayıt temizlendi.")
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.info(
-                    "Seçilen kayıtlar artık bu sayfada bulunmuyor veya kullanımdaki "
-                    "depo/kategori olduğu için silinmedi."
-                )
         st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         kullanici_db = st.session_state.kullanicilar
 
@@ -8696,6 +8542,161 @@ elif menu == "Kullanıcı Ayarları":
                 else:
                     st.caption("Henüz otomatik yedek alınmadı.")
 
+
+        with st.expander("🧩 Kod Yazmadan Sayfa Düzenleyici", expanded=False):
+            admin_sayfa_duzenleyici()
+
+        # Sayfa ve kayıt bazlı test verisi temizleme aracı
+        st.markdown("---")
+        st.markdown("### 🧹 Test Verisi Temizleme Aracı")
+        st.warning(
+            "Önce sayfayı, ardından silinecek kayıtları tek tek seçin. "
+            "Kayıt adında “test” bulunması gerekmez; deneme amacıyla eklenmiş "
+            "farklı isimli kayıtları da seçebilirsiniz."
+        )
+        test_sayfa_koleksiyonlari = test_verisi_sayfa_koleksiyonlari()
+        test_sayfasi = st.selectbox(
+            "Temizlenecek Sayfa",
+            list(test_sayfa_koleksiyonlari),
+            key="test_temizleme_sayfasi",
+        )
+        test_secimleri = {}
+        test_secim_etiketleri = []
+
+        if test_sayfasi == "Depo Yönetimi" and "kategoriler" not in st.session_state:
+            varsayilan_kategoriler = [
+                "SEBZE", "MEYVE", "KURU GIDA", "BAHARAT",
+                "SÜT/SÜT ÜRÜNLERİ", "KASAP / ŞARKÜTERİ", "YAĞ",
+            ]
+            yuklenen_kategoriler = supabase_veri_oku(
+                "kategoriler_listesi", varsayilan_kategoriler, kritik=False
+            )
+            st.session_state.kategoriler = (
+                yuklenen_kategoriler
+                if isinstance(yuklenen_kategoriler, list) and yuklenen_kategoriler
+                else list(varsayilan_kategoriler)
+            )
+
+        if test_sayfasi in (
+            "Güncel Stok Durumu",
+            "Yeni Mal Alımı / Fatura Ekle",
+            "Ürün Sil / Düzenle",
+        ):
+            st.info(
+                "Bu sayfalar aynı fatura/stok partisi kayıtlarını kullanır. "
+                "Buradan sildiğiniz parti bu sayfaların tamamındaki görünümden kaldırılır."
+            )
+        elif test_sayfasi == "Fire / Zayiat Girişi":
+            st.info(
+                "Yalnızca seçtiğiniz fire kayıtları ve logları silinir; stok miktarı "
+                "otomatik olarak geri eklenmez."
+            )
+        elif test_sayfasi == "Günlük Yemek Üretimi & Maliyet Raporu":
+            st.info(
+                "Seçilen üretim arşivi ve günlük kullanım logları silinir; "
+                "tüketilmiş stok miktarları geri yüklenmez."
+            )
+        elif test_sayfasi == "Depo Yönetimi":
+            st.info(
+                "Ürün girişlerinde kullanılan depo ve kategoriler silme listesinden "
+                "çıkarılır; böylece mevcut stok kayıtları sahipsiz kalmaz."
+            )
+        elif test_sayfasi == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
+            st.info(
+                "İhtiyaç sahibi ve dağıtım kayıtları ayrı ayrı seçilir; ilişkili "
+                "kayıtlar otomatik olarak silinmez."
+            )
+        elif test_sayfasi == "Personel & Çalışma Süresi Takibi":
+            st.info(
+                "Personel ve izin kayıtları ayrı ayrı seçilir; ilişkili geçmiş "
+                "kayıtlar otomatik olarak silinmez."
+            )
+
+        for koleksiyon, state_key, _kaydet, kapsam in test_sayfa_koleksiyonlari[test_sayfasi]:
+            kayitlar = st.session_state.get(state_key, [])
+            secilebilir = [
+                (indeks, kayit)
+                for indeks, kayit in enumerate(kayitlar)
+                if test_verisi_kayit_uygun_mu(
+                    kayit, kapsam, st.session_state.get("girisler", [])
+                )
+            ]
+            basliklar = {
+                "stok": "Stok partileri",
+                "faturalar": "Fatura / mal alımı kayıtları",
+                "silinen_urunler": "Silinen ürün kayıtları",
+                "fire": "Fire / zayiat kayıtları",
+                "depolar": "Kullanılmayan depolar",
+                "kategoriler": "Kullanılmayan kategoriler",
+                "demirbaslar": "Demirbaş kayıtları",
+                "yemek_arsivi": "Yemek üretim arşivi",
+                "yemek_kullanim": "Günlük kullanım logları",
+                "ihtiyac_sahipleri": "İhtiyaç sahibi kayıtları",
+                "dagitimlar": "Yemek dağıtım kayıtları",
+                "personeller": "Personel kayıtları",
+                "personel_izinleri": "İzin / çalışma süresi kayıtları",
+            }
+            st.markdown(f"**{basliklar[koleksiyon]}**")
+            if not secilebilir:
+                st.caption("Bu bölümde seçilebilir kayıt bulunmuyor.")
+                continue
+
+            etiketler = {
+                str(indeks): test_verisi_kayit_etiketi_olustur(
+                    koleksiyon, kayit, indeks
+                )
+                for indeks, kayit in secilebilir
+            }
+            liste_surumu = hashlib.sha256(
+                json.dumps(list(etiketler.values()), ensure_ascii=False).encode(
+                    "utf-8"
+                )
+            ).hexdigest()[:10]
+            secim = st.multiselect(
+                "Silinecek kayıtları seçin",
+                options=list(etiketler),
+                format_func=lambda deger, etiketler=etiketler: etiketler[deger],
+                key=f"test_temizle_{test_sayfasi}_{koleksiyon}_{liste_surumu}",
+                label_visibility="collapsed",
+            )
+            test_secimleri[koleksiyon] = secim
+            test_secim_etiketleri.extend(etiketler[deger] for deger in secim)
+
+        toplam_secim = sum(len(secim) for secim in test_secimleri.values())
+        secim_ozeti = ", ".join(sorted(
+            f"{koleksiyon}:{','.join(secim)}"
+            for koleksiyon, secim in test_secimleri.items()
+            if secim
+        ))
+        onay_anahtari = hashlib.sha256(
+            f"{test_sayfasi}|{secim_ozeti}".encode("utf-8")
+        ).hexdigest()[:12]
+        onay_test = st.checkbox(
+            f"Bu sayfadaki seçili {toplam_secim} kaydı kalıcı olarak silmek istiyorum.",
+            key=f"chk_test_temizle_{onay_anahtari}",
+            disabled=toplam_secim == 0,
+        )
+        if test_secim_etiketleri:
+            with st.expander("Silinecek kayıtları son kez gözden geçir"):
+                for etiket in test_secim_etiketleri:
+                    st.write(f"- {etiket}")
+
+        if st.button(
+            "Seçili Test / Deneme Verilerini Sil",
+            type="primary",
+            disabled=not onay_test or toplam_secim == 0,
+            key="test_verilerini_temizle_btn",
+        ):
+            silinen = test_verilerini_temizle(test_sayfasi, test_secimleri)
+            if silinen:
+                st.success(f"{silinen} seçili kayıt temizlendi.")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.info(
+                    "Seçilen kayıtlar artık bu sayfada bulunmuyor veya kullanımdaki "
+                    "depo/kategori olduğu için silinmedi."
+                )
 
 # Uygulama her açıldığında/yenilendiğinde mail kontrolünü çalıştırır
 _rapor_kontrol_zamani = time.time()
