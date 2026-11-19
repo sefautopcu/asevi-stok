@@ -8543,7 +8543,7 @@ elif menu == "Kullanıcı Ayarları":
                     st.caption("Henüz otomatik yedek alınmadı.")
 
 
-        with st.expander("🧩 Kod Yazmadan Sayfa Düzenleyici", expanded=False):
+        with st.expander("🧩 Kod Yazmadan Sayfa Düzenleyici", expanded=True):
             admin_sayfa_duzenleyici()
 
         # Sayfa ve kayıt bazlı test verisi temizleme aracı
