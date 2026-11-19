@@ -3406,7 +3406,28 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     import base64
     from collections import defaultdict
         # Üstteki varsayılan Streamlit boşluğunu kaldır
-    st.markdown("<style>div.block-container { padding-top: 1,5rem !important; } hr { margin-top: 0rem !important; margin-bottom: 0rem !important; }</style>", unsafe_allow_html=True)   
+    st.markdown(
+        """
+        <style>
+            div[data-testid="stMainBlockContainer"] {
+                padding-top: 1.5rem !important;
+            }
+            hr {
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+            }
+            .st-key-dashboard-overview {
+                margin-top: -40px !important;
+            }
+            @media (max-width: 900px) {
+                .st-key-dashboard-overview {
+                    margin-top: -24px !important;
+                }
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # --- ARKA PLAN RESMİ YÖNETİMİ ---
     varsayilan_arka_plan = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1920&auto=format&fit=crop"
@@ -3713,7 +3734,8 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </body>
     </html>
     """
-    components.html(hero_html, height=1200, scrolling=False)
+    with st.container(key="dashboard-overview"):
+        components.html(hero_html, height=1200, scrolling=False)
 
     # --- 3. BÖLÜM: EN ALT (YEMEK SEÇİMİ + CANLI MALİYET ÖZET PANELİ) ---
     st.markdown("---")
