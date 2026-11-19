@@ -1802,14 +1802,16 @@ st.markdown("""
     .stApp h1,
     .stApp h2,
     .stApp h3 {
+        display: inline-block !important;
+        max-width: 100% !important;
         background-image: linear-gradient(
             90deg,
             #ffffff 0%,
-            #ffffff 35%,
-            #10b981 39%,
+            #10b981 35%,
             #14b8a6 68%,
             #38bdf8 100%
         ) !important;
+        background-size: 100% 100% !important;
         background-clip: text !important;
         -webkit-background-clip: text !important;
         color: transparent !important;
@@ -3759,7 +3761,13 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.6); 
         }}
         .hero-badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 15px; }}
-        .hero-title {{ font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 8px; letter-spacing: -0.03em; }}
+        .hero-title {{
+            display: inline-block; max-width: 100%; background-size: 100% 100%;
+            background-image: linear-gradient(90deg, #ffffff 0%, #10b981 35%, #14b8a6 68%, #38bdf8 100%);
+            background-clip: text; -webkit-background-clip: text;
+            color: transparent; -webkit-text-fill-color: transparent;
+            font-size: 2rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.03em;
+        }}
         .hero-subtitle {{ color: #cbd5e1; font-size: 14px; margin-bottom: 30px; }}
 
         .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }}
