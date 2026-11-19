@@ -2486,9 +2486,24 @@ if not st.session_state.oturum_aktif:
     st.markdown(
         f"""
         <style>
+            div[data-testid="stMainBlockContainer"] {{
+                padding-top: 32px !important;
+                padding-bottom: 24px !important;
+            }}
+            .st-key-login-layout {{
+                width: calc(100% - 32px) !important;
+                max-width: 1180px !important;
+                margin: 0 auto !important;
+                padding-top: 42px !important;
+                position: relative;
+                left: 10px;
+            }}
             .st-key-login-card {{
-                min-height: 500px;
-                padding: 28px 30px 24px;
+                min-height: 556px;
+                margin-top: 71px;
+                padding: 4px 32px 26px;
+                box-sizing: border-box;
+                gap: 9px !important;
                 background: {card_bg} !important;
                 border: 1px solid {border_color} !important;
                 border-radius: 24px !important;
@@ -2496,13 +2511,14 @@ if not st.session_state.oturum_aktif:
             }}
             .st-key-login-card h2 {{
                 margin: 0;
+                padding: 0 !important;
                 text-align: center;
                 color: {text_color} !important;
                 font-size: 1.55rem;
                 letter-spacing: -0.04em;
             }}
             .st-key-login-card .login-subtitle {{
-                margin: 2px 0 20px;
+                margin: 2px 0 8px;
                 text-align: center;
                 color: {subtext_color};
                 font-size: 0.86rem;
@@ -2512,6 +2528,9 @@ if not st.session_state.oturum_aktif:
                 background: transparent !important;
                 border: 0 !important;
                 box-shadow: none !important;
+            }}
+            .st-key-login-card [data-testid="stForm"] [data-testid="stMarkdownContainer"] p {{
+                margin-bottom: 0 !important;
             }}
             .login-hero {{
                 padding: 8px 0 22px;
@@ -2528,15 +2547,17 @@ if not st.session_state.oturum_aktif:
                 letter-spacing: 0.04em;
             }}
             .login-hero h1 {{
-                margin: 16px 0 3px;
+                margin: 22px 0 3px;
+                padding: 0 !important;
                 color: #f4f4f5 !important;
-                font-size: clamp(2.5rem, 4.4vw, 3.3rem) !important;
+                font-size: clamp(2.5rem, 3.2vw, 3rem) !important;
                 line-height: 1.12;
                 letter-spacing: -0.06em;
             }}
             .login-hero h1 .login-brand-accent {{ color: #10b981 !important; }}
             .login-hero h3 {{
-                margin: 0 0 12px;
+                margin: -3px 0 12px;
+                padding: 0 !important;
                 color: {subtext_color};
                 font-size: 1.05rem;
                 font-weight: 600;
@@ -2554,7 +2575,7 @@ if not st.session_state.oturum_aktif:
                 margin-top: 10px;
             }}
             .login-feature-card {{
-                min-height: 112px;
+                min-height: 144px;
                 padding: 17px 18px;
                 border: 1px solid {border_color};
                 border-radius: 18px;
@@ -2574,6 +2595,7 @@ if not st.session_state.oturum_aktif:
             }}
             .login-feature-card h4 {{
                 margin: 0 0 4px;
+                padding: 0 !important;
                 color: {text_color};
                 font-size: 0.92rem;
                 font-weight: 700;
@@ -2585,16 +2607,38 @@ if not st.session_state.oturum_aktif:
                 line-height: 1.5;
             }}
             .login-version {{
-                margin-top: 45px;
+                margin-top: 20px;
                 color: {subtext_color};
                 font-size: 0.72rem;
                 text-align: center;
                 opacity: 0.7;
             }}
-            @media (max-width: 760px) {{
+            @media (max-width: 900px) {{
+                div[data-testid="stMainBlockContainer"] {{
+                    padding-top: 24px !important;
+                }}
+                .st-key-login-layout {{
+                    width: calc(100% - 32px) !important;
+                    max-width: none !important;
+                    left: 0;
+                    padding-top: 24px !important;
+                }}
+                .st-key-login-layout [data-testid="stHorizontalBlock"] {{
+                    flex-direction: column;
+                    gap: 24px;
+                }}
+                .st-key-login-layout [data-testid="stColumn"] {{
+                    width: 100% !important;
+                    flex: 1 1 100% !important;
+                    min-width: 100% !important;
+                }}
+                .st-key-login-card {{
+                    min-height: 0;
+                    margin-top: 0;
+                    padding: 22px 18px;
+                }}
                 .login-feature-grid {{ gap: 9px; }}
                 .login-feature-card {{ padding: 13px; }}
-                .st-key-login-card {{ min-height: 0; padding: 22px 18px; }}
             }}
             @media (prefers-reduced-motion: reduce) {{
                 .login-feature-card {{ transition: none; }}
@@ -2604,7 +2648,8 @@ if not st.session_state.oturum_aktif:
         """,
         unsafe_allow_html=True,
     )
-    login_left, login_right = st.columns([1.05, 1], gap="large")
+    login_layout = st.container(key="login-layout")
+    login_left, login_right = login_layout.columns([1, 1], gap="large")
     with login_left:
         st.markdown(
             """
@@ -2659,7 +2704,7 @@ if not st.session_state.oturum_aktif:
     with login_right.container(key="login-card"):
         st.markdown(
             f"""
-                <div style="text-align:center; font-size:30px; margin:10px 0 5px;">🍲</div>
+                <div style="text-align:center; font-size:30px; margin:0;">🍲</div>
                 <h2>Giriş Yap</h2>
                 <p class="login-subtitle">Devam etmek için hesabınızla giriş yapın</p>
             """,
@@ -2822,6 +2867,7 @@ if not st.session_state.oturum_aktif:
                             giris_logla("(master key)", "hatalı kurtarma anahtarı")
                             st.error("Hatalı Kurtarma Anahtarı!")
 
+    with login_right.container(key="login-support"):
         st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
         if st.button(
             "✉️ İletişim / Destek", use_container_width=True, type="secondary"
