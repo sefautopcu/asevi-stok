@@ -1796,6 +1796,28 @@ if st.session_state.tema == "Arctic":
     </style>
     """, unsafe_allow_html=True)
 
+# Sayfa ve bölüm başlıklarında kurumsal renk geçişi.
+st.markdown("""
+<style>
+    .stApp h1,
+    .stApp h2,
+    .stApp h3 {
+        background-image: linear-gradient(
+            90deg,
+            #ffffff 0%,
+            #ffffff 35%,
+            #10b981 39%,
+            #14b8a6 68%,
+            #38bdf8 100%
+        ) !important;
+        background-clip: text !important;
+        -webkit-background-clip: text !important;
+        color: transparent !important;
+        -webkit-text-fill-color: transparent !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 def silme_onay_kutusu(anahtar):
     return st.checkbox(
         "⚠️ Bu işlemin geri alınamayacağını anlıyorum, silmeyi onaylıyorum.", key=anahtar
