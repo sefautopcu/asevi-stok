@@ -182,3 +182,25 @@ def test_builtin_page_headers_read_the_admin_configured_title():
         and call.args[0].func.id == "sayfa_baslik_metnini_al"
         for call in header_calls
     )
+
+
+def test_admin_tools_render_after_the_settings_tabs():
+    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    lines = app_path.read_text(encoding="utf-8").splitlines()
+    editor_line = next(
+        index for index, line in enumerate(lines)
+        if 'with st.expander("🧩 Kod Yazmadan Sayfa Düzenleyici"' in line
+    )
+    cleanup_line = next(
+        index for index, line in enumerate(lines)
+        if "# Sayfa ve kayıt bazlı test verisi temizleme aracı" in line
+    )
+    tab_lines = [
+        index for index, line in enumerate(lines)
+        if line.strip().startswith("with sekme_")
+    ]
+
+    assert tab_lines
+    assert editor_line > max(tab_lines)
+    assert cleanup_line > editor_line
+    assert lines[editor_line - 1].strip() == "if yonetici_modu:"

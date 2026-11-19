@@ -8543,6 +8543,7 @@ elif menu == "Kullanıcı Ayarları":
                     st.caption("Henüz otomatik yedek alınmadı.")
 
 
+    if yonetici_modu:
         with st.expander("🧩 Kod Yazmadan Sayfa Düzenleyici", expanded=True):
             admin_sayfa_duzenleyici()
 
