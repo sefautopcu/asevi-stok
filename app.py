@@ -3678,11 +3678,11 @@ def admin_sayfa_duzenleyici():
             silme_onayi = st.checkbox(
                 "Bu özel sayfanın kalıcı olarak silinmesini onaylıyorum."
             )
-            sil = st.form_submit_button(
-                "Özel sayfayı sil", disabled=not silme_onayi
-            )
+            sil = st.form_submit_button("Özel sayfayı sil")
         if sil:
-            if not SUPABASE_URL or not SUPABASE_KEY:
+            if not silme_onayi:
+                st.error("Silmek için önce onay kutusunu işaretleyin.")
+            elif not SUPABASE_URL or not SUPABASE_KEY:
                 st.error("Sayfa silmek için kalıcı Supabase bağlantısı gereklidir.")
             else:
                 arayuz["ozel_sayfalar"] = [

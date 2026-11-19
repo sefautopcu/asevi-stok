@@ -204,3 +204,33 @@ def test_admin_tools_render_after_the_settings_tabs():
     assert editor_line > max(tab_lines)
     assert cleanup_line > editor_line
     assert lines[editor_line - 1].strip() == "if yonetici_modu:"
+
+
+def test_custom_page_delete_confirmation_is_checked_after_form_submit():
+    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    tree = ast.parse(app_path.read_text(encoding="utf-8"))
+    editor = next(
+        node for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "admin_sayfa_duzenleyici"
+    )
+    delete_button = next(
+        node for node in ast.walk(editor)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "form_submit_button"
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value == "Özel sayfayı sil"
+    )
+    confirms_after_submit = any(
+        isinstance(node, ast.If)
+        and isinstance(node.test, ast.UnaryOp)
+        and isinstance(node.test.op, ast.Not)
+        and isinstance(node.test.operand, ast.Name)
+        and node.test.operand.id == "silme_onayi"
+        for node in ast.walk(editor)
+    )
+
+    assert all(keyword.arg != "disabled" for keyword in delete_button.keywords)
+    assert confirms_after_submit
