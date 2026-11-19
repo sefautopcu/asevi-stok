@@ -3762,7 +3762,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         }}
         .hero-badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 15px; }}
         .hero-title {{
-            display: inline-block; max-width: 100%; background-size: 100% 100%;
+            display: block; width: fit-content; max-width: 100%; background-size: 100% 100%;
             background-image: linear-gradient(90deg, #ffffff 0%, #10b981 35%, #14b8a6 68%, #38bdf8 100%);
             background-clip: text; -webkit-background-clip: text;
             color: transparent; -webkit-text-fill-color: transparent;
