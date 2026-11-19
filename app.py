@@ -955,6 +955,7 @@ KAYIT_ESLEME = {
     "kritik_seviyeler": "kritik_seviyeler",
     "kullanici_yetkileri": "kullanicilar",
     "dashboard_widgets": "dashboard_widgets",
+    "arayuz_sayfa_ayarlari": "arayuz_sayfa_ayarlari",
 }
 # Yedeğe giren veriler (kullanıcı/şifre bilgileri, oturum ve deneme kayıtları yedeğe girmez)
 YEDEK_ANAHTARLARI = [k for k in KAYIT_ESLEME if k != "kullanici_yetkileri"]
@@ -964,7 +965,12 @@ YEDEK_ANAHTARLARI = [k for k in KAYIT_ESLEME if k != "kullanici_yetkileri"]
 # ATLAMALI. Aksi hâlde 60 sn'lik @st.cache_data penceresinde birbirini izleyen
 # "oku → değiştir → yaz" döngüleri eski sayacın üzerine yazar; hem kullanıcı
 # bazlı kilit (MAKS_HATALI_GIRIS) hem IP kilidi fiilen devre dışı kalır.
-ONBELLEKSIZ_ANAHTARLAR = {"giris_denemeleri", "aktif_oturumlar", "kullanici_yetkileri"}
+ONBELLEKSIZ_ANAHTARLAR = {
+    "giris_denemeleri",
+    "aktif_oturumlar",
+    "kullanici_yetkileri",
+    "arayuz_sayfa_ayarlari",
+}
 
 def _supa_basliklar(ekstra=None):
     h = {"apikey": SUPABASE_KEY}
@@ -2289,6 +2295,188 @@ def yemek_uretim_arsivini_kaydet(veri):
     supabase_veri_kaydet("yemek_uretim_arsivi", veri)
 
 
+ARAYUZ_SAYFA_AYARLARI_ID = "arayuz_sayfa_ayarlari"
+SAYFA_GRUPLARI = (
+    "🏠 Genel Bakış",
+    "📦 Depo & Stok Yönetimi",
+    "🍲 Üretim & Mutfak",
+    "👥 Sosyal & İnsan Kaynakları",
+    "📈 Raporlar & Arşiv",
+    "⚙️ Sistem Ayarları",
+)
+VARSAYILAN_BASLIK_RENKLERI = ("#ffffff", "#10b981", "#14b8a6", "#38bdf8")
+SAYFA_VARSAYILAN_BASLIKLARI = {
+    "Kurumsal Dashboard & Özet": "Genel Bakış & Operasyonel Özet",
+    "Genel Bakış": "Genel Bakış & Operasyonel Özet",
+    "Güncel Stok Durumu": "📦 Güncel Depo Envanteri ve Kritik Stoklar",
+    "Yeni Mal Alımı / Fatura Ekle": "📝 Yeni Fatura ve Mal Alımı Girişi",
+    "Depo Yönetimi": "🏢 Depo ve Kategori Yönetimi",
+    "Demirbaş Yönetimi": "🛠️ Aşevi Demirbaş ve Ekipman Yönetimi",
+    "QR Kod ile Hızlı Sarfiyat": "📷 QR Kod ile Hızlı Stok Düşümü",
+    "Ürün Sil / Düzenle": "🗑️ Sistemden Ürün veya Kayıt Silme",
+    "Fire / Zayiat Girişi": "🗑️ Fire / Zayiat Bildirimi",
+    "Toplu Stok Düşümü & Sarfiyat": "🔄 Toplu Stok Düşümü ve Kullanılan Ürünler",
+    "Günlük Yemek Üretimi & Maliyet Raporu": (
+        "🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Aralığı Takibi"
+    ),
+    "Kalori Hesaplama Aracı": "🔥 Reçete ve Kalori Analiz Merkezi",
+    "İhtiyaç Sahibi & Yemek Dağıtım Takibi": (
+        "👥 İhtiyaç Sahibi ve Yemek Dağıtım Takibi"
+    ),
+    "Personel & Çalışma Süresi Takibi": "👥 Personel ve Çalışma Süresi Takibi",
+    "Kullanım Takibi": "📈 Tüm Sistem Kullanım Logları ve Hareket Arşivi",
+    "Kapsamlı Envanter ve Hareket Raporu": (
+        "📋 Kapsamlı Envanter ve Hareket Raporu"
+    ),
+    "Ürün Birim Fiyatları & Ay Analizi": (
+        "💰 Ürün Birim Fiyatları ve Ay Bazlı Maliyet Analizi"
+    ),
+    "Kullanıcı Ayarları": "⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme",
+}
+
+
+def _arayuz_renk_kodu_gecerli_mi(deger):
+    return (
+        isinstance(deger, str)
+        and len(deger) == 7
+        and deger[0] == "#"
+        and all(karakter in "0123456789abcdefABCDEF" for karakter in deger[1:])
+    )
+
+
+def _arayuz_sayisini_sinirla(deger, varsayilan, en_az, en_cok):
+    try:
+        sayi = int(deger)
+    except (TypeError, ValueError):
+        sayi = varsayilan
+    return max(en_az, min(sayi, en_cok))
+
+
+def arayuz_sayfa_ayarlarini_duzenle(veri):
+    """Yalnızca tanımlı görsel ayarları ve metin bloklarını kabul eder."""
+    if not isinstance(veri, dict):
+        veri = {}
+
+    sayfalar = {}
+    ham_sayfalar = veri.get("sayfalar", {})
+    if isinstance(ham_sayfalar, dict):
+        for sayfa_id, ham_ayar in ham_sayfalar.items():
+            if not isinstance(sayfa_id, str) or not isinstance(ham_ayar, dict):
+                continue
+            grup = ham_ayar.get("grup")
+            renkler = ham_ayar.get("baslik_renkleri")
+            if not isinstance(renkler, (list, tuple)) or len(renkler) != 4:
+                renkler = VARSAYILAN_BASLIK_RENKLERI
+            renkler = tuple(
+                renk if _arayuz_renk_kodu_gecerli_mi(renk) else varsayilan
+                for renk, varsayilan in zip(renkler, VARSAYILAN_BASLIK_RENKLERI)
+            )
+            sayfalar[sayfa_id] = {
+                "etiket": str(ham_ayar.get("etiket", ""))[:100],
+                "baslik_metni": str(ham_ayar.get("baslik_metni", ""))[:160],
+                "grup": grup if grup in SAYFA_GRUPLARI else "",
+                "sira": _arayuz_sayisini_sinirla(
+                    ham_ayar.get("sira", 0), 0, 0, 999
+                ),
+                "gorunur": bool(ham_ayar.get("gorunur", True)),
+                "baslik_renkleri": list(renkler),
+                "baslik_puntosu": _arayuz_sayisini_sinirla(
+                    ham_ayar.get("baslik_puntosu", 30), 30, 16, 56
+                ),
+            }
+
+    ozel_sayfalar = []
+    ham_ozel_sayfalar = veri.get("ozel_sayfalar", [])
+    if isinstance(ham_ozel_sayfalar, list):
+        kullanilan_idler = set()
+        for ham_sayfa in ham_ozel_sayfalar[:50]:
+            if not isinstance(ham_sayfa, dict):
+                continue
+            sayfa_id = ham_sayfa.get("id")
+            if (
+                not isinstance(sayfa_id, str)
+                or not sayfa_id.startswith("ozel-")
+                or not sayfa_id[5:].isalnum()
+                or sayfa_id in kullanilan_idler
+            ):
+                continue
+            baslik = str(ham_sayfa.get("baslik", "")).strip()[:100]
+            if not baslik:
+                continue
+            bloklar = []
+            ham_bloklar = ham_sayfa.get("bloklar", [])
+            if isinstance(ham_bloklar, list):
+                for blok in ham_bloklar[:100]:
+                    if not isinstance(blok, dict):
+                        continue
+                    tur = blok.get("tur")
+                    metin = blok.get("metin")
+                    if tur not in ("baslik", "metin") or not isinstance(metin, str):
+                        continue
+                    bloklar.append({"tur": tur, "metin": metin[:4000]})
+            grup = ham_sayfa.get("grup")
+            ozel_sayfalar.append(
+                {
+                    "id": sayfa_id,
+                    "baslik": baslik,
+                    "grup": grup if grup in SAYFA_GRUPLARI[:-1] else SAYFA_GRUPLARI[0],
+                    "sira": _arayuz_sayisini_sinirla(
+                        ham_sayfa.get("sira", 0), 0, 0, 999
+                    ),
+                    "gorunur": bool(ham_sayfa.get("gorunur", True)),
+                    "bloklar": bloklar,
+                }
+            )
+            kullanilan_idler.add(sayfa_id)
+
+    return {"sayfalar": sayfalar, "ozel_sayfalar": ozel_sayfalar}
+
+
+def arayuz_sayfa_ayarlarini_yukle():
+    ham_veri = supabase_veri_oku(ARAYUZ_SAYFA_AYARLARI_ID, {}, kritik=False)
+    return arayuz_sayfa_ayarlarini_duzenle(ham_veri)
+
+
+def arayuz_sayfa_ayarlarini_kaydet(veri):
+    temiz_veri = arayuz_sayfa_ayarlarini_duzenle(veri)
+    supabase_veri_kaydet(ARAYUZ_SAYFA_AYARLARI_ID, temiz_veri)
+    return temiz_veri
+
+
+def arayuz_sayfa_ayari_al(ayarlar, sayfa_id):
+    sayfalar = ayarlar.get("sayfalar", {}) if isinstance(ayarlar, dict) else {}
+    ayar = sayfalar.get(sayfa_id, {}) if isinstance(sayfalar, dict) else {}
+    renkler = ayar.get("baslik_renkleri", VARSAYILAN_BASLIK_RENKLERI)
+    if not isinstance(renkler, (list, tuple)) or len(renkler) != 4:
+        renkler = VARSAYILAN_BASLIK_RENKLERI
+    temiz_renkler = [
+        renk if _arayuz_renk_kodu_gecerli_mi(renk) else varsayilan
+        for renk, varsayilan in zip(renkler, VARSAYILAN_BASLIK_RENKLERI)
+    ]
+    return {
+        "etiket": str(ayar.get("etiket", "")),
+        "baslik_metni": str(ayar.get("baslik_metni", "")),
+        "grup": ayar.get("grup", ""),
+        "sira": _arayuz_sayisini_sinirla(ayar.get("sira", 0), 0, 0, 999),
+        "gorunur": bool(ayar.get("gorunur", True)),
+        "baslik_renkleri": temiz_renkler,
+        "baslik_puntosu": _arayuz_sayisini_sinirla(
+            ayar.get("baslik_puntosu", 30), 30, 16, 56
+        ),
+    }
+
+
+def sayfa_baslik_metnini_al(ayarlar, sayfa_id):
+    sayfalar = ayarlar.get("sayfalar", {}) if isinstance(ayarlar, dict) else {}
+    sayfa = sayfalar.get(sayfa_id, {}) if isinstance(sayfalar, dict) else {}
+    duzenlenmis = str(sayfa.get("baslik_metni", "")).strip()
+    return duzenlenmis or SAYFA_VARSAYILAN_BASLIKLARI.get(sayfa_id, sayfa_id)
+
+
+if "arayuz_sayfa_ayarlari" not in st.session_state:
+    st.session_state.arayuz_sayfa_ayarlari = arayuz_sayfa_ayarlarini_yukle()
+
+
 if "girisler" not in st.session_state:
     st.session_state.girisler = idleri_benzersiz_yap(verileri_yukle(), "FAT-")
 if "kullanim_loglari" not in st.session_state:
@@ -2451,6 +2639,11 @@ gecerli_menuler = [
     "Demirbaş Yönetimi",
     "Kullanıcı Ayarları",
 ]
+gecerli_menuler.extend(
+    sayfa["id"]
+    for sayfa in st.session_state.arayuz_sayfa_ayarlari["ozel_sayfalar"]
+    if sayfa["gorunur"]
+)
 
 if "aktif_menu" not in st.session_state:
     if "menu" in query_params and query_params["menu"] in gecerli_menuler:
@@ -3147,10 +3340,51 @@ if yonetici_modu:
         str(len(st.session_state.kullanicilar)),
     )]
 
+_arayuz_ayar = st.session_state.arayuz_sayfa_ayarlari
+_orijinal_menu_gruplari = menu_gruplari
+menu_gruplari = {grup: [] for grup in menu_gruplari}
+menu_gorunen_etiketler = {}
+menu_varsayilan_gruplari = {}
+menu_varsayilan_siralari = {}
+for _grup, _alt_menuler in _orijinal_menu_gruplari.items():
+    for _indeks, (_menu_anahtari, _badge) in enumerate(_alt_menuler):
+        _ayar = arayuz_sayfa_ayari_al(_arayuz_ayar, _menu_anahtari)
+        menu_varsayilan_gruplari[_menu_anahtari] = _grup
+        menu_varsayilan_siralari[_menu_anahtari] = _indeks
+        if not _ayar["gorunur"]:
+            continue
+        _hedef_grup = _ayar["grup"] or _grup
+        if _hedef_grup not in menu_gruplari:
+            menu_gruplari[_hedef_grup] = []
+        menu_gruplari[_hedef_grup].append(
+            (
+                _menu_anahtari,
+                _badge,
+                _ayar["sira"]
+                if _menu_anahtari in _arayuz_ayar["sayfalar"]
+                else _indeks,
+            )
+        )
+        menu_gorunen_etiketler[_menu_anahtari] = (
+            _ayar["etiket"].strip() or _menu_anahtari
+        )
+
+for _sayfa in _arayuz_ayar["ozel_sayfalar"]:
+    if not _sayfa["gorunur"]:
+        continue
+    menu_gruplari.setdefault(_sayfa["grup"], []).append(
+        (_sayfa["id"], "", _sayfa["sira"])
+    )
+    menu_gorunen_etiketler[_sayfa["id"]] = _sayfa["baslik"]
+
+for _grup in menu_gruplari:
+    menu_gruplari[_grup].sort(key=lambda _oge: _oge[2])
+
 filtrelenmis_gruplar = {}
 for grup_adi, alt_menuler in menu_gruplari.items():
     uygun_menuler = []
-    for m, badge in alt_menuler:
+    for m, badge, _sira in alt_menuler:
+        gorunen_adi = menu_gorunen_etiketler.get(m, m)
         if misafir_modu and m in [
             "Güncel Stok Durumu",
             "Ürün Sil / Düzenle",
@@ -3168,7 +3402,7 @@ for grup_adi, alt_menuler in menu_gruplari.items():
             continue
         if (
             not sidebar_arama
-            or sidebar_arama in m.lower()
+            or sidebar_arama in gorunen_adi.lower()
             or sidebar_arama in grup_adi.lower()
             or otomatik_yonlendirilen_menu == m
         ):
@@ -3185,7 +3419,8 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
             if m == "Yeni Mal Alımı / Fatura Ekle" and salt_okunur_modu:
                 continue
 
-            btn_label = f"{m}  [{badge}]" if badge and badge != "0" else m
+            gorunen_adi = menu_gorunen_etiketler.get(m, m)
+            btn_label = f"{gorunen_adi}  [{badge}]" if badge and badge != "0" else gorunen_adi
             btn_type = (
                 "primary" if st.session_state.aktif_menu == m else "secondary"
             )
@@ -3219,6 +3454,247 @@ if yonetici_modu:  # sunucu bellek bilgisi yalnızca admin'e gösterilir
             st.cache_data.clear()
             st.cache_resource.clear()
             st.rerun()
+
+
+def admin_sayfa_duzenleyici():
+    st.markdown("### 🧩 Kod Yazmadan Sayfa Düzenleyici")
+    st.caption(
+        "Mevcut iş akışlarının kodunu değiştirmeden sayfa menülerini ve başlık görünümünü "
+        "yönetin; özel metin sayfaları oluşturun. Yerleşik sayfalar silinmez, menüden gizlenir. "
+        "Python kodu veya HTML çalıştırılamaz."
+    )
+    arayuz = json.loads(
+        json.dumps(st.session_state.arayuz_sayfa_ayarlari, ensure_ascii=False)
+    )
+    ozel_sayfalar = arayuz["ozel_sayfalar"]
+    yerlesik_sayfalar = [
+        sayfa_id for sayfa_id in gecerli_menuler
+        if not sayfa_id.startswith("ozel-")
+    ]
+    sayfa_secenekleri = yerlesik_sayfalar + [
+        sayfa["id"] for sayfa in ozel_sayfalar
+    ]
+    gorunen_etiketler = dict(menu_gorunen_etiketler)
+    gorunen_etiketler.update(
+        {sayfa["id"]: sayfa["baslik"] for sayfa in ozel_sayfalar}
+    )
+    secici_surumu = hashlib.sha256(
+        "|".join(sayfa_secenekleri).encode("utf-8")
+    ).hexdigest()[:10]
+    secilen_sayfa_id = st.selectbox(
+        "Düzenlenecek sayfa",
+        sayfa_secenekleri,
+        format_func=lambda sayfa_id: gorunen_etiketler.get(sayfa_id, sayfa_id),
+        key=f"arayuz_sayfa_sec_{secici_surumu}",
+    )
+    sayfa_ayari = arayuz_sayfa_ayari_al(arayuz, secilen_sayfa_id)
+    ozel_sayfa = next(
+        (sayfa for sayfa in ozel_sayfalar if sayfa["id"] == secilen_sayfa_id),
+        None,
+    )
+    varsayilan_grup = (
+        sayfa_ayari["grup"]
+        or (
+            ozel_sayfa["grup"]
+            if ozel_sayfa
+            else menu_varsayilan_gruplari.get(secilen_sayfa_id, SAYFA_GRUPLARI[0])
+        )
+    )
+    if varsayilan_grup not in SAYFA_GRUPLARI:
+        varsayilan_grup = SAYFA_GRUPLARI[0]
+    grup_secenekleri = SAYFA_GRUPLARI[:-1] if ozel_sayfa else SAYFA_GRUPLARI
+    sayfa_basligi = (
+        ozel_sayfa["baslik"] if ozel_sayfa
+        else sayfa_baslik_metnini_al(arayuz, secilen_sayfa_id)
+    )
+    varsayilan_sira = sayfa_ayari["sira"]
+    if secilen_sayfa_id not in arayuz["sayfalar"]:
+        varsayilan_sira = menu_varsayilan_siralari.get(secilen_sayfa_id, 0)
+
+    with st.form(f"arayuz_sayfa_duzenle_{secilen_sayfa_id}"):
+        yeni_menu_etiketi = st.text_input(
+            "Menüde görünen sayfa adı",
+            value=sayfa_ayari["etiket"] or gorunen_etiketler.get(
+                secilen_sayfa_id, secilen_sayfa_id
+            ),
+            max_chars=100,
+        )
+        yeni_baslik = sayfa_basligi
+        if ozel_sayfa:
+            yeni_baslik = st.text_input(
+                "Özel sayfanın ana başlığı",
+                value=ozel_sayfa["baslik"],
+                max_chars=100,
+            )
+        else:
+            yeni_baslik = st.text_input(
+                "Sayfa içerik başlığı",
+                value=sayfa_basligi,
+                max_chars=160,
+            )
+        grup_secimi = st.selectbox(
+            "Menü grubu",
+            grup_secenekleri,
+            index=(
+                grup_secenekleri.index(varsayilan_grup)
+                if varsayilan_grup in grup_secenekleri else 0
+            ),
+        )
+        yeni_sira = st.number_input(
+            "Menü sırası (küçük sayı üstte)",
+            min_value=0,
+            max_value=999,
+            value=varsayilan_sira,
+            step=1,
+        )
+        gorunur = st.checkbox(
+            "Menüde göster",
+            value=sayfa_ayari["gorunur"],
+            disabled=secilen_sayfa_id == "Kullanıcı Ayarları",
+        )
+        yeni_punto = st.slider(
+            "Başlık punto boyutu",
+            min_value=16,
+            max_value=56,
+            value=sayfa_ayari["baslik_puntosu"],
+            step=1,
+        )
+        renk_sutunlari = st.columns(4)
+        yeni_renkler = []
+        renk_adlari = ("Başlangıç rengi", "Yeşil", "Turkuaz", "Mavi")
+        for indeks, sutun in enumerate(renk_sutunlari):
+            with sutun:
+                yeni_renkler.append(
+                    st.color_picker(
+                        renk_adlari[indeks],
+                        value=sayfa_ayari["baslik_renkleri"][indeks],
+                    )
+                )
+
+        duzenlenmis_bloklar = None
+        if ozel_sayfa:
+            st.markdown("**Sayfa satırları**")
+            st.caption("Satır eklemek için tablo altındaki + düğmesini, silmek için satır seçimini kullanın.")
+            blok_tablosu = pd.DataFrame(
+                ozel_sayfa["bloklar"], columns=["tur", "metin"]
+            )
+            duzenlenmis_bloklar = st.data_editor(
+                blok_tablosu,
+                num_rows="dynamic",
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "tur": st.column_config.SelectboxColumn(
+                        "Satır türü", options=["baslik", "metin"], required=True
+                    ),
+                    "metin": st.column_config.TextColumn(
+                        "İçerik", width="large", max_chars=4000
+                    ),
+                },
+                key=f"ozel_sayfa_satirlari_{secilen_sayfa_id}",
+            )
+        kaydet = st.form_submit_button("Sayfa ayarlarını kaydet", type="primary")
+
+    if kaydet:
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            st.error("Sayfa ayarlarını kalıcı kaydetmek için Supabase bağlantısı gereklidir.")
+        else:
+            arayuz["sayfalar"][secilen_sayfa_id] = {
+                "etiket": yeni_menu_etiketi.strip(),
+                "baslik_metni": yeni_baslik.strip(),
+                "grup": grup_secimi,
+                "sira": int(yeni_sira),
+                "gorunur": gorunur,
+                "baslik_renkleri": yeni_renkler,
+                "baslik_puntosu": yeni_punto,
+            }
+            if ozel_sayfa:
+                ozel_sayfa["baslik"] = yeni_baslik.strip() or "Yeni Sayfa"
+                ozel_sayfa["grup"] = grup_secimi
+                ozel_sayfa["sira"] = int(yeni_sira)
+                ozel_sayfa["gorunur"] = gorunur
+                ozel_sayfa["bloklar"] = duzenlenmis_bloklar.to_dict("records")
+            st.session_state.arayuz_sayfa_ayarlari = (
+                arayuz_sayfa_ayarlarini_kaydet(arayuz)
+            )
+            st.success("Sayfa ayarları kaydedildi.")
+            st.rerun()
+
+    st.markdown("---")
+    with st.form("ozel_sayfa_olustur"):
+        st.markdown("**Yeni metin sayfası oluştur**")
+        yeni_sayfa_adi = st.text_input(
+            "Sayfa adı", max_chars=100, key="yeni_ozel_sayfa_adi"
+        )
+        yeni_sayfa_grubu = st.selectbox(
+            "Sayfa grubu",
+            SAYFA_GRUPLARI[:-1],
+            key="yeni_ozel_sayfa_grubu",
+        )
+        olustur = st.form_submit_button("Özel sayfa ekle")
+    if olustur:
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            st.error("Özel sayfa oluşturmak için kalıcı Supabase bağlantısı gereklidir.")
+        elif not yeni_sayfa_adi.strip():
+            st.error("Özel sayfa için bir ad girin.")
+        else:
+            yeni_id = f"ozel-{secrets.token_hex(8)}"
+            arayuz["ozel_sayfalar"].append(
+                {
+                    "id": yeni_id,
+                    "baslik": yeni_sayfa_adi.strip(),
+                    "grup": yeni_sayfa_grubu,
+                    "sira": 999,
+                    "gorunur": True,
+                    "bloklar": [],
+                }
+            )
+            arayuz["sayfalar"][yeni_id] = {
+                "etiket": yeni_sayfa_adi.strip(),
+                "grup": yeni_sayfa_grubu,
+                "sira": 999,
+                "gorunur": True,
+                "baslik_renkleri": list(VARSAYILAN_BASLIK_RENKLERI),
+                "baslik_puntosu": 30,
+            }
+            st.session_state.arayuz_sayfa_ayarlari = (
+                arayuz_sayfa_ayarlarini_kaydet(arayuz)
+            )
+            st.success("Özel sayfa oluşturuldu.")
+            st.rerun()
+
+    if arayuz["ozel_sayfalar"]:
+        with st.form("ozel_sayfa_sil"):
+            st.markdown("**Özel sayfa sil**")
+            silinecek_id = st.selectbox(
+                "Silinecek özel sayfa",
+                [sayfa["id"] for sayfa in arayuz["ozel_sayfalar"]],
+                format_func=lambda sayfa_id: next(
+                    sayfa["baslik"]
+                    for sayfa in arayuz["ozel_sayfalar"]
+                    if sayfa["id"] == sayfa_id
+                ),
+            )
+            silme_onayi = st.checkbox(
+                "Bu özel sayfanın kalıcı olarak silinmesini onaylıyorum."
+            )
+            sil = st.form_submit_button(
+                "Özel sayfayı sil", disabled=not silme_onayi
+            )
+        if sil:
+            if not SUPABASE_URL or not SUPABASE_KEY:
+                st.error("Sayfa silmek için kalıcı Supabase bağlantısı gereklidir.")
+            else:
+                arayuz["ozel_sayfalar"] = [
+                    sayfa for sayfa in arayuz["ozel_sayfalar"]
+                    if sayfa["id"] != silinecek_id
+                ]
+                arayuz["sayfalar"].pop(silinecek_id, None)
+                st.session_state.arayuz_sayfa_ayarlari = (
+                    arayuz_sayfa_ayarlarini_kaydet(arayuz)
+                )
+                st.success("Özel sayfa silindi.")
+                st.rerun()
 
 
 def test_verisi_kayit_uygun_mu(kayit, kapsam, girisler):
@@ -3528,8 +4004,56 @@ menu = st.session_state.aktif_menu
 if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     st.stop()
+
+_sayfa_baslik_stili = arayuz_sayfa_ayari_al(
+    st.session_state.arayuz_sayfa_ayarlari, menu
+)
+_sayfa_renkleri = _sayfa_baslik_stili["baslik_renkleri"]
+_sayfa_puntosu = _sayfa_baslik_stili["baslik_puntosu"]
+_sayfa_baslik_metni = sayfa_baslik_metnini_al(
+    st.session_state.arayuz_sayfa_ayarlari, menu
+)
+st.markdown(
+    f"""
+    <style>
+        .stApp h1, .stApp h2, .stApp h3 {{
+            background-image: linear-gradient(
+                90deg,
+                {_sayfa_renkleri[0]} 0%,
+                {_sayfa_renkleri[1]} 35%,
+                {_sayfa_renkleri[2]} 68%,
+                {_sayfa_renkleri[3]} 100%
+            ) !important;
+            font-size: {_sayfa_puntosu}px !important;
+        }}
+        .stApp h2 {{ font-size: {_sayfa_puntosu * 0.8}px !important; }}
+        .stApp h3 {{ font-size: {_sayfa_puntosu * 0.67}px !important; }}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+_ozel_sayfa = next(
+    (
+        sayfa
+        for sayfa in st.session_state.arayuz_sayfa_ayarlari["ozel_sayfalar"]
+        if sayfa["id"] == menu
+    ),
+    None,
+)
+if _ozel_sayfa and not _ozel_sayfa["gorunur"]:
+    st.warning("Bu özel sayfa şu anda menüde kullanıma kapalı.")
+    st.stop()
     
-if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
+if _ozel_sayfa:
+    st.title(_ozel_sayfa["baslik"])
+    for _blok in _ozel_sayfa["bloklar"]:
+        if _blok["tur"] == "baslik":
+            st.markdown(f"### {_blok['metin']}")
+        elif _blok["tur"] == "metin":
+            st.markdown(_blok["metin"])
+
+elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     import base64
     from collections import defaultdict
         # Üstteki varsayılan Streamlit boşluğunu kaldır
@@ -3763,10 +4287,10 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         .hero-badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 15px; }}
         .hero-title {{
             display: block; width: fit-content; max-width: 100%; background-size: 100% 100%;
-            background-image: linear-gradient(90deg, #ffffff 0%, #10b981 35%, #14b8a6 68%, #38bdf8 100%);
+            background-image: linear-gradient(90deg, {_sayfa_renkleri[0]} 0%, {_sayfa_renkleri[1]} 35%, {_sayfa_renkleri[2]} 68%, {_sayfa_renkleri[3]} 100%);
             background-clip: text; -webkit-background-clip: text;
             color: transparent; -webkit-text-fill-color: transparent;
-            font-size: 2rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.03em;
+            font-size: {_sayfa_puntosu}px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.03em;
         }}
         .hero-subtitle {{ color: #cbd5e1; font-size: 14px; margin-bottom: 30px; }}
 
@@ -3797,7 +4321,7 @@ if menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     <body>
         <div class="main-hero-container">
             <div class="hero-badge">📍 AZİZİYE AŞEVİ · KURUMSAL PANEL <span style="margin-left: 8px; padding-left: 8px; border-left: 1px solid rgba(16, 185, 129, 0.5); font-size: 11px; color: #cbd5e1; font-weight: 500;">{anlik_hava_gosterge}</span></div>
-            <div class="hero-title">Genel Bakış & Operasyonel Özet</div>
+            <div class="hero-title">{html_escape(_sayfa_baslik_metni)}</div>
             <div class="hero-subtitle">Canlı Stok ve Maliyet Takip Sistemi</div>
 
             <div class="metrics-grid">
@@ -3976,7 +4500,7 @@ elif menu == "Güncel Stok Durumu":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("📦 Güncel Depo Envanteri ve Kritik Stoklar")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         bugun = datetime.date.today()
 
         # Excel ve Raporlama için Hazırlık
@@ -4239,7 +4763,7 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
             "⚠️ Bu sayfaya yalnızca gözlem amaçlı erişebilirsiniz. Salt okunur (Yönetim/Misafir) modda işlem yapamazsınız."
         )
     else:
-        st.header("📝 Yeni Fatura ve Mal Alımı Girişi")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         st.markdown("Her yeni mal alımı ayrı bir kayıt olarak depoya eklenir; böylece aynı ürün eklendiğinde stoğunuz artar ve geçmiş alım fiyatlarınız/tarihçeniz korunur.")
         
         # Son Eklenen İşlemi Geri Al Butonu ve Bildirimi
@@ -4523,7 +5047,7 @@ elif menu == "Depo Yönetimi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("🏢 Depo ve Kategori Yönetimi")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         st.markdown("Sisteme yeni depolar ve ürün kategorileri ekleyebilir, mevcut kayıtları yönetebilirsiniz.")
 
         # Varsayılan Kategoriler ve Session State Kontrolü
@@ -4723,7 +5247,7 @@ elif menu == "Demirbaş Yönetimi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("🛠️ Aşevi Demirbaş ve Ekipman Yönetimi")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         st.markdown("Aşevinde bulunan demirbaşları, mutfak ekipmanlarını ve malzemeleri buradan ekleyebilir, durumlarını (Sağlam, Bakımda vb.) takip edebilirsiniz.")
 
         # Son Demirbaş İşlemini Geri Al Butonu ve Bildirimi
@@ -4881,7 +5405,7 @@ elif menu == "QR Kod ile Hızlı Sarfiyat":
     if salt_okunur_modu:
         st.warning("⚠️ Salt okunur moddasınız. Stok düşümü yapamazsınız.")
     else:
-        st.header("📷 QR Kod ile Hızlı Stok Düşümü")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         st.markdown("Depodaki ürünlerin üzerindeki QR kodu okutarak, fatura/ürün detayına saniyeler içinde ulaşıp stok düşümü yapabilirsiniz.")
         
         # Gerekli kütüphaneleri içe aktar (Eğer yüklü değilse uyarı ver)
@@ -5050,7 +5574,7 @@ elif menu == "Ürün Sil / Düzenle":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("🗑️ Sistemden Ürün veya Kayıt Silme")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         if salt_okunur_modu:
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda silme işlemi gerçekleştiremezsiniz.")
         elif not yonetici_modu:
@@ -5185,7 +5709,7 @@ elif menu == "Fire / Zayiat Girişi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("🗑️ Fire / Zayiat Bildirimi")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         if salt_okunur_modu:
             st.warning("👀 Salt okunur (Yönetim/Misafir) modundasınız. Bu ekranda fire düşemezsiniz.")
         else:
@@ -5360,7 +5884,7 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("🔄 Toplu Stok Düşümü ve Kullanılan Ürünler")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         st.markdown("Geçmiş yemek tarifleri seçmek zorunda kalmadan, kullanılan malzemeleri ve miktarlarını seçerek doğrudan stoktan düşürebilir ve kullanılan ürünler listesine ekleyebilirsiniz.")
         
         if salt_okunur_modu:
@@ -5507,7 +6031,7 @@ elif menu == "Toplu Stok Düşümü & Sarfiyat":
 elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
-        st.header("🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Aralığı Takibi")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
 
     # Son Yemek Üretim İşlemini Geri Al Butonu ve Bildirimi
     if st.session_state.get("son_yemek_uretim_kaydi"):
@@ -6296,7 +6820,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
 # 6. KALORİ HESAPLAMA ARACI
 elif menu == "Kalori Hesaplama Aracı":
-    st.header("🔥 Reçete ve Kalori Analiz Merkezi")
+    st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
     st.info("ℹ️ **Not:** Kalori değerleri, standart 100 gram/ml başına ortalama besin değerleri baz alınarak **yaklaşık olarak** hesaplanmaktadır. Tıbbi veya resmi diyet programları için kesin sonuç vermez.")
     
     if "kalori_sepeti" not in st.session_state:
@@ -6471,7 +6995,7 @@ elif menu == "İhtiyaç Sahibi & Yemek Dağıtım Takibi":
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("👥 İhtiyaç Sahibi ve Yemek Dağıtım Takibi")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         st.markdown(
             "Aşevimizden yemek yardımı alan kişilerin kayıtlarını oluşturun, aktif/pasif durumlarını yönetin ve yemek dağıtımlarını takip edin."
         )
@@ -6921,7 +7445,7 @@ elif menu in ["Personel ve Çalışma Süresi Takibi", "Personel & Çalışma S�
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("👥 Personel ve Çalışma Süresi Takibi")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         st.markdown(
             "Aşevi personelinin kayıtlarını tutun, izin/rapor günlerini girin ve net çalışma günlerini takip edin."
         )
@@ -7315,7 +7839,7 @@ elif menu == "Kullanım Takibi":
     else:
         col_b_kullanim, col_indir_kullanim = st.columns([2, 2])
         with col_b_kullanim:
-            st.header("📈 Tüm Sistem Kullanım Logları ve Hareket Arşivi")
+            st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
 
         if st.session_state.kullanim_loglari:
             log_tablosu = []
@@ -7355,7 +7879,7 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
     else:
         col_b_env, col_indir_env = st.columns([2, 2])
         with col_b_env:
-            st.header("📋 Kapsamlı Envanter ve Hareket Raporu")
+            st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
 
         kapsamli_liste = []
         for g in st.session_state.girisler:
@@ -7397,7 +7921,7 @@ elif menu == "Kapsamlı Envanter ve Hareket Raporu":
 elif menu == "Ürün Birim Fiyatları & Ay Analizi":
     col_b_fiy, col_indir_fiy = st.columns([2, 2])
     with col_b_fiy:
-        st.header("💰 Ürün Birim Fiyatları ve Ay Bazlı Maliyet Analizi")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
 
     benzersiz_urunler_fiyat = sorted(
         list(set(g.get("urun", "").strip().upper() for g in st.session_state.girisler if g.get("urun")))
@@ -7459,6 +7983,9 @@ elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
+        with st.expander("🧩 Kod Yazmadan Sayfa Düzenleyici", expanded=False):
+            admin_sayfa_duzenleyici()
+
         # Sayfa ve kayıt bazlı test verisi temizleme aracı
         st.markdown("---")
         st.markdown("### 🧹 Test Verisi Temizleme Aracı")
@@ -7610,7 +8137,7 @@ elif menu == "Kullanıcı Ayarları":
                     "Seçilen kayıtlar artık bu sayfada bulunmuyor veya kullanımdaki "
                     "depo/kategori olduğu için silinmedi."
                 )
-        st.header("⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme")
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
         kullanici_db = st.session_state.kullanicilar
 
         st.markdown("### 📧 Manuel Rapor Gönderimi")
