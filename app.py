@@ -58,6 +58,7 @@ from src.cekirdek import (
     sifre_yukseltilmeli_mi,
     yeni_id_uret,
 )
+from src.besin_hesaplama import urun_kalori_hesapla
 
 
 def secret_deger(anahtar, varsayilan=""):
@@ -531,10 +532,7 @@ def yemek_malzeme_kullanim_uyarilari(
 
 
 def _tema_tercihini_yukle(url_temasi, cerez_temasi):
-    """Geçerli URL veya çerez tercihini yükler; bilinmeyen değerler Dark'a döner."""
-    for tercih in (url_temasi, cerez_temasi):
-        if tercih in ("Dark", "Arctic"):
-            return tercih
+    """Pure Dark arayüzü için geriye dönük tema değerlerini yok sayar."""
     return "Dark"
 
 
@@ -585,6 +583,15 @@ st.set_page_config(
 
 APP_VERSION = "v2.0.0"
 LAST_UPDATE = "Kasım 2026"
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def hava_durumu_verisini_getir(url):
+    """Fetch the dashboard forecast at most once every 15 minutes."""
+    cevap = requests.get(url, timeout=10)
+    cevap.raise_for_status()
+    return cevap.json()
+
 
 def simdi_tr_str(format_str="%Y-%m-%d %H:%M"):
     """Gerçek Türkiye saatini (Europe/Istanbul) döndürür."""
@@ -1509,10 +1516,7 @@ def oturumu_kapat():
     st.session_state.aktif_kullanici = "misafir"
     st.session_state.oturum_token = ""
     st.session_state.oturum_bitis = 0
-    secili_tema = st.session_state.get("tema")
     st.query_params.clear()
-    if secili_tema in ("Dark", "Arctic"):
-        st.query_params["tema"] = secili_tema
 
 
 def oturumu_zorla_kapat(mesaj, log_durumu):
@@ -1613,24 +1617,14 @@ if "tema" not in st.session_state:
         cerez_oku("aziziye_tema"),
     )
 
-if st.session_state.tema == "Arctic":
-    border_color = "#C7D3DD"
-    bg_color = "#EDF3F7"
-    card_bg = "#FFFFFF"
-    sidebar_bg = "#E4EDF3"
-    text_color = "#102235"
-    subtext_color = "#52697A"
-    input_bg = "#F8FBFC"
-    popover_bg = "#FFFFFF"
-else:
-    border_color = "rgba(16, 185, 129, 0.35)"
-    bg_color = "#040711"
-    card_bg = "rgba(10, 15, 29, 0.75)"
-    sidebar_bg = "rgba(6, 10, 20, 0.85)"
-    text_color = "#f4f4f5"
-    subtext_color = "#94a3b8"
-    input_bg = "rgba(15, 23, 42, 0.85)"
-    popover_bg = "#0b1329"
+border_color = "rgba(16, 185, 129, 0.35)"
+bg_color = "#040711"
+card_bg = "rgba(10, 15, 29, 0.75)"
+sidebar_bg = "rgba(6, 10, 20, 0.85)"
+text_color = "#f4f4f5"
+subtext_color = "#94a3b8"
+input_bg = "rgba(15, 23, 42, 0.85)"
+popover_bg = "#0b1329"
 
 st.markdown(
     f"""
@@ -1644,10 +1638,10 @@ st.markdown(
             --app-muted: {subtext_color};
             --app-input: {input_bg};
             --app-popover: {popover_bg};
-            --app-accent: {"#5F7F98" if st.session_state.tema == "Arctic" else "#10b981"};
-            --app-accent-contrast: {"#FFFFFF" if st.session_state.tema == "Arctic" else "#04110C"};
-            --app-radial-1: {"rgba(95, 127, 152, 0.12)" if st.session_state.tema == "Arctic" else "rgba(16, 185, 129, 0.12)"};
-            --app-radial-2: {"rgba(95, 127, 152, 0.08)" if st.session_state.tema == "Arctic" else "rgba(99, 102, 241, 0.12)"};
+            --app-accent: #10b981;
+            --app-accent-contrast: #04110C;
+            --app-radial-1: rgba(16, 185, 129, 0.12);
+            --app-radial-2: rgba(99, 102, 241, 0.12);
         }}
     </style>
     """,
@@ -1997,69 +1991,6 @@ def silme_onay_kutusu(anahtar):
     return st.checkbox(
         "⚠️ Bu işlemin geri alınamayacağını anlıyorum, silmeyi onaylıyorum.", key=anahtar
     )
-
-
-KALORI_TABLOSU = {
-    "PİRİNÇ": 130,
-    "BALDO PİRİNÇ": 130,
-    "KURU FASULYE": 340,
-    "NOHUT": 360,
-    "KIRMIZI MERCİMEK": 350,
-    "YEŞİL MERCİMEK": 350,
-    "BULGUR": 340,
-    "PİLAVLIK BULGUR": 340,
-    "MAKARNA": 350,
-    "BURGU MAKARNA": 350,
-    "İNCE UZUN MAKARNA": 350,
-    "ERİŞTE MAKARNA": 360,
-    "ARPA ŞEHRİYE": 350,
-    "UN": 364,
-    "PATATES": 77,
-    "SOĞAN": 40,
-    "DOMATES": 18,
-    "SALATALIK": 15,
-    "BİBER": 40,
-    "ÇARLİ": 40,
-    "KAPYA BİBER": 31,
-    "ISPANAK": 23,
-    "PATLICAN": 25,
-    "KABAK": 17,
-    "HAVUÇ": 41,
-    "LAHANA": 25,
-    "KIRMIZI LAHANA": 31,
-    "MAYDANOZ": 36,
-    "ET": 250,
-    "KUŞBAŞI ET": 250,
-    "TAVUK": 165,
-    "SIRTSIZ GÖĞÜS": 165,
-    "YUMURTA": 155,
-    "YOĞURT": 61,
-    "TAM YAĞLI YOĞURT": 61,
-    "SÜT": 42,
-    "YAĞLI SÜT": 42,
-    "TEREYAĞI": 717,
-    "AYÇİÇEK YAĞI": 884,
-    "TENEKE AYÇİÇEK YAĞI": 884,
-    "SALÇA": 82,
-    "DOMATES SALÇASI": 82,
-    "ŞEKER": 387,
-    "TOZ ŞEKER": 387,
-    "TUZ": 0,
-    "İRMİK": 360,
-    "BEZELYE": 81,
-    "BEZELYE KONSERVESİ": 81,
-}
-
-
-def urun_kalori_hesapla(urun_adi, miktar, birim):
-    urun_upper = urun_adi.upper()
-    birim_kalori = 100
-    for k, v in KALORI_TABLOSU.items():
-        if k in urun_upper:
-            birim_kalori = v
-            break
-    carp = 1000 if birim in ["Kg", "Lt"] else 100
-    return (miktar * carp * birim_kalori) / 100.0
 
 
 # KVKK ve güvenlik gereği koda gömülü PII (Kişisel Veri) bırakılmamıştır.
@@ -2905,7 +2836,7 @@ def bugunun_turkce_tarihi():
 # GİRİŞ KONTROLÜ / AÇILIŞ GİRİŞ EKRANI
 # =========================================================================
 if not st.session_state.oturum_aktif:
-    login_accent = "#5F7F98" if st.session_state.tema == "Arctic" else "#10b981"
+    login_accent = "#10b981"
     st.markdown(
         f"""
         <style>
@@ -3390,30 +3321,6 @@ st.sidebar.markdown(
 """,
     unsafe_allow_html=True,
 )
-
-# =========================================================================
-# TEMA SEÇİCİ (Sidebar)
-# =========================================================================
-_tema_etiketleri = {"Dark": "🌙 Karanlık", "Arctic": "❄️ Arctic Harbor"}
-with st.sidebar.expander(f"🎨 Tema · {_tema_etiketleri[st.session_state.tema]}", expanded=False):
-    _secim = st.radio(
-        "Tema Seçiniz",
-        options=["Dark", "Arctic"],
-        format_func=lambda x: _tema_etiketleri[x],
-        index=["Dark", "Arctic"].index(st.session_state.tema),
-        key="tema_radio_widget",
-        label_visibility="collapsed",
-    )
-    if _secim != st.session_state.tema:
-        st.session_state.tema = _secim
-        st.query_params["tema"] = _secim
-        try:
-            if cerez_kontrol is not None:
-                cerez_yaz(_secim, "aziziye_tema", max_age=365 * 24 * 3600)
-                time.sleep(1.0)  # Çerezin tarayıcıya yazılması için bekle
-        except Exception:
-            pass
-        st.rerun()
 
 sidebar_arama = st.sidebar.text_input(
     "🔍 Hızlı Arama",
@@ -4189,11 +4096,6 @@ _sayfa_baslik_stili = arayuz_sayfa_ayari_al(
     st.session_state.arayuz_sayfa_ayarlari, menu
 )
 _sayfa_renkleri = _sayfa_baslik_stili["baslik_renkleri"]
-if st.session_state.tema == "Arctic":
-    _sayfa_renkleri = tuple(
-        "#102235" if renk.lower() == "#ffffff" else renk
-        for renk in _sayfa_renkleri
-    )
 _sayfa_puntosu = _sayfa_baslik_stili["baslik_puntosu"]
 _sayfa_baslik_metni = sayfa_baslik_metnini_al(
     st.session_state.arayuz_sayfa_ayarlari, menu
@@ -4204,10 +4106,10 @@ st.markdown(
         .stApp h1, .stApp h2, .stApp h3 {{
             background-image: linear-gradient(
                 90deg,
-                {"#102235" if st.session_state.tema == "Arctic" else "#F4F4F5"} 0%,
-                {"#2F6F98" if st.session_state.tema == "Arctic" else "#10B981"} 35%,
-                {"#52697A" if st.session_state.tema == "Arctic" else "#94A3B8"} 68%,
-                {"#5F7F98" if st.session_state.tema == "Arctic" else "#38BDF8"} 100%
+                #F4F4F5 0%,
+                #10B981 35%,
+                #94A3B8 68%,
+                #38BDF8 100%
             ) !important;
             font-size: {_sayfa_puntosu}px !important;
         }}
@@ -4241,19 +4143,14 @@ if _ozel_sayfa:
 elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     import base64
     from collections import defaultdict
-    tema_acik = st.session_state.get("tema", "Dark") == "Arctic"
-    panel_bg = "#FFFFFF" if tema_acik else "rgba(10, 15, 29, 0.75)"
-    panel_strong_bg = "#F1F5F9" if tema_acik else "rgba(6, 10, 20, 0.85)"
-    panel_border = "#C7D3DD" if tema_acik else "rgba(16, 185, 129, 0.35)"
-    panel_text = "#102235" if tema_acik else "#F4F4F5"
-    panel_muted = "#52697A" if tema_acik else "#94A3B8"
-    panel_accent = "#2F6F98" if tema_acik else "#10B981"
-    panel_shadow = "rgba(15, 23, 42, 0.12)" if tema_acik else "rgba(16, 185, 129, 0.25)"
-    hero_overlay = (
-        "linear-gradient(rgba(238, 243, 247, 0.82), rgba(238, 243, 247, 0.96))"
-        if tema_acik
-        else "linear-gradient(rgba(4, 7, 17, 0.35), rgba(4, 7, 17, 0.65))"
-    )
+    panel_bg = "rgba(10, 15, 29, 0.75)"
+    panel_strong_bg = "rgba(6, 10, 20, 0.85)"
+    panel_border = "rgba(16, 185, 129, 0.35)"
+    panel_text = "#F4F4F5"
+    panel_muted = "#94A3B8"
+    panel_accent = "#10B981"
+    panel_shadow = "rgba(16, 185, 129, 0.25)"
+    hero_overlay = "linear-gradient(rgba(4, 7, 17, 0.35), rgba(4, 7, 17, 0.65))"
         # Üstteki varsayılan Streamlit boşluğunu kaldır
     st.markdown(
         """
@@ -4398,8 +4295,7 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     try:
         # URL'ye &current_weather=true eklendi
         hava_url = "https://api.open-meteo.com/v1/forecast?latitude=39.95&longitude=41.10&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&current_weather=true&timezone=Europe/Istanbul&forecast_days=7"
-        hava_cevap = requests.get(hava_url, timeout=10)
-        hava_veri = hava_cevap.json()
+        hava_veri = hava_durumu_verisini_getir(hava_url)
         
         # YENİ EKLENEN: Anlık hava durumunu ayıkla ve emojiye çevir
         if "current_weather" in hava_veri:
@@ -4615,7 +4511,7 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         .cost-card {{ flex: 1; background: {panel_bg}; border: 1px solid {panel_border}; border-radius: 14px; padding: 15px; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }}
         .cost-card:hover {{ transform: translateY(-4px); border-color: {panel_accent}; box-shadow: 0 12px 26px {panel_shadow}; }}
         .cost-num-green {{ font-size: 1.6rem; font-weight: 800; color: {panel_accent}; margin-top: 4px; }}
-        .cost-num-blue {{ font-size: 1.6rem; font-weight: 800; color: {"#2F6F98" if tema_acik else "#38bdf8"}; margin-top: 4px; }}
+        .cost-num-blue {{ font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
         @media (max-width: 560px) {{
             .cost-row {{ flex-direction: column; }}
             .cost-panel {{ padding: 16px; }}
@@ -6723,6 +6619,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                     st.rerun()
 
             toplam_maliyet = 0.0
+            toplam_kalori = 0.0
             excel_sepet_liste = []
 
             silinecek_index = None
@@ -6747,6 +6644,14 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
 
                 item_maliyeti = istenen * ortalama_fiyat
                 toplam_maliyet += item_maliyeti
+                urun_birimi = next(
+                    (str(g.get("birim", "") or "") for g in ilgili_girisler),
+                    "",
+                )
+                item_kalorisi = urun_kalori_hesapla(
+                    urun, istenen, urun_birimi
+                )
+                toplam_kalori += item_kalorisi
 
                 c_item_ad, c_item_mik, c_item_mal, c_item_sil = st.columns([3, 2, 2, 1])
                 with c_item_ad:
@@ -6754,7 +6659,10 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 with c_item_mik:
                     st.markdown(f"Miktar: {istenen}")
                 with c_item_mal:
-                    st.markdown(f"Maliyet: **{item_maliyeti:,.2f} ₺**")
+                    st.markdown(
+                        f"Maliyet: **{item_maliyeti:,.2f} ₺**  \n"
+                        f"Kalori: **{item_kalorisi:,.0f} kcal**"
+                    )
                 with c_item_sil:
                     if not salt_okunur_modu:
                         if st.button("❌", key=f"sil_item_{idx}"):
@@ -6819,6 +6727,10 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             
                             if paket_id and fatura_id:
                                 ilgili_g = [g for g in ilgili_g if g["id"] == fatura_id]
+                            urun_birimi = next(
+                                (str(g.get("birim", "") or "") for g in ilgili_g),
+                                "",
+                            )
 
                             for g in ilgili_g:
                                 if kalan_dusulecek <= 0: break
@@ -6850,7 +6762,15 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                                         kalan_dusulecek -= dusulen
 
                             arsiv_malzemeler.append(
-                                {"urun": urun, "miktar": istenen, "tutar": item_tutar}
+                                {
+                                    "urun": urun,
+                                    "miktar": istenen,
+                                    "birim": urun_birimi,
+                                    "tutar": item_tutar,
+                                    "kalori": urun_kalori_hesapla(
+                                        urun, istenen, urun_birimi
+                                    ),
+                                }
                             )
 
                             log_obj = {
@@ -6875,6 +6795,12 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                             "numune_durumu": numune_durumu,
                             "malzemeler": arsiv_malzemeler,
                             "toplam_maliyet": toplam_maliyet,
+                            "toplam_kalori": toplam_kalori,
+                            "kisi_basi_kalori": (
+                                toplam_kalori / kisi_sayisi
+                                if kisi_sayisi > 0
+                                else 0.0
+                            ),
                             "islem_yapan": st.session_state.aktif_kullanici,
                         }
                         st.session_state.yemek_uretim_arsivi.append(arsiv_obj)
@@ -6906,11 +6832,13 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
                 toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0.0
             )
 
-            m1, m2 = st.columns(2)
+            m1, m2, m3 = st.columns(3)
             with m1:
                 st.metric("Toplam Maliyet", f"{toplam_maliyet:,.2f} ₺")
             with m2:
                 st.metric("Kişi Başı Maliyet", f"{kisi_basi_maliyet:,.2f} ₺")
+            with m3:
+                st.metric("Toplam Kalori", f"{toplam_kalori:,.0f} kcal")
 
             pdf_data = tablo_to_html_pdf_bytes(
                 f"Yemek Maliyet Raporu - {yemek_adi}", excel_sepet_liste
@@ -8321,19 +8249,19 @@ elif menu == "Kullanıcı Ayarları":
         
         # 1. Supabase Durum Hesaplaması
         if not SUPABASE_URL or not SUPABASE_KEY:
-            sb_badge = ("❌", "Supabase Bağlantısı Yok", "Supabase bağlı değil: veriler kalıcı olarak saklanmıyor ve yedek/giriş kaydı çalışmıyor.", f"background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: {'#B42318' if st.session_state.tema == 'Arctic' else '#f87171'};")
+            sb_badge = ("❌", "Supabase Bağlantısı Yok", "Supabase bağlı değil: veriler kalıcı olarak saklanmıyor ve yedek/giriş kaydı çalışmıyor.", "background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171;")
         else:
             _rol = supabase_anahtar_rolu()
             if _rol == "anon":
-                sb_badge = ("⚠️", "Supabase (Anon)", "Supabase'de herkese açık (anon) anahtar kullanılıyor. RLS'yi açın ve `service_role` anahtarına geçin (`supabase_guvenlik.sql`).", f"background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: {'#8A5A00' if st.session_state.tema == 'Arctic' else '#fbbf24'};")
+                sb_badge = ("⚠️", "Supabase (Anon)", "Supabase'de herkese açık (anon) anahtar kullanılıyor. RLS'yi açın ve `service_role` anahtarına geçin (`supabase_guvenlik.sql`).", "background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24;")
             elif _rol == "service_role":
-                sb_badge = ("🔑", "Supabase (service_role)", "Supabase anahtarı: service_role (doğru). RLS'nin açık olduğundan emin olun.", f"background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: {'#176B55' if st.session_state.tema == 'Arctic' else '#10b981'};")
+                sb_badge = ("🔑", "Supabase (service_role)", "Supabase anahtarı: service_role (doğru). RLS'nin açık olduğundan emin olun.", "background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
             else:
-                sb_badge = ("ℹ️", "Supabase (Belirsiz)", "Supabase anahtarının rolü belirlenemedi; panelden RLS'nin açık olduğunu kontrol edin.", f"background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: {'#2563A0' if st.session_state.tema == 'Arctic' else '#60a5fa'};")
+                sb_badge = ("ℹ️", "Supabase (Belirsiz)", "Supabase anahtarının rolü belirlenemedi; panelden RLS'nin açık olduğunu kontrol edin.", "background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: #60a5fa;")
 
         # 2. Çerez Oturumu Hesaplaması
         if cerez_kontrol is not None:
-            ck_badge = ("🍪", "Çerez Oturumu", "Oturum anahtarı çerezde tutuluyor (adres çubuğunda görünmez).", f"background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: {'#176B55' if st.session_state.tema == 'Arctic' else '#10b981'};")
+            ck_badge = ("🍪", "Çerez Oturumu", "Oturum anahtarı çerezde tutuluyor (adres çubuğunda görünmez).", "background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
         else:
             ck_badge = ("🔗", "Adres Çubuğu Oturumu", "Oturum anahtarı hâlâ adres çubuğunda. Çerez desteği için `requirements.txt` dosyasına `streamlit-cookies-controller` ekleyin.", "background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: #60a5fa;")
 
@@ -8910,9 +8838,4 @@ elif menu == "Kullanıcı Ayarları":
                     "depo/kategori olduğu için silinmedi."
                 )
 
-# Uygulama her açıldığında/yenilendiğinde mail kontrolünü çalıştırır
-_rapor_kontrol_zamani = time.time()
-_rapor_son_kontrol = st.session_state.get("_otomatik_rapor_son_kontrol", 0)
-if _rapor_kontrol_zamani - _rapor_son_kontrol >= RAPOR_YENIDEN_DENEME_SANIYE:
-    st.session_state["_otomatik_rapor_son_kontrol"] = _rapor_kontrol_zamani
-    gunluk_rapor_maili_gonder()
+# Raporlar yalnızca dashboard'daki manuel butonlarla gönderilir.

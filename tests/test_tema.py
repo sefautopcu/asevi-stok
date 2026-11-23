@@ -19,9 +19,9 @@ def _app_tema_tercih_fonksiyonunu_yukle():
 def test_tema_preference_persisted_in_url_survives_reload():
     tema_yukle = _app_tema_tercih_fonksiyonunu_yukle()
 
-    assert tema_yukle("Arctic", "") == "Arctic"
+    assert tema_yukle("Arctic", "") == "Dark"
     assert tema_yukle("Dark", "Arctic") == "Dark"
-    assert tema_yukle("", "Arctic") == "Arctic"
+    assert tema_yukle("", "Arctic") == "Dark"
     assert tema_yukle("", "") == "Dark"
     assert tema_yukle("unknown", "unknown") == "Dark"
 
@@ -82,21 +82,17 @@ def test_dashboard_table_css_is_escaped_in_f_string():
     </style>""" in source
 
 
-def test_arctic_and_dark_palette_tokens_are_theme_safe():
+def test_pure_dark_palette_does_not_keep_light_theme_tokens():
     app_path = Path(__file__).resolve().parents[1] / "app.py"
     source = app_path.read_text(encoding="utf-8")
 
-    assert 'border_color = "#C7D3DD"' in source
-    assert 'bg_color = "#EDF3F7"' in source
-    assert 'card_bg = "#FFFFFF"' in source
-    assert 'sidebar_bg = "#E4EDF3"' in source
-    assert 'text_color = "#102235"' in source
-    assert 'subtext_color = "#52697A"' in source
     assert 'bg_color = "#040711"' in source
     assert 'card_bg = "rgba(10, 15, 29, 0.75)"' in source
     assert 'text_color = "#f4f4f5"' in source
     assert 'subtext_color = "#94a3b8"' in source
     assert "--app-accent-contrast:" in source
+    assert "Arctic" not in source
+    assert "tema_radio_widget" not in source
 
 
 def test_theme_css_replaces_fixed_low_contrast_text_tokens():
@@ -173,13 +169,10 @@ def test_user_settings_table_uses_theme_safe_custom_table():
     assert 'st.dataframe(pd.DataFrame(tablo_satirlari)' not in settings_source
 
 
-def test_dual_theme_sidebar_config_has_contrast_tokens():
+def test_dark_sidebar_config_has_contrast_tokens():
     config_path = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"
     source = config_path.read_text(encoding="utf-8")
 
-    assert '[theme.light.sidebar]' in source
-    assert 'backgroundColor = "#e4edf3"' in source
-    assert 'textColor = "#102235"' in source
     assert '[theme.dark.sidebar]' in source
     assert 'backgroundColor = "#060a14"' in source
     assert 'textColor = "#f4f4f5"' in source

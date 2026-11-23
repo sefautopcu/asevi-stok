@@ -1,5 +1,7 @@
 """Food-energy lookup and calculation helpers for the kitchen workflow."""
 
+import re
+
 KALORI_TABLOSU = {
     "PİRİNÇ": 130,
     "BALDO PİRİNÇ": 130,
@@ -56,8 +58,10 @@ def urun_kalori_hesapla(urun_adi, miktar, birim):
     """Return the existing approximate calorie calculation for a product amount."""
     urun_upper = urun_adi.upper()
     birim_kalori = 100
-    for urun, kalori in KALORI_TABLOSU.items():
-        if urun in urun_upper:
+    for urun, kalori in sorted(
+        KALORI_TABLOSU.items(), key=lambda item: len(item[0]), reverse=True
+    ):
+        if re.search(rf"(?<!\w){re.escape(urun)}(?!\w)", urun_upper):
             birim_kalori = kalori
             break
     carp = 1000 if birim in ["Kg", "Lt"] else 100

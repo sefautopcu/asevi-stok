@@ -1,14 +1,22 @@
 import base64
+import requests as requests_lib
+import streamlit as streamlit_lib
+
+
+@streamlit_lib.cache_data(ttl=900, show_spinner=False)
+def _hava_durumu_verisini_getir(url):
+    response = requests_lib.get(url, timeout=10)
+    response.raise_for_status()
+    return response.json()
 
 def dashboard_sayfasi(st, aktif_k_maskeleri, yonetici_modu, components, dashboard_ozet_hesapla, dashboard_operasyonel_istatistikleri, anlik_hava_gosterge, requests, datetime, html_escape):
-    tema_acik = st.session_state.get("tema", "Dark") == "Arctic"
-    panel_bg = "#ffffff" if tema_acik else "rgba(10, 15, 29, 0.75)"
-    panel_strong_bg = "#f1f5f9" if tema_acik else "rgba(6, 10, 20, 0.85)"
-    panel_border = "#cbd5e1" if tema_acik else "rgba(16, 185, 129, 0.35)"
-    panel_text = "#0f172a" if tema_acik else "#f4f4f5"
-    panel_muted = "#475569" if tema_acik else "#94a3b8"
-    panel_accent = "#059669" if tema_acik else "#10b981"
-    panel_shadow = "rgba(15,23,42,.10)" if tema_acik else "rgba(16,185,129,.25)"
+    panel_bg = "rgba(10, 15, 29, 0.75)"
+    panel_strong_bg = "rgba(6, 10, 20, 0.85)"
+    panel_border = "rgba(16, 185, 129, 0.35)"
+    panel_text = "#f4f4f5"
+    panel_muted = "#94a3b8"
+    panel_accent = "#10b981"
+    panel_shadow = "rgba(16,185,129,.25)"
 
     import base64
         # Üstteki varsayılan Streamlit boşluğunu kaldır
@@ -118,8 +126,7 @@ def dashboard_sayfasi(st, aktif_k_maskeleri, yonetici_modu, components, dashboar
     try:
         # URL'ye &current_weather=true eklendi
         hava_url = "https://api.open-meteo.com/v1/forecast?latitude=39.95&longitude=41.10&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&current_weather=true&timezone=Europe/Istanbul&forecast_days=7"
-        hava_cevap = requests.get(hava_url, timeout=10)
-        hava_veri = hava_cevap.json()
+        hava_veri = _hava_durumu_verisini_getir(hava_url)
 
         # YENİ EKLENEN: Anlık hava durumunu ayıkla ve emojiye çevir
         if "current_weather" in hava_veri:
