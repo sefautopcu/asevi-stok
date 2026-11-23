@@ -863,6 +863,60 @@ def _rapor_icerigi_olustur(rapor_baslik, rapor_tarih_str, baslangic_str, bitis_s
     html += "</div></body></html>"
     return html    
 
+# FERNET_KEY tanımlı değilse uygulama BİLEREK durdurulur...
+if fernet_motoru is None:
+    st.error(
+        "🔐 **FERNET_KEY tanımlı değil veya geçersiz.** Güvenlik ve veri kaybını önlemek için "
+        "uygulama durduruldu. Aşağıdaki komutla bir anahtar üretip `secrets` ayarlarınıza "
+        "`FERNET_KEY = \"...\"` olarak ekleyin ve anahtarı güvenli bir yerde YEDEKLEYİN:"
+    )
+    st.code(
+        'python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"',
+        language="bash",
+    )
+    st.stop()
+
+
+# =========================================================================
+# SUPABASE BULUT VERİTABANI BAĞLANTI FONKSİYONLARI
+# =========================================================================
+SUPABASE_URL = secret_deger("SUPABASE_URL", "")
+SUPABASE_KEY = secret_deger("SUPABASE_KEY", "")
+
+# Kayıt kimliği -> session_state anahtarı. Bu veriler için "çakışma denetimi" yapılır:
+# başka bir oturum veriyi değiştirdiyse, eski kopyayla üzerine yazmak engellenir.
+KAYIT_ESLEME = {
+    "girisler": "girisler",
+    "kullanim_loglari": "kullanim_loglari",
+    "silinen_urun_loglari": "silinen_urun_loglari",
+    "ihtiyac_sahipleri": "ihtiyac_sahipleri",
+    "dagitim_loglari": "dagitim_loglari",
+    "personeller": "personeller",
+    "personel_izinleri": "personel_izinleri",
+    "resmi_tatiller": "resmi_tatiller",
+    "yemek_uretim_arsivi": "yemek_uretim_arsivi",
+    "depolar_listesi": "depolar",
+    "demirbaslar_listesi": "demirbaslar",
+    "kritik_seviyeler": "kritik_seviyeler",
+    "kullanici_yetkileri": "kullanicilar",
+    "dashboard_widgets": "dashboard_widgets",
+    "arayuz_sayfa_ayarlari": "arayuz_sayfa_ayarlari",
+}
+# Yedeğe giren veriler (kullanıcı/şifre bilgileri, oturum ve deneme kayıtları yedeğe girmez)
+YEDEK_ANAHTARLARI = [k for k in KAYIT_ESLEME if k != "kullanici_yetkileri"]
+
+# Güvenlik açısından kritik anahtarlar: bu anahtarların okumaları cache'i
+# ATLAMALI. Aksi hâlde 60 sn'lik @st.cache_data penceresinde birbirini izleyen
+# "oku → değiştir → yaz" döngüleri eski sayacın üzerine yazar; hem kullanıcı
+# bazlı kilit (MAKS_HATALI_GIRIS) hem IP kilidi fiilen devre dışı kalır.
+ONBELLEKSIZ_ANAHTARLAR = {
+    "giris_denemeleri",
+    "aktif_oturumlar",
+    "kullanici_yetkileri",
+    "arayuz_sayfa_ayarlari",
+}
+
+
 def _supa_basliklar(ekstra=None):
     h = {"apikey": SUPABASE_KEY}
     if not str(SUPABASE_KEY).startswith("sb_"):  # sb_secret_/sb_publishable_ anahtarları JWT değildir
