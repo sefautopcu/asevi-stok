@@ -8305,7 +8305,7 @@ elif menu == "Kullanıcı Ayarları":
                             k_obj.get("sifre_degistirilmeli") or k_obj.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
                         ) else "Tamam",
                     })
-                st.dataframe(pd.DataFrame(tablo_satirlari), use_container_width=True, hide_index=True)
+                ozel_html_tablo_goster(tablo_satirlari)
 
             st.markdown("---")
             st.subheader("🛠️ Kullanıcı Düzenle, Yetki Ver ve Alan Maskele")

@@ -146,6 +146,17 @@ def test_user_settings_css_does_not_depend_on_local_f_string_variables():
     assert "background-color: var(--app-sidebar) !important;" in settings_source
 
 
+def test_user_settings_table_uses_theme_safe_custom_table():
+    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    source = app_path.read_text(encoding="utf-8")
+
+    settings_pos = source.index('elif menu == "Kullanıcı Ayarları":')
+    settings_source = source[settings_pos:]
+
+    assert 'ozel_html_tablo_goster(tablo_satirlari)' in settings_source
+    assert 'st.dataframe(pd.DataFrame(tablo_satirlari)' not in settings_source
+
+
 def test_dual_theme_sidebar_config_has_contrast_tokens():
     config_path = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"
     source = config_path.read_text(encoding="utf-8")
