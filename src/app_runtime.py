@@ -2643,7 +2643,7 @@ if st.session_state.oturum_aktif:
     if "depolar" not in st.session_state:
         st.session_state.depolar = depoları_yukle()
     if "demirbaslar" not in st.session_state:
-        st.session_state.demirbaslar = idleri_benzersiz_yap(demirbaşları_yukle(), "DEM-")
+        st.session_state.demirbaslar = idleri_benzersiz_yap(demirbasları_yukle(), "DEM-")
     if "kritik_seviyeler" not in st.session_state:
         st.session_state.kritik_seviyeler = kritik_seviyeleri_yukle()
     if "personel_silme_mesaji" not in st.session_state:
@@ -3791,7 +3791,7 @@ def test_verisi_sayfa_koleksiyonlari():
             ),
         ],
         "Demirbaş Yönetimi": [
-            ("demirbaslar", "demirbaslar", "demirbaşları_kaydet", "tum"),
+            ("demirbaslar", "demirbaslar", "demirbasları_kaydet", "tum"),
         ],
         "Günlük Yemek Üretimi & Maliyet Raporu": [
             (
@@ -4134,7 +4134,7 @@ elif menu == "Demirbaş Yönetimi":
     demirbas_yonetim_sayfasi(
         st, misafir_modu, salt_okunur_modu, yonetici_modu,
         tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani,
-        ozel_html_tablo_goster, otomatik_yedek_al, demirbaşları_kaydet,
+        ozel_html_tablo_goster, otomatik_yedek_al, demirbasları_kaydet,
         yeni_id_uret, silme_onay_kutusu,
     )
 elif menu == "QR Kod ile Hızlı Sarfiyat":

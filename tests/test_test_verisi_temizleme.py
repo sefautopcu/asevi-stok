@@ -34,7 +34,7 @@ def _temizleme_fonksiyonlarini_yukle(state):
         "loglari_kaydet": Mock(),
         "depoları_kaydet": Mock(),
         "supabase_veri_kaydet": Mock(),
-        "demirbaşları_kaydet": Mock(),
+        "demirbasları_kaydet": Mock(),
         "yemek_uretim_arsivini_kaydet": Mock(),
         "ihtiyac_sahiplerini_kaydet": Mock(),
         "dagitim_loglarini_kaydet": Mock(),

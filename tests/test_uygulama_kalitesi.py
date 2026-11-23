@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 
 from src.besin_hesaplama import urun_kalori_hesapla
@@ -33,3 +34,17 @@ def test_nonessential_data_loads_are_deferred_until_login():
     auth_loads = 'if st.session_state.oturum_aktif:\n    if "arayuz_sayfa_ayarlari" not in st.session_state:'
     assert auth_loads in runtime
     assert runtime.index(auth_loads) < runtime.index("gecerli_menuler = [")
+
+
+def test_demirbas_loader_and_saver_names_are_consistent():
+    runtime_path = ROOT / "src" / "app_runtime.py"
+    runtime = runtime_path.read_text(encoding="utf-8")
+    tree = ast.parse(runtime)
+    tanimli_fonksiyonlar = {
+        node.name for node in tree.body if isinstance(node, ast.FunctionDef)
+    }
+
+    assert "demirbaşları_yukle" not in runtime
+    assert "demirbaşları_kaydet" not in runtime
+    assert "demirbasları_yukle" in tanimli_fonksiyonlar
+    assert "demirbasları_kaydet" in tanimli_fonksiyonlar
