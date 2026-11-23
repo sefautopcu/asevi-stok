@@ -60,6 +60,14 @@ from cekirdek import (
 )
 
 
+def secret_deger(anahtar, varsayilan=""):
+    """Secrets dosyası yokken veya anahtar tanımlı değilken güvenli varsayılan döndürür."""
+    try:
+        return st.secrets.get(anahtar, varsayilan)
+    except Exception:
+        return varsayilan
+
+
 def fire_partisi_etiketi(giris):
     """Fire seçicisinde stok girişini ürün, fatura ve kalan miktarla ayırt eder."""
     return (
@@ -935,8 +943,8 @@ if fernet_motoru is None:
 # =========================================================================
 # SUPABASE BULUT VERİTABANI BAĞLANTI FONKSİYONLARI
 # =========================================================================
-SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "")
+SUPABASE_URL = secret_deger("SUPABASE_URL", "")
+SUPABASE_KEY = secret_deger("SUPABASE_KEY", "")
 
 # Kayıt kimliği -> session_state anahtarı. Bu veriler için "çakışma denetimi" yapılır:
 # başka bir oturum veriyi değiştirdiyse, eski kopyayla üzerine yazmak engellenir.
@@ -1060,11 +1068,11 @@ _mail_havuzu = ThreadPoolExecutor(max_workers=2, thread_name_prefix="mail")
 def _smtp_gonder_senkron(konu, html_icerik):
     """Sadece SMTP. Streamlit API'sine DOKUNMAZ. (basarili, hata_mesaji)."""
     try:
-        sender = st.secrets["MAIL_SENDER"]
-        password = st.secrets["MAIL_PASSWORD"]
-        recipient = st.secrets["MAIL_RECIPIENT"]
-        server_adresi = st.secrets.get("MAIL_SERVER", "smtp.gmail.com")
-        port = int(st.secrets.get("MAIL_PORT", 587))
+        sender = secret_deger("MAIL_SENDER", "")
+        password = secret_deger("MAIL_PASSWORD", "")
+        recipient = secret_deger("MAIL_RECIPIENT", "")
+        server_adresi = secret_deger("MAIL_SERVER", "smtp.gmail.com")
+        port = int(secret_deger("MAIL_PORT", 587))
 
         msg = MIMEMultipart()
         msg["From"] = formataddr(("Aziziye Aşevi Otomasyon", sender))
@@ -1166,6 +1174,12 @@ def _taban_hashler():
 
 
 def _veritabani_hatasi_dur(mesaj):
+    if not st.session_state.get("oturum_aktif", False):
+        st.warning(
+            f"⚠️ **Veritabanı uyarısı:** {mesaj}. "
+            "Deneme verileriyle giriş ekranı kullanılabilir; yapılandırma düzeltildiğinde sayfayı yenileyin."
+        )
+        return
     st.error(
         f"⚠️ **Veritabanı hatası:** {mesaj}. Verilerinizin bozulmaması için işlem durduruldu. "
         "Bağlantıyı/ayarları kontrol edip sayfayı yenileyin."
@@ -1320,7 +1334,7 @@ def bosta_kalma_suresi_sn():
     """Etkinlik olmadığında oturumun kapanacağı süre. Varsayılan 30 dk;
     secrets içinde BOSTA_KALMA_DAKIKA ile 5-480 dk arasında değiştirilebilir."""
     try:
-        dk = int(str(st.secrets.get("BOSTA_KALMA_DAKIKA", 30)))
+        dk = int(str(secret_deger("BOSTA_KALMA_DAKIKA", 30)))
     except Exception:
         dk = 30
     return max(5, min(dk, 480)) * 60
@@ -1600,14 +1614,14 @@ if "tema" not in st.session_state:
     )
 
 if st.session_state.tema == "Arctic":
-    border_color = "rgba(95, 127, 152, 0.55)"
-    bg_color = "#08131F"
-    card_bg = "rgba(22, 49, 74, 0.78)"
-    sidebar_bg = "rgba(22, 49, 74, 0.88)"
-    text_color = "#E8EFF3"
-    subtext_color = "#A9BDC9"
-    input_bg = "rgba(46, 79, 107, 0.75)"
-    popover_bg = "#16314A"
+    border_color = "#C7D3DD"
+    bg_color = "#EDF3F7"
+    card_bg = "#FFFFFF"
+    sidebar_bg = "#E4EDF3"
+    text_color = "#102235"
+    subtext_color = "#52697A"
+    input_bg = "#F8FBFC"
+    popover_bg = "#FFFFFF"
 else:
     border_color = "rgba(16, 185, 129, 0.35)"
     bg_color = "#040711"
@@ -1618,6 +1632,28 @@ else:
     input_bg = "rgba(15, 23, 42, 0.85)"
     popover_bg = "#0b1329"
 
+st.markdown(
+    f"""
+    <style>
+        :root {{
+            --app-bg: {bg_color};
+            --app-card: {card_bg};
+            --app-sidebar: {sidebar_bg};
+            --app-border: {border_color};
+            --app-text: {text_color};
+            --app-muted: {subtext_color};
+            --app-input: {input_bg};
+            --app-popover: {popover_bg};
+            --app-accent: {"#5F7F98" if st.session_state.tema == "Arctic" else "#10b981"};
+            --app-accent-contrast: {"#FFFFFF" if st.session_state.tema == "Arctic" else "#04110C"};
+            --app-radial-1: {"rgba(95, 127, 152, 0.12)" if st.session_state.tema == "Arctic" else "rgba(16, 185, 129, 0.12)"};
+            --app-radial-2: {"rgba(95, 127, 152, 0.08)" if st.session_state.tema == "Arctic" else "rgba(99, 102, 241, 0.12)"};
+        }}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # STİL ENJEKSİYONU
 st.markdown("""
 <style>
@@ -1625,26 +1661,26 @@ st.markdown("""
 
     /* Ana Arka Plan ve Tipografi */
     .stApp {
-        background-color: #040711 !important;
-        background-image: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
-                          radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.12) 0%, transparent 45%) !important;
+        background-color: var(--app-bg) !important;
+        background-image: radial-gradient(circle at 10% 20%, var(--app-radial-1) 0%, transparent 45%),
+                          radial-gradient(circle at 90% 80%, var(--app-radial-2) 0%, transparent 45%) !important;
         background-attachment: fixed !important;
-        color: #f4f4f5 !important;
+        color: var(--app-text) !important;
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
 
     /* Sol Menü (Sidebar) Cam Görünümü */
     section[data-testid="stSidebar"] {
-        background: rgba(6, 10, 20, 0.85) !important;
+        background: var(--app-sidebar) !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
-        border-right: 1px solid rgba(16, 185, 129, 0.35) !important;
+        border-right: 1px solid var(--app-border) !important;
     }
 
     /* Sol Menü Butonları */
     section[data-testid="stSidebar"] div.stButton > button {
         background: transparent !important;
-        color: #94a3b8 !important;
+        color: var(--app-muted) !important;
         border: 1px solid transparent !important;
         border-radius: 12px !important;
         font-weight: 500 !important;
@@ -1652,10 +1688,10 @@ st.markdown("""
         transition: all 0.25s ease !important;
     }
     section[data-testid="stSidebar"] div.stButton > button:hover {
-        background: rgba(16, 185, 129, 0.12) !important;
-        color: #f4f4f5 !important;
-        border: 1px solid rgba(16, 185, 129, 0.35) !important;
-        box-shadow: 0 0 25px -3px rgba(16, 185, 129, 0.35) !important;
+        background: var(--app-accent) !important;
+        color: var(--app-accent-contrast) !important;
+        border: 1px solid var(--app-border) !important;
+        box-shadow: 0 0 25px -3px var(--app-accent) !important;
         transform: translateX(4px) !important;
     }
 
@@ -1663,39 +1699,39 @@ st.markdown("""
     div[data-testid="stMetric"], 
     div[data-testid="stForm"], 
     div[data-testid="stExpander"] {
-        background: rgba(10, 15, 29, 0.75) !important;
+        background: var(--app-card) !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
-        border: 1px solid rgba(16, 185, 129, 0.35) !important;
+        border: 1px solid var(--app-border) !important;
         border-radius: 18px !important;
-        box-shadow: 0 0 25px -3px rgba(16, 185, 129, 0.35) !important;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10) !important;
     }
 
     /* Girdi Kutuları ve İnputlar (Koyu Mavi Zemin) */
     input, 
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div {
-        background-color: rgba(15, 23, 42, 0.85) !important;
-        color: #f4f4f5 !important;
+        background-color: var(--app-input) !important;
+        color: var(--app-text) !important;
         border-radius: 12px !important;
-        border: 1px solid rgba(16, 185, 129, 0.35) !important;
+        border: 1px solid var(--app-border) !important;
     }
 
     /* Birincil Yeşil Butonlar */
     button[data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-        color: #ffffff !important;
+        background: var(--app-accent) !important;
+        color: var(--app-accent-contrast) !important;
         border: none !important;
         border-radius: 12px !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4) !important;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.18) !important;
     }
 
     /* İkincil Butonlar */
     button[data-testid="baseButton-secondary"], div.stButton > button {
-        background: rgba(10, 15, 29, 0.75) !important;
-        color: #f4f4f5 !important;
-        border: 1px solid rgba(16, 185, 129, 0.35) !important;
+        background: var(--app-card) !important;
+        color: var(--app-text) !important;
+        border: 1px solid var(--app-border) !important;
         border-radius: 12px !important;
     }
 
@@ -1705,102 +1741,29 @@ st.markdown("""
         border-collapse: separate;
         border-spacing: 0;
         margin: 15px 0;
-        background: rgba(10, 15, 29, 0.75);
+        background: var(--app-card);
         backdrop-filter: blur(16px);
         border-radius: 16px;
         overflow: hidden;
-        border: 1px solid rgba(16, 185, 129, 0.35);
-        box-shadow: 0 0 25px -3px rgba(16, 185, 129, 0.35);
+        border: 1px solid var(--app-border);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
     }
     .custom-table th {
-        background: rgba(6, 10, 20, 0.85);
-        color: #f4f4f5 !important;
+        background: var(--app-sidebar);
+        color: var(--app-text) !important;
         padding: 14px 18px;
         font-size: 13px !important;
         font-weight: 700;
-        border-bottom: 1px solid rgba(16, 185, 129, 0.35);
+        border-bottom: 1px solid var(--app-border);
     }
     .custom-table td {
         padding: 14px 18px;
-        color: #94a3b8 !important;
+        color: var(--app-muted) !important;
         font-size: 13px !important;
-        border-bottom: 1px solid rgba(16, 185, 129, 0.35);
+        border-bottom: 1px solid var(--app-border);
     }
 </style>
 """, unsafe_allow_html=True)
-
-if st.session_state.tema == "Arctic":
-    st.markdown("""
-    <style>
-        :root {
-            --primary-color: #5F7F98;
-            --background-color: #08131F;
-            --secondary-background-color: #16314A;
-            --text-color: #E8EFF3;
-        }
-        .stApp, [data-testid="stAppViewContainer"] {
-            background-color: #08131F !important;
-            background-image:
-                radial-gradient(circle at 10% 20%, rgba(46, 79, 107, 0.38) 0%, transparent 45%),
-                radial-gradient(circle at 90% 80%, rgba(95, 127, 152, 0.22) 0%, transparent 45%) !important;
-            color: #E8EFF3 !important;
-        }
-        [data-testid="stHeader"] { background: transparent !important; }
-        section[data-testid="stSidebar"] {
-            background: rgba(22, 49, 74, 0.88) !important;
-            border-right: 1px solid rgba(95, 127, 152, 0.55) !important;
-        }
-        section[data-testid="stSidebar"] *,
-        .stApp, .stApp label, .stApp p, .stApp h1, .stApp h2, .stApp h3 {
-            color: #E8EFF3 !important;
-        }
-        section[data-testid="stSidebar"] div.stButton > button {
-            color: #A9BDC9 !important;
-        }
-        div[data-testid="stMetric"],
-        div[data-testid="stForm"],
-        div[data-testid="stExpander"] {
-            background: rgba(22, 49, 74, 0.78) !important;
-            border-color: rgba(95, 127, 152, 0.55) !important;
-            box-shadow: 0 0 25px -3px rgba(46, 79, 107, 0.45) !important;
-        }
-        input, textarea,
-        div[data-baseweb="input"] > div,
-        div[data-baseweb="select"] > div {
-            background-color: rgba(46, 79, 107, 0.75) !important;
-            color: #E8EFF3 !important;
-            border-color: #5F7F98 !important;
-        }
-        input::placeholder, textarea::placeholder { color: #A9BDC9 !important; }
-        button[data-testid="baseButton-primary"] {
-            background: linear-gradient(135deg, #5F7F98 0%, #2E4F6B 100%) !important;
-            color: #E8EFF3 !important;
-            box-shadow: 0 4px 20px rgba(46, 79, 107, 0.55) !important;
-        }
-        button[data-testid="baseButton-secondary"], div.stButton > button {
-            background: rgba(22, 49, 74, 0.88) !important;
-            color: #E8EFF3 !important;
-            border-color: #5F7F98 !important;
-        }
-        section[data-testid="stSidebar"] div.stButton > button:hover {
-            background: rgba(46, 79, 107, 0.75) !important;
-            border-color: #A9BDC9 !important;
-            box-shadow: 0 0 25px -3px rgba(95, 127, 152, 0.55) !important;
-        }
-        .custom-table {
-            background: rgba(22, 49, 74, 0.78) !important;
-            border-color: rgba(95, 127, 152, 0.55) !important;
-            box-shadow: 0 0 25px -3px rgba(46, 79, 107, 0.45) !important;
-        }
-        .custom-table th { background: #16314A !important; color: #E8EFF3 !important; }
-        .custom-table td { color: #A9BDC9 !important; border-color: #2E4F6B !important; }
-        .metric-card, .cost-card {
-            background: rgba(22, 49, 74, 0.78) !important;
-            border-color: rgba(95, 127, 152, 0.55) !important;
-            box-shadow: 0 0 25px -3px rgba(46, 79, 107, 0.45) !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
 
 # Sayfa ve bölüm başlıklarında kurumsal renk geçişi.
 st.markdown("""
@@ -1812,9 +1775,9 @@ st.markdown("""
         max-width: 100% !important;
         background-image: linear-gradient(
             90deg,
-            #ffffff 0%,
-            #10b981 35%,
-            #14b8a6 68%,
+            var(--app-text) 0%,
+            var(--app-accent) 45%,
+            #14b8a6 72%,
             #38bdf8 100%
         ) !important;
         background-size: 100% 100% !important;
@@ -1981,7 +1944,7 @@ def varsayilan_kullanicilar_olustur():
         ("yonetim", "personel", True, "YONETIM_INITIAL_PASSWORD"),
     ):
         try:
-            sifre = str(st.secrets.get(secret_adi, "") or "")
+            sifre = str(secret_deger(secret_adi, "") or "")
         except Exception:
             sifre = ""
 
@@ -2061,7 +2024,12 @@ def kritik_seviyeleri_kaydet(veri):
 
 
 def kullanıcıları_yukle():
-    data = supabase_veri_oku("kullanici_yetkileri", None)
+    db_durumu = "yok"
+    if SUPABASE_URL and SUPABASE_KEY:
+        db_durumu, ham_data = _supabase_ham_oku("kullanici_yetkileri")
+        data = ham_data if db_durumu == "ok" else None
+    else:
+        data = None
     ilk_kurulum = (not isinstance(data, dict)) or (not data)
     if ilk_kurulum:
         data = varsayilan_kullanicilar_olustur()
@@ -2103,7 +2071,7 @@ def kullanıcıları_yukle():
         if not data["misafir"]["maskeli_alanlar"]:
             data["misafir"]["maskeli_alanlar"] = misafir_maskeler_varsayilan
 
-    if ilk_kurulum:
+    if ilk_kurulum and db_durumu == "yok":
         kullanıcıları_kaydet(data)
     return data
 
@@ -2800,12 +2768,12 @@ if not st.session_state.oturum_aktif:
             .login-hero h1 {{
                 margin: 22px 0 3px;
                 padding: 0 !important;
-                color: #f4f4f5 !important;
+                color: {text_color} !important;
                 font-size: clamp(2.5rem, 3.2vw, 3rem) !important;
                 line-height: 1.12;
                 letter-spacing: -0.06em;
             }}
-            .login-hero h1 .login-brand-accent {{ color: #10b981 !important; }}
+            .login-hero h1 .login-brand-accent {{ color: {login_accent} !important; }}
             .login-hero h3 {{
                 margin: -3px 0 12px;
                 padding: 0 !important;
@@ -2821,24 +2789,23 @@ if not st.session_state.oturum_aktif:
             }}
             .login-feature-grid {{
                 display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns: repeat(3, minmax(0, 1fr));
                 gap: 14px;
                 margin-top: 10px;
             }}
             .login-feature-card {{
-                min-height: 144px;
-                padding: 17px 18px;
+                min-height: 132px;
+                padding: 15px 16px;
                 border: 1px solid {border_color};
                 border-radius: 18px;
                 background: {card_bg};
-                transition: transform 180ms ease, border-color 180ms ease,
-                    box-shadow 180ms ease, background 180ms ease;
+                transition: transform 0.18s ease, border-color 0.18s ease,
+                            box-shadow 0.18s ease, background 0.18s ease;
             }}
             .login-feature-card:hover {{
-                transform: translateY(-5px);
-                border-color: {login_accent};
-                background: {card_bg};
-                box-shadow: 0 12px 30px {border_color};
+                transform: translateY(-4px);
+                border-color: {login_accent} !important;
+                box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
             }}
             .login-feature-icon {{
                 margin-bottom: 8px;
@@ -2888,12 +2855,16 @@ if not st.session_state.oturum_aktif:
                     margin-top: 0;
                     padding: 22px 18px;
                 }}
-                .login-feature-grid {{ gap: 9px; }}
+                .login-feature-grid {{
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 9px;
+                }}
                 .login-feature-card {{ padding: 13px; }}
             }}
-            @media (prefers-reduced-motion: reduce) {{
-                .login-feature-card {{ transition: none; }}
-                .login-feature-card:hover {{ transform: none; }}
+            @media (max-width: 560px) {{
+                .login-feature-grid {{
+                    grid-template-columns: 1fr;
+                }}
             }}
         </style>
         """,
@@ -3081,7 +3052,7 @@ if not st.session_state.oturum_aktif:
         st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
         with st.expander("🔑 Admin Şifre Kurtarma (Master Key)"):
-            tanimli_master = str(st.secrets.get("MASTER_RECOVERY_KEY", "") or "")
+            tanimli_master = str(secret_deger("MASTER_RECOVERY_KEY", "") or "")
             if not tanimli_master:
                 st.info(
                     "Şifre kurtarma devre dışı. Etkinleştirmek için `secrets` ayarlarına "
@@ -4009,6 +3980,11 @@ _sayfa_baslik_stili = arayuz_sayfa_ayari_al(
     st.session_state.arayuz_sayfa_ayarlari, menu
 )
 _sayfa_renkleri = _sayfa_baslik_stili["baslik_renkleri"]
+if st.session_state.tema == "Arctic":
+    _sayfa_renkleri = tuple(
+        "#102235" if renk.lower() == "#ffffff" else renk
+        for renk in _sayfa_renkleri
+    )
 _sayfa_puntosu = _sayfa_baslik_stili["baslik_puntosu"]
 _sayfa_baslik_metni = sayfa_baslik_metnini_al(
     st.session_state.arayuz_sayfa_ayarlari, menu
@@ -4019,10 +3995,10 @@ st.markdown(
         .stApp h1, .stApp h2, .stApp h3 {{
             background-image: linear-gradient(
                 90deg,
-                {_sayfa_renkleri[0]} 0%,
-                {_sayfa_renkleri[1]} 35%,
-                {_sayfa_renkleri[2]} 68%,
-                {_sayfa_renkleri[3]} 100%
+                {"#102235" if st.session_state.tema == "Arctic" else "#F4F4F5"} 0%,
+                {"#2F6F98" if st.session_state.tema == "Arctic" else "#10B981"} 35%,
+                {"#52697A" if st.session_state.tema == "Arctic" else "#94A3B8"} 68%,
+                {"#5F7F98" if st.session_state.tema == "Arctic" else "#38BDF8"} 100%
             ) !important;
             font-size: {_sayfa_puntosu}px !important;
         }}
@@ -4056,6 +4032,19 @@ if _ozel_sayfa:
 elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     import base64
     from collections import defaultdict
+    tema_acik = st.session_state.get("tema", "Dark") == "Arctic"
+    panel_bg = "#FFFFFF" if tema_acik else "rgba(10, 15, 29, 0.75)"
+    panel_strong_bg = "#F1F5F9" if tema_acik else "rgba(6, 10, 20, 0.85)"
+    panel_border = "#C7D3DD" if tema_acik else "rgba(16, 185, 129, 0.35)"
+    panel_text = "#102235" if tema_acik else "#F4F4F5"
+    panel_muted = "#52697A" if tema_acik else "#94A3B8"
+    panel_accent = "#2F6F98" if tema_acik else "#10B981"
+    panel_shadow = "rgba(15, 23, 42, 0.12)" if tema_acik else "rgba(16, 185, 129, 0.25)"
+    hero_overlay = (
+        "linear-gradient(rgba(238, 243, 247, 0.82), rgba(238, 243, 247, 0.96))"
+        if tema_acik
+        else "linear-gradient(rgba(4, 7, 17, 0.35), rgba(4, 7, 17, 0.65))"
+    )
         # Üstteki varsayılan Streamlit boşluğunu kaldır
     st.markdown(
         """
@@ -4172,31 +4161,25 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         yuzde = max(10, int((deger / maks_dag) * 100))
         aylik_barlar_html += f"""
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%;">
-                <div style="font-size: 12px; color: #10b981; font-weight: bold; margin-bottom: 5px;">{deger}</div>
-                <div style="width: 80%; background: linear-gradient(180deg, #10b981 0%, #059669 100%); border-radius: 6px 6px 0 0; height: {yuzde}%;"></div>
-                <div style="font-size: 11px; color: #94a3b8; margin-top: 8px;">{aylar_tr.get(ay[-2:], ay)}</div>
+                <div style="font-size: 12px; color: {panel_accent}; font-weight: bold; margin-bottom: 5px;">{deger}</div>
+                <div style="width: 80%; background: linear-gradient(180deg, {panel_accent} 0%, {panel_border} 100%); border-radius: 6px 6px 0 0; height: {yuzde}%;"></div>
+                <div style="font-size: 11px; color: {panel_muted}; margin-top: 8px;">{aylar_tr.get(ay[-2:], ay)}</div>
             </div>
         """
 
     # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
-        st.markdown("""
+    st.markdown(f"""
     <style>
-        .table-panel { 
-            background: rgba(10, 15, 29, 0.85); 
-            border: 1px solid rgba(16, 185, 129, 0.35); 
-            border-radius: 18px; 
-            padding: 25px; 
-            transition: all 0.3s ease; 
-            display: flex; 
-            flex-direction: column; 
-            min-height: 320px; 
-            height: 100%; 
-        }
-        .table-panel:hover { 
-            transform: translateY(-5px); 
-            border-color: rgba(16, 185, 129, 0.8); 
-            box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); 
-        }
+        .table-panel {{
+            background: {panel_bg};
+            border: 1px solid {panel_border};
+            border-radius: 18px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            min-height: 300px;
+            height: 100%;
+        }}
     </style>
     """, unsafe_allow_html=True)
     # --- TÜM TASARIM TEK BİR HTML İÇİNDE ---
@@ -4255,14 +4238,14 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
                 hava_durumu_html += f"""
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%;">
                         <div style="font-size: 20px; margin-bottom: 5px;">{yagis_ikon}</div>
-                        <div style="font-size: 14px; color: #f4f4f5; font-weight: bold;">{m_temp}°</div>
-                        <div style="font-size: 12px; color: #94a3b8;">{n_temp}°</div>
+                        <div style="font-size: 14px; color: {panel_text}; font-weight: bold;">{m_temp}°</div>
+                        <div style="font-size: 12px; color: {panel_muted};">{n_temp}°</div>
                         <div style="width: 80%; background: linear-gradient(180deg, {renk} 0%, {renk_alt} 100%); border-radius: 6px 6px 0 0; height: 60%; margin-top: 8px;"></div>
-                        <div style="font-size: 11px; color: #94a3b8; margin-top: 8px;">{gun_adi}</div>
+                        <div style="font-size: 11px; color: {panel_muted}; margin-top: 8px;">{gun_adi}</div>
                     </div>
                 """
     except Exception:
-        hava_durumu_html = "<div style='color: #94a3b8; text-align: center; width: 100%;'>Hava durumu verisi alınamadı.</div>"
+        hava_durumu_html = f"<div style='color: {panel_muted}; text-align: center; width: 100%;'>Hava durumu verisi alınamadı.</div>"
         # Maskeler için HTML içeriklerini hazırla
     kat_icerik = '<div style="text-align: center; color: #ef4444; margin-top: 30px;">🔒 Bu alan maskelenmiştir.</div>' if kat_maskeli else f'<div class="progress-row"><div class="progress-title"><span>1. Kuru Gıda</span><span class="text-white">{yuzde_gida}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_gida}%; background: #10b981;"></div></div></div><div class="progress-row"><div class="progress-title"><span>2. Sebze</span><span class="text-white">{yuzde_sebze}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_sebze}%; background: #38bdf8;"></div></div></div><div class="progress-row"><div class="progress-title"><span>3. Yağ</span><span class="text-white">{yuzde_yag}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {yuzde_yag}%; background: #a855f7;"></div></div></div>'
     
@@ -4279,12 +4262,12 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
         body {{ background: transparent; margin: 0; padding: 0; }}
         
         .main-hero-container {{
-            background-image: linear-gradient(rgba(4, 7, 17, 0.35), rgba(4, 7, 17, 0.65)), url('{arka_plan_url}');
+            background-image: {hero_overlay}, url('{arka_plan_url}');
             background-size: cover; background-position: center; 
-            border-radius: 24px; padding: 35px; margin-bottom: 25px; 
-            border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 15px 40px -10px rgba(0,0,0,0.6); 
+            border-radius: 24px; padding: 28px; margin-bottom: 20px;
+            border: 1px solid {panel_border}; box-shadow: 0 15px 40px -10px {panel_shadow};
         }}
-        .hero-badge {{ background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 15px; }}
+        .hero-badge {{ background: {panel_bg}; border: 1px solid {panel_accent}; color: {panel_accent}; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; display: inline-block; margin-bottom: 15px; }}
         .hero-title {{
             display: block; width: fit-content; max-width: 100%; background-size: 100% 100%;
             background-image: linear-gradient(90deg, {_sayfa_renkleri[0]} 0%, {_sayfa_renkleri[1]} 35%, {_sayfa_renkleri[2]} 68%, {_sayfa_renkleri[3]} 100%);
@@ -4292,35 +4275,44 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             color: transparent; -webkit-text-fill-color: transparent;
             font-size: {_sayfa_puntosu}px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.03em;
         }}
-        .hero-subtitle {{ color: #cbd5e1; font-size: 14px; margin-bottom: 30px; }}
+        .hero-subtitle {{ color: {panel_muted}; font-size: 14px; margin-bottom: 24px; }}
 
         .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }}
-        .metric-card {{ background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 18px; box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25); transition: all 0.3s ease; backdrop-filter: blur(10px); }}
-        .metric-card:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
-        .metric-val {{ font-size: 1.4rem; font-weight: 800; color: #f4f4f5; margin: 6px 0; }}
-        .metric-label {{ font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
-        .metric-sub {{ font-size: 11px; color: #10b981; font-weight: 600; }}
+        .metric-card {{ background: {panel_bg}; border: 1px solid {panel_border}; border-radius: 18px; padding: 16px; box-shadow: 0 8px 22px {panel_shadow}; backdrop-filter: blur(10px); transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease; }}
+        .metric-card:hover {{ transform: translateY(-5px); border-color: {panel_accent}; box-shadow: 0 14px 32px {panel_shadow}, 0 0 0 1px {panel_accent}; background: {panel_strong_bg}; }}
+        .metric-val {{ font-size: 1.25rem; font-weight: 800; color: {panel_text}; margin: 6px 0; }}
+        .metric-label {{ font-size: 12px; color: {panel_muted}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
+        .metric-sub {{ font-size: 11px; color: {panel_accent}; font-weight: 600; }}
         .metric-sub-red {{ font-size: 11px; color: #ef4444; font-weight: 600; }}
 
-        .panel-title {{ font-size: 1.1rem; font-weight: 700; color: #f4f4f5; }}
-        .panel-total {{ font-size: 1.6rem; font-weight: 800; color: #fff; line-height: 1.2; margin-top: 5px; }}
-        .panel-sub {{ font-size: 12px; color: #94a3b8; margin-top: 4px; margin-bottom: 20px; }}
+        .panel-title {{ font-size: 1.05rem; font-weight: 700; color: {panel_text}; }}
+        .panel-total {{ font-size: 1.45rem; font-weight: 800; color: {panel_text}; line-height: 1.2; margin-top: 5px; }}
+        .panel-sub {{ font-size: 12px; color: {panel_muted}; margin-top: 4px; margin-bottom: 16px; }}
         
-        .table-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 25px; transition: all 0.3s ease; display: flex; flex-direction: column; min-height: 340px; height: 100%; }}
-        .table-panel:hover {{ transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }}
+        .table-panel {{ background: {panel_bg}; border: 1px solid {panel_border}; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; min-height: 300px; height: 100%; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }}
+        .table-panel:hover {{ transform: translateY(-4px); border-color: {panel_accent}; box-shadow: 0 14px 32px {panel_shadow}; }}
         
         .progress-row {{ margin-bottom: 15px; }}
-        .progress-title {{ display: flex; justify-content: space-between; font-size: 13px; color: #cbd5e1; font-weight: 500; margin-bottom: 8px; }}
-        .text-white {{ color: #fff; font-weight: 700; }}
-        .progress-bar-bg {{ height: 6px; background: rgba(15, 23, 42, 0.9); border-radius: 4px; overflow: hidden; }}
+        .progress-title {{ display: flex; justify-content: space-between; font-size: 13px; color: {panel_text}; font-weight: 500; margin-bottom: 8px; }}
+        .text-white {{ color: {panel_text}; font-weight: 700; }}
+        .progress-bar-bg {{ height: 6px; background: {panel_strong_bg}; border-radius: 4px; overflow: hidden; }}
         .progress-bar-fill {{ height: 100%; border-radius: 4px; }}
         
         .chart-container {{ display: flex; gap: 15px; align-items: flex-end; height: 120px; padding-bottom: 20px; }}
+        .dashboard-panels {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; margin-bottom: 20px; }}
+        @media (max-width: 900px) {{
+            .main-hero-container {{ padding: 18px; }}
+            .metrics-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+            .dashboard-panels {{ grid-template-columns: 1fr; }}
+        }}
+        @media (max-width: 560px) {{
+            .metrics-grid {{ grid-template-columns: 1fr; }}
+        }}
     </style>
     </head>
     <body>
         <div class="main-hero-container">
-            <div class="hero-badge">📍 AZİZİYE AŞEVİ · KURUMSAL PANEL <span style="margin-left: 8px; padding-left: 8px; border-left: 1px solid rgba(16, 185, 129, 0.5); font-size: 11px; color: #cbd5e1; font-weight: 500;">{anlik_hava_gosterge}</span></div>
+            <div class="hero-badge">📍 AZİZİYE AŞEVİ · KURUMSAL PANEL <span style="margin-left: 8px; padding-left: 8px; border-left: 1px solid {panel_border}; font-size: 11px; color: {panel_muted}; font-weight: 500;">{anlik_hava_gosterge}</span></div>
             <div class="hero-title">{html_escape(_sayfa_baslik_metni)}</div>
             <div class="hero-subtitle">Canlı Stok ve Maliyet Takip Sistemi</div>
 
@@ -4338,7 +4330,7 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
             </div>
 
             <!-- 3'LÜ TABLO -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div class="dashboard-panels">
                 
                 <!-- Kategori Doluluk -->
                 <div class="table-panel">
@@ -4406,48 +4398,58 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
 
     st.markdown(f"""
     <style>
-        .cost-panel {{ background: rgba(10, 15, 29, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px; padding: 25px; box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35); margin-bottom: 25px; }}
-        .cost-header {{ font-size: 1.2rem; font-weight: 700; color: #f4f4f5; }}
-        .cost-meta {{ font-size: 12px; color: #94a3b8; margin: 4px 0 18px 0; text-transform: uppercase; }}
-        .inner-box {{ background: rgba(6, 10, 20, 0.7); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 16px; padding: 20px; }}
+        .cost-panel {{ background: {panel_bg}; border: 1px solid {panel_border}; border-radius: 20px; padding: 25px; box-shadow: 0 8px 28px {panel_shadow}; margin-bottom: 25px; }}
+        .cost-header {{ font-size: 1.2rem; font-weight: 700; color: {panel_text}; }}
+        .cost-meta {{ font-size: 12px; color: {panel_muted}; margin: 4px 0 18px 0; text-transform: uppercase; }}
+        .inner-box {{ background: {panel_strong_bg}; border: 1px solid {panel_border}; border-radius: 16px; padding: 20px; }}
         .cost-row {{ display: flex; gap: 16px; margin-bottom: 16px; }}
-        .cost-card {{ flex: 1; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 15px; }}
-        .cost-num-green {{ font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 4px; }}
-        .cost-num-blue {{ font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }}
+        .cost-card {{ flex: 1; background: {panel_bg}; border: 1px solid {panel_border}; border-radius: 14px; padding: 15px; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }}
+        .cost-card:hover {{ transform: translateY(-4px); border-color: {panel_accent}; box-shadow: 0 12px 26px {panel_shadow}; }}
+        .cost-num-green {{ font-size: 1.6rem; font-weight: 800; color: {panel_accent}; margin-top: 4px; }}
+        .cost-num-blue {{ font-size: 1.6rem; font-weight: 800; color: {"#2F6F98" if tema_acik else "#38bdf8"}; margin-top: 4px; }}
+        @media (max-width: 560px) {{
+            .cost-row {{ flex-direction: column; }}
+            .cost-panel {{ padding: 16px; }}
+        }}
     </style>
     <div class="cost-panel">
         <div class="cost-header">📊 Canlı Maliyet Özet Paneli</div>
         <div class="cost-meta">Tarih: {html_escape(str(secilen_veri.get('tarih', '-')))} | {secilen_veri.get('kalem_sayisi', 0)} Kalem Malzeme | Simülasyon: {kisi_sayisi} Kişi</div>
         <div class="inner-box">
-            <div style="font-size: 1.25rem; font-weight: 800; color: #ffffff; margin-bottom: 16px;">{html_escape(str(secilen_veri.get('yemek_adi', '-')))}</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: {panel_text}; margin-bottom: 16px;">{html_escape(str(secilen_veri.get('yemek_adi', '-')))}</div>
             <div class="cost-row">
-                <div class="cost-card"><div style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Menü Toplam Maliyeti</div><div class="cost-num-green">{toplam_tl:,.2f} ₺</div></div>
-                <div class="cost-card"><div style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div><div class="cost-num-blue">{secilen_veri.get('kisi_basi', 0.0):,.2f} ₺</div></div>
+                <div class="cost-card"><div style="font-size: 11px; color: {panel_muted}; font-weight: 600; text-transform: uppercase;">Menü Toplam Maliyeti</div><div class="cost-num-green">{toplam_tl:,.2f} ₺</div></div>
+                <div class="cost-card"><div style="font-size: 11px; color: {panel_muted}; font-weight: 600; text-transform: uppercase;">Kişi Başı Maliyet ({kisi_sayisi} Kişi)</div><div class="cost-num-blue">{secilen_veri.get('kisi_basi', 0.0):,.2f} ₺</div></div>
             </div>
-            <div style="background: rgba(16, 185, 129, 0.12); border-left: 4px solid #10b981; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #cbd5e1;">🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.</div>
+            <div style="background: {panel_strong_bg}; border-left: 4px solid {panel_accent}; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: {panel_text};">🔄 <b>Son İşlem Geri Alma Desteği:</b> Hatalı girilen günlük üretim kaydı tek tıkla depoya iade edilebilir.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 
-    # --- 4. BÖLÜM: SİSTEM ÖZELLİKLERİ (HOVER EFEKTLİ) ---
+    # --- 4. BÖLÜM: SİSTEM ÖZELLİKLERİ ---
     st.markdown("### 🌟 Sistem Özellikleri ve Modüller")
     st.markdown("<br>", unsafe_allow_html=True)
     
-    ozellikler_html = """
+    ozellikler_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }
-        body { background: transparent; margin: 0; padding: 0; }
-        .feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
-        .metric-card { background: rgba(10, 15, 29, 0.75); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 18px; padding: 24px; height: 160px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s ease; backdrop-filter: blur(10px); }
-        .metric-card:hover { transform: translateY(-5px); border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 35px -2px rgba(16, 185, 129, 0.45); }
-        .feature-icon { font-size: 32px; }
-        .feature-title { font-size: 16px; font-weight: 700; color: #f4f4f5; margin-bottom: 4px; }
-        .feature-desc { font-size: 12px; color: #94a3b8; line-height: 1.4; }
+        * {{ box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }}
+        body {{ background: transparent; margin: 0; padding: 0; }}
+        .feature-grid {{ max-width: 920px; margin: 0 auto 15px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }}
+        .metric-card {{ background: {panel_bg}; border: 1px solid {panel_border}; border-radius: 16px; padding: 14px 16px; min-height: 112px; display: flex; flex-direction: column; justify-content: space-between; backdrop-filter: blur(10px); box-shadow: 0 8px 22px {panel_shadow}; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease; }}
+        .metric-card:hover {{ transform: translateY(-6px); border-color: {panel_accent}; box-shadow: 0 16px 34px {panel_shadow}; background: {panel_strong_bg}; }}
+        .feature-icon {{ font-size: 24px; line-height: 1; transition: transform 180ms ease; }}
+        .metric-card:hover .feature-icon {{ transform: scale(1.08); }}
+        .feature-title {{ font-size: 14px; font-weight: 700; color: {panel_text}; margin-bottom: 3px; }}
+        .feature-desc {{ font-size: 11px; color: {panel_muted}; line-height: 1.35; }}
+        @media (max-width: 560px) {{
+            .feature-grid {{ grid-template-columns: 1fr; }}
+            .metric-card {{ min-height: 104px; }}
+        }}
     </style>
     </head>
     <body>
@@ -4472,7 +4474,7 @@ elif menu == "Kurumsal Dashboard & Özet" or menu == "Genel Bakış":
     </body>
     </html>
     """
-    components.html(ozellikler_html, height=190, scrolling=False)
+    components.html(ozellikler_html, height=255, scrolling=False)
 
 
     # --- 5. BÖLÜM: EN ALTA TAŞINAN ARKA PLAN DEĞİŞTİRME ---
@@ -4968,9 +4970,9 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
         # --- FATURA ARŞİVİ TABLOSU ---
         st.markdown("---")
         st.subheader("📋 Kayıtlı Fatura ve Mal Alım Arşivi")
-        
+
+    fatura_tablo_verisi = []
     if st.session_state.girisler:
-        fatura_tablo_verisi = []
         for g in reversed(st.session_state.girisler):
             try:
                 # 1. Paket bilgisini güvenli hesapla
@@ -7990,7 +7992,7 @@ elif menu == "Kullanıcı Ayarları":
         st.caption("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
         
         # CSS ile buton tasarımı (Dar, koyu arka plan, yeşil kenarlık ve hover)
-        st.markdown("""
+        st.markdown(f"""
         <style>
             /* Buton kapsayıcısını sola yasla ve butonlar arasına boşluk koy */
             div.stButton {
@@ -8000,11 +8002,11 @@ elif menu == "Kullanıcı Ayarları":
             }
             /* Butonun Kendi Tasarımı */
             div.stButton > button {
-                background-color: #0b1329 !important; /* Koyu Lacivert Arka Plan */
-                border: 1px solid #10b981 !important; /* Yeşil Kenarlık */
+                background-color: {card_bg} !important;
+                border: 1px solid {border_color} !important;
                 border-radius: 20px !important; /* Yuvarlak Köşeler */
                 padding: 8px 20px !important;
-                color: #10b981 !important; /* Yeşil Yazı */
+                color: {"#2F6F98" if st.session_state.tema == "Arctic" else "#10B981"} !important;
                 font-weight: 600 !important;
                 font-size: 14px !important;
                 transition: all 0.3s ease !important;
@@ -8012,10 +8014,10 @@ elif menu == "Kullanıcı Ayarları":
             }
             /* Hover Efekti */
             div.stButton > button:hover {
-                background-color: rgba(16, 185, 129, 0.15) !important; /* Hover'da Hafif Yeşil Arka Plan */
-                color: #ffffff !important; /* Hover'da Beyaz Yazı */
-                box-shadow: 0 0 15px rgba(16, 185, 129, 0.5) !important; /* Işıldama */
-                border-color: #34d399 !important; /* Daha Parlak Yeşil Kenarlık */
+                background-color: {sidebar_bg} !important;
+                color: {text_color} !important;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12) !important;
+                border-color: {"#2F6F98" if st.session_state.tema == "Arctic" else "#10B981"} !important;
                 transform: translateY(-2px) !important; /* Hafif Yukarı Kayma */
             }
         </style>
@@ -8110,24 +8112,24 @@ elif menu == "Kullanıcı Ayarları":
         
         # 1. Supabase Durum Hesaplaması
         if not SUPABASE_URL or not SUPABASE_KEY:
-            sb_badge = ("❌", "Supabase Bağlantısı Yok", "Supabase bağlı değil: veriler kalıcı olarak saklanmıyor ve yedek/giriş kaydı çalışmıyor.", "background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171;")
+            sb_badge = ("❌", "Supabase Bağlantısı Yok", "Supabase bağlı değil: veriler kalıcı olarak saklanmıyor ve yedek/giriş kaydı çalışmıyor.", f"background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: {'#B42318' if st.session_state.tema == 'Arctic' else '#f87171'};")
         else:
             _rol = supabase_anahtar_rolu()
             if _rol == "anon":
-                sb_badge = ("⚠️", "Supabase (Anon)", "Supabase'de herkese açık (anon) anahtar kullanılıyor. RLS'yi açın ve `service_role` anahtarına geçin (`supabase_guvenlik.sql`).", "background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24;")
+                sb_badge = ("⚠️", "Supabase (Anon)", "Supabase'de herkese açık (anon) anahtar kullanılıyor. RLS'yi açın ve `service_role` anahtarına geçin (`supabase_guvenlik.sql`).", f"background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: {'#8A5A00' if st.session_state.tema == 'Arctic' else '#fbbf24'};")
             elif _rol == "service_role":
-                sb_badge = ("🔑", "Supabase (service_role)", "Supabase anahtarı: service_role (doğru). RLS'nin açık olduğundan emin olun.", "background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
+                sb_badge = ("🔑", "Supabase (service_role)", "Supabase anahtarı: service_role (doğru). RLS'nin açık olduğundan emin olun.", f"background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: {'#176B55' if st.session_state.tema == 'Arctic' else '#10b981'};")
             else:
-                sb_badge = ("ℹ️", "Supabase (Belirsiz)", "Supabase anahtarının rolü belirlenemedi; panelden RLS'nin açık olduğunu kontrol edin.", "background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: #60a5fa;")
+                sb_badge = ("ℹ️", "Supabase (Belirsiz)", "Supabase anahtarının rolü belirlenemedi; panelden RLS'nin açık olduğunu kontrol edin.", f"background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: {'#2563A0' if st.session_state.tema == 'Arctic' else '#60a5fa'};")
 
         # 2. Çerez Oturumu Hesaplaması
         if cerez_kontrol is not None:
-            ck_badge = ("🍪", "Çerez Oturumu", "Oturum anahtarı çerezde tutuluyor (adres çubuğunda görünmez).", "background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
+            ck_badge = ("🍪", "Çerez Oturumu", "Oturum anahtarı çerezde tutuluyor (adres çubuğunda görünmez).", f"background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: {'#176B55' if st.session_state.tema == 'Arctic' else '#10b981'};")
         else:
             ck_badge = ("🔗", "Adres Çubuğu Oturumu", "Oturum anahtarı hâlâ adres çubuğunda. Çerez desteği için `requirements.txt` dosyasına `streamlit-cookies-controller` ekleyin.", "background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: #60a5fa;")
 
         # 3. Master Recovery Key Hesaplaması
-        if str(st.secrets.get("MASTER_RECOVERY_KEY", "") or ""):
+        if str(secret_deger("MASTER_RECOVERY_KEY", "") or ""):
             mr_badge = ("🛡️", "Kurtarma Anahtarı", "MASTER_RECOVERY_KEY tanımlı.", "background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
         else:
             mr_badge = ("⚠️", "Kurtarma Anahtarı Yok", "MASTER_RECOVERY_KEY tanımlı değil: şifre kurtarma devre dışı. Ekledim diyorsanız secrets'a TANI_MODU = \"1\" ekleyip adrese ?tani=1 yazarak kontrol edin.", "background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24;")
