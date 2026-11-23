@@ -648,11 +648,12 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
             "tatli_meyve_yogurt": meal_data.get("menu_tatli_meyve_yogurt", ""),
         }
 
-        # Aynı menü bölümlerine sahip geçmiş yemekleri bul
+        # Aynı menü bölümlerine sahip geçmiş yemekleri bul (diğer tarihlerdeki)
         similar_meals = []
         for past_meal in all_meals:
+            # ANA DÜZELTME: Sadece aynı tarihli kayıtları atla, diğerlerini kıyasla
             if past_meal.get("tarih") == current_date:
-                continue  # Aynı gün değilse
+                continue
 
             past_menus = {
                 "ana_yemek": past_meal.get("menu_ana_yemek", ""),
@@ -686,9 +687,10 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         diff_percent = abs(curr_qty - past_qty) / past_qty * 100
 
                         if diff_percent > tolerance_percent:
+                            birim = meal_data.get("malzemeler", [{}])[0].get("birim", "Kg") if meal_data.get("malzemeler") else "?"
                             warning_msg = (
                                 f"⚠️ **{ingred}**: Kullanılan miktar %{diff_percent:.0f} farklı "
-                                f"({curr_qty:.2f} {meal_data.get('malzemeler', [{}])[0].get('birim', 'Kg') if meal_data.get('malzemeler') else '?'} vs geçmişte {past_qty:.2f})"
+                                f"({curr_qty:.2f} {birim} vs geçmişte {past_qty:.2f})"
                             )
                             if warning_msg not in [w for w in warnings]:
                                 warnings.append(warning_msg)
@@ -719,10 +721,165 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         if len(uyarilar) > 5:
                             st.caption(f"... ve {len(uyarilar) - 5} daha fazla uyarı")
 
-                        # Kullanıcının devam etip etmemesine karar verme
-                        if "uyari_gosterme" not in st.session_state:
-                            st.session_state.uyari_gosterme = st.checkbox(
-                                "Uyarıları görmek istiyorum",
-                                value=True,
-                                key="checkbox_uyari_goster"
-                            )
+    # 7. MENÜ GÜNCELLEME ARACI (ADMIN)
+    # =====================================
+    if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" not in aktif_k_maskeleri:
+        if st.session_state.get("admin_modu", False):
+            with st.expander("🔧 Menü Düzenleme ve Güncelleme Aracı"):
+                st.markdown("**Varolan yemek kayıtlarını güncelleyebilirsiniz.**")
+                st.markdown("Bu araç yalnızca **admin** kullanıcılar için görünürdür.")
+
+                # Mevcut kayıtları listele
+                uretim_arsivi = st.session_state.yemek_uretim_arsivi if "yemek_uretim_arsivi" in st.session_state else []
+                if not uretim_arsivi:
+                    st.info("Henüz kayıtlı yemek üretim kaydı bulunmuyor.")
+                else:
+                    # Tarih aralığı filtresi
+                    col_filt1, col_filt2 = st.columns(2)
+                    with col_filt1:
+                        filtre_tarih = st.date_input(
+                            "📅 Tarih Süzgesi (İsteğe bağlı)",
+                            value=None,
+                            key="menu_guncelle_tarih_filt"
+                        )
+                    with col_filt2:
+                        if st.button("🔄 Tümünü Yeniden Düzenle", key="btn_yeniden_duzelt_tum"):
+                            # Tüm kayıtları yeni formata çevir
+                            for kayit in uretim_arsivi:
+                                if kayit.get("yemek_adi") and not kayit.get("menu_ana_yemek"):
+                                    eski_yemek = kayit.get("yemek_adi", "")
+                                    kayit["menu_ana_yemek"] = eski_yemek
+                                    kayit["menu_yardimci_yemek"] = None
+                                    kayit["menu_corba"] = None
+                                    kayit["menu_tatli_meyve_yogurt"] = None
+                                    kayit["menu_ana_yemek"] = eski_yemek
+                            st.success(f"✅ {len(uretim_arsivi)} kayıt yeni formata çevrildi!")
+                            yemek_uretim_arsivini_kaydet(uretim_arsivi)
+                            st.rerun()
+
+                    # Kayıtları filtrele
+                    gosterilecek_kayitlar = uretim_arsivi
+                    if filtre_tarih:
+                        gosterilecek_kayitlar = [
+                            k for k in uretim_arsivi
+                            if k.get("tarih") == filtre_tarih.strftime("%Y-%m-%d")
+                        ]
+
+                    if not gosterilecek_kayitlar:
+                        st.info("Seçilen tarihte kayıt bulunmuyor.")
+                    else:
+                        st.markdown(f"🗂️ **{len(gosterilecek_kayitlar)} kayıt bulundu**")
+
+                        # Her kayıt için düzenleme
+                        for idx, kayit in enumerate(gosterilecek_kayitlar):
+                            tarih = kayit.get("tarih", "-")
+                            eski_yemek = kayit.get("yemek_adi", "")
+
+                            # Eğer zaten yeni formattaysa göster
+                            zaten_yeni_format = any([
+                                kayit.get("menu_ana_yemek"),
+                                kayit.get("menu_yardimci_yemek"),
+                                kayit.get("menu_corba"),
+                                kayit.get("menu_tatli_meyve_yogurt")
+                            ])
+
+                            if zaten_yeni_format:
+                                # Yeni format - mevcut değerleri göster
+                                col1, col2, col3, col4, col_btn = st.columns([2, 2, 2, 2, 1])
+                                with col1:
+                                    yeni_ana = st.text_input(
+                                        f"🥘 Ana Yemek ({tarih})",
+                                        value=kayit.get("menu_ana_yemek", ""),
+                                        key=f"duz_alt_{idx}",
+                                        label_visibility="collapsed"
+                                    )
+                                with col2:
+                                    yeni_yardimci = st.text_input(
+                                        f"🍛 Ara Yemek ({tarih})",
+                                        value=kayit.get("menu_yardimci_yemek", ""),
+                                        key=f"duz_aryad_{idx}",
+                                        label_visibility="collapsed"
+                                    )
+                                with col3:
+                                    yeni_corba = st.text_input(
+                                        f"🍲 Çorba ({tarih})",
+                                        value=kayit.get("menu_corba", ""),
+                                        key=f"duz_corba_{idx}",
+                                        label_visibility="collapsed"
+                                    )
+                                with col4:
+                                    yeni_tatlilar = st.text_input(
+                                        f"🍨 Tatlı/Meyve/Yoğurt ({tarih})",
+                                        value=kayit.get("menu_tatli_meyve_yogurt", ""),
+                                        key=f"duz_tatlilar_{idx}",
+                                        label_visibility="collapsed"
+                                    )
+                                with col_btn:
+                                    if st.button("💾 Kaydet", key=f"btn_kaydet_{idx}"):
+                                        kayit["menu_ana_yemek"] = yeni_ana.strip() or None
+                                        kayit["menu_yardimci_yemek"] = yeni_yardimci.strip() or None
+                                        kayit["menu_corba"] = yeni_corba.strip() or None
+                                        kayit["menu_tatli_meyve_yogurt"] = yeni_tatlilar.strip() or None
+                                        # yemek_adi'yi güncelle
+                                        bolumler = []
+                                        if yeni_ana.strip():
+                                            bolumler.append(f"Ana Yemek: {yeni_ana.strip()}")
+                                        if yeni_yardimci.strip():
+                                            bolumler.append(f"Ara Yemek / Tatlı: {yeni_yardimci.strip()}")
+                                        if yeni_corba.strip():
+                                            bolumler.append(f"Çorba: {yeni_corba.strip()}")
+                                        if yeni_tatlilar.strip():
+                                            bolumler.append(f"Tatlı / Meyve / Yoğurt: {yeni_tatlilar.strip()}")
+                                        kayit["yemek_adi"] = "; ".join(bolumler) if bolumler else eski_yemek
+
+                                        yemek_uretim_arsivini_kaydet(uretim_arsivi)
+                                        st.success(f"✅ {tarih} tarihli kayıt güncellendi!")
+                                        st.rerun()
+
+                                # Sil butonu
+                                if st.button("🗑️ Sil", key=f"btn_sil_{idx}", type="secondary"):
+                                    uretim_arsivi.remove(kayit)
+                                    yemek_uretim_arsivini_kaydet(uretim_arsivi)
+                                    st.warning(f"🗑️ {tarih} tarihli kayıt silindi!")
+                                    st.rerun()
+
+                            else:
+                                # Eski format - tek alanlı göster ve düzenle
+                                col_old1, col_old2, col_old3 = st.columns([3, 3, 1])
+                                with col_old1:
+                                    st.markdown(f"**📅 {tarih}**")
+                                    st.markdown(f"Eski kayıt: `{eski_yemek}`")
+
+                                with col_old2:
+                                    st.markdown("### 4'lü formatta dönüştür:")
+                                    c_a, c_b, c_c, c_d = st.columns(4)
+                                    with c_a:
+                                        yeni_ana = st.text_input("Ana Yemek", key=f"cevir_alt_{idx}", label_visibility="collapsed")
+                                    with c_b:
+                                        yeni_yardimci = st.text_input("Ara Yemek", key=f"cevir_aryad_{idx}", label_visibility="collapsed")
+                                    with c_c:
+                                        yeni_corba = st.text_input("Çorba", key=f"cevir_corba_{idx}", label_visibility="collapsed")
+                                    with c_d:
+                                        yeni_tatlilar = st.text_input("Tatlı/Meyve", key=f"cevir_tatlilar_{idx}", label_visibility="collapsed")
+
+                                with col_old3:
+                                    if st.button("🔄 Çevir", key=f"btn_cevir_{idx}"):
+                                        kayit["menu_ana_yemek"] = yeni_ana.strip() or None
+                                        kayit["menu_yardimci_yemek"] = yeni_yardimci.strip() or None
+                                        kayit["menu_corba"] = yeni_corba.strip() or None
+                                        kayit["menu_tatli_meyve_yogurt"] = yeni_tatlilar.strip() or None
+
+                                        bolumler = []
+                                        if yeni_ana.strip():
+                                            bolumler.append(f"Ana Yemek: {yeni_ana.strip()}")
+                                        if yeni_yardimci.strip():
+                                            bolumler.append(f"Ara Yemek / Tatlı: {yeni_yardimci.strip()}")
+                                        if yeni_corba.strip():
+                                            bolumler.append(f"Çorba: {yeni_corba.strip()}")
+                                        if yeni_tatlilar.strip():
+                                            bolumler.append(f"Tatlı / Meyve / Yoğurt: {yeni_tatlilar.strip()}")
+                                        kayit["yemek_adi"] = "; ".join(bolumler) if bolumler else eski_yemek
+
+                                        yemek_uretim_arsivini_kaydet(uretim_arsivi)
+                                        st.success(f"✅ {tarih} kaydı yeni formata çevrildi!")
+                                        st.rerun()
