@@ -116,6 +116,9 @@ def test_dark_widgets_popovers_and_sidebar_hover_have_readable_tokens():
     assert '[data-testid="stWidgetLabel"]' in source
     assert "div[data-testid=\"stExpander\"] summary" in source
     assert "input::placeholder" in source
+    assert 'input[type="checkbox"]' in source
+    assert '[data-testid="stCheckbox"] label p' in source
+    assert '[data-testid="stRadio"] label p' in source
     assert "ul[role=\"listbox\"]" in source
     assert "li[role=\"option\"]:hover" in source
     assert 'section[data-testid="stSidebar"] div.stButton > button:hover' in source

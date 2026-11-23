@@ -1772,6 +1772,24 @@ st.markdown("""
         color: var(--app-accent) !important;
     }
 
+    /* Checkbox, radio ve toggle kontrolleri tema yüzeyine göre okunur kalır. */
+    input[type="checkbox"],
+    input[type="radio"] {
+        accent-color: var(--app-accent) !important;
+    }
+    [data-testid="stCheckbox"] label,
+    [data-testid="stCheckbox"] label p,
+    [data-testid="stRadio"] label,
+    [data-testid="stRadio"] label p,
+    [data-testid="stToggle"] label,
+    [data-testid="stToggle"] label p {
+        color: var(--app-text) !important;
+    }
+    [data-baseweb="checkbox"] div,
+    [data-baseweb="radio"] div {
+        border-color: var(--app-border) !important;
+    }
+
     /* Birincil Yeşil Butonlar */
     button[data-testid="baseButton-primary"] {
         background: var(--app-accent) !important;
