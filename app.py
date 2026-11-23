@@ -1717,6 +1717,61 @@ st.markdown("""
         border: 1px solid var(--app-border) !important;
     }
 
+    /* Native widget metinleri: dark/light görünümde tema tokenlarını kullanır. */
+    [data-testid="stWidgetLabel"] p,
+    [data-testid="stWidgetLabel"] label,
+    [data-testid="stCaptionContainer"],
+    .stMarkdown p,
+    .stMarkdown li,
+    .stMarkdown td,
+    .stMarkdown th,
+    div[data-testid="stExpander"] summary,
+    div[data-testid="stExpander"] summary p,
+    div[data-testid="stExpander"] summary span {
+        color: var(--app-text) !important;
+    }
+
+    input,
+    textarea,
+    [data-baseweb="input"] input,
+    [data-baseweb="textarea"] textarea,
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div {
+        color: var(--app-text) !important;
+        -webkit-text-fill-color: var(--app-text) !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder,
+    [data-baseweb="input"] input::placeholder,
+    [data-baseweb="textarea"] textarea::placeholder {
+        color: var(--app-muted) !important;
+        -webkit-text-fill-color: var(--app-muted) !important;
+        opacity: 1 !important;
+    }
+
+    /* Açılır menü ve seçenek listeleri */
+    ul[role="listbox"],
+    div[role="listbox"],
+    div[data-baseweb="menu"],
+    div[data-baseweb="popover"] {
+        background: var(--app-popover) !important;
+        color: var(--app-text) !important;
+        border-color: var(--app-border) !important;
+    }
+    li[role="option"],
+    div[role="option"] {
+        color: var(--app-text) !important;
+        background: var(--app-popover) !important;
+    }
+    li[role="option"]:hover,
+    div[role="option"]:hover,
+    li[aria-selected="true"],
+    div[aria-selected="true"] {
+        background: var(--app-sidebar) !important;
+        color: var(--app-accent) !important;
+    }
+
     /* Birincil Yeşil Butonlar */
     button[data-testid="baseButton-primary"] {
         background: var(--app-accent) !important;
