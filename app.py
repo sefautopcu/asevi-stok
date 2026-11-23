@@ -39,7 +39,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-from cekirdek import (
+from src.cekirdek import (
     SifrelemeHatasi,
     ESKI_VARSAYILAN_HASHLER,
     _veri_hash,

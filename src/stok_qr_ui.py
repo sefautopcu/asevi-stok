@@ -1,4 +1,4 @@
-from qr_utils import qr_png_bytesi_olustur
+from .qr_utils import qr_png_bytesi_olustur
 
 
 def mevcut_urunler_qr_etiket_araci(st, benzersiz_urunler, verileri_kaydet):

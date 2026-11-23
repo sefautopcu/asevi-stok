@@ -1,6 +1,6 @@
 """Streamlit report controls, separate from report data and serialization helpers."""
 import streamlit as st
-from rapor_utils import tablo_html_olustur
+from .rapor_utils import tablo_html_olustur
 
 
 def ortak_indirme_alani(excel_veri, pdf_veri, dosya_adi_koku, unique_key):

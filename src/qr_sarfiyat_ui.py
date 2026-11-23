@@ -1,6 +1,6 @@
 import time
 
-from qr_utils import qr_png_bytesi_olustur
+from .qr_utils import qr_png_bytesi_olustur
 
 
 def qr_kod_ile_hizli_sarfiyat_sayfasi(

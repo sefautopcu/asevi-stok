@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from cekirdek import rapor_mail_durumunu_guncelle, rapor_verilerini_oku
+from src.cekirdek import rapor_mail_durumunu_guncelle, rapor_verilerini_oku
 
 
 _RAPOR_ANAHTARLARI = (

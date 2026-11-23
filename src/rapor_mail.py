@@ -1,5 +1,5 @@
 """Scheduled report-email orchestration, independent of Streamlit and I/O."""
-from rapor_utils import rapor_donemini_hesapla
+from .rapor_utils import rapor_donemini_hesapla
 
 
 def zamanlanmis_rapor_maili_gonder(

@@ -9,7 +9,7 @@ from cryptography.fernet import Fernet
 os.environ["FERNET_KEY"] = Fernet.generate_key().decode("utf-8")
 
 # Artık cekirdek modülünü güvenle import edebiliriz
-from cekirdek import (
+from src.cekirdek import (
     metni_sifrele, metni_coz, SifrelemeHatasi,
     sifre_hashle_yeni, sifre_dogrula, sifre_politika_hatasi,
     giris_sayaclarini_sifirla, _veri_hash, yeni_id_uret, idleri_benzersiz_yap
