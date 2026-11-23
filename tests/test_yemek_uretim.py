@@ -73,6 +73,18 @@ def test_yeterli_stokta_manuel_ve_qr_sepetine_izin_verir(yemek_helpers):
     assert yemek_helpers["yemek_sepeti_stok_hatalari"](stok, sepet) == []
 
 
+def test_sepet_stoktan_kucuk_farkla_bile_asarsa_hata_uretir(yemek_helpers):
+    stok = [{"id": "FAT-1", "urun": "ISPANAK", "kalan": 5}]
+
+    hatalar = yemek_helpers["yemek_sepeti_stok_hatalari"](
+        stok,
+        [{"urun": "ISPANAK", "miktar": 5.01}],
+    )
+
+    assert hatalar
+    assert "stok: 5" in hatalar[0]
+
+
 def test_qr_sepeti_secili_faturadaki_ve_paketteki_stogu_asamaz(yemek_helpers):
     stok = [{
         "id": "FAT-1",

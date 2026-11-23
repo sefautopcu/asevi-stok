@@ -364,7 +364,28 @@ def yemek_menu_ogelerini_kayittan_al(kayit):
         )
     if not any(menu_ogeleri.values()):
         eski_ad = str(kayit.get("yemek_adi", "") or "").strip()
-        if eski_ad and "/" not in eski_ad:
+        eski_parcalar = [
+            parca.strip()
+            for parca in eski_ad.replace(";", "/").split("/")
+            if parca.strip()
+        ]
+        if len(eski_parcalar) == 1 and ":" in eski_parcalar[0]:
+            etiket, deger = (
+                parca.strip() for parca in eski_parcalar[0].split(":", 1)
+            )
+            etiket_anahtari = _malzeme_kullanim_anahtari(etiket)
+            etiket_eslesmeleri = {
+                "ANAYEMEK": "ana_yemek",
+                "YARDIMCIYEMEK": "yardimci_yemek",
+                "ARAYEMEK": "yardimci_yemek",
+                "CORBA": "corba",
+                "TATLIMEYVEYOĞURT": "tatli_meyve_yogurt",
+                "TATLIMEYVEYOGURT": "tatli_meyve_yogurt",
+            }
+            alan = etiket_eslesmeleri.get(etiket_anahtari)
+            if alan and deger:
+                menu_ogeleri[alan] = deger
+        elif eski_ad and "/" not in eski_ad and ";" not in eski_ad:
             menu_ogeleri["ana_yemek"] = eski_ad
     return menu_ogeleri
 
@@ -4197,6 +4218,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         urun_kalori_hesapla, yonetici_modu,
         yemek_malzeme_kullanim_istatistikleri,
         yemek_malzeme_kullanim_uyarilari,
+        yemek_sepeti_stok_hatalari,
     )
 elif menu == "Kalori Hesaplama Aracı":
     kalori_hesaplama_sayfasi(

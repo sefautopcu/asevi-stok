@@ -11,7 +11,7 @@ MENU_KISIM_ETIKETLERI = {
 }
 
 
-def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, urun_kalori_hesapla, yonetici_modu, yemek_malzeme_kullanim_istatistikleri, yemek_malzeme_kullanim_uyarilari):
+def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, urun_kalori_hesapla, yonetici_modu, yemek_malzeme_kullanim_istatistikleri, yemek_malzeme_kullanim_uyarilari, yemek_sepeti_stok_hatalari):
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Aralığı Takibi")
@@ -158,8 +158,15 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         ilgili_girisler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == secilen_urun.strip().upper()]
                         stok_max = sum(g.get("kalan", 0) for g in ilgili_girisler)
 
+                    sepet_kullanimi = sum(
+                        float(item.get("miktar", 0) or 0)
+                        for item in st.session_state.sepet
+                        if str(item.get("urun", "")).strip().upper()
+                        == str(secilen_urun or "").strip().upper()
+                    )
+                    kalan_stok = max(float(stok_max) - sepet_kullanimi, 0.0)
                     # Streamlit'in max_value sınırını aşmamak için 1M sınırı uygula
-                    max_acceptable = min(max(float(stok_max), 0.0), 1_000_000.0)
+                    max_acceptable = min(kalan_stok, 1_000_000.0)
                     max_input = max(max_acceptable, 0.001)
                     try:
                         mevcut_miktar = float(
@@ -185,9 +192,24 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         elif kullanilacak_miktar <= 0:
                             st.error("⚠️ Lütfen 0'dan büyük bir miktar girin!")
                         else:
-                            st.session_state.sepet.append({"urun": secilen_urun, "miktar": kullanilacak_miktar})
-                            st.success("Eklendi!")
-                            st.rerun()
+                            yeni_item = {
+                                "urun": secilen_urun,
+                                "miktar": kullanilacak_miktar,
+                            }
+                            try:
+                                stok_hatalari = yemek_sepeti_stok_hatalari(
+                                    st.session_state.girisler,
+                                    [*st.session_state.sepet, yeni_item],
+                                )
+                            except ValueError as hata:
+                                st.error(f"⚠️ Stok kontrolü yapılamadı: {hata}")
+                            else:
+                                if stok_hatalari:
+                                    st.error(f"⚠️ {stok_hatalari[0]}")
+                                else:
+                                    st.session_state.sepet.append(yeni_item)
+                                    st.success("Eklendi!")
+                                    st.rerun()
 
             elif ekleme_yontemi == "📷 QR Kod ile Okut":
                 st.info("Kamerayı açın ve paket üzerindeki QR kodu okutun. (Telefon veya Bilgisayar kamerası)")
@@ -267,14 +289,22 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                     )
                                 
                                     if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr"):
-                                        st.session_state.sepet.append({
+                                        yeni_item = {
                                             "urun": urun_adi, 
                                             "miktar": kullanilacak_miktar,
                                             "paket_id": secilen_paket_id,
                                             "fatura_id": secilen_fatura_id
-                                        })
-                                        st.success("QR ile Eklendi!")
-                                        st.rerun()
+                                        }
+                                        stok_hatalari = yemek_sepeti_stok_hatalari(
+                                            st.session_state.girisler,
+                                            [*st.session_state.sepet, yeni_item],
+                                        )
+                                        if stok_hatalari:
+                                            st.error(f"⚠️ {stok_hatalari[0]}")
+                                        else:
+                                            st.session_state.sepet.append(yeni_item)
+                                            st.success("QR ile Eklendi!")
+                                            st.rerun()
                             else:
                                 # Dökme ürün
                                 toplam_kalan = float(ilgili_g.get("kalan", 0))
@@ -304,9 +334,17 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                 )
                             
                                 if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr_dokme"):
-                                    st.session_state.sepet.append({"urun": urun_adi, "miktar": kullanilacak_miktar})
-                                    st.success("QR ile Eklendi!")
-                                    st.rerun()
+                                    yeni_item = {"urun": urun_adi, "miktar": kullanilacak_miktar}
+                                    stok_hatalari = yemek_sepeti_stok_hatalari(
+                                        st.session_state.girisler,
+                                        [*st.session_state.sepet, yeni_item],
+                                    )
+                                    if stok_hatalari:
+                                        st.error(f"⚠️ {stok_hatalari[0]}")
+                                    else:
+                                        st.session_state.sepet.append(yeni_item)
+                                        st.success("QR ile Eklendi!")
+                                        st.rerun()
                         else:
                             st.error("Sistemde böyle bir kayıt bulunamadı.")
                     else:
