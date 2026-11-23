@@ -12,11 +12,16 @@ def test_short_calorie_tokens_do_not_match_inside_other_words():
 
 
 def test_dashboard_weather_is_cached_and_reports_are_manual():
-    source = (ROOT / "app.py").read_text(encoding="utf-8")
+    runtime = (ROOT / "src" / "app_runtime.py").read_text(encoding="utf-8")
+    dashboard = (ROOT / "src" / "dashboard_ui.py").read_text(encoding="utf-8")
 
-    assert "@st.cache_data(ttl=900, show_spinner=False)" in source
-    assert "hava_durumu_verisini_getir(hava_url)" in source
-    assert "# Raporlar yalnızca dashboard'daki manuel butonlarla gönderilir." in source
-    assert "gunluk_rapor_maili_gonder()" not in source.split(
-        "# Raporlar yalnızca dashboard'daki manuel butonlarla gönderilir.", 1
-    )[1]
+    assert "@streamlit_lib.cache_data(ttl=1800, show_spinner=False)" in dashboard
+    assert "_hava_durumu_verisini_getir(hava_url)" in dashboard
+    assert "gunluk_rapor_maili_gonder(" not in runtime
+
+
+def test_streamlit_entrypoint_is_small_and_delegates_to_runtime():
+    entrypoint = (ROOT / "app.py").read_text(encoding="utf-8")
+
+    assert len(entrypoint.encode("utf-8")) < 40_000
+    assert "from src import app_runtime" in entrypoint

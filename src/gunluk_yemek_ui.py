@@ -1,7 +1,7 @@
 import datetime
 import time
 
-def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster):
+def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, urun_kalori_hesapla):
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Aralığı Takibi")
@@ -233,6 +233,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     st.rerun()
 
             toplam_maliyet = 0.0
+            toplam_kalori = 0.0
             excel_sepet_liste = []
 
             silinecek_index = None
@@ -257,6 +258,9 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
 
                 item_maliyeti = istenen * ortalama_fiyat
                 toplam_maliyet += item_maliyeti
+                birim = ilgili_girisler[0].get("birim", "Kg") if ilgili_girisler else "Kg"
+                item_kalorisi = urun_kalori_hesapla(urun, istenen, birim)
+                toplam_kalori += item_kalorisi
 
                 c_item_ad, c_item_mik, c_item_mal, c_item_sil = st.columns([3, 2, 2, 1])
                 with c_item_ad:
@@ -265,6 +269,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     st.markdown(f"Miktar: {istenen}")
                 with c_item_mal:
                     st.markdown(f"Maliyet: **{item_maliyeti:,.2f} ₺**")
+                    st.caption(f"Kalori: {item_kalorisi:,.0f} kcal")
                 with c_item_sil:
                     if not salt_okunur_modu:
                         if st.button("❌", key=f"sil_item_{idx}"):
@@ -272,7 +277,9 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
 
                 excel_sepet_liste.append({
                     "Malzeme": urun,
+                    "Miktar": f"{istenen} {birim}",
                     "Maliyet (TL)": round(item_maliyeti, 2),
+                    "Kalori (kcal)": round(item_kalorisi, 2),
                 })
 
             if silinecek_index is not None:
@@ -333,7 +340,31 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                         kalan_dusulecek -= dusulen
 
                             arsiv_malzemeler.append(
-                                {"urun": urun, "miktar": istenen, "tutar": item_tutar}
+                                {
+                                    "urun": urun,
+                                    "miktar": istenen,
+                                    "birim": next(
+                                        (
+                                            g.get("birim", "Kg")
+                                            for g in st.session_state.girisler
+                                            if g.get("urun", "").strip().upper() == urun.strip().upper()
+                                        ),
+                                        "Kg",
+                                    ),
+                                    "tutar": item_tutar,
+                                    "kalori": urun_kalori_hesapla(
+                                        urun,
+                                        istenen,
+                                        next(
+                                            (
+                                                g.get("birim", "Kg")
+                                                for g in st.session_state.girisler
+                                                if g.get("urun", "").strip().upper() == urun.strip().upper()
+                                            ),
+                                            "Kg",
+                                        ),
+                                    ),
+                                }
                             )
 
                             log_obj = {
@@ -355,6 +386,10 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                             "numune_durumu": numune_durumu,
                             "malzemeler": arsiv_malzemeler,
                             "toplam_maliyet": toplam_maliyet,
+                            "toplam_kalori": toplam_kalori,
+                            "kisi_basi_kalori": (
+                                toplam_kalori / kisi_sayisi if kisi_sayisi > 0 else 0.0
+                            ),
                             "islem_yapan": st.session_state.aktif_kullanici,
                         }
                         st.session_state.yemek_uretim_arsivi.append(arsiv_obj)
@@ -391,6 +426,14 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                 st.metric("Toplam Maliyet", f"{toplam_maliyet:,.2f} ₺")
             with m2:
                 st.metric("Kişi Başı Maliyet", f"{kisi_basi_maliyet:,.2f} ₺")
+            m3, m4 = st.columns(2)
+            with m3:
+                st.metric("Toplam Kalori", f"{toplam_kalori:,.0f} kcal")
+            with m4:
+                st.metric(
+                    "Kişi Başı Kalori",
+                    f"{(toplam_kalori / kisi_sayisi if kisi_sayisi > 0 else 0):,.0f} kcal",
+                )
 
             pdf_data = tablo_to_html_pdf_bytes(
                 f"Yemek Maliyet Raporu - {yemek_adi}", excel_sepet_liste
@@ -449,6 +492,11 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
             
                 kisi_sayisi_degeri = int(u_kayit.get("kisi_sayisi", 1) or 1)
                 kisi_basi_maliyet = toplam_maliyet_degeri / kisi_sayisi_degeri if kisi_sayisi_degeri > 0 else 0.0
+                toplam_kalori_degeri = float(u_kayit.get("toplam_kalori", 0))
+                kisi_basi_kalori_degeri = (
+                    float(u_kayit.get("kisi_basi_kalori", 0))
+                    or (toplam_kalori_degeri / kisi_sayisi_degeri if kisi_sayisi_degeri > 0 else 0.0)
+                )
 
                 if misafir_modu:
                     arsiv_tablo_verisi.append({
@@ -474,6 +522,8 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                             "Malzeme Maliyeti": f"{m.get('tutar', 0):,.2f} ₺",
                             "Menü Toplam Maliyeti": f"{toplam_maliyet_degeri:,.2f} ₺",
                             "Kişi Başı Maliyet": f"{kisi_basi_maliyet:,.2f} ₺",
+                            "Menü Toplam Kalorisi": f"{toplam_kalori_degeri:,.0f} kcal",
+                            "Kişi Başı Kalori": f"{kisi_basi_kalori_degeri:,.0f} kcal",
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
                         excel_arsiv_listesi.append({
@@ -485,6 +535,8 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                             "Malzeme Maliyeti (TL)": round(m.get("tutar", 0), 2),
                             "Menü Toplam Maliyeti (TL)": round(toplam_maliyet_degeri, 2),
                             "Kişi Başı Maliyet (TL)": round(kisi_basi_maliyet, 2),
+                            "Menü Toplam Kalorisi (kcal)": round(toplam_kalori_degeri, 2),
+                            "Kişi Başı Kalori (kcal)": round(kisi_basi_kalori_degeri, 2),
                             "İşlemi Yapan": u_kayit.get("islem_yapan", "-"),
                         })
 

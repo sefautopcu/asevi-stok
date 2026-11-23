@@ -8,7 +8,7 @@ import pytest
 
 @pytest.fixture(scope="module")
 def yemek_helpers():
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     names = {
         "yemek_sepeti_stok_hatalari",

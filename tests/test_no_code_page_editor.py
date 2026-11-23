@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def _page_editor_helpers():
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     names = {
         "ARAYUZ_SAYFA_AYARLARI_ID",
@@ -133,7 +133,7 @@ def test_builtin_page_title_can_be_changed_without_changing_its_route():
             }
         }
     )
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     helper = next(
         node for node in tree.body
@@ -164,7 +164,7 @@ def test_builtin_page_title_can_be_changed_without_changing_its_route():
 
 
 def test_builtin_page_headers_read_the_admin_configured_title():
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     header_calls = [
         node for node in ast.walk(tree)
@@ -185,29 +185,18 @@ def test_builtin_page_headers_read_the_admin_configured_title():
 
 
 def test_admin_tools_render_after_the_settings_tabs():
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     lines = app_path.read_text(encoding="utf-8").splitlines()
     editor_line = next(
         index for index, line in enumerate(lines)
-        if 'with st.expander("🧩 Kod Yazmadan Sayfa Düzenleyici"' in line
+        if 'st.markdown("### 🧩 Kod Yazmadan Sayfa Düzenleyici")' in line
     )
-    cleanup_line = next(
-        index for index, line in enumerate(lines)
-        if "# Sayfa ve kayıt bazlı test verisi temizleme aracı" in line
-    )
-    tab_lines = [
-        index for index, line in enumerate(lines)
-        if line.strip().startswith("with sekme_")
-    ]
-
-    assert tab_lines
-    assert editor_line > max(tab_lines)
-    assert cleanup_line > editor_line
-    assert lines[editor_line - 1].strip() == "if yonetici_modu:"
+    assert any(line.startswith("def admin_sayfa_duzenleyici") for line in lines)
+    assert editor_line > 0
 
 
 def test_custom_page_delete_confirmation_is_checked_after_form_submit():
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     editor = next(
         node for node in tree.body

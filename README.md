@@ -54,8 +54,9 @@ göndermez.
 ## Proje yapısı
 
 ```text
-app.py                  # Streamlit giriş noktası
-src/                    # Uygulama modülleri
+app.py                  # Küçük Streamlit giriş noktası
+src/app_runtime.py      # Oturum, veri ve sayfa yönlendirme çalışma zamanı
+src/                    # Uygulama ve UI modülleri
   besin_hesaplama.py    # Kalori hesaplama
   cekirdek.py           # Ortak veri ve iş kuralları
   dashboard_ui.py       # Dashboard yardımcıları

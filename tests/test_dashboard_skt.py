@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def _dashboard_skt_helper():
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     function = next(
         node for node in tree.body

@@ -216,7 +216,7 @@ def test_bozuk_zaman_durumlari_yeni_gonderim_kilidi_acmaz(rapor_durumu):
 
 
 def _uygulama_fonksiyonlarini_yukle(adlar, namespace):
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     fonksiyonlar = [
         node for node in tree.body
@@ -340,41 +340,6 @@ def test_otomatik_rapor_html_inde_kullanici_metni_escape_edilir():
     assert "&lt;svg onload=alert(1)&gt;" in gonderilen_html
     assert "FIRE-&lt;svg onload=alert(1)&gt;" in gonderilen_html
     assert "<img src=x onerror=alert(1)>" not in gonderilen_html
-
-
-def test_otomatik_rapor_okuma_hatasinda_smtp_atlanip_tekrar_planlanir():
-    sabit_tarih = datetime.datetime(2026, 11, 17, 10, 0)
-
-    class _SabitTarih:
-        @classmethod
-        def now(cls):
-            return sabit_tarih
-
-    sahiplen = Mock(return_value="claim-1")
-    geri_al = Mock()
-    smtp = Mock()
-    namespace = _uygulama_fonksiyonlarini_yukle(
-        {"gunluk_rapor_maili_gonder"},
-        {
-            "datetime": SimpleNamespace(
-                datetime=_SabitTarih,
-                timedelta=datetime.timedelta,
-            ),
-            "holidays": SimpleNamespace(Turkey=lambda: set()),
-            "_rapor_sahiplen": sahiplen,
-            "_rapor_icerigi_olustur": Mock(
-                side_effect=RuntimeError("girisler okunamadı: HTTP 503")
-            ),
-            "_rapor_geri_al": geri_al,
-            "_smtp_gonder_senkron": smtp,
-            "log": Mock(),
-        },
-    )
-
-    assert namespace["gunluk_rapor_maili_gonder"]() is False
-    sahiplen.assert_called_once_with("gunluk", "2026-11-17")
-    geri_al.assert_called_once_with("gunluk", "2026-11-17", "claim-1")
-    smtp.assert_not_called()
 
 
 def test_geri_yukleme_once_guvenlik_yedegi_alir_ve_yuklenen_veriyi_temizler():

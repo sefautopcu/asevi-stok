@@ -26,7 +26,7 @@ class _UploadedImage:
 
 
 def _dashboard_background_functions(content):
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     functions = {
         node.name: node for node in tree.body

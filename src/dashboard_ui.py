@@ -3,7 +3,7 @@ import requests as requests_lib
 import streamlit as streamlit_lib
 
 
-@streamlit_lib.cache_data(ttl=900, show_spinner=False)
+@streamlit_lib.cache_data(ttl=1800, show_spinner=False)
 def _hava_durumu_verisini_getir(url):
     response = requests_lib.get(url, timeout=10)
     response.raise_for_status()

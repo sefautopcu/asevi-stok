@@ -12,7 +12,7 @@ class _SessionState(dict):
 
 
 def _temizleme_fonksiyonlarini_yukle(state):
-    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    app_path = Path(__file__).resolve().parents[1] / "src" / "app_runtime.py"
     tree = ast.parse(app_path.read_text(encoding="utf-8"))
     hedefler = {
         "test_verisi_kayit_uygun_mu",
