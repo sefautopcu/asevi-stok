@@ -25,3 +25,11 @@ def test_streamlit_entrypoint_is_small_and_delegates_to_runtime():
 
     assert len(entrypoint.encode("utf-8")) < 40_000
     assert "from src import app_runtime" in entrypoint
+
+
+def test_nonessential_data_loads_are_deferred_until_login():
+    runtime = (ROOT / "src" / "app_runtime.py").read_text(encoding="utf-8")
+
+    auth_loads = 'if st.session_state.oturum_aktif:\n    if "arayuz_sayfa_ayarlari" not in st.session_state:'
+    assert auth_loads in runtime
+    assert runtime.index(auth_loads) < runtime.index("gecerli_menuler = [")

@@ -2506,45 +2506,10 @@ def sayfa_baslik_metnini_al(ayarlar, sayfa_id):
     return duzenlenmis or SAYFA_VARSAYILAN_BASLIKLARI.get(sayfa_id, sayfa_id)
 
 
-if "arayuz_sayfa_ayarlari" not in st.session_state:
-    st.session_state.arayuz_sayfa_ayarlari = arayuz_sayfa_ayarlarini_yukle()
-
-
-if "girisler" not in st.session_state:
-    st.session_state.girisler = idleri_benzersiz_yap(verileri_yukle(), "FAT-")
-if "kullanim_loglari" not in st.session_state:
-    st.session_state.kullanim_loglari = loglari_yukle()
-if "silinen_urun_loglari" not in st.session_state:
-    st.session_state.silinen_urun_loglari = silinen_urun_loglarini_yukle()
-if "ihtiyac_sahipleri" not in st.session_state:
-    st.session_state.ihtiyac_sahipleri = idleri_benzersiz_yap(ihtiyac_sahiplerini_yukle(), "IHT-")
-if "dagitim_loglari" not in st.session_state:
-    st.session_state.dagitim_loglari = idleri_benzersiz_yap(dagitim_loglarini_yukle(), "DAG-")
-if "personeller" not in st.session_state:
-    st.session_state.personeller = idleri_benzersiz_yap(personelleri_yukle(), "PER-")
-if "personel_izinleri" not in st.session_state:
-    st.session_state.personel_izinleri = idleri_benzersiz_yap(personel_izinlerini_yukle(), "IZN-")
-    eski_izinleri_tasi()
-if "resmi_tatiller" not in st.session_state:
-    st.session_state.resmi_tatiller = resmi_tatilleri_yukle()
-if "yemek_uretim_arsivi" not in st.session_state:
-    st.session_state.yemek_uretim_arsivi = yemek_uretim_arsivini_yukle()
-if "depolar" not in st.session_state:
-    st.session_state.depolar = depoları_yukle()
-if "demirbaslar" not in st.session_state:
-    st.session_state.demirbaslar = idleri_benzersiz_yap(demirbasları_yukle(), "DEM-")
-if "kritik_seviyeler" not in st.session_state:
-    st.session_state.kritik_seviyeler = kritik_seviyeleri_yukle()
 if "kalori_sepeti" not in st.session_state:
     st.session_state.kalori_sepeti = []
-if "personel_silme_mesaji" not in st.session_state:
-    st.session_state.personel_silme_mesaji = ""
-if "dagitim_silme_mesaji" not in st.session_state:
-    st.session_state.dagitim_silme_mesaji = ""
 if "kullanicilar" not in st.session_state:
     st.session_state.kullanicilar = kullanıcıları_yukle()
-if "dashboard_widgets" not in st.session_state:
-    st.session_state.dashboard_widgets = widgetlari_yukle()
 
 if "hatali_giris_sayisi" not in st.session_state:
     st.session_state.hatali_giris_sayisi = 0
@@ -2652,6 +2617,41 @@ if st.session_state.oturum_aktif and SUPABASE_URL and SUPABASE_KEY:
                 st.session_state.kullanicilar = kullanıcıları_yukle()
                 if st.session_state.aktif_kullanici not in st.session_state.kullanicilar:
                     oturumu_zorla_kapat("Hesabınız bulunamadı. Lütfen yöneticiyle iletişime geçin.", "hesap silinmiş, oturum kapandı")
+
+if st.session_state.oturum_aktif:
+    if "arayuz_sayfa_ayarlari" not in st.session_state:
+        st.session_state.arayuz_sayfa_ayarlari = arayuz_sayfa_ayarlarini_yukle()
+    if "girisler" not in st.session_state:
+        st.session_state.girisler = idleri_benzersiz_yap(verileri_yukle(), "FAT-")
+    if "kullanim_loglari" not in st.session_state:
+        st.session_state.kullanim_loglari = loglari_yukle()
+    if "silinen_urun_loglari" not in st.session_state:
+        st.session_state.silinen_urun_loglari = silinen_urun_loglarini_yukle()
+    if "ihtiyac_sahipleri" not in st.session_state:
+        st.session_state.ihtiyac_sahipleri = idleri_benzersiz_yap(ihtiyac_sahiplerini_yukle(), "IHT-")
+    if "dagitim_loglari" not in st.session_state:
+        st.session_state.dagitim_loglari = idleri_benzersiz_yap(dagitim_loglarini_yukle(), "DAG-")
+    if "personeller" not in st.session_state:
+        st.session_state.personeller = idleri_benzersiz_yap(personelleri_yukle(), "PER-")
+    if "personel_izinleri" not in st.session_state:
+        st.session_state.personel_izinleri = idleri_benzersiz_yap(personel_izinlerini_yukle(), "IZN-")
+        eski_izinleri_tasi()
+    if "resmi_tatiller" not in st.session_state:
+        st.session_state.resmi_tatiller = resmi_tatilleri_yukle()
+    if "yemek_uretim_arsivi" not in st.session_state:
+        st.session_state.yemek_uretim_arsivi = yemek_uretim_arsivini_yukle()
+    if "depolar" not in st.session_state:
+        st.session_state.depolar = depoları_yukle()
+    if "demirbaslar" not in st.session_state:
+        st.session_state.demirbaslar = idleri_benzersiz_yap(demirbaşları_yukle(), "DEM-")
+    if "kritik_seviyeler" not in st.session_state:
+        st.session_state.kritik_seviyeler = kritik_seviyeleri_yukle()
+    if "personel_silme_mesaji" not in st.session_state:
+        st.session_state.personel_silme_mesaji = ""
+    if "dagitim_silme_mesaji" not in st.session_state:
+        st.session_state.dagitim_silme_mesaji = ""
+    if "dashboard_widgets" not in st.session_state:
+        st.session_state.dashboard_widgets = widgetlari_yukle()
 
 gecerli_menuler = [
     "Kurumsal Dashboard & Özet",
