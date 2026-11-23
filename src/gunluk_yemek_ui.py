@@ -1,6 +1,16 @@
 import datetime
 import time
 
+# Yemek menüsünün 4 ana bölümü
+MENU_KISIMLARI = ("ana_yemek", "yardimci_yemek", "corba", "tatli_meyve_yogurt")
+MENU_KISIM_ETIKETLERI = {
+    "ana_yemek": "Ana Yemek",
+    "yardimci_yemek": "Ara Yemek / Tatlı",
+    "corba": "Çorba",
+    "tatli_meyve_yogurt": "Tatlı / Meyve / Yoğurt",
+}
+
+
 def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, urun_kalori_hesapla):
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
@@ -74,7 +84,28 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
     if not misafir_modu:
         st.markdown("---")
         st.subheader("🍲 Yeni Yemek Üretim Planı ve Malzeme Düşümü")
-        yemek_adi = st.text_input("Çıkan Yemek / Menü Adı", "Ispanak Yemeği")
+
+        # 4'lü Menü Bölümü
+        st.markdown("### 🍽️ Menü Bölümleri (4 Kısım)")
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        with col_m1:
+            ana_yemek_ad = st.text_input("🥘 Ana Yemek", value="", placeholder="Örn: Ispanak Yemeği", key="menu_ana_yemek_input")
+        with col_m2:
+            yardimci_yemek_ad = st.text_input("🍛 Ara Yemek / Tatlı", value="", placeholder="Örn: Mercimlek, Baklava", key="menu_yardimci_yemek_input")
+        with col_m3:
+            corba_ad = st.text_input("🍲 Çorba", value="", placeholder="Örn: Mercimek Çorbası", key="menu_corba_input")
+        with col_m4:
+            tatli_meyve_yogurt_ad = st.text_input("🍨 Tatlı / Meyve / Yoğurt", value="", placeholder="Örn: Yoğurt, Muhallebi", key="menu_tatli_input")
+
+        # Birleştirilmiş Yemek Adı
+        menulari_birlestir = [f"{etiket}: {ad}" for ad, etiket in [
+            (ana_yemek_ad, MENU_KISIM_ETIKETLERI["ana_yemek"]),
+            (yardimci_yemek_ad, MENU_KISIM_ETIKETLERI["yardimci_yemek"]),
+            (corba_ad, MENU_KISIM_ETIKETLERI["corba"]),
+            (tatli_meyve_yogurt_ad, MENU_KISIM_ETIKETLERI["tatli_meyve_yogurt"]),
+        ] if ad.strip()]
+        yemek_adi = "; ".join(menulari_birlestir) if menulari_birlestir else (ana_yemek_ad or yardimci_yemek_ad or corba_ad or tatli_meyve_yogurt_ad or "Yemek Planı")
+
         kisi_sayisi = st.number_input(
             "Yararlanan Kişi Sayısı", min_value=1, value=200
         )
@@ -382,6 +413,12 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                             "tarih": uretim_tarih_str,
                             "zaman": tarih_simdi,
                             "yemek_adi": yemek_adi,
+                            # --- YENİ: Menüyü 4 bölüme ayırma ---
+                            "menu_ana_yemek": ana_yemek_ad.strip() if ana_yemek_ad.strip() else None,
+                            "menu_yardimci_yemek": yardimci_yemek_ad.strip() if yardimci_yemek_ad.strip() else None,
+                            "menu_corba": corba_ad.strip() if corba_ad.strip() else None,
+                            "menu_tatli_meyve_yogurt": tatli_meyve_yogurt_ad.strip() if tatli_meyve_yogurt_ad.strip() else None,
+                            # ----------------------------------
                             "kisi_sayisi": kisi_sayisi,
                             "numune_durumu": numune_durumu,
                             "malzemeler": arsiv_malzemeler,
@@ -400,6 +437,12 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                             "kisi_sayisi": kisi_sayisi,
                             "toplam_maliyet": toplam_maliyet,
                             "tarih": uretim_tarih_str,
+                            # --- YENİ: Menü bölümleri geri alma için ---
+                            "menu_ana_yemek": ana_yemek_ad.strip() if ana_yemek_ad.strip() else None,
+                            "menu_yardimci_yemek": yardimci_yemek_ad.strip() if yardimci_yemek_ad.strip() else None,
+                            "menu_corba": corba_ad.strip() if corba_ad.strip() else None,
+                            "menu_tatli_meyve_yogurt": tatli_meyve_yogurt_ad.strip() if tatli_meyve_yogurt_ad.strip() else None,
+                            # -------------------------------------------
                             "dusulen_kayitlar": dusulen_kayitlar,
                             "arsiv_objesi": arsiv_obj,
                             "eklenen_loglar": eklenen_loglar
@@ -501,13 +544,19 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                 if misafir_modu:
                     arsiv_tablo_verisi.append({
                         "Tarih": u_kayit.get("tarih", "-"),
-                        "Çıkan Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                        "Ana Yemek": u_kayit.get("menu_ana_yemek", "-"),
+                        "Ara Yemek / Tatlı": u_kayit.get("menu_yardimci_yemek", "-"),
+                        "Çorba": u_kayit.get("menu_corba", "-"),
+                        "Tatlı / Meyve / Yoğurt": u_kayit.get("menu_tatli_meyve_yogurt", "-"),
                         "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                         "Numune Durumu": u_kayit.get("numune_durumu", "-"),
                     })
                     excel_arsiv_listesi.append({
                         "Tarih": u_kayit.get("tarih", "-"),
-                        "Çıkan Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                        "Ana Yemek": u_kayit.get("menu_ana_yemek", "-"),
+                        "Ara Yemek / Tatlı": u_kayit.get("menu_yardimci_yemek", "-"),
+                        "Çorba": u_kayit.get("menu_corba", "-"),
+                        "Tatlı / Meyve / Yoğurt": u_kayit.get("menu_tatli_meyve_yogurt", "-"),
                         "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
                         "Numune Durumu": u_kayit.get("numune_durumu", "-"),
                     })
@@ -515,9 +564,12 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     for m in u_kayit.get("malzemeler", []):
                         arsiv_tablo_verisi.append({
                             "Tarih": u_kayit.get("tarih", "-"),
-                            "Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                            "Ana Yemek": u_kayit.get("menu_ana_yemek", "-"),
+                            "Ara Yemek / Tatlı": u_kayit.get("menu_yardimci_yemek", "-"),
+                            "Çorba": u_kayit.get("menu_corba", "-"),
+                            "Tatlı / Meyve / Yoğurt": u_kayit.get("menu_tatli_meyve_yogurt", "-"),
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
-                            "Numune Durumu": u_kayit.get("numune_durumu", "-"), # YENİ EKLENDİ
+                            "Numune Durumu": u_kayit.get("numune_durumu", "-"),
                             "Kullanılan Malzeme": f"{m.get('urun', '-')} ({m.get('miktar', '-')} {m.get('birim', '')})".strip(),
                             "Malzeme Maliyeti": f"{m.get('tutar', 0):,.2f} ₺",
                             "Menü Toplam Maliyeti": f"{toplam_maliyet_degeri:,.2f} ₺",
@@ -528,9 +580,12 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         })
                         excel_arsiv_listesi.append({
                             "Tarih": u_kayit.get("tarih", "-"),
-                            "Yemek Adı": u_kayit.get("yemek_adi", "-"),
+                            "Ana Yemek": u_kayit.get("menu_ana_yemek", "-"),
+                            "Ara Yemek / Tatlı": u_kayit.get("menu_yardimci_yemek", "-"),
+                            "Çorba": u_kayit.get("menu_corba", "-"),
+                            "Tatlı / Meyve / Yoğurt": u_kayit.get("menu_tatli_meyve_yogurt", "-"),
                             "Kişi Sayısı": u_kayit.get("kisi_sayisi", "-"),
-                            "Numune Durumu": u_kayit.get("numune_durumu", "-"), # YENİ EKLENDİ
+                            "Numune Durumu": u_kayit.get("numune_durumu", "-"),
                             "Kullanılan Malzeme": f"{m.get('urun', '-')} ({m.get('miktar', '-')} {m.get('birim', '')})".strip(),
                             "Malzeme Maliyeti (TL)": round(m.get("tutar", 0), 2),
                             "Menü Toplam Maliyeti (TL)": round(toplam_maliyet_degeri, 2),
@@ -560,4 +615,114 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
         else:
             st.info("Seçilen tarih aralığında kayıtlı yemek üretim ve maliyet arşivi bulunmuyor.")
 
-    # 6. KALORİ HESAPLAMA ARACI
+    # 6. MALZEME Kullanım Uyarısı Algoritması
+    # ========================================
+    st.markdown("---")
+    st.subheader("⚠️ Malzeme Kullanım Uyarısı (Geçmiş Veri Karşılaştırması)")
+
+    if "malzeme_uyari_aktif" not in st.session_state:
+        st.session_state.malzeme_uyari_aktif = True
+
+    # Malzeme kullanım uyarısı fonksiyonu
+    def malzeme_karsilastirma_uyari(meal_data, all_meals, tolerance_percent=10):
+        """
+        Belirtilen yemek için geçmişteki benzer yemeklerdeki malzeme kullanımınıkarşılaştırır.
+        Tolerans %±10 olarak ayarlanmıştır.
+
+        Args:
+            meal_data: Şu anki yemek kaydı
+            all_meals: Tüm yemek üretim kayıtları
+            tolerance_percent: Uyarı eşiği (default: %10)
+
+        Returns:
+            List of warnings for significant deviations
+        """
+        from datetime import datetime, timedelta
+
+        warnings = []
+        current_date = meal_data.get("tarih", "")
+        current_menus = {
+            "ana_yemek": meal_data.get("menu_ana_yemek", ""),
+            "yardimci_yemek": meal_data.get("menu_yardimci_yemek", ""),
+            "corba": meal_data.get("menu_corba", ""),
+            "tatli_meyve_yogurt": meal_data.get("menu_tatli_meyve_yogurt", ""),
+        }
+
+        # Aynı menü bölümlerine sahip geçmiş yemekleri bul
+        similar_meals = []
+        for past_meal in all_meals:
+            if past_meal.get("tarih") == current_date:
+                continue  # Aynı gün değilse
+
+            past_menus = {
+                "ana_yemek": past_meal.get("menu_ana_yemek", ""),
+                "yardimci_yemek": past_meal.get("menu_yardimci_yemek", ""),
+                "corba": past_meal.get("menu_corba", ""),
+                "tatli_meyve_yogurt": past_meal.get("menu_tatli_meyve_yogurt", ""),
+            }
+
+            # Benzerlik kontrolü (en az 2 bölüm eşleşmeli)
+            match_count = 0
+            for key in current_menus:
+                if current_menus[key] and past_menus[key] and current_menus[key].lower() == past_menus[key].lower():
+                    match_count += 1
+
+            if match_count >= 2:
+                similar_meals.append(past_meal)
+
+        if not similar_meals:
+            return []  # Benzer yemek bulunamadı
+
+        # Her benzer yemek için malzeme miktarlarını karşılaştır
+        current_ingredients = {item["urun"].upper(): float(item["miktar"]) for item in meal_data.get("malzemeler", [])}
+
+        for past_meal in similar_meals:
+            past_ingredients = {item["urun"].upper(): float(item["miktar"]) for item in past_meal.get("malzemeler", [])}
+
+            for ingred, curr_qty in current_ingredients.items():
+                if ingred in past_ingredients:
+                    past_qty = past_ingredients[ingred]
+                    if past_qty > 0:
+                        diff_percent = abs(curr_qty - past_qty) / past_qty * 100
+
+                        if diff_percent > tolerance_percent:
+                            warning_msg = (
+                                f"⚠️ **{ingred}**: Kullanılan miktar %{diff_percent:.0f} farklı "
+                                f"({curr_qty:.2f} {meal_data.get('malzemeler', [{}])[0].get('birim', 'Kg') if meal_data.get('malzemeler') else '?'} vs geçmişte {past_qty:.2f})"
+                            )
+                            if warning_msg not in [w for w in warnings]:
+                                warnings.append(warning_msg)
+
+        return warnings
+
+    # Arşivden son 30 günlük kayıtları al (uyarı için)
+    if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" not in aktif_k_maskeleri:
+        if st.session_state.yemek_uretim_arsivi:
+            # Son yemek kaydını kontrol et
+            son_yemek = st.session_state.yemek_uretim_arsivi[-1] if st.session_state.yemek_uretim_arsivi else None
+
+            if son_yemek and st.session_state.malzeme_uyari_aktif:
+                # Sadece geçerli menü bilgileri varsa kontrol et
+                if any([son_yemek.get("menu_ana_yemek"), son_yemek.get("menu_yardimci_yemek"),
+                       son_yemek.get("menu_corba"), son_yemek.get("menu_tatli_meyve_yogurt")]):
+                    uyarilar = malzeme_karsilastirma_uyari(
+                        son_yemek,
+                        st.session_state.yemek_uretim_arsivi,
+                        tolerance_percent=10
+                    )
+
+                    if uyarilar:
+                        st.warning(f"🔍 **Malzeme Kullanım Uyarısı** (Tolerans: %±10)")
+                        for uyari in uyarilar[:5]:  # En fazla 5 uyarı göster
+                            st.markdown(uyari)
+
+                        if len(uyarilar) > 5:
+                            st.caption(f"... ve {len(uyarilar) - 5} daha fazla uyarı")
+
+                        # Kullanıcının devam etip etmemesine karar verme
+                        if "uyari_gosterme" not in st.session_state:
+                            st.session_state.uyari_gosterme = st.checkbox(
+                                "Uyarıları görmek istiyorum",
+                                value=True,
+                                key="checkbox_uyari_goster"
+                            )
