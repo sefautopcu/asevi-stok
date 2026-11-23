@@ -156,10 +156,10 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     if secilen_urun:
                         ilgili_girisler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == secilen_urun.strip().upper()]
                         stok_max = sum(g.get("kalan", 0) for g in ilgili_girisler)
-                
+
                     kullanilacak_miktar = st.number_input(
                         f"Miktar (Toplam Stok: {stok_max})",
-                        min_value=0.0, value=1.0, step=0.1, key="yemek_miktar_manuel",
+                        min_value=0.0, max_value=max(stok_max, 0.001), value=1.0, step=0.1, key="yemek_miktar_manuel",
                     )
                 with col3:
                     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
@@ -243,7 +243,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                 toplam_kalan = float(ilgili_g.get("kalan", 0))
                                 st.info(f"**Dökme Ürün** | **Toplam Stok:** {toplam_kalan} {ilgili_g.get('birim')}")
                                 secilen_urun = urun_adi
-                                kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=toplam_kalan, value=1.0, step=0.1, key="qr_miktar_dokme")
+                                kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=max(toplam_kalan, 0.001), value=1.0, step=0.1, key="qr_miktar_dokme")
                             
                                 if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr_dokme"):
                                     st.session_state.sepet.append({"urun": urun_adi, "miktar": kullanilacak_miktar})
@@ -626,62 +626,77 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
     # Malzeme kullanım uyarısı fonksiyonu
     def malzeme_karsilastirma_uyari(meal_data, all_meals, tolerance_percent=10):
         """
-        Belirtilen yemek için geçmişteki benzer yemeklerdeki malzeme kullanımınıkarşılaştırır.
+        Belirtilen yemek için geçmişteki benzer yemeklerdeki malzeme kullanımını karşılaştırır.
         Tolerans %±10 olarak ayarlanmıştır.
-
-        Args:
-            meal_data: Şu anki yemek kaydı
-            all_meals: Tüm yemek üretim kayıtları
-            tolerance_percent: Uyarı eşiği (default: %10)
-
-        Returns:
-            List of warnings for significant deviations
         """
         from datetime import datetime, timedelta
 
         warnings = []
         current_date = meal_data.get("tarih", "")
-        current_menus = {
-            "ana_yemek": meal_data.get("menu_ana_yemek", ""),
-            "yardimci_yemek": meal_data.get("menu_yardimci_yemek", ""),
-            "corba": meal_data.get("menu_corba", ""),
-            "tatli_meyve_yogurt": meal_data.get("menu_tatli_meyve_yogurt", ""),
-        }
 
-        # Aynı menü bölümlerine sahip geçmiş yemekleri bul (diğer tarihlerdeki)
+        # Mevcut menüyü 4 bölümden biriyle de karşılaştır (daha esnek eşleşme)
+        current_menus = [
+            meal_data.get("menu_ana_yemek", "").strip(),
+            meal_data.get("menu_yardimci_yemek", "").strip(),
+            meal_data.get("menu_corba", "").strip(),
+            meal_data.get("menu_tatli_meyve_yogurt", "").strip(),
+        ]
+        current_menus_normalized = [m for m in current_menus if m]
+
+        # Benzer yemekleri bul - en az 1 menü bölümü eşleşirse
         similar_meals = []
         for past_meal in all_meals:
-            # ANA DÜZELTME: Sadece aynı tarihli kayıtları atla, diğerlerini kıyasla
             if past_meal.get("tarih") == current_date:
                 continue
 
-            past_menus = {
-                "ana_yemek": past_meal.get("menu_ana_yemek", ""),
-                "yardimci_yemek": past_meal.get("menu_yardimci_yemek", ""),
-                "corba": past_meal.get("menu_corba", ""),
-                "tatli_meyve_yogurt": past_meal.get("menu_tatli_meyve_yogurt", ""),
-            }
+            past_menus = [
+                past_meal.get("menu_ana_yemek", "").strip(),
+                past_meal.get("menu_yardimci_yemek", "").strip(),
+                past_meal.get("menu_corba", "").strip(),
+                past_meal.get("menu_tatli_meyve_yogurt", "").strip(),
+            ]
+            past_menus_normalized = [m for m in past_menus if m]
 
-            # Benzerlik kontrolü (en az 2 bölüm eşleşmeli)
-            match_count = 0
-            for key in current_menus:
-                if current_menus[key] and past_menus[key] and current_menus[key].lower() == past_menus[key].lower():
-                    match_count += 1
-
-            if match_count >= 2:
-                similar_meals.append(past_meal)
+            # Herhangi bir menü bölümü eşleşirse
+            for curr_menu in current_menus_normalized:
+                for past_menu in past_menus_normalized:
+                    if curr_menu.lower() == past_menu.lower():
+                        similar_meals.append(past_meal)
+                        break
+                else:
+                    continue
+                break
 
         if not similar_meals:
-            return []  # Benzer yemek bulunamadı
+            # Eski format desteği: sadece yemek_adi kontrolü
+            current_yemek_adi = meal_data.get("yemek_adi", "").strip()
+            if current_yemek_adi:
+                for past_meal in all_meals:
+                    if past_meal.get("tarih") == current_date:
+                        continue
+                    past_yemek_adi = past_meal.get("yemek_adi", "").strip()
+                    if past_yemek_adi and current_yemek_adi.lower() == past_yemek_adi.lower():
+                        similar_meals.append(past_meal)
 
-        # Her benzer yemek için malzeme miktarlarını karşılaştır
-        current_ingredients = {item["urun"].upper(): float(item["miktar"]) for item in meal_data.get("malzemeler", [])}
+        if not similar_meals:
+            return []
+
+        # Malzeme miktarlarını karşılaştır
+        current_ingredients = {}
+        for item in meal_data.get("malzemeler", []):
+            urun = item.get("urun", "").strip().upper()
+            if urun:
+                current_ingredients[urun] = float(item.get("miktar", 0))
 
         if not current_ingredients:
             return []
 
         for past_meal in similar_meals:
-            past_ingredients = {item["urun"].upper(): float(item["miktar"]) for item in past_meal.get("malzemeler", [])}
+            past_ingredients = {}
+            for item in past_meal.get("malzemeler", []):
+                urun = item.get("urun", "").strip().upper()
+                if urun:
+                    past_ingredients[urun] = float(item.get("miktar", 0))
 
             for ingred, curr_qty in current_ingredients.items():
                 if ingred in past_ingredients:
@@ -690,15 +705,18 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         diff_percent = abs(curr_qty - past_qty) / past_qty * 100
 
                         if diff_percent > tolerance_percent:
-                            birim = meal_data.get("malzemeler", [{}])[0].get("birim", "Kg") if meal_data.get("malzemeler") else "?"
+                            birim = "kg"
+                            if meal_data.get("malzemeler"):
+                                birim = meal_data["malzemeler"][0].get("birim", "kg")
                             warning_msg = (
                                 f"⚠️ **{ingred}**: Kullanılan miktar %{diff_percent:.0f} farklı "
                                 f"({curr_qty:.2f} {birim} vs geçmişte {past_qty:.2f})"
                             )
-                            if warning_msg not in [w for w in warnings]:
+                            if warning_msg not in warnings:
                                 warnings.append(warning_msg)
 
         return warnings
+
 
     # Maskelenmiş alan kontrolü - aktif_k_maskeleri bir liste olabilir
     aktif_maskeler = aktif_k_maskeleri if isinstance(aktif_k_maskeleri, list) else []
