@@ -108,7 +108,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
         yemek_adi = "; ".join(menulari_birlestir) if menulari_birlestir else (ana_yemek_ad or yardimci_yemek_ad or corba_ad or tatli_meyve_yogurt_ad or "Yemek Planı")
 
         kisi_sayisi = st.number_input(
-            "Yararlanan Kişi Sayısı", min_value=1, value=200
+            "Yararlanan Kişi Sayısı", min_value=1, max_value=10000, value=200
         )
         # Zorunlu Numune Seçimi
         numune_durumu = st.radio(
@@ -158,9 +158,11 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         ilgili_girisler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == secilen_urun.strip().upper()]
                         stok_max = sum(g.get("kalan", 0) for g in ilgili_girisler)
 
+                    # Streamlit'in max_value sınırını aşmamak için 1M sınırı uygula
+                    max_acceptable = min(stok_max, 1_000_000) if stok_max > 0 else 0.001
                     kullanilacak_miktar = st.number_input(
                         f"Miktar (Toplam Stok: {stok_max})",
-                        min_value=0.0, max_value=max(stok_max, 0.001), value=1.0, step=0.1, key="yemek_miktar_manuel",
+                        min_value=0.0, max_value=max(max_acceptable, 0.001), value=1.0, step=0.1, key="yemek_miktar_manuel",
                     )
                 with col3:
                     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
@@ -228,7 +230,9 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                     secilen_urun = urun_adi
                                     secilen_paket_id = qr_okunan_id
                                     secilen_fatura_id = ana_id
-                                    kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=kalan_paket, value=1.0, step=0.1, key="qr_miktar_manuel")
+                                    # Streamlit'in max_value sınırını aşmamak için 1M sınırı uygula
+                                    max_acceptable_paket = min(kalan_paket, 1_000_000) if kalan_paket > 0 else 0.001
+                                    kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=max(max_acceptable_paket, 0.001), value=1.0, step=0.1, key="qr_miktar_manuel")
                                 
                                     if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr"):
                                         st.session_state.sepet.append({
@@ -244,7 +248,9 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                 toplam_kalan = float(ilgili_g.get("kalan", 0))
                                 st.info(f"**Dökme Ürün** | **Toplam Stok:** {toplam_kalan} {ilgili_g.get('birim')}")
                                 secilen_urun = urun_adi
-                                kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=max(toplam_kalan, 0.001), value=1.0, step=0.1, key="qr_miktar_dokme")
+                                # Streamlit'in max_value sınırını aşmamak için 1M sınırı uygula
+                                max_acceptable_dokme = min(toplam_kalan, 1_000_000) if toplam_kalan > 0 else 0.001
+                                kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=max(max_acceptable_dokme, 0.001), value=1.0, step=0.1, key="qr_miktar_dokme")
                             
                                 if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr_dokme"):
                                     st.session_state.sepet.append({"urun": urun_adi, "miktar": kullanilacak_miktar})
