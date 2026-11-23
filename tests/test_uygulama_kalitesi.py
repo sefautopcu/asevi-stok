@@ -36,6 +36,14 @@ def test_nonessential_data_loads_are_deferred_until_login():
     assert runtime.index(auth_loads) < runtime.index("gecerli_menuler = [")
 
 
+def test_guest_menu_uses_empty_page_settings_before_login():
+    runtime = (ROOT / "src" / "app_runtime.py").read_text(encoding="utf-8")
+
+    assert '_arayuz_sayfa_ayarlari = st.session_state.get(' in runtime
+    assert '{"sayfalar": {}, "ozel_sayfalar": []}' in runtime
+    assert 'for sayfa in _arayuz_sayfa_ayarlari["ozel_sayfalar"]' in runtime
+
+
 def test_demirbas_loader_and_saver_names_are_consistent():
     runtime_path = ROOT / "src" / "app_runtime.py"
     runtime = runtime_path.read_text(encoding="utf-8")

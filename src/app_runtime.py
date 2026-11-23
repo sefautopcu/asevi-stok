@@ -2672,9 +2672,15 @@ gecerli_menuler = [
     "Demirbaş Yönetimi",
     "Kullanıcı Ayarları",
 ]
+# Giriş ekranı gösterilmeden önce sayfa menüleri hazırlanır. Misafir oturumunda
+# kullanıcıya özel ayarlar henüz yüklenmediğinden güvenli boş varsayılan kullan.
+_arayuz_sayfa_ayarlari = st.session_state.get(
+    "arayuz_sayfa_ayarlari",
+    {"sayfalar": {}, "ozel_sayfalar": []},
+)
 gecerli_menuler.extend(
     sayfa["id"]
-    for sayfa in st.session_state.arayuz_sayfa_ayarlari["ozel_sayfalar"]
+    for sayfa in _arayuz_sayfa_ayarlari["ozel_sayfalar"]
     if sayfa["gorunur"]
 )
 
@@ -2688,7 +2694,7 @@ elif st.session_state.aktif_menu not in gecerli_menuler:
     st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
 
 _aktif_menu_ayari = arayuz_sayfa_ayari_al(
-    st.session_state.arayuz_sayfa_ayarlari,
+    _arayuz_sayfa_ayarlari,
     st.session_state.aktif_menu,
 )
 if not _aktif_menu_ayari["gorunur"]:
