@@ -126,6 +126,9 @@ def test_dark_widgets_popovers_and_sidebar_hover_have_readable_tokens():
     assert 'div.stButton > button:focus' in source
     assert 'div.stButton > button:active' in source
     assert '-webkit-text-fill-color: inherit !important;' in source
+    assert 'Düğme metnini görünür renk katmanına son kez sabitle.' in source
+    assert 'button[data-testid="baseButton-primary"] *' in source
+    assert 'button[data-testid="baseButton-secondary"] *' in source
     assert '[data-testid="stWidgetLabel"]' in source
     assert "div[data-testid=\"stExpander\"] summary" in source
     assert 'input[type="checkbox"]' in source

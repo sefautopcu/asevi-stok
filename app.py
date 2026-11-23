@@ -1917,6 +1917,27 @@ st.markdown("""
         color: var(--app-text) !important;
         -webkit-text-fill-color: var(--app-text) !important;
     }
+    /* Streamlit'in button içindeki p/span katmanları bazen transparent kalıyor.
+       Düğme metnini görünür renk katmanına son kez sabitle. */
+    button,
+    button * {
+        background-clip: border-box !important;
+        -webkit-background-clip: border-box !important;
+    }
+    button[data-testid="baseButton-primary"],
+    button[data-testid="baseButton-primary"] *,
+    .stButton button[data-testid="baseButton-primary"],
+    .stButton button[data-testid="baseButton-primary"] * {
+        color: var(--app-accent-contrast) !important;
+        -webkit-text-fill-color: var(--app-accent-contrast) !important;
+    }
+    button[data-testid="baseButton-secondary"],
+    button[data-testid="baseButton-secondary"] *,
+    .stButton button[data-testid="baseButton-secondary"],
+    .stButton button[data-testid="baseButton-secondary"] * {
+        color: var(--app-text) !important;
+        -webkit-text-fill-color: var(--app-text) !important;
+    }
 
     /* HTML Özel Tablo */
     .custom-table {
@@ -1951,9 +1972,9 @@ st.markdown("""
 # Sayfa ve bölüm başlıklarında kurumsal renk geçişi.
 st.markdown("""
 <style>
-    .stApp h1,
-    .stApp h2,
-    .stApp h3 {
+    .stApp h1:not([data-testid]),
+    .stApp h2:not([data-testid]),
+    .stApp h3:not([data-testid]) {
         display: inline-block !important;
         max-width: 100% !important;
         background-image: linear-gradient(
@@ -2916,6 +2937,11 @@ if not st.session_state.oturum_aktif:
                 padding: 0 !important;
                 text-align: center;
                 color: {text_color} !important;
+                background: none !important;
+                background-image: none !important;
+                -webkit-background-clip: border-box !important;
+                background-clip: border-box !important;
+                -webkit-text-fill-color: {text_color} !important;
                 font-size: 1.55rem;
                 letter-spacing: -0.04em;
             }}
