@@ -8105,7 +8105,7 @@ elif menu == "Kullanıcı Ayarları":
         st.caption("Aşağıdaki butonlar sadece o anki verileri size gönderir. Otomatik sabah 08:30 mailini etkilemez.")
         
         # CSS ile buton tasarımı (Dar, koyu arka plan, yeşil kenarlık ve hover)
-        st.markdown(f"""
+        st.markdown("""
         <style>
             /* Buton kapsayıcısını sola yasla ve butonlar arasına boşluk koy */
             div.stButton {
@@ -8115,11 +8115,11 @@ elif menu == "Kullanıcı Ayarları":
             }
             /* Butonun Kendi Tasarımı */
             div.stButton > button {
-                background-color: {card_bg} !important;
-                border: 1px solid {border_color} !important;
+                background-color: var(--app-card) !important;
+                border: 1px solid var(--app-border) !important;
                 border-radius: 20px !important; /* Yuvarlak Köşeler */
                 padding: 8px 20px !important;
-                color: {"#2F6F98" if st.session_state.tema == "Arctic" else "#10B981"} !important;
+                color: var(--app-accent) !important;
                 font-weight: 600 !important;
                 font-size: 14px !important;
                 transition: all 0.3s ease !important;
@@ -8127,10 +8127,10 @@ elif menu == "Kullanıcı Ayarları":
             }
             /* Hover Efekti */
             div.stButton > button:hover {
-                background-color: {sidebar_bg} !important;
-                color: {text_color} !important;
+                background-color: var(--app-sidebar) !important;
+                color: var(--app-text) !important;
                 box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12) !important;
-                border-color: {"#2F6F98" if st.session_state.tema == "Arctic" else "#10B981"} !important;
+                border-color: var(--app-accent) !important;
                 transform: translateY(-2px) !important; /* Hafif Yukarı Kayma */
             }
         </style>

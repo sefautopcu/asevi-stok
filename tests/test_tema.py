@@ -132,6 +132,20 @@ def test_dark_widgets_popovers_and_sidebar_hover_have_readable_tokens():
     assert "transform: translateX(4px) !important;" in source
 
 
+def test_user_settings_css_does_not_depend_on_local_f_string_variables():
+    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    source = app_path.read_text(encoding="utf-8")
+
+    settings_pos = source.index('elif menu == "Kullanıcı Ayarları":')
+    settings_source = source[settings_pos:]
+
+    assert 'st.markdown("""' in settings_source
+    assert "background-color: var(--app-card) !important;" in settings_source
+    assert "border: 1px solid var(--app-border) !important;" in settings_source
+    assert "color: var(--app-accent) !important;" in settings_source
+    assert "background-color: var(--app-sidebar) !important;" in settings_source
+
+
 def test_dual_theme_sidebar_config_has_contrast_tokens():
     config_path = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"
     source = config_path.read_text(encoding="utf-8")
