@@ -109,6 +109,19 @@ def test_theme_css_replaces_fixed_low_contrast_text_tokens():
     assert "var(--app-accent-contrast)" in source
 
 
+def test_dark_widgets_popovers_and_sidebar_hover_have_readable_tokens():
+    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    source = app_path.read_text(encoding="utf-8")
+
+    assert '[data-testid="stWidgetLabel"]' in source
+    assert "div[data-testid=\"stExpander\"] summary" in source
+    assert "input::placeholder" in source
+    assert "ul[role=\"listbox\"]" in source
+    assert "li[role=\"option\"]:hover" in source
+    assert 'section[data-testid="stSidebar"] div.stButton > button:hover' in source
+    assert "transform: translateX(4px) !important;" in source
+
+
 def test_dual_theme_sidebar_config_has_contrast_tokens():
     config_path = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"
     source = config_path.read_text(encoding="utf-8")
