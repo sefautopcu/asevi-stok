@@ -113,6 +113,11 @@ def test_dark_widgets_popovers_and_sidebar_hover_have_readable_tokens():
     app_path = Path(__file__).resolve().parents[1] / "app.py"
     source = app_path.read_text(encoding="utf-8")
 
+    assert 'button[data-testid="baseButton-primary"]' in source
+    assert 'div.stButton > button[data-testid="baseButton-primary"] p' in source
+    assert 'var(--app-accent-contrast) !important;' in source
+    assert 'div.stButton > button[data-testid="baseButton-secondary"]' in source
+    assert 'var(--app-text) !important;' in source
     assert '[data-testid="stWidgetLabel"]' in source
     assert "div[data-testid=\"stExpander\"] summary" in source
     assert 'input[type="checkbox"]' in source

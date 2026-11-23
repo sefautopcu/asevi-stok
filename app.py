@@ -1694,6 +1694,25 @@ st.markdown("""
         box-shadow: 0 0 25px -3px var(--app-accent) !important;
         transform: translateX(4px) !important;
     }
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-primary"],
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-primary"] p,
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-primary"] span,
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-primary"] div {
+        background: var(--app-accent) !important;
+        color: var(--app-accent-contrast) !important;
+        -webkit-text-fill-color: var(--app-accent-contrast) !important;
+    }
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-primary"] {
+        border: 1px solid var(--app-accent) !important;
+        box-shadow: 0 0 18px rgba(16, 185, 129, 0.18) !important;
+    }
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-secondary"],
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-secondary"] p,
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-secondary"] span,
+    section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-secondary"] div {
+        color: var(--app-text) !important;
+        -webkit-text-fill-color: var(--app-text) !important;
+    }
 
     /* Metrik Kartları ve Formlar (Neon Cam Efekti) */
     div[data-testid="stMetric"], 
