@@ -413,9 +413,105 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                 st.session_state.sepet.pop(silinecek_index)
                 st.rerun()
 
+            gecmis_istatistikleri = {}
+            gecmis_kontrol_mesajlari = []
+            if not salt_okunur_modu:
+                mevcut_menu = {
+                    "ana_yemek": ana_yemek_ad,
+                    "yardimci_yemek": yardimci_yemek_ad,
+                    "corba": corba_ad,
+                    "tatli_meyve_yogurt": tatli_meyve_yogurt_ad,
+                }
+                gecmis_istatistikleri = yemek_malzeme_kullanim_istatistikleri(
+                    st.session_state.yemek_uretim_arsivi,
+                    mevcut_menu,
+                    kisi_sayisi,
+                    uretim_tarih_str,
+                )
+                sepet_miktarlari = {}
+                sepet_adlari = {}
+                sepet_birimleri = {}
+                for item in st.session_state.sepet:
+                    malzeme_anahtari = "".join(
+                        str(item.get("urun", "")).split()
+                    ).upper()
+                    if not malzeme_anahtari:
+                        continue
+                    sepet_miktarlari[malzeme_anahtari] = (
+                        sepet_miktarlari.get(malzeme_anahtari, 0.0)
+                        + float(item.get("miktar", 0) or 0)
+                    )
+                    sepet_adlari[malzeme_anahtari] = str(item.get("urun", "")).strip()
+                    sepet_birimleri[malzeme_anahtari] = next(
+                        (
+                            g.get("birim", "Kg")
+                            for g in st.session_state.girisler
+                            if str(g.get("urun", "")).strip().upper()
+                            == str(item.get("urun", "")).strip().upper()
+                        ),
+                        "Kg",
+                    )
+
+                for malzeme_anahtari, istatistik in gecmis_istatistikleri.items():
+                    if malzeme_anahtari not in sepet_miktarlari:
+                        continue
+                    miktar = sepet_miktarlari[malzeme_anahtari]
+                    birim = sepet_birimleri.get(malzeme_anahtari, "")
+                    birim_eki = f" {birim}" if birim else ""
+                    gecmis_kontrol_mesajlari.append(
+                        f"**{sepet_adlari[malzeme_anahtari]}**: Geçmişte "
+                        f"{istatistik['uretim_sayisi']} üretimde kişi başı ortalama "
+                        f"{istatistik['ortalama_kisi_basi']:g}{birim_eki}/kişi "
+                        f"kullanılmıştı. {kisi_sayisi:g} kişi için beklenen miktar "
+                        f"yaklaşık **{istatistik['beklenen_miktar']:g}{birim_eki}**; "
+                        f"bu üretimde **{miktar:g}{birim_eki}** girildi."
+                    )
+
+                if gecmis_kontrol_mesajlari:
+                    gecmis_uyarilari = yemek_malzeme_kullanim_uyarilari(
+                        gecmis_istatistikleri,
+                        st.session_state.sepet,
+                        kisi_sayisi,
+                        sepet_birimleri,
+                    )
+                    if gecmis_uyarilari:
+                        st.warning(
+                            "⚠️ **Geçmiş kullanım kontrolü:** Üretimi tamamlamadan "
+                            "önce aşağıdaki sapmaları inceleyin."
+                        )
+                    else:
+                        st.info(
+                            "ℹ️ **Geçmiş kullanım kontrolü:** Önceki üretim "
+                            "ortalamasıyla karşılaştırma yapıldı."
+                        )
+                    for mesaj in gecmis_kontrol_mesajlari[:5]:
+                        st.markdown(mesaj)
+                    kontrol_imzasi = (
+                        yemek_adi,
+                        str(kisi_sayisi),
+                        tuple(sorted(sepet_miktarlari.items())),
+                    )
+                    kontrol_anahtari = (
+                        "yemek_gecmis_kontrol_onayi_"
+                        + str(abs(hash(kontrol_imzasi)))
+                    )
+                    kontrol_okundu = st.checkbox(
+                        "Geçmiş kullanım kontrolünü okudum, üretime devam et",
+                        key=kontrol_anahtari,
+                    )
+                else:
+                    kontrol_okundu = True
+            else:
+                kontrol_okundu = True
+
             if not salt_okunur_modu:
                 if st.button("🍲 Üretimi Tamamla ve Stoktan / Kullanıma Düş", type="primary"):
-                    if not numune_durumu:
+                    if gecmis_kontrol_mesajlari and not kontrol_okundu:
+                        st.error(
+                            "⚠️ Üretimi tamamlamak için geçmiş kullanım "
+                            "karşılaştırmasını okuyup onaylayın."
+                        )
+                    elif not numune_durumu:
                         st.error("⚠️ Lütfen üretimi tamamlamadan önce 'Numune Alındı / Alınmadı' seçeneğini işaretleyin!")
                     else:
                         tarih_simdi = simdi_tr_str("%Y-%m-%d %H:%M")

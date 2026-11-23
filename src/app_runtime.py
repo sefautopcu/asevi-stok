@@ -344,6 +344,21 @@ def _malzeme_kullanim_anahtari(urun_adi):
     return "".join(str(urun_adi or "").split()).upper()
 
 
+def _menu_adlari_eslesiyor(solan_ad, sag_ad):
+    sol = _malzeme_kullanim_anahtari(solan_ad)
+    sag = _malzeme_kullanim_anahtari(sag_ad)
+    if not sol or not sag:
+        return False
+    if sol == sag:
+        return True
+    for ek in ("YEMEĞI", "YEMEĞİ", "YEMEGI", "YEMEK"):
+        if sol.endswith(ek):
+            sol = sol[: -len(ek)]
+        if sag.endswith(ek):
+            sag = sag[: -len(ek)]
+    return bool(sol) and sol == sag
+
+
 def yemek_menu_ogelerini_temizle(menu_ogeleri):
     if not isinstance(menu_ogeleri, dict):
         return {alan: "" for alan, _ in yemek_menu_alanlari()}
@@ -428,8 +443,7 @@ def yemek_malzeme_kullanim_istatistikleri(
     for kayit in arsiv:
         kayit_menu = yemek_menu_ogelerini_kayittan_al(kayit)
         if not any(
-            _malzeme_kullanim_anahtari(kayit_menu.get(alan))
-            == aranan_ad
+            _menu_adlari_eslesiyor(kayit_menu.get(alan), aranan_ad)
             for alan, aranan_ad in aranan_menu.items()
         ):
             continue

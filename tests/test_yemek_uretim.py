@@ -16,6 +16,7 @@ def yemek_helpers():
         "yemek_menu_alanlari",
         "yemek_menu_ogelerini_temizle",
         "yemek_menu_ogelerini_kayittan_al",
+        "_menu_adlari_eslesiyor",
         "yemek_arsiv_menu_kolonlari",
         "yemek_kaydi_menu_ogelerini_guncelle",
         "yemek_malzeme_kullanim_istatistikleri",
@@ -203,6 +204,26 @@ def test_menu_ortalamasini_kisi_sayisina_gore_hesaplar_ve_none_alanlarini_kabul_
     assert stats["KUŞBAŞIET"]["beklenen_miktar"] == pytest.approx(20)
     assert uyarilar
     assert "beklenen yaklaşık miktar 20" in uyarilar[0]
+
+
+def test_ispanak_ve_ispanak_yemegi_adlari_ayni_gecmis_kaydini_eslestirir(
+    yemek_helpers,
+):
+    stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
+        [
+            {
+                "menu_ana_yemek": "Ispanak Yemeği",
+                "tarih": "2026-09-15",
+                "kisi_sayisi": 200,
+                "malzemeler": [{"urun": "Ispanak", "miktar": 20}],
+            }
+        ],
+        {"ana_yemek": "Ispanak"},
+        200,
+        "2026-11-23",
+    )
+
+    assert stats["ISPANAK"]["beklenen_miktar"] == pytest.approx(20)
 
 
 @pytest.mark.parametrize("bugunku_miktar", [40, 60])
