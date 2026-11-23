@@ -78,6 +78,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                 bas_tarih_filt = st.date_input("Başlangıç Tarihi", value=datetime.date.today() - datetime.timedelta(days=7))
             with c_bit:
                 bit_tarih_filt = st.date_input("Bitiş Tarihi", value=datetime.date.today())
+            secilen_tarih_str = f"{bas_tarih_filt} - {bit_tarih_filt}"
         else:
             secilen_tarih_str = "TÜMÜ"
 
@@ -459,40 +460,41 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         time.sleep(1)
                         st.rerun()
 
-            st.markdown("---")
-            kisi_basi_maliyet = (
-                toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0.0
-            )
-
-            m1, m2 = st.columns(2)
-            with m1:
-                st.metric("Toplam Maliyet", f"{toplam_maliyet:,.2f} ₺")
-            with m2:
-                st.metric("Kişi Başı Maliyet", f"{kisi_basi_maliyet:,.2f} ₺")
-            m3, m4 = st.columns(2)
-            with m3:
-                st.metric("Toplam Kalori", f"{toplam_kalori:,.0f} kcal")
-            with m4:
-                st.metric(
-                    "Kişi Başı Kalori",
-                    f"{(toplam_kalori / kisi_sayisi if kisi_sayisi > 0 else 0):,.0f} kcal",
+            if not salt_okunur_modu:
+                st.markdown("---")
+                kisi_basi_maliyet = (
+                    toplam_maliyet / kisi_sayisi if kisi_sayisi > 0 else 0.0
                 )
 
-            pdf_data = tablo_to_html_pdf_bytes(
-                f"Yemek Maliyet Raporu - {yemek_adi}", excel_sepet_liste
-            )
-            excel_sepet_data = tablo_to_excel_bytes(
-                excel_sepet_liste, f"Yemek Maliyet Raporu - {yemek_adi}"
-            )
-            with col_indir_alan:
-                ortak_indirme_alani(
-                    excel_sepet_data,
-                    pdf_data,
-                    "yemek_maliyet_raporu",
-                    "yemek_sayfasi",
+                m1, m2 = st.columns(2)
+                with m1:
+                    st.metric("Toplam Maliyet", f"{toplam_maliyet:,.2f} ₺")
+                with m2:
+                    st.metric("Kişi Başı Maliyet", f"{kisi_basi_maliyet:,.2f} ₺")
+                m3, m4 = st.columns(2)
+                with m3:
+                    st.metric("Toplam Kalori", f"{toplam_kalori:,.0f} kcal")
+                with m4:
+                    st.metric(
+                        "Kişi Başı Kalori",
+                        f"{(toplam_kalori / kisi_sayisi if kisi_sayisi > 0 else 0):,.0f} kcal",
+                    )
+
+                pdf_data = tablo_to_html_pdf_bytes(
+                    f"Yemek Maliyet Raporu - {yemek_adi}", excel_sepet_liste
                 )
-        else:
-            st.info("Henüz sepete malzeme eklenmedi.")
+                excel_sepet_data = tablo_to_excel_bytes(
+                    excel_sepet_liste, f"Yemek Maliyet Raporu - {yemek_adi}"
+                )
+                with col_indir_alan:
+                    ortak_indirme_alani(
+                        excel_sepet_data,
+                        pdf_data,
+                        "yemek_maliyet_raporu",
+                        "yemek_sayfasi",
+                    )
+            else:
+                st.info("Henüz sepete malzeme eklenmedi.")
 
     st.markdown("---")
 
