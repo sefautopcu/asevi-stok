@@ -11,7 +11,7 @@ MENU_KISIM_ETIKETLERI = {
 }
 
 
-def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, urun_kalori_hesapla, yonetici_modu):
+def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, urun_kalori_hesapla, yonetici_modu, yemek_malzeme_kullanim_istatistikleri, yemek_malzeme_kullanim_uyarilari):
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Aralığı Takibi")
@@ -682,101 +682,6 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
     if "malzeme_uyari_aktif" not in st.session_state:
         st.session_state.malzeme_uyari_aktif = True
 
-    # Malzeme kullanım uyarısı fonksiyonu
-    def malzeme_karsilastirma_uyari(meal_data, all_meals, tolerance_percent=10):
-        """
-        Belirtilen yemek için geçmişteki benzer yemeklerdeki malzeme kullanımını karşılaştırır.
-        Tolerans %±10 olarak ayarlanmıştır.
-        """
-        from datetime import datetime, timedelta
-
-        warnings = []
-        current_date = meal_data.get("tarih", "")
-
-        # Mevcut menüyü 4 bölümden biriyle de karşılaştır (daha esnek eşleşme)
-        current_menus = [
-            meal_data.get("menu_ana_yemek", "").strip(),
-            meal_data.get("menu_yardimci_yemek", "").strip(),
-            meal_data.get("menu_corba", "").strip(),
-            meal_data.get("menu_tatli_meyve_yogurt", "").strip(),
-        ]
-        current_menus_normalized = [m for m in current_menus if m]
-
-        # Benzer yemekleri bul - en az 1 menü bölümü eşleşirse
-        similar_meals = []
-        for past_meal in all_meals:
-            if past_meal.get("tarih") == current_date:
-                continue
-
-            past_menus = [
-                past_meal.get("menu_ana_yemek", "").strip(),
-                past_meal.get("menu_yardimci_yemek", "").strip(),
-                past_meal.get("menu_corba", "").strip(),
-                past_meal.get("menu_tatli_meyve_yogurt", "").strip(),
-            ]
-            past_menus_normalized = [m for m in past_menus if m]
-
-            # Herhangi bir menü bölümü eşleşirse
-            for curr_menu in current_menus_normalized:
-                for past_menu in past_menus_normalized:
-                    if curr_menu.lower() == past_menu.lower():
-                        similar_meals.append(past_meal)
-                        break
-                else:
-                    continue
-                break
-
-        if not similar_meals:
-            # Eski format desteği: sadece yemek_adi kontrolü
-            current_yemek_adi = meal_data.get("yemek_adi", "").strip()
-            if current_yemek_adi:
-                for past_meal in all_meals:
-                    if past_meal.get("tarih") == current_date:
-                        continue
-                    past_yemek_adi = past_meal.get("yemek_adi", "").strip()
-                    if past_yemek_adi and current_yemek_adi.lower() == past_yemek_adi.lower():
-                        similar_meals.append(past_meal)
-
-        if not similar_meals:
-            return []
-
-        # Malzeme miktarlarını karşılaştır
-        current_ingredients = {}
-        for item in meal_data.get("malzemeler", []):
-            urun = item.get("urun", "").strip().upper()
-            if urun:
-                current_ingredients[urun] = float(item.get("miktar", 0))
-
-        if not current_ingredients:
-            return []
-
-        for past_meal in similar_meals:
-            past_ingredients = {}
-            for item in past_meal.get("malzemeler", []):
-                urun = item.get("urun", "").strip().upper()
-                if urun:
-                    past_ingredients[urun] = float(item.get("miktar", 0))
-
-            for ingred, curr_qty in current_ingredients.items():
-                if ingred in past_ingredients:
-                    past_qty = past_ingredients[ingred]
-                    if past_qty > 0:
-                        diff_percent = abs(curr_qty - past_qty) / past_qty * 100
-
-                        if diff_percent > tolerance_percent:
-                            birim = "kg"
-                            if meal_data.get("malzemeler"):
-                                birim = meal_data["malzemeler"][0].get("birim", "kg")
-                            warning_msg = (
-                                f"⚠️ **{ingred}**: Kullanılan miktar %{diff_percent:.0f} farklı "
-                                f"({curr_qty:.2f} {birim} vs geçmişte {past_qty:.2f})"
-                            )
-                            if warning_msg not in warnings:
-                                warnings.append(warning_msg)
-
-        return warnings
-
-
     # Maskelenmiş alan kontrolü - aktif_k_maskeleri bir liste olabilir
     aktif_maskeler = aktif_k_maskeleri if isinstance(aktif_k_maskeleri, list) else []
 
@@ -786,22 +691,42 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
             son_yemek = st.session_state.yemek_uretim_arsivi[-1] if st.session_state.yemek_uretim_arsivi else None
 
             if son_yemek and st.session_state.malzeme_uyari_aktif:
-                # Sadece geçerli menü bilgileri varsa kontrol et
-                if any([son_yemek.get("menu_ana_yemek"), son_yemek.get("menu_yardimci_yemek"),
-                       son_yemek.get("menu_corba"), son_yemek.get("menu_tatli_meyve_yogurt")]):
-                    uyarilar = malzeme_karsilastirma_uyari(
-                        son_yemek,
-                        st.session_state.yemek_uretim_arsivi,
-                        tolerance_percent=10
-                    )
+                menu_ogeleri = {
+                    "ana_yemek": son_yemek.get("menu_ana_yemek") or "",
+                    "yardimci_yemek": son_yemek.get("menu_yardimci_yemek") or "",
+                    "corba": son_yemek.get("menu_corba") or "",
+                    "tatli_meyve_yogurt": son_yemek.get("menu_tatli_meyve_yogurt") or "",
+                }
+                if not any(menu_ogeleri.values()):
+                    menu_ogeleri = son_yemek.get("yemek_adi", "")
 
-                    if uyarilar:
-                        st.warning(f"🔍 **Malzeme Kullanım Uyarısı** (Tolerans: %±10)")
-                        for uyari in uyarilar[:5]:  # En fazla 5 uyarı göster
-                            st.markdown(uyari)
+                kisi_sayisi_uyari = son_yemek.get("kisi_sayisi", 0)
+                istatistikler = yemek_malzeme_kullanim_istatistikleri(
+                    st.session_state.yemek_uretim_arsivi,
+                    menu_ogeleri,
+                    kisi_sayisi_uyari,
+                    son_yemek.get("tarih"),
+                    son_yemek.get("zaman"),
+                )
+                birimler = {
+                    "".join(str(item.get("urun", "")).split()).upper(): item.get("birim", "")
+                    for item in son_yemek.get("malzemeler", [])
+                    if isinstance(item, dict) and item.get("urun")
+                }
+                uyarilar = yemek_malzeme_kullanim_uyarilari(
+                    istatistikler,
+                    son_yemek.get("malzemeler", []),
+                    kisi_sayisi_uyari,
+                    birimler,
+                )
 
-                        if len(uyarilar) > 5:
-                            st.caption(f"... ve {len(uyarilar) - 5} daha fazla uyarı")
+                if uyarilar:
+                    st.warning("🔍 **Malzeme Kullanım Uyarısı** (Kişi başı geçmiş ortalaması, tolerans: %±10)")
+                    for uyari in uyarilar[:5]:
+                        st.markdown(uyari)
+
+                    if len(uyarilar) > 5:
+                        st.caption(f"... ve {len(uyarilar) - 5} daha fazla uyarı")
 
     # 7. MENÜ GÜNCELLEME ARACI (ADMIN)
     # =====================================

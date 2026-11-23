@@ -356,6 +356,13 @@ def yemek_menu_ogelerini_temizle(menu_ogeleri):
 def yemek_menu_ogelerini_kayittan_al(kayit):
     menu_ogeleri = yemek_menu_ogelerini_temizle(kayit.get("menu_ogeleri"))
     if not any(menu_ogeleri.values()):
+        menu_ogeleri = yemek_menu_ogelerini_temizle(
+            {
+                alan: kayit.get(f"menu_{alan}", "")
+                for alan, _ in yemek_menu_alanlari()
+            }
+        )
+    if not any(menu_ogeleri.values()):
         eski_ad = str(kayit.get("yemek_adi", "") or "").strip()
         if eski_ad and "/" not in eski_ad:
             menu_ogeleri["ana_yemek"] = eski_ad
@@ -4188,6 +4195,8 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes,
         tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster,
         urun_kalori_hesapla, yonetici_modu,
+        yemek_malzeme_kullanim_istatistikleri,
+        yemek_malzeme_kullanim_uyarilari,
     )
 elif menu == "Kalori Hesaplama Aracı":
     kalori_hesaplama_sayfasi(

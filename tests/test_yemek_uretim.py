@@ -159,6 +159,40 @@ def test_gecmis_kullanimdan_farkli_miktar_uyarir_ancak_stok_kontrolu_ayridir(yem
     ) == []
 
 
+def test_menu_ortalamasini_kisi_sayisina_gore_hesaplar_ve_none_alanlarini_kabul_eder(
+    yemek_helpers,
+):
+    arsiv = [
+        {
+            "menu_ana_yemek": "Et Haşlama",
+            "menu_yardimci_yemek": None,
+            "menu_corba": None,
+            "menu_tatli_meyve_yogurt": None,
+            "tarih": "2026-09-15",
+            "kisi_sayisi": 200,
+            "malzemeler": [{"urun": "Kuşbaşı Et", "miktar": 20, "birim": "Kg"}],
+        }
+    ]
+
+    stats = yemek_helpers["yemek_malzeme_kullanim_istatistikleri"](
+        arsiv,
+        {"ana_yemek": "Et Haşlama"},
+        200,
+        "2026-11-23",
+    )
+    uyarilar = yemek_helpers["yemek_malzeme_kullanim_uyarilari"](
+        stats,
+        [{"urun": "Kuşbaşı Et", "miktar": 25}],
+        200,
+        {"KUŞBAŞIET": "Kg"},
+    )
+
+    assert stats["KUŞBAŞIET"]["ortalama_kisi_basi"] == pytest.approx(0.1)
+    assert stats["KUŞBAŞIET"]["beklenen_miktar"] == pytest.approx(20)
+    assert uyarilar
+    assert "beklenen yaklaşık miktar 20" in uyarilar[0]
+
+
 @pytest.mark.parametrize("bugunku_miktar", [40, 60])
 def test_ortalama_disi_kullanim_hem_dusuk_hem_yuksek_miktarda_uyarir(
     yemek_helpers, bugunku_miktar
