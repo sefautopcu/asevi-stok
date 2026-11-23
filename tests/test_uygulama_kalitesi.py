@@ -21,11 +21,11 @@ def test_dashboard_weather_is_cached_and_reports_are_manual():
     assert "gunluk_rapor_maili_gonder(" not in runtime
 
 
-def test_streamlit_entrypoint_is_small_and_delegates_to_runtime():
+def test_streamlit_entrypoint_reruns_runtime_instead_of_using_cached_import():
     entrypoint = (ROOT / "app.py").read_text(encoding="utf-8")
 
     assert len(entrypoint.encode("utf-8")) < 40_000
-    assert "from src import app_runtime" in entrypoint
+    assert 'runpy.run_module("src.app_runtime", run_name="__main__")' in entrypoint
 
 
 def test_nonessential_data_loads_are_deferred_until_login():
