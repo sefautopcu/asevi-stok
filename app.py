@@ -1680,12 +1680,20 @@ st.markdown("""
     /* Sol Menü Butonları */
     section[data-testid="stSidebar"] div.stButton > button {
         background: transparent !important;
-        color: var(--app-muted) !important;
+        color: var(--app-text) !important;
+        -webkit-text-fill-color: var(--app-text) !important;
         border: 1px solid transparent !important;
         border-radius: 12px !important;
         font-weight: 500 !important;
         padding: 10px 16px !important;
         transition: all 0.25s ease !important;
+    }
+    section[data-testid="stSidebar"] div.stButton > button p,
+    section[data-testid="stSidebar"] div.stButton > button span,
+    section[data-testid="stSidebar"] div.stButton > button div,
+    section[data-testid="stSidebar"] div.stButton > button strong {
+        color: inherit !important;
+        -webkit-text-fill-color: inherit !important;
     }
     section[data-testid="stSidebar"] div.stButton > button:hover {
         background: var(--app-accent) !important;
@@ -1712,6 +1720,13 @@ st.markdown("""
     section[data-testid="stSidebar"] div.stButton > button[data-testid="baseButton-secondary"] div {
         color: var(--app-text) !important;
         -webkit-text-fill-color: var(--app-text) !important;
+    }
+    section[data-testid="stSidebar"] div.stButton > button:hover p,
+    section[data-testid="stSidebar"] div.stButton > button:hover span,
+    section[data-testid="stSidebar"] div.stButton > button:hover div,
+    section[data-testid="stSidebar"] div.stButton > button:hover strong {
+        color: var(--app-accent-contrast) !important;
+        -webkit-text-fill-color: var(--app-accent-contrast) !important;
     }
 
     /* Metrik Kartları ve Formlar (Neon Cam Efekti) */
@@ -1853,18 +1868,54 @@ st.markdown("""
     button[data-testid="baseButton-primary"] {
         background: var(--app-accent) !important;
         color: var(--app-accent-contrast) !important;
+        -webkit-text-fill-color: var(--app-accent-contrast) !important;
         border: none !important;
         border-radius: 12px !important;
         font-weight: 700 !important;
         box-shadow: 0 4px 20px rgba(15, 23, 42, 0.18) !important;
+    }
+    button[data-testid="baseButton-primary"] p,
+    button[data-testid="baseButton-primary"] span,
+    button[data-testid="baseButton-primary"] div,
+    button[data-testid="baseButton-primary"] strong {
+        color: var(--app-accent-contrast) !important;
+        -webkit-text-fill-color: var(--app-accent-contrast) !important;
+    }
+    button[data-testid="baseButton-primary"]:hover,
+    button[data-testid="baseButton-primary"]:focus,
+    button[data-testid="baseButton-primary"]:active {
+        background: var(--app-accent) !important;
+        color: var(--app-accent-contrast) !important;
+        -webkit-text-fill-color: var(--app-accent-contrast) !important;
     }
 
     /* İkincil Butonlar */
     button[data-testid="baseButton-secondary"], div.stButton > button {
         background: var(--app-card) !important;
         color: var(--app-text) !important;
+        -webkit-text-fill-color: var(--app-text) !important;
         border: 1px solid var(--app-border) !important;
         border-radius: 12px !important;
+    }
+    button[data-testid="baseButton-secondary"] p,
+    button[data-testid="baseButton-secondary"] span,
+    button[data-testid="baseButton-secondary"] div,
+    button[data-testid="baseButton-secondary"] strong,
+    div.stButton > button p,
+    div.stButton > button span,
+    div.stButton > button div,
+    div.stButton > button strong {
+        color: var(--app-text) !important;
+        -webkit-text-fill-color: var(--app-text) !important;
+    }
+    button[data-testid="baseButton-secondary"]:hover,
+    button[data-testid="baseButton-secondary"]:focus,
+    button[data-testid="baseButton-secondary"]:active,
+    div.stButton > button:hover,
+    div.stButton > button:focus,
+    div.stButton > button:active {
+        color: var(--app-text) !important;
+        -webkit-text-fill-color: var(--app-text) !important;
     }
 
     /* HTML Özel Tablo */
