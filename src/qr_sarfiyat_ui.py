@@ -55,7 +55,9 @@ def qr_kod_ile_hizli_sarfiyat_sayfasi(
                         else:
                             with st.form("qr_stok_dus_formu"):
                                 st.markdown("**Kullanım / Sarfiyat Bilgisi**")
-                                dusulecek_miktar = st.number_input(f"Kullanılan Miktar ({urun_obj.get('birim')})", min_value=0.1, max_value=toplam_kalan, value=1.0, step=0.1)
+                                # Streamlit'in max_value sınırını aşmamak için 1M sınırı uygula
+                                max_acceptable_dus = min(toplam_kalan, 1_000_000) if toplam_kalan > 0 else 0.001
+                                dusulecek_miktar = st.number_input(f"Kullanılan Miktar ({urun_obj.get('birim')})", min_value=0.1, max_value=max(max_acceptable_dus, 0.001), value=1.0, step=0.1)
                                 aciklama = st.text_input("Açıklama (Örn: Öğle yemeği için kullanıldı)")
                                 dus_btn = st.form_submit_button("Stoktan Düş ve Kaydet", type="primary")
                                 if dus_btn:
