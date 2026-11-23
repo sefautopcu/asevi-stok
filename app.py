@@ -1731,6 +1731,46 @@ st.markdown("""
         color: var(--app-text) !important;
     }
 
+    /* Checkbox, radio, toggle ve kontroller */
+    input[type="checkbox"],
+    input[type="radio"] {
+        accent-color: var(--app-accent) !important;
+    }
+    [data-testid="stCheckbox"] label,
+    [data-testid="stCheckbox"] label p,
+    [data-testid="stCheckbox"] label span,
+    [data-testid="stRadio"] label,
+    [data-testid="stRadio"] label p,
+    [data-testid="stRadio"] label span,
+    [data-testid="stToggle"] label,
+    [data-testid="stToggle"] label p,
+    [data-testid="stToggle"] label span {
+        color: var(--app-text) !important;
+    }
+    [data-testid="stCheckbox"] [role="checkbox"],
+    [data-testid="stRadio"] [role="radio"],
+    [data-testid="stToggle"] [role="switch"] {
+        border: 1px solid var(--app-border) !important;
+    }
+
+    /* Kullanıcı ayarları sekmeleri ve veri panelleri */
+    [data-testid="stTabs"] [role="tab"],
+    [data-testid="stTabs"] [role="tab"] p,
+    div[data-testid="stDataFrame"],
+    div[data-testid="stDataFrame"] *,
+    div[data-testid="stTable"],
+    div[data-testid="stTable"] * {
+        color: var(--app-text) !important;
+    }
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        color: var(--app-accent) !important;
+        border-bottom-color: var(--app-accent) !important;
+    }
+    [data-testid="stTabs"] [role="tabpanel"] {
+        background: transparent !important;
+        color: var(--app-text) !important;
+    }
+
     input,
     textarea,
     [data-baseweb="input"] input,
