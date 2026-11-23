@@ -677,6 +677,9 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
         # Her benzer yemek için malzeme miktarlarını karşılaştır
         current_ingredients = {item["urun"].upper(): float(item["miktar"]) for item in meal_data.get("malzemeler", [])}
 
+        if not current_ingredients:
+            return []
+
         for past_meal in similar_meals:
             past_ingredients = {item["urun"].upper(): float(item["miktar"]) for item in past_meal.get("malzemeler", [])}
 
@@ -697,8 +700,10 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
 
         return warnings
 
-    # Arşivden son 30 günlük kayıtları al (uyarı için)
-    if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" not in aktif_k_maskeleri:
+    # Maskelenmiş alan kontrolü - aktif_k_maskeleri bir liste olabilir
+    aktif_maskeler = aktif_k_maskeleri if isinstance(aktif_k_maskeleri, list) else []
+
+    if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" not in aktif_maskeler:
         if st.session_state.yemek_uretim_arsivi:
             # Son yemek kaydını kontrol et
             son_yemek = st.session_state.yemek_uretim_arsivi[-1] if st.session_state.yemek_uretim_arsivi else None
@@ -723,7 +728,10 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
 
     # 7. MENÜ GÜNCELLEME ARACI (ADMIN)
     # =====================================
-    if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" not in aktif_k_maskeleri:
+    # Maskelenmiş alan kontrolü - aktif_k_maskeleri bir liste olabilir
+    aktif_maskeler = aktif_k_maskeleri if isinstance(aktif_k_maskeleri, list) else []
+
+    if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" not in aktif_maskeler:
         if st.session_state.get("admin_modu", False):
             with st.expander("🔧 Menü Düzenleme ve Güncelleme Aracı"):
                 st.markdown("**Varolan yemek kayıtlarını güncelleyebilirsiniz.**")
