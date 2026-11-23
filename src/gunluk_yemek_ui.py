@@ -159,10 +159,23 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         stok_max = sum(g.get("kalan", 0) for g in ilgili_girisler)
 
                     # Streamlit'in max_value sınırını aşmamak için 1M sınırı uygula
-                    max_acceptable = min(stok_max, 1_000_000) if stok_max > 0 else 0.001
+                    max_acceptable = min(max(float(stok_max), 0.0), 1_000_000.0)
+                    max_input = max(max_acceptable, 0.001)
+                    try:
+                        mevcut_miktar = float(
+                            st.session_state.get("yemek_miktar_manuel", 1.0)
+                        )
+                    except (TypeError, ValueError):
+                        mevcut_miktar = 1.0
+                    st.session_state["yemek_miktar_manuel"] = min(
+                        max(mevcut_miktar, 0.0), max_input
+                    )
                     kullanilacak_miktar = st.number_input(
                         f"Miktar (Toplam Stok: {stok_max})",
-                        min_value=0.0, max_value=max(max_acceptable, 0.001), value=1.0, step=0.1, key="yemek_miktar_manuel",
+                        min_value=0.0,
+                        max_value=max_input,
+                        step=0.1,
+                        key="yemek_miktar_manuel",
                     )
                 with col3:
                     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
@@ -231,8 +244,27 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                     secilen_paket_id = qr_okunan_id
                                     secilen_fatura_id = ana_id
                                     # Streamlit'in max_value sınırını aşmamak için 1M sınırı uygula
-                                    max_acceptable_paket = min(kalan_paket, 1_000_000) if kalan_paket > 0 else 0.001
-                                    kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=max(max_acceptable_paket, 0.001), value=1.0, step=0.1, key="qr_miktar_manuel")
+                                    max_acceptable_paket = min(
+                                        max(float(kalan_paket), 0.0), 1_000_000.0
+                                    )
+                                    max_input_paket = max(max_acceptable_paket, 0.1)
+                                    try:
+                                        mevcut_paket_miktari = float(
+                                            st.session_state.get("qr_miktar_manuel", 1.0)
+                                        )
+                                    except (TypeError, ValueError):
+                                        mevcut_paket_miktari = 1.0
+                                    st.session_state["qr_miktar_manuel"] = min(
+                                        max(mevcut_paket_miktari, 0.1),
+                                        max_input_paket,
+                                    )
+                                    kullanilacak_miktar = st.number_input(
+                                        f"Kullanılacak Miktar ({ilgili_g.get('birim')})",
+                                        min_value=0.1,
+                                        max_value=max_input_paket,
+                                        step=0.1,
+                                        key="qr_miktar_manuel",
+                                    )
                                 
                                     if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr"):
                                         st.session_state.sepet.append({
@@ -249,8 +281,27 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                 st.info(f"**Dökme Ürün** | **Toplam Stok:** {toplam_kalan} {ilgili_g.get('birim')}")
                                 secilen_urun = urun_adi
                                 # Streamlit'in max_value sınırını aşmamak için 1M sınırı uygula
-                                max_acceptable_dokme = min(toplam_kalan, 1_000_000) if toplam_kalan > 0 else 0.001
-                                kullanilacak_miktar = st.number_input(f"Kullanılacak Miktar ({ilgili_g.get('birim')})", min_value=0.1, max_value=max(max_acceptable_dokme, 0.001), value=1.0, step=0.1, key="qr_miktar_dokme")
+                                max_acceptable_dokme = min(
+                                    max(float(toplam_kalan), 0.0), 1_000_000.0
+                                )
+                                max_input_dokme = max(max_acceptable_dokme, 0.1)
+                                try:
+                                    mevcut_dokme_miktari = float(
+                                        st.session_state.get("qr_miktar_dokme", 1.0)
+                                    )
+                                except (TypeError, ValueError):
+                                    mevcut_dokme_miktari = 1.0
+                                st.session_state["qr_miktar_dokme"] = min(
+                                    max(mevcut_dokme_miktari, 0.1),
+                                    max_input_dokme,
+                                )
+                                kullanilacak_miktar = st.number_input(
+                                    f"Kullanılacak Miktar ({ilgili_g.get('birim')})",
+                                    min_value=0.1,
+                                    max_value=max_input_dokme,
+                                    step=0.1,
+                                    key="qr_miktar_dokme",
+                                )
                             
                                 if st.button("Sepete Ekle (QR)", use_container_width=True, key="btn_sepete_ekle_qr_dokme"):
                                     st.session_state.sepet.append({"urun": urun_adi, "miktar": kullanilacak_miktar})
