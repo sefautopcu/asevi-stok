@@ -48,3 +48,14 @@ def test_demirbas_loader_and_saver_names_are_consistent():
     assert "demirbaşları_kaydet" not in runtime
     assert "demirbasları_yukle" in tanimli_fonksiyonlar
     assert "demirbasları_kaydet" in tanimli_fonksiyonlar
+
+
+def test_user_management_receives_password_change_dependency():
+    runtime = (ROOT / "src" / "app_runtime.py").read_text(encoding="utf-8")
+    user_ui = (ROOT / "src" / "kullanici_yonetim_ui.py").read_text(encoding="utf-8")
+
+    assert "kullanici_yonetim_sekmesini_goster(" in runtime
+    assert "sifre_degistir," in runtime
+    assert "def kullanici_yonetim_sekmesini_goster(" in user_ui
+    assert "sifre_degistir)" in user_ui
+    assert "sifre_degistir(secilen_k_adi" in user_ui

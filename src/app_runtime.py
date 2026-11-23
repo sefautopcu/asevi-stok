@@ -2679,10 +2679,21 @@ gecerli_menuler.extend(
 )
 
 if "aktif_menu" not in st.session_state:
-    if "menu" in query_params and query_params["menu"] in gecerli_menuler:
-        st.session_state.aktif_menu = query_params["menu"]
-    else:
-        st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
+    st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
+
+_query_menu = query_params.get("menu", "")
+if _query_menu in gecerli_menuler:
+    st.session_state.aktif_menu = _query_menu
+elif st.session_state.aktif_menu not in gecerli_menuler:
+    st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
+
+_aktif_menu_ayari = arayuz_sayfa_ayari_al(
+    st.session_state.arayuz_sayfa_ayarlari,
+    st.session_state.aktif_menu,
+)
+if not _aktif_menu_ayari["gorunur"]:
+    st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
+    st.query_params["menu"] = "Kurumsal Dashboard & Özet"
 
 if "silme_mesaji" not in st.session_state:
     st.session_state.silme_mesaji = ""
@@ -3442,7 +3453,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
                 "primary" if st.session_state.aktif_menu == m else "secondary"
             )
             if st.button(
-                btn_label, use_container_width=True, type=btn_type, key=f"menu_btn_{m}"
+                btn_label, width="stretch", type=btn_type, key=f"menu_btn_{m}"
             ):
                 st.session_state.aktif_menu = m
                 st.query_params["menu"] = m
@@ -4020,7 +4031,9 @@ menu = st.session_state.aktif_menu
 
 if not yonetici_modu and menu in yasakli_menuler_listesi:
     st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
-    st.stop()
+    st.session_state.aktif_menu = "Kurumsal Dashboard & Özet"
+    st.query_params["menu"] = "Kurumsal Dashboard & Özet"
+    st.rerun()
 
 _sayfa_baslik_stili = arayuz_sayfa_ayari_al(
     st.session_state.arayuz_sayfa_ayarlari, menu
@@ -4238,7 +4251,7 @@ elif menu == "Kullanıcı Ayarları":
         kullanici_yonetim_sekmesini_goster(
             sekme_k, st, kullanici_db, ESKI_VARSAYILAN_HASHLER, gecerli_menuler,
             otomatik_yedek_al, kullanici_oturumlarini_kapat, kullanıcıları_kaydet,
-            giris_logla, sifre_hashle_yeni, sifre_politika_hatasi,
+            giris_logla, sifre_hashle_yeni, sifre_politika_hatasi, sifre_degistir,
         )
         kendi_sifre_sekmesini_goster(
             sekme_s, st, kullanici_db, sifre_dogrula, sifre_politika_hatasi,

@@ -2,7 +2,7 @@ import re
 import time
 import pandas as pd
 
-def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILAN_HASHLER, gecerli_menuler, otomatik_yedek_al, kullanici_oturumlarini_kapat, kullanıcıları_kaydet, giris_logla, sifre_hashle_yeni, sifre_politika_hatasi):
+def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILAN_HASHLER, gecerli_menuler, otomatik_yedek_al, kullanici_oturumlarini_kapat, kullanıcıları_kaydet, giris_logla, sifre_hashle_yeni, sifre_politika_hatasi, sifre_degistir):
     with sekme_k:
         st.subheader("📋 Aktif Kullanıcılar ve Yetki Matrisi")
         if len(kullanici_db) > 0:
