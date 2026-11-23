@@ -4187,7 +4187,7 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         otomatik_yedek_al, verileri_kaydet, loglari_kaydet,
         yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes,
         tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster,
-        urun_kalori_hesapla,
+        urun_kalori_hesapla, yonetici_modu,
     )
 elif menu == "Kalori Hesaplama Aracı":
     kalori_hesaplama_sayfasi(

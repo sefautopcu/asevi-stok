@@ -11,7 +11,7 @@ MENU_KISIM_ETIKETLERI = {
 }
 
 
-def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, urun_kalori_hesapla):
+def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_maskeleri, otomatik_yedek_al, verileri_kaydet, loglari_kaydet, yemek_uretim_arsivini_kaydet, simdi_tr_str, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, urun_kalori_hesapla, yonetici_modu):
     col_baslik_r, col_indir_alan = st.columns([2, 2])
     with col_baslik_r:
         st.header("🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Aralığı Takibi")
@@ -732,7 +732,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
     aktif_maskeler = aktif_k_maskeleri if isinstance(aktif_k_maskeleri, list) else []
 
     if "3. Sayfa: Yemek Üretim ve Maliyet Arşivi" not in aktif_maskeler:
-        if st.session_state.get("admin_modu", False):
+        if yonetici_modu:
             with st.expander("🔧 Menü Düzenleme ve Güncelleme Aracı"):
                 st.markdown("**Varolan yemek kayıtlarını güncelleyebilirsiniz.**")
                 st.markdown("Bu araç yalnızca **admin** kullanıcılar için görünürdür.")
