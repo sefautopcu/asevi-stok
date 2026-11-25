@@ -1,5 +1,6 @@
 import datetime
 import time
+from src.yemek_utils import giris_birim_fiyati_al, yemek_sepeti_maliyet_hesapla
 
 # Yemek menüsünün 4 ana bölümü
 MENU_KISIMLARI = ("ana_yemek", "yardimci_yemek", "corba", "tatli_meyve_yogurt")
@@ -359,7 +360,9 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     st.session_state.sepet = []
                     st.rerun()
 
-            toplam_maliyet = 0.0
+            kalem_maliyetleri, toplam_maliyet = yemek_sepeti_maliyet_hesapla(
+                st.session_state.girisler, st.session_state.sepet
+            )
             toplam_kalori = 0.0
             excel_sepet_liste = []
 
@@ -371,30 +374,8 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                 ilgili_girisler = [
                     g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == urun.strip().upper()
                 ]
-                
-                # ✨ KESİN ÇÖZÜM: ÖNCE BİRİM FİYATA BAK, YOKSA HESAPLA ✨
-                ortalama_fiyat = 0.0
-                if ilgili_girisler:
-                    toplam_tutar = 0.0
-                    toplam_miktar = 0.0
-                    for g in ilgili_girisler:
-                        try:
-                            miktar = float(g.get("miktar", 0) or 0)
-                            if miktar > 0:
-                                birim_f = g.get("birim_fiyat")
-                                if birim_f is not None and float(birim_f) > 0:
-                                    birim_f = float(birim_f)
-                                else:
-                                    birim_f = float(g.get("fiyat", 0) or 0) / miktar
-                                
-                                toplam_tutar += birim_f * miktar
-                                toplam_miktar += miktar
-                        except (ValueError, TypeError):
-                            pass
-                    ortalama_fiyat = toplam_tutar / toplam_miktar if toplam_miktar > 0 else 0.0
 
-                item_maliyeti = istenen * ortalama_fiyat
-                toplam_maliyet += item_maliyeti
+                item_maliyeti = kalem_maliyetleri[idx]
                 birim = ilgili_girisler[0].get("birim", "Kg") if ilgili_girisler else "Kg"
                 item_kalorisi = urun_kalori_hesapla(urun, istenen, birim)
                 toplam_kalori += item_kalorisi
@@ -558,14 +539,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                     g["paket_durumlari"][paket_id] = mevcut_paket - dusulecek
                                     g["kalan"] = float(g["kalan"]) - dusulecek
                                     
-                                    # Maliyet hesaplaması için birim fiyatı burada da aynı mantıkla bulalım
-                                    g_miktar = float(g.get("miktar", 0) or 0)
-                                    g_birim_f = g.get("birim_fiyat")
-                                    if g_birim_f is not None and float(g_birim_f) > 0:
-                                        g_birim_f = float(g_birim_f)
-                                    else:
-                                        g_birim_f = float(g.get("fiyat", 0) or 0) / g_miktar if g_miktar > 0 else 0.0
-                                        
+                                    g_birim_f = giris_birim_fiyati_al(g)
                                     item_tutar += dusulecek * g_birim_f
                                     
                                     kalan_dusulecek -= dusulecek
@@ -574,12 +548,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                     item_partiler.append({"fatura_id": g["id"], "dusulen_miktar": dusulecek, "paket_id": paket_id})
                                 else:
                                     # Manuel eklendiyse (FIFO mantığıyla genel stoktan düş)
-                                    g_miktar = float(g.get("miktar", 0) or 0)
-                                    g_birim_f = g.get("birim_fiyat")
-                                    if g_birim_f is not None and float(g_birim_f) > 0:
-                                        g_birim_f = float(g_birim_f)
-                                    else:
-                                        g_birim_f = float(g.get("fiyat", 0) or 0) / g_miktar if g_miktar > 0 else 0.0
+                                    g_birim_f = giris_birim_fiyati_al(g)
 
                                     if float(g["kalan"]) >= kalan_dusulecek:
                                         g["kalan"] = float(g["kalan"]) - kalan_dusulecek
@@ -637,6 +606,10 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                             st.session_state.kullanim_loglari.append(log_obj)
                             eklenen_loglar.append(log_obj)
 
+                        gercek_toplam_maliyet = sum(
+                            float(m.get("tutar", 0) or 0) for m in arsiv_malzemeler
+                        )
+
                         arsiv_obj = {
                             "uretim_id": uretim_islem_id,
                             "tarih": uretim_tarih_str,
@@ -657,7 +630,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                 }
                                 for d in dusulen_kayitlar
                             ],
-                            "toplam_maliyet": toplam_maliyet,
+                            "toplam_maliyet": gercek_toplam_maliyet,
                             "toplam_kalori": toplam_kalori,
                             "kisi_basi_kalori": (
                                 toplam_kalori / kisi_sayisi if kisi_sayisi > 0 else 0.0
@@ -669,7 +642,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         st.session_state["son_yemek_uretim_kaydi"] = {
                             "yemek_adi": yemek_adi,
                             "kisi_sayisi": kisi_sayisi,
-                            "toplam_maliyet": toplam_maliyet,
+                            "toplam_maliyet": gercek_toplam_maliyet,
                             "tarih": uretim_tarih_str,
                             "menu_ana_yemek": ana_yemek_ad.strip() if ana_yemek_ad.strip() else None,
                             "menu_yardimci_yemek": yardimci_yemek_ad.strip() if yardimci_yemek_ad.strip() else None,

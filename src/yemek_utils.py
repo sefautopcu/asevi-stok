@@ -502,3 +502,103 @@ def yemek_malzeme_kullanim_uyarilari(
                 f"{istatistik['ust_sinir']:g})."
             )
     return uyarilar
+
+def giris_birim_fiyati_al(giris):
+    """Stok giriş kaydının birim fiyatını güvenli şekilde döndürür."""
+    if not isinstance(giris, dict):
+        return 0.0
+    birim_f = giris.get("birim_fiyat")
+    try:
+        if birim_f not in (None, "") and float(birim_f) > 0:
+            return float(birim_f)
+    except (TypeError, ValueError):
+        pass
+    try:
+        miktar = float(giris.get("miktar", 0) or 0)
+        toplam_fiyat = float(giris.get("fiyat", 0) or 0)
+        if miktar > 0:
+            return toplam_fiyat / miktar
+        return toplam_fiyat if toplam_fiyat > 0 else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def yemek_sepeti_maliyet_hesapla(girisler, sepet):
+    """Sepetteki her kalemin ve toplam sepetin maliyetini aktif stok (FIFO) üzerinden hesaplar."""
+    stoklar = {}
+    paket_kalanlari = {}
+    for g in girisler:
+        kayit_id = str(g.get("id", ""))
+        try:
+            stoklar[kayit_id] = max(0.0, float(g.get("kalan", 0) or 0))
+        except (TypeError, ValueError):
+            stoklar[kayit_id] = 0.0
+
+    kalem_maliyetleri = []
+    toplam_maliyet = 0.0
+
+    for item in sepet:
+        urun = str(item.get("urun", "")).strip().upper()
+        try:
+            istenen = float(item.get("miktar", 0) or 0)
+        except (TypeError, ValueError):
+            istenen = 0.0
+
+        if not urun or istenen <= 0:
+            kalem_maliyetleri.append(0.0)
+            continue
+
+        paket_id = item.get("paket_id")
+        fatura_id = str(item.get("fatura_id", "")) if item.get("fatura_id") else None
+
+        aktif_girisler = [
+            g for g in girisler
+            if str(g.get("urun", "")).strip().upper() == urun
+            and stoklar.get(str(g.get("id", "")), 0.0) > 0
+            and (not fatura_id or str(g.get("id", "")) == fatura_id)
+        ]
+
+        kalan_dusulecek = istenen
+        item_tutar = 0.0
+        son_birim_fiyat = 0.0
+
+        for g in aktif_girisler:
+            if kalan_dusulecek <= 1e-9:
+                break
+            kayit_id = str(g.get("id", ""))
+            birim_f = giris_birim_fiyati_al(g)
+            son_birim_fiyat = birim_f
+
+            if paket_id:
+                durumlar = g.get("paket_durumlari", {})
+                if not isinstance(durumlar, dict):
+                    durumlar = {}
+                paket_miktari = float(g.get("paket_miktari", 0) or 0)
+                mevcut_paket = paket_kalanlari.get(
+                    (kayit_id, str(paket_id)),
+                    float(durumlar.get(paket_id, paket_miktari) or 0),
+                )
+                dusulecek = min(kalan_dusulecek, mevcut_paket, stoklar[kayit_id])
+                paket_kalanlari[(kayit_id, str(paket_id))] = mevcut_paket - dusulecek
+            else:
+                dusulecek = min(kalan_dusulecek, stoklar[kayit_id])
+
+            stoklar[kayit_id] -= dusulecek
+            item_tutar += dusulecek * birim_f
+            kalan_dusulecek -= dusulecek
+
+        # Aktif stokta hesaplanamayan bakiye kalırsa son aktif partinin birim fiyatını uygula
+        if kalan_dusulecek > 1e-9:
+            if son_birim_fiyat <= 0:
+                tum_urun_girisleri = [
+                    g for g in girisler
+                    if str(g.get("urun", "")).strip().upper() == urun
+                ]
+                if tum_urun_girisleri:
+                    son_birim_fiyat = giris_birim_fiyati_al(tum_urun_girisleri[-1])
+            item_tutar += kalan_dusulecek * son_birim_fiyat
+
+        kalem_maliyetleri.append(item_tutar)
+        toplam_maliyet += item_tutar
+
+    return kalem_maliyetleri, toplam_maliyet
