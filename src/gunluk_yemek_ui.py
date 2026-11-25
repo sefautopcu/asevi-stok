@@ -372,8 +372,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == urun.strip().upper()
                 ]
                 
-                # ✨ KESİN ÇÖZÜM: BİRİM FİYAT HESABI ✨
-                # Hatalı 'birim_fiyat' alanını yok sayıp, her zaman Toplam Fiyat / Miktar kullanıyoruz.
+                # ✨ KESİN ÇÖZÜM: ÖNCE BİRİM FİYATA BAK, YOKSA HESAPLA ✨
                 ortalama_fiyat = 0.0
                 if ilgili_girisler:
                     toplam_tutar = 0.0
@@ -382,8 +381,12 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         try:
                             miktar = float(g.get("miktar", 0) or 0)
                             if miktar > 0:
-                                # Faturadaki Toplam Fiyatı Miktara Bölerek Gerçek Birim Fiyatı Bul
-                                birim_f = float(g.get("fiyat", 0) or 0) / miktar
+                                birim_f = g.get("birim_fiyat")
+                                if birim_f is not None and float(birim_f) > 0:
+                                    birim_f = float(birim_f)
+                                else:
+                                    birim_f = float(g.get("fiyat", 0) or 0) / miktar
+                                
                                 toplam_tutar += birim_f * miktar
                                 toplam_miktar += miktar
                         except (ValueError, TypeError):
@@ -557,7 +560,12 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                     
                                     # Maliyet hesaplaması için birim fiyatı burada da aynı mantıkla bulalım
                                     g_miktar = float(g.get("miktar", 0) or 0)
-                                    g_birim_f = float(g.get("fiyat", 0) or 0) / g_miktar if g_miktar > 0 else 0.0
+                                    g_birim_f = g.get("birim_fiyat")
+                                    if g_birim_f is not None and float(g_birim_f) > 0:
+                                        g_birim_f = float(g_birim_f)
+                                    else:
+                                        g_birim_f = float(g.get("fiyat", 0) or 0) / g_miktar if g_miktar > 0 else 0.0
+                                        
                                     item_tutar += dusulecek * g_birim_f
                                     
                                     kalan_dusulecek -= dusulecek
@@ -567,7 +575,11 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                 else:
                                     # Manuel eklendiyse (FIFO mantığıyla genel stoktan düş)
                                     g_miktar = float(g.get("miktar", 0) or 0)
-                                    g_birim_f = float(g.get("fiyat", 0) or 0) / g_miktar if g_miktar > 0 else 0.0
+                                    g_birim_f = g.get("birim_fiyat")
+                                    if g_birim_f is not None and float(g_birim_f) > 0:
+                                        g_birim_f = float(g_birim_f)
+                                    else:
+                                        g_birim_f = float(g.get("fiyat", 0) or 0) / g_miktar if g_miktar > 0 else 0.0
 
                                     if float(g["kalan"]) >= kalan_dusulecek:
                                         g["kalan"] = float(g["kalan"]) - kalan_dusulecek
