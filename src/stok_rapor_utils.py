@@ -17,7 +17,7 @@ def stok_excel_liste_olustur(girisler, aktif_k_maskeleri):
         sirali = sorted(ilgili, key=lambda x: str(x.get("tarih", "")), reverse=True)
         devreden = toplam - float(sirali[0].get("kalan", 0)) if len(sirali) > 1 else 0.0
         maskele = "2. Sayfa: Güncel Stok Durumu - Kalan Miktar" in aktif_k_maskeleri
-        skt_listesi = [g.get("skt") for g in ilgili if g.get("skt")]
+        skt_listesi = [g.get("skt") for g in ilgili if g.get("skt") and float(g.get("kalan", 0) or 0) > 0]
         excel_liste.append({
             "Ürün Adı": urun,
             "Kategori": ilgili[0].get("kategori", "GENEL"),
@@ -50,7 +50,7 @@ def stok_gorunum_listeleri_olustur(
         depo = ilgili[0].get("depo", "Merkez Depo")
         islem_yapan = ilgili[-1].get("islem_yapan", "admin")
         en_son_tarih = ilgili[-1].get("tarih", "-")
-        skt_listesi = [g.get("skt") for g in ilgili if g.get("skt")]
+        skt_listesi = [g.get("skt") for g in ilgili if g.get("skt") and float(g.get("kalan", 0) or 0) > 0]
         en_yakin_skt = min(skt_listesi) if skt_listesi else "Belirtilmemiş"
         skt_gosterim = en_yakin_skt
         if en_yakin_skt != "Belirtilmemiş":

@@ -56,6 +56,7 @@ def guncel_stok_sayfasi(st, misafir_modu, aktif_k_maskeleri, stok_excel_liste_ol
                 skt_yeni_tarih = st.date_input("Yeni SKT / STT Tarihi", value=None)
                 skt_guncelle_btn = st.form_submit_button("SKT Tarihini Güncelle", type="primary")
             
+                # DÜZELTME: Girinti hataları giderildi ve mantık doğru bloğa alındı
                 if skt_guncelle_btn:
                     if not skt_sec_urun:
                         st.error("⚠️ Lütfen SKT güncellenecek ürünü seçin!")
@@ -64,38 +65,27 @@ def guncel_stok_sayfasi(st, misafir_modu, aktif_k_maskeleri, stok_excel_liste_ol
                     else:
                         guncellendi = False
                         yeni_girisler = []
-                        
-                        # Güvenli karşılaştırma için ürün adını standartlaştır
                         aranan_urun = str(skt_sec_urun).strip().upper()
                         
-                        # Tüm girişleri döngüye al ve yepyeni bir liste oluştur
                         for g in st.session_state.girisler:
-                            yeni_g = g.copy()  # Referansı kopar, yeni bir sözlük oluştur
-                            
-                            # Eğer bu giriş seçilen ürüne aitse ve stokta kalanı > 0 ise SKT'yi güncelle
+                            yeni_g = g.copy()
+                            # SADECE STOKTA KALANI > 0 OLANLARI GÜNCELLE
                             if (str(yeni_g.get("urun", "")).strip().upper() == aranan_urun 
                                 and float(yeni_g.get("kalan", 0) or 0) > 0):
                                 yeni_g["skt"] = str(skt_yeni_tarih)
                                 guncellendi = True
-                            
                             yeni_girisler.append(yeni_g)
                         
                         if guncellendi:
-                            # Yeni listeyi session_state'e ata
                             st.session_state.girisler = yeni_girisler
-                            
-                            # Veritabanına (Supabase'e) kaydet
                             verileri_kaydet(st.session_state.girisler)
-                            
-                            # ✨ KRİTİK DÜZELTME: Tablonun anında güncellenmesi için önbelleği (cache) temizle
                             st.cache_data.clear()
-                            
                             st.success(f"🎉 Başarılı! {skt_sec_urun} ürününün SKT tarihi {skt_yeni_tarih} olarak güncellendi.")
                             time.sleep(1)
                             st.rerun()
                         else:
                             st.warning("⚠️ Seçilen ürünün stokta kalan partisi bulunmuyor, tarih atanamadı.")
-
+                    
         # --- ÜRÜN BAZLI KRİTİK EŞİK SINIRI ---
         with st.expander("⚙️ Ürün Bazlı Kritik Eşik Sınırı Belirle"):
             with st.form("kritik_ayar_form"):
