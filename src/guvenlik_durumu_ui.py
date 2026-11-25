@@ -22,10 +22,10 @@ def guvenlik_durumu_rozetlerini_goster(st, SUPABASE_URL, SUPABASE_KEY, supabase_
         ck_badge = ("🔗", "Adres Çubuğu Oturumu", "Oturum anahtarı hâlâ adres çubuğunda. Çerez desteği için `requirements.txt` dosyasına `streamlit-cookies-controller` ekleyin.", "background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: #60a5fa;")
 
     # 3. Master Recovery Key Hesaplaması
-    if str(st.secrets.get("MASTER_RECOVERY_KEY", "") or ""):
-        mr_badge = ("🛡️", "Kurtarma Anahtarı", "MASTER_RECOVERY_KEY tanımlı.", "background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
+    if str(st.secrets.get("MASTER_KEY", "") or ""):
+        mr_badge = ("🛡️", "Kurtarma Anahtarı", "MASTER_KEY tanımlı.", "background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981;")
     else:
-        mr_badge = ("⚠️", "Kurtarma Anahtarı Yok", "MASTER_RECOVERY_KEY tanımlı değil: şifre kurtarma devre dışı. Ekledim diyorsanız secrets'a TANI_MODU = \"1\" ekleyip adrese ?tani=1 yazarak kontrol edin.", "background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24;")
+        mr_badge = ("⚠️", "Kurtarma Anahtarı Yok", "MASTER_KEY tanımlı değil: şifre kurtarma devre dışı. Ekledim diyorsanız secrets'a TANI_MODU = \"1\" ekleyip adrese ?tani=1 yazarak kontrol edin.", "background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24;")
 
     # 4. Boşta Kalma Süresi
     bosta_dk = bosta_kalma_suresi_sn() // 60
