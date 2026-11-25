@@ -66,8 +66,17 @@ def guncel_stok_sayfasi(st, misafir_modu, aktif_k_maskeleri, stok_excel_liste_ol
                         # İlgili ürünün stokta kalanı > 0 olan en eski partisini bul (FIFO)
                         ilgili_partiler = [g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == skt_sec_urun and g.get("kalan", 0) > 0]
                         if ilgili_partiler:
-                            en_eski_parti = min(ilgili_partiler, key=lambda x: str(x.get("tarih", "")))
-                            en_eski_parti["skt"] = str(skt_yeni_tarih)
+                            # Öncelikle SKT'si girilmemiş (boş) bir parti var mı diye bakalım
+                            sktsiz_partiler = [p for p in ilgili_partiler if not p.get("skt")]
+                            
+                            if sktsiz_partiler:
+                                # Eğer SKT'si boş parti varsa, en eski tarihli olanı seç ve güncelle
+                                hedef_parti = min(sktsiz_partiler, key=lambda x: str(x.get("tarih", "")))
+                            else:
+                                # Hepsinin SKT'si doluysa, FIFO mantığıyla en eski partiyi güncelle
+                                hedef_parti = min(ilgili_partiler, key=lambda x: str(x.get("tarih", "")))
+                            
+                            hedef_parti["skt"] = str(skt_yeni_tarih)
                             guncellendi = True
                         
                         if guncellendi:
