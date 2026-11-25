@@ -44,7 +44,7 @@ def guncel_stok_sayfasi(st, misafir_modu, aktif_k_maskeleri, stok_excel_liste_ol
 
         st.markdown("---")
     
-        # --- YENİ EKLENEN: TOPLU SKT GÜNCELLEME FORMU ---
+        # --- TOPLU SKT GÜNCELLEME FORMU ---
         st.markdown("### 📅 Son Tüketim Tarihi (SKT / STT) Güncelle")
         st.info("Sisteme daha önceden eklenmiş ve SKT tarihi girilmemiş ürünler için buradan toplu tarih güncellemesi yapabilirsiniz. Girilen tarih, seçilen ürünün en eski (en son kullanılacak) partisine atanır.")
     
@@ -81,18 +81,22 @@ def guncel_stok_sayfasi(st, misafir_modu, aktif_k_maskeleri, stok_excel_liste_ol
                             yeni_girisler.append(yeni_g)
                         
                         if guncellendi:
-                            # Yeni listeyi session_state'e ata (Streamlit anında fark edecek)
+                            # Yeni listeyi session_state'e ata
                             st.session_state.girisler = yeni_girisler
                             
                             # Veritabanına (Supabase'e) kaydet
                             verileri_kaydet(st.session_state.girisler)
+                            
+                            # ✨ KRİTİK DÜZELTME: Tablonun anında güncellenmesi için önbelleği (cache) temizle
+                            st.cache_data.clear()
                             
                             st.success(f"🎉 Başarılı! {skt_sec_urun} ürününün SKT tarihi {skt_yeni_tarih} olarak güncellendi.")
                             time.sleep(1)
                             st.rerun()
                         else:
                             st.warning("⚠️ Seçilen ürünün stokta kalan partisi bulunmuyor, tarih atanamadı.")
-        # --- YENİ EKLENEN: ÜRÜN BAZLI KRİTİK EŞİK SINIRI ---
+
+        # --- ÜRÜN BAZLI KRİTİK EŞİK SINIRI ---
         with st.expander("⚙️ Ürün Bazlı Kritik Eşik Sınırı Belirle"):
             with st.form("kritik_ayar_form"):
                 secilen_k_urun = st.selectbox("Kritik Eşiği Değiştirilecek Ürün", benzersiz_urunler if benzersiz_urunler else ["Yok"])
@@ -103,6 +107,10 @@ def guncel_stok_sayfasi(st, misafir_modu, aktif_k_maskeleri, stok_excel_liste_ol
                 if kritik_kaydet_btn and secilen_k_urun != "Yok":
                     st.session_state.kritik_seviyeler[secilen_k_urun] = yeni_esin_deger
                     kritik_seviyeleri_kaydet(st.session_state.kritik_seviyeler)
+                    
+                    # Burada da önbelleği temizlemek iyi bir fikirdir
+                    st.cache_data.clear() 
+                    
                     st.success("🎉 Başarılı! Kritik sınır güncellendi.")
                     st.balloons()
                     st.rerun()
