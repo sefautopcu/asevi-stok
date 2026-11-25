@@ -507,20 +507,14 @@ def giris_birim_fiyati_al(giris):
     """Stok giriş kaydının birim fiyatını güvenli şekilde döndürür."""
     if not isinstance(giris, dict):
         return 0.0
-    birim_f = giris.get("birim_fiyat")
-    try:
-        if birim_f not in (None, "") and float(birim_f) > 0:
-            return float(birim_f)
-    except (TypeError, ValueError):
-        pass
-    try:
-        miktar = float(giris.get("miktar", 0) or 0)
-        toplam_fiyat = float(giris.get("fiyat", 0) or 0)
-        if miktar > 0:
-            return toplam_fiyat / miktar
-        return toplam_fiyat if toplam_fiyat > 0 else 0.0
-    except (TypeError, ValueError):
-        return 0.0
+    for alan in ("birim_fiyat", "fiyat"):
+        deger = giris.get(alan)
+        try:
+            if deger not in (None, "") and float(deger) > 0:
+                return float(deger)
+        except (TypeError, ValueError):
+            continue
+    return 0.0
 
 
 def en_son_urun_birim_fiyati(girisler, urun):
