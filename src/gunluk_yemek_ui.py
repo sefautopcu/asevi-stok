@@ -372,25 +372,22 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == urun.strip().upper()
                 ]
                 
-                # ✨ DÜZELTME: BİRİM FİYAT HESABI ✨
-                # Eski kod faturadaki toplam tutarı miktarla çarpıyordu. 
-                # Şimdi gerçek birim fiyatları bularak ağırlıklı ortalama alıyoruz.
+                # ✨ KESİN ÇÖZÜM: BİRİM FİYAT HESABI ✨
+                # Hatalı 'birim_fiyat' alanını yok sayıp, her zaman Toplam Fiyat / Miktar kullanıyoruz.
                 ortalama_fiyat = 0.0
                 if ilgili_girisler:
                     toplam_tutar = 0.0
                     toplam_miktar = 0.0
                     for g in ilgili_girisler:
-                        miktar = float(g.get("miktar", 0) or 0)
-                        birim_f = g.get("birim_fiyat")
-                        if birim_f is None or birim_f == "":
-                            # Eğer birim fiyat yoksa toplam fiyatı miktara böl
-                            birim_f = float(g.get("fiyat", 0) or 0) / miktar if miktar > 0 else 0.0
-                        else:
-                            birim_f = float(birim_f)
-                        
-                        toplam_tutar += birim_f * miktar
-                        toplam_miktar += miktar
-                        
+                        try:
+                            miktar = float(g.get("miktar", 0) or 0)
+                            if miktar > 0:
+                                # Faturadaki Toplam Fiyatı Miktara Bölerek Gerçek Birim Fiyatı Bul
+                                birim_f = float(g.get("fiyat", 0) or 0) / miktar
+                                toplam_tutar += birim_f * miktar
+                                toplam_miktar += miktar
+                        except (ValueError, TypeError):
+                            pass
                     ortalama_fiyat = toplam_tutar / toplam_miktar if toplam_miktar > 0 else 0.0
 
                 item_maliyeti = istenen * ortalama_fiyat
@@ -557,23 +554,31 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                     dusulecek = min(kalan_dusulecek, mevcut_paket)
                                     g["paket_durumlari"][paket_id] = mevcut_paket - dusulecek
                                     g["kalan"] = float(g["kalan"]) - dusulecek
-                                    item_tutar += dusulecek * float(g["fiyat"])
+                                    
+                                    # Maliyet hesaplaması için birim fiyatı burada da aynı mantıkla bulalım
+                                    g_miktar = float(g.get("miktar", 0) or 0)
+                                    g_birim_f = float(g.get("fiyat", 0) or 0) / g_miktar if g_miktar > 0 else 0.0
+                                    item_tutar += dusulecek * g_birim_f
+                                    
                                     kalan_dusulecek -= dusulecek
                                 
                                     dusulen_kayitlar.append({"id": g["id"], "miktar": dusulecek, "paket_id": paket_id})
                                     item_partiler.append({"fatura_id": g["id"], "dusulen_miktar": dusulecek, "paket_id": paket_id})
                                 else:
                                     # Manuel eklendiyse (FIFO mantığıyla genel stoktan düş)
+                                    g_miktar = float(g.get("miktar", 0) or 0)
+                                    g_birim_f = float(g.get("fiyat", 0) or 0) / g_miktar if g_miktar > 0 else 0.0
+
                                     if float(g["kalan"]) >= kalan_dusulecek:
                                         g["kalan"] = float(g["kalan"]) - kalan_dusulecek
-                                        item_tutar += kalan_dusulecek * float(g["fiyat"])
+                                        item_tutar += kalan_dusulecek * g_birim_f
                                         dusulen_kayitlar.append({"id": g["id"], "miktar": kalan_dusulecek, "paket_id": None})
                                         item_partiler.append({"fatura_id": g["id"], "dusulen_miktar": kalan_dusulecek, "paket_id": None})
                                         kalan_dusulecek = 0
                                     else:
                                         dusulen = float(g["kalan"])
                                         g["kalan"] = 0.0
-                                        item_tutar += dusulen * float(g["fiyat"])
+                                        item_tutar += dusulen * g_birim_f
                                         dusulen_kayitlar.append({"id": g["id"], "miktar": dusulen, "paket_id": None})
                                         item_partiler.append({"fatura_id": g["id"], "dusulen_miktar": dusulen, "paket_id": None})
                                         kalan_dusulecek -= dusulen
@@ -625,12 +630,10 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                             "tarih": uretim_tarih_str,
                             "zaman": tarih_simdi,
                             "yemek_adi": yemek_adi,
-                            # --- YENİ: Menüyü 4 bölüme ayırma ---
                             "menu_ana_yemek": ana_yemek_ad.strip() if ana_yemek_ad.strip() else None,
                             "menu_yardimci_yemek": yardimci_yemek_ad.strip() if yardimci_yemek_ad.strip() else None,
                             "menu_corba": corba_ad.strip() if corba_ad.strip() else None,
                             "menu_tatli_meyve_yogurt": tatli_meyve_yogurt_ad.strip() if tatli_meyve_yogurt_ad.strip() else None,
-                            # ----------------------------------
                             "kisi_sayisi": kisi_sayisi,
                             "numune_durumu": numune_durumu,
                             "malzemeler": arsiv_malzemeler,
@@ -651,18 +654,15 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                         }
                         st.session_state.yemek_uretim_arsivi.append(arsiv_obj)
 
-                        # Son yemek üretim kaydını sakla (Geri Al için)
                         st.session_state["son_yemek_uretim_kaydi"] = {
                             "yemek_adi": yemek_adi,
                             "kisi_sayisi": kisi_sayisi,
                             "toplam_maliyet": toplam_maliyet,
                             "tarih": uretim_tarih_str,
-                            # --- YENİ: Menü bölümleri geri alma için ---
                             "menu_ana_yemek": ana_yemek_ad.strip() if ana_yemek_ad.strip() else None,
                             "menu_yardimci_yemek": yardimci_yemek_ad.strip() if yardimci_yemek_ad.strip() else None,
                             "menu_corba": corba_ad.strip() if corba_ad.strip() else None,
                             "menu_tatli_meyve_yogurt": tatli_meyve_yogurt_ad.strip() if tatli_meyve_yogurt_ad.strip() else None,
-                            # -------------------------------------------
                             "dusulen_kayitlar": dusulen_kayitlar,
                             "arsiv_objesi": arsiv_obj,
                             "eklenen_loglar": eklenen_loglar
