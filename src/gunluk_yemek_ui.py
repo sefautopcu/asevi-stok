@@ -371,17 +371,27 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                 ilgili_girisler = [
                     g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == urun.strip().upper()
                 ]
+                
+                # ✨ DÜZELTME: BİRİM FİYAT HESABI ✨
+                # Eski kod faturadaki toplam tutarı miktarla çarpıyordu. 
+                # Şimdi gerçek birim fiyatları bularak ağırlıklı ortalama alıyoruz.
                 ortalama_fiyat = 0.0
                 if ilgili_girisler:
-                    toplam_fiyat_degeri = sum(
-                        g.get("fiyat", 0) * g.get("miktar", 0) for g in ilgili_girisler
-                    )
-                    toplam_miktar_degeri = sum(g.get("miktar", 0) for g in ilgili_girisler)
-                    ortalama_fiyat = (
-                        toplam_fiyat_degeri / toplam_miktar_degeri
-                        if toplam_miktar_degeri > 0
-                        else 0.0
-                    )
+                    toplam_tutar = 0.0
+                    toplam_miktar = 0.0
+                    for g in ilgili_girisler:
+                        miktar = float(g.get("miktar", 0) or 0)
+                        birim_f = g.get("birim_fiyat")
+                        if birim_f is None or birim_f == "":
+                            # Eğer birim fiyat yoksa toplam fiyatı miktara böl
+                            birim_f = float(g.get("fiyat", 0) or 0) / miktar if miktar > 0 else 0.0
+                        else:
+                            birim_f = float(birim_f)
+                        
+                        toplam_tutar += birim_f * miktar
+                        toplam_miktar += miktar
+                        
+                    ortalama_fiyat = toplam_tutar / toplam_miktar if toplam_miktar > 0 else 0.0
 
                 item_maliyeti = istenen * ortalama_fiyat
                 toplam_maliyet += item_maliyeti
