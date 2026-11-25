@@ -1,6 +1,6 @@
 import datetime
 import time
-from src.yemek_utils import giris_birim_fiyati_al, yemek_sepeti_maliyet_hesapla
+from src.yemek_utils import en_son_urun_birim_fiyati, yemek_sepeti_maliyet_hesapla
 
 # Yemek menüsünün 4 ana bölümü
 MENU_KISIMLARI = ("ana_yemek", "yardimci_yemek", "corba", "tatli_meyve_yogurt")
@@ -375,6 +375,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     g for g in st.session_state.girisler if g.get("urun", "").strip().upper() == urun.strip().upper()
                 ]
 
+                son_birim_f = en_son_urun_birim_fiyati(st.session_state.girisler, urun)
                 item_maliyeti = kalem_maliyetleri[idx]
                 birim = ilgili_girisler[0].get("birim", "Kg") if ilgili_girisler else "Kg"
                 item_kalorisi = urun_kalori_hesapla(urun, istenen, birim)
@@ -387,7 +388,7 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                     st.markdown(f"Miktar: {istenen}")
                 with c_item_mal:
                     st.markdown(f"Maliyet: **{item_maliyeti:,.2f} ₺**")
-                    st.caption(f"Kalori: {item_kalorisi:,.0f} kcal")
+                    st.caption(f"Birim Fiyat (Son Alım): {son_birim_f:,.2f} ₺ | Kalori: {item_kalorisi:,.0f} kcal")
                 with c_item_sil:
                     if not salt_okunur_modu:
                         if st.button("❌", key=f"sil_item_{idx}"):
@@ -517,7 +518,8 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                             urun = item["urun"]
                             istenen = item["miktar"]
                             kalan_dusulecek = istenen
-                            item_tutar = 0.0
+                            son_birim_f = en_son_urun_birim_fiyati(st.session_state.girisler, urun)
+                            item_tutar = float(istenen) * son_birim_f
                             item_partiler = []
                             paket_id = item.get("paket_id")
                             fatura_id = item.get("fatura_id")
@@ -539,27 +541,20 @@ def gunluk_yemek_uretim_sayfasi(st, misafir_modu, salt_okunur_modu, aktif_k_mask
                                     g["paket_durumlari"][paket_id] = mevcut_paket - dusulecek
                                     g["kalan"] = float(g["kalan"]) - dusulecek
                                     
-                                    g_birim_f = giris_birim_fiyati_al(g)
-                                    item_tutar += dusulecek * g_birim_f
-                                    
                                     kalan_dusulecek -= dusulecek
                                 
                                     dusulen_kayitlar.append({"id": g["id"], "miktar": dusulecek, "paket_id": paket_id})
                                     item_partiler.append({"fatura_id": g["id"], "dusulen_miktar": dusulecek, "paket_id": paket_id})
                                 else:
                                     # Manuel eklendiyse (FIFO mantığıyla genel stoktan düş)
-                                    g_birim_f = giris_birim_fiyati_al(g)
-
                                     if float(g["kalan"]) >= kalan_dusulecek:
                                         g["kalan"] = float(g["kalan"]) - kalan_dusulecek
-                                        item_tutar += kalan_dusulecek * g_birim_f
                                         dusulen_kayitlar.append({"id": g["id"], "miktar": kalan_dusulecek, "paket_id": None})
                                         item_partiler.append({"fatura_id": g["id"], "dusulen_miktar": kalan_dusulecek, "paket_id": None})
                                         kalan_dusulecek = 0
                                     else:
                                         dusulen = float(g["kalan"])
                                         g["kalan"] = 0.0
-                                        item_tutar += dusulen * g_birim_f
                                         dusulen_kayitlar.append({"id": g["id"], "miktar": dusulen, "paket_id": None})
                                         item_partiler.append({"fatura_id": g["id"], "dusulen_miktar": dusulen, "paket_id": None})
                                         kalan_dusulecek -= dusulen
