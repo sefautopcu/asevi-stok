@@ -14,7 +14,6 @@
 <div align="center">
   <img src="assets/dashboard.png" alt="Dashboard Ekranı" width="800"/>
   <p><i>Kurumsal Dashboard & Operasyonel Özet</i></p>
-  
   <img src="assets/giris.png" alt="Giriş Ekranı" width="400"/>
   <img src="assets/stok.png" alt="Stok Yönetimi" width="400"/>
 </div>
@@ -25,7 +24,7 @@
 
 ## 🌟 Proje Hakkında
 
-**Aziziye Aşevi**, bir aşevinin tüm karmaşık operasyonlarını (stok girişinden yemek dağıtımına, fire takibinden personel yönetimine kadar) tek bir dijital panelde birleştiren, kurumsal seviyede bir yönetim sistemidir. 
+**Aziziye Aşevi**, bir aşevinin tüm karmaşık operasyonlarını (stok girişinden yemek dağıtımına, fire takibinden personel yönetimine kadar) tek bir dijital panelde birleştiren, kurumsal seviyede bir yönetim sistemidir.
 
 Sadece bir arayüz değil; arka planda **veri güvenliğini (Fernet), çakışma önleyici (CAS) veritabanı mimarisini ve %100 test kapsama oranını** barındıran profesyonel bir altyapıdır.
 
@@ -58,6 +57,10 @@ aziziye-asevi/
 ├── requirements.txt            # Bağımlılıklar
 ├── .streamlit/
 │   └── secrets.toml            # Çevre değişkenleri (Gizli anahtarlar)
+├── assets/                     # README ekran görüntüleri
+│   ├── dashboard.png
+│   ├── giris.png
+│   └── stok.png
 ├── src/
 │   ├── app_runtime.py          # Ana orkestra şefi (Sayfa yönlendirmeleri)
 │   ├── supabase_db.py          # Veritabanı bağlantısı ve CAS işlemleri
