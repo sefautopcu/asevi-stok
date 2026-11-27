@@ -1,5 +1,10 @@
 import datetime
 import time
+from src.ui_kartlar import (
+    bolum_basligi_goster,
+    kpi_satiri_goster,
+    sayfa_ust_banner_goster,
+)
 
 
 def _iade_kayit_mi(log_kaydi):
@@ -31,7 +36,29 @@ def fire_zayiat_sayfasi(
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
         return
 
-    st.header("🗑️ Fire / Zayiat & İade Edilen Ürünler")
+    sayfa_ust_banner_goster(
+        st,
+        "uyari",
+        "Fire / Zayiat & İade Edilen Ürünler",
+        "Bozulma, SKT geçişi veya kusur kaynaklı stok düşümlerini ve tedarikçi iadelerini yönetin",
+        tema="kirmizi",
+    )
+
+    loglar_liste = st.session_state.get("kullanim_loglari", []) or []
+    fire_ozet_loglar = [l for l in loglar_liste if _fire_kayit_mi(l)]
+    iade_ozet_loglar = [l for l in loglar_liste if _iade_kayit_mi(l)]
+    toplam_fire_tutar = sum(float(_l.get("tutar", 0) or 0) for _l in fire_ozet_loglar)
+    toplam_iade_tutar = sum(float(_l.get("tutar", 0) or 0) for _l in iade_ozet_loglar)
+
+    kpi_satiri_goster(
+        st,
+        [
+            ("uyari", "Fire / Zayiat Kaydı", len(fire_ozet_loglar), "Stoktan düşülen zayiat işlemi", "#f43f5e"),
+            ("para", "Toplam Fire Tutarı", f"{toplam_fire_tutar:,.2f} ₺", "Kümülatif fire / zayiat maliyeti", "#f59e0b"),
+            ("fatura", "İade İşlem Sayısı", len(iade_ozet_loglar), "Tedarikçiye iade edilen parti kaydı", "#38bdf8"),
+            ("stok", "Toplam İade Tutarı", f"{toplam_iade_tutar:,.2f} ₺", "İade edilen ürünlerin toplam bedeli", "#a855f7"),
+        ],
+    )
 
     benzersiz_urunler = sorted(
         list(
@@ -71,7 +98,6 @@ def fire_zayiat_sayfasi(
                             "Fire girişi geri alma: " + str(son_fire.get("urun"))
                         )
 
-                        # Düşülen miktarları orijinal stok girişlerine iade et
                         for item in son_fire.get("dusulen_kayitlar", []):
                             for g in st.session_state.girisler:
                                 if g.get("id") == item["id"]:
@@ -79,7 +105,6 @@ def fire_zayiat_sayfasi(
                                         item["miktar"]
                                     )
 
-                        # Kullanım loglarından sil
                         log_target = son_fire.get("log_objesi")
                         if log_target and log_target in st.session_state.kullanim_loglari:
                             st.session_state.kullanim_loglari.remove(log_target)
@@ -231,7 +256,13 @@ def fire_zayiat_sayfasi(
 
         col_b_fire, col_indir_fire = st.columns([2, 2])
         with col_b_fire:
-            st.subheader("📋 Kayıtlı Fire ve Zayiatlar Listesi")
+            bolum_basligi_goster(
+                st,
+                "uyari",
+                "Kayıtlı Fire ve Zayiatlar Listesi",
+                "Stoktan düşülen tüm fire ve zayiat hareketleri",
+                vurgu_renk="#f43f5e",
+            )
 
         if "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi" in aktif_k_maskeleri:
             st.info(
@@ -276,10 +307,12 @@ def fire_zayiat_sayfasi(
                 st.info("Sistemde kayıtlı fire / zayiat bulunmuyor.")
 
     with sekme_iade:
-        st.subheader("↩️ İade Edilen Ürünler (SKT / STT vb. Sebepler)")
-        st.caption(
-            "SKT/STT yaklaşması veya geçmesi, hasar/kusur vb. nedenlerle tedarikçiye veya "
-            "kaynağa iade edilen ürünleri buradan girerek stoktan anında düşebilirsiniz."
+        bolum_basligi_goster(
+            st,
+            "fatura",
+            "İade Edilen Ürünler (SKT / STT vb. Sebepler)",
+            "SKT/STT yaklaşması veya kusur nedeniyle tedarikçiye iade edilen ürünleri stoktan düşün",
+            vurgu_renk="#38bdf8",
         )
 
         if salt_okunur_modu:
@@ -491,7 +524,13 @@ def fire_zayiat_sayfasi(
 
         col_b_iade, col_indir_iade = st.columns([2, 2])
         with col_b_iade:
-            st.subheader("📋 İade Edilen Ürünler Listesi")
+            bolum_basligi_goster(
+                st,
+                "liste",
+                "İade Edilen Ürünler Listesi",
+                "Kaynağa veya tedarikçiye iade edilen ürün geçmişi",
+                vurgu_renk="#a855f7",
+            )
 
         if "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi" in aktif_k_maskeleri:
             st.info(

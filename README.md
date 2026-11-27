@@ -36,6 +36,11 @@ Sadece bir arayüz değil; arka planda **veri güvenliğini (Fernet), çakışma
 *   🗑️ **Fire ve Zayiat Analizi:** Fatura ve birim fiyat bazlı, neden analizli detaylı fire takibi.
 *   👥 **Personel ve İhtiyaç Sahibi Takibi:** Personel izinleri, çalışma süreleri ve ihtiyaç sahiplerinin hassas verilerinin **uçtan uca şifrelenerek** saklanması.
 *   📊 **Dashboard & Raporlama:** Plotly destekli interaktif grafikler ve otomatik e-posta raporlama sistemi.
+*   📖 **Hazır Reçeteler & Haftalık Menü Planlama:** Standart porsiyon reçeteleri ve haftalık menüye göre otomatik satın alma ihtiyaç listesi.
+*   🚚 **Araç Sefer & Rota Teslimat Takibi:** Sıcak yemek dağıtım araçlarının sefer/km kayıtları ve mahalle bazlı teslimat teyit fişleri.
+*   🏢 **Tedarikçi Rehberi & Demirbaş Yönetimi:** Tedarikçi alım/fiyat kıyaslaması, çoklu depo ve mutfak demirbaş zimmet takibi.
+*   🛡️ **Denetim İzi (Audit Log) & Sabah Brifingi:** İşlem geçmişi, önceki/sonraki değer karşılaştırmalı geri alma ve otomatik kritik uyarı merkezi.
+*   🧩 **Kod Yazmadan Sayfa Düzenleyici:** Menü gruplarını, sayfa başlıklarını yönetme ve özel duyuru/bilgi sayfaları oluşturma.
 
 ## 🔒 Güvenlik ve Mimari
 

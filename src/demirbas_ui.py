@@ -1,20 +1,67 @@
 import datetime
 import time
+from src.ui_kartlar import (
+    bolum_basligi_goster,
+    kpi_satiri_goster,
+    sayfa_ust_banner_goster,
+)
 
 
-def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster, otomatik_yedek_al, demirbaslari_kaydet, yeni_id_uret, silme_onay_kutusu):
+def demirbas_yonetim_sayfasi(
+    st,
+    misafir_modu,
+    salt_okunur_modu,
+    yonetici_modu,
+    tablo_to_excel_bytes,
+    tablo_to_html_pdf_bytes,
+    ortak_indirme_alani,
+    ozel_html_tablo_goster,
+    otomatik_yedek_al,
+    demirbaslari_kaydet,
+    yeni_id_uret,
+    silme_onay_kutusu,
+):
     if misafir_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
     else:
-        st.header("🛠️ Aşevi Demirbaş ve Ekipman Yönetimi")
-        st.markdown("Aşevinde bulunan demirbaşları, mutfak ekipmanlarını ve malzemeleri buradan ekleyebilir, durumlarını (Sağlam, Bakımda vb.) takip edebilirsiniz.")
+        sayfa_ust_banner_goster(
+            st,
+            "demirbas",
+            "Aşevi Demirbaş ve Ekipman Yönetimi",
+            "Mutfak ekipmanlarını, demirbaş adetlerini, zimmet sorumlularını ve bakım durumlarını takip edin",
+            tema="mor",
+        )
+
+        demirbas_listesi = st.session_state.get("demirbaslar", []) or []
+        toplam_cesit = len(demirbas_listesi)
+        toplam_adet = sum(int(_d.get("adet", 1) or 1) for _d in demirbas_listesi)
+        saglam_adet = sum(
+            int(_d.get("adet", 1) or 1)
+            for _d in demirbas_listesi
+            if str(_d.get("durum", "Sağlam")) == "Sağlam"
+        )
+        bakim_hurda_adet = sum(
+            int(_d.get("adet", 1) or 1)
+            for _d in demirbas_listesi
+            if str(_d.get("durum", "")) != "Sağlam"
+        )
+
+        kpi_satiri_goster(
+            st,
+            [
+                ("demirbas", "Demirbaş Çeşidi", toplam_cesit, "Kayıtlı farklı ekipman kalemi", "#a855f7"),
+                ("stok", "Toplam Ekipman Adedi", toplam_adet, "Envanterdeki toplam birim sayısı", "#38bdf8"),
+                ("mutfak", "Sağlam / Aktif", saglam_adet, "Kullanıma hazır ekipman adedi", "#10b981"),
+                ("uyari", "Bakımda / Hurda", bakim_hurda_adet, "Bakım bekleyen veya kullanım dışı", "#f43f5e"),
+            ],
+        )
 
         # Son Demirbaş İşlemini Geri Al Butonu ve Bildirimi
         if st.session_state.get("son_demirbas_islem"):
             son_islem = st.session_state["son_demirbas_islem"]
             tur = son_islem.get("tur")
             d_obj = son_islem.get("obje")
-            
+
             c_undo1, c_undo2 = st.columns([3, 1])
             with c_undo1:
                 if tur == "ekle":
@@ -24,13 +71,13 @@ def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, 
             with c_undo2:
                 if st.button("↩️ Son İşlemi Geri Al", type="secondary", key="btn_undo_dem_son"):
                     otomatik_yedek_al("Demirbaş işlemi geri alma: " + str(d_obj.get("id")))
-                    
+
                     if tur == "ekle":
                         st.session_state.demirbaslar = [d for d in st.session_state.demirbaslar if d.get("id") != d_obj.get("id")]
                     elif tur == "sil":
                         if not any(d.get("id") == d_obj.get("id") for d in st.session_state.demirbaslar):
                             st.session_state.demirbaslar.append(d_obj)
-                    
+
                     demirbaslari_kaydet(st.session_state.demirbaslar)
                     st.session_state.pop("son_demirbas_islem", None)
                     st.success(f"🎉 '{d_obj.get('ad')}' kaydı üzerine yapılan işlem başarıyla geri alındı!")
@@ -39,7 +86,13 @@ def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, 
 
         col_b_dem, col_indir_dem = st.columns([2, 2])
         with col_b_dem:
-            st.subheader("📋 Kayıtlı Demirbaş Listesi")
+            bolum_basligi_goster(
+                st,
+                "demirbas",
+                "Demirbaş İşlemleri ve Raporlama",
+                "Yeni ekipman kaydı oluşturun veya mevcut listeyi Excel / PDF olarak indirin",
+                vurgu_renk="#a855f7",
+            )
 
         demirbas_tablo = []
         excel_demirbas_listesi = []
@@ -51,7 +104,7 @@ def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, 
                 "Adet": d.get("adet", 1),
                 "Durumu": d.get("durum", "Sağlam"),
                 "Zimmetli Sorumlu": d.get("zimmet", "-"),
-                "Kayıt Tarihi": d.get("tarih", "-")
+                "Kayıt Tarihi": d.get("tarih", "-"),
             })
             excel_demirbas_listesi.append({
                 "Demirbaş ID": d.get("id", "-"),
@@ -60,7 +113,7 @@ def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, 
                 "Adet": d.get("adet", 1),
                 "Durumu": d.get("durum", "Sağlam"),
                 "Zimmetli Sorumlu": d.get("zimmet", "-"),
-                "Kayıt Tarihi": d.get("tarih", "-")
+                "Kayıt Tarihi": d.get("tarih", "-"),
             })
 
         excel_dem_data = tablo_to_excel_bytes(excel_demirbas_listesi, "Aziziye Aşevi - Demirbaş Listesi")
@@ -93,16 +146,16 @@ def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, 
                             "adet": int(d_adet),
                             "durum": d_durum,
                             "zimmet": d_zimmet if d_zimmet else "Belirtilmemiş",
-                            "tarih": str(d_tarih)
+                            "tarih": str(d_tarih),
                         }
                         st.session_state.demirbaslar.append(yeni_dem_obj)
                         demirbaslari_kaydet(st.session_state.demirbaslar)
-                        
+
                         st.session_state["son_demirbas_islem"] = {
                             "tur": "ekle",
-                            "obje": yeni_dem_obj
+                            "obje": yeni_dem_obj,
                         }
-                        
+
                         st.success(f"🎉 Başarılı! '{d_ad}' demirbaş listesine eklendi.")
                         st.balloons()
                         time.sleep(1)
@@ -121,7 +174,7 @@ def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, 
                                 dem_secenekleri,
                                 index=None,
                                 placeholder="Demirbaş Seçiniz...",
-                                key="dem_sil_selectbox"
+                                key="dem_sil_selectbox",
                             )
                             onay_dem_sil_btn = silme_onay_kutusu("onay_demirbas_sil")
                             dem_sil_btn = st.form_submit_button("Seçilen Demirbaş Kaydını Sil", type="primary")
@@ -135,14 +188,14 @@ def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, 
                                     otomatik_yedek_al("Demirbaş silme: " + str(secilen_sil_dem))
                                     sil_id = secilen_sil_dem.split(" - ")[0]
                                     silinen_obj = next((d for d in st.session_state.demirbaslar if d["id"] == sil_id), None)
-                                    
+
                                     if silinen_obj:
                                         st.session_state.demirbaslar = [d for d in st.session_state.demirbaslar if d["id"] != sil_id]
                                         demirbaslari_kaydet(st.session_state.demirbaslar)
-                                        
+
                                         st.session_state["son_demirbas_islem"] = {
                                             "tur": "sil",
-                                            "obje": silinen_obj
+                                            "obje": silinen_obj,
                                         }
 
                                         st.success("🎉 Başarılı! Demirbaş kaydı silindi.")
@@ -153,9 +206,14 @@ def demirbas_yonetim_sayfasi(st, misafir_modu, salt_okunur_modu, yonetici_modu, 
                             st.info("Silinecek demirbaş bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Demirbaş Tablosu")
+        bolum_basligi_goster(
+            st,
+            "liste",
+            "Kayıtlı Demirbaş Tablosu",
+            "Zimmet sorumlusu, kategori ve güncel durum bilgisiyle tüm ekipman listesi",
+            vurgu_renk="#38bdf8",
+        )
         if demirbas_tablo:
             ozel_html_tablo_goster(demirbas_tablo)
         else:
             st.info("Kayıtlı demirbaş bulunmuyor.")
-

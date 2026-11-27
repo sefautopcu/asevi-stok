@@ -128,6 +128,7 @@ def test_temizleme_araci_istenen_dokuz_sayfayi_sunar():
         "Fire / Zayiat Girişi",
         "Depo Yönetimi",
         "Demirbaş Yönetimi",
+        "Tedarikçi ve Firma Rehberi",
         "Günlük Yemek Üretimi & Maliyet Raporu",
         "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
         "Personel & Çalışma Süresi Takibi",

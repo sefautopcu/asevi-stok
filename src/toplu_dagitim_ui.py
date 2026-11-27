@@ -1,16 +1,77 @@
 import time
+from src.ui_kartlar import (
+    bolum_basligi_goster,
+    kpi_satiri_goster,
+    sayfa_ust_banner_goster,
+)
 
-def toplu_yemek_dagitimi_tabini_goster(tab2, st, aktif_k_maskeleri, yonetim_modu, html_escape, simdi_tr_str, yeni_id_uret, dagitim_loglarini_kaydet, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster):
+
+def toplu_yemek_dagitimi_tabini_goster(
+    tab2,
+    st,
+    aktif_k_maskeleri,
+    yonetim_modu,
+    html_escape,
+    simdi_tr_str,
+    yeni_id_uret,
+    dagitim_loglarini_kaydet,
+    tablo_to_excel_bytes,
+    tablo_to_html_pdf_bytes,
+    ortak_indirme_alani,
+    ozel_html_tablo_goster,
+):
     with tab2:
+        aktif_ihtiyac_sahipleri = [k for k in st.session_state.ihtiyac_sahipleri if k.get("aktif", True)]
+        dagitim_listesi = st.session_state.get("dagitim_loglari", []) or []
+        bugun_str = simdi_tr_str("%Y-%m-%d")
+        bugun_dagitimlar = [d for d in dagitim_listesi if str(d.get("tarih", "")).startswith(bugun_str)]
+        porsiyon_gizli = "4. Sayfa: Yemek Dağıtımları - Porsiyon" in aktif_k_maskeleri
+        toplam_porsiyon = sum(int(d.get("porsiyon", 1) or 1) for d in dagitim_listesi)
+        bugun_porsiyon = sum(int(d.get("porsiyon", 1) or 1) for d in bugun_dagitimlar)
+
+        sayfa_ust_banner_goster(
+            st,
+            "mutfak",
+            "Toplu Yemek Dağıtımı Girişi ve Yönetimi",
+            "Aktif ihtiyaç sahibi hanelere toplu porsiyon dağıtımı yapın ve dağıtım geçmişini izleyin",
+            tema="yesil",
+        )
+
+        kpi_satiri_goster(
+            st,
+            [
+                ("kullanici", "Dağıtıma Hazır Aktif Hane", len(aktif_ihtiyac_sahipleri), "Toplu dağıtım listesinde yer alan haneler", "#10b981"),
+                ("liste", "Toplam Dağıtım Kaydı", len(dagitim_listesi), "Arşivdeki tüm teslimat işlemleri", "#38bdf8"),
+                (
+                    "mutfak",
+                    "Bugünkü Dağıtım Porsiyonu",
+                    "🔒 Gizli" if porsiyon_gizli else f"{bugun_porsiyon:,}",
+                    f"{bugun_str} tarihli toplam porsiyon",
+                    "#f59e0b",
+                ),
+                (
+                    "rapor",
+                    "Kümülatif Dağıtılan Porsiyon",
+                    "🔒 Gizli" if porsiyon_gizli else f"{toplam_porsiyon:,}",
+                    "Sistemdeki toplam dağıtılan porsiyon",
+                    "#a855f7",
+                ),
+            ],
+        )
+
         col_b_dag, col_indir_dag = st.columns([2, 2])
         with col_b_dag:
-            st.subheader("🍲 Toplu Yemek Dağıtımı Girişi ve Yönetimi")
+            bolum_basligi_goster(
+                st,
+                "mutfak",
+                "Toplu Dağıtım Paneli ve Raporlama",
+                "Aktif vatandaşlara tek seferde yemek dağıtımı işleyin veya listeyi indirin",
+                vurgu_renk="#10b981",
+            )
 
         if st.session_state.dagitim_silme_mesaji:
             st.success(st.session_state.dagitim_silme_mesaji)
             st.session_state.dagitim_silme_mesaji = ""
-
-        aktif_ihtiyac_sahipleri = [k for k in st.session_state.ihtiyac_sahipleri if k.get("aktif", True)]
 
         if yonetim_modu:
             st.info("👀 Yönetim modundasınız. Bu ekranda yeni dağıtım kaydı oluşturamazsınız.")
@@ -31,7 +92,11 @@ def toplu_yemek_dagitimi_tabini_goster(tab2, st, aktif_k_maskeleri, yonetim_modu
                     with c1:
                         secili_mi = st.checkbox("Seç", value=True, key=f"toplu_sec_{idx}", label_visibility="collapsed")
                     with c2:
-                        st.markdown(f"**{html_escape(str(k['ad_soyad']))}** <span style='font-size:12px; opacity:0.6;'>(Hane/T.C: {html_escape(str(k.get('tc_hane', '-')))})</span>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"**{html_escape(str(k['ad_soyad']))}** "
+                            f"<span style='font-size:12px; opacity:0.6;'>(Hane/T.C: {html_escape(str(k.get('tc_hane', '-')))})</span>",
+                            unsafe_allow_html=True,
+                        )
                     with c3:
                         varsayilan_porsiyon = int(k.get("birey_sayisi", 1))
                         pors_val = st.number_input("Porsiyon", min_value=1, value=varsayilan_porsiyon, key=f"toplu_pors_{idx}", label_visibility="collapsed")
@@ -39,7 +104,7 @@ def toplu_yemek_dagitimi_tabini_goster(tab2, st, aktif_k_maskeleri, yonetim_modu
                     secim_verileri.append({
                         "kisi": k["ad_soyad"],
                         "secili": secili_mi,
-                        "porsiyon": pors_val
+                        "porsiyon": pors_val,
                     })
 
                 st.markdown("---")
@@ -68,7 +133,7 @@ def toplu_yemek_dagitimi_tabini_goster(tab2, st, aktif_k_maskeleri, yonetim_modu
                         "tarih": d_tarih_saat,
                         "menu": menu_adi_toplu,
                         "sayi": eklenen_sayisi,
-                        "eklenen_id_listesi": eklenen_id_listesi
+                        "eklenen_id_listesi": eklenen_id_listesi,
                     }
 
                     dagitim_loglarini_kaydet(st.session_state.dagitim_loglari)
@@ -78,7 +143,13 @@ def toplu_yemek_dagitimi_tabini_goster(tab2, st, aktif_k_maskeleri, yonetim_modu
                     st.rerun()
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Yemek Dağıtımları Tablosu")
+        bolum_basligi_goster(
+            st,
+            "liste",
+            "Kayıtlı Yemek Dağıtımları Tablosu",
+            "Tarih, hane, menü ve porsiyon bazlı geçmiş teslimat kayıtları",
+            vurgu_renk="#38bdf8",
+        )
 
         dagitim_gosterim_listesi = []
         for idx, d in enumerate(st.session_state.dagitim_loglari):

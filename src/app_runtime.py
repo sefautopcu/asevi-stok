@@ -32,6 +32,8 @@ import logging
 from src.rapor_mail import zamanlanmis_rapor_maili_gonder
 from src.tema_ui import _tema_tercihini_yukle, tema_baglamini_hazirla, tema_stillerini_uygula
 from src.giris_ekrani_ui import giris_ekrani_goster
+from src.ui_kartlar import kurumsal_logo_baslik_goster
+from src.ui_kartlar import hosgeldiniz_tarih_bari_goster, kurumsal_logo_baslik_goster
 from concurrent.futures import ThreadPoolExecutor
 from src.supabase_db import (
     SUPABASE_URL, SUPABASE_KEY, _supa_basliklar, supabase_anahtar_rolu,
@@ -62,7 +64,20 @@ from src.veri_yonetimi import (
     personel_izinlerini_yukle, personel_izinlerini_kaydet,
     resmi_tatilleri_yukle, yemek_uretim_arsivini_yukle, yemek_uretim_arsivini_kaydet,
     test_silme_stoku_iade_et,
+    tedarikcileri_yukle, tedarikcileri_kaydet,
+    arac_seferlerini_yukle, arac_seferlerini_kaydet,
+    yemek_receteleri_listesini_yukle, yemek_receteleri_listesini_kaydet,
+    haftalik_menu_yukle, haftalik_menu_kaydet,
+    rota_teslimat_yukle, rota_teslimat_kaydet,
+    denetim_izi_yukle, denetim_izi_kaydet, denetim_kaydi_ekle,
+    sabah_brifingi_yukle, sabah_brifingi_kaydet, sabah_brifingi_uyarisi_olustur,
 )
+from src.tedarikciler_ui import tedarikci_rehberi_sayfasi
+from src.arac_sefer_ui import arac_sefer_takip_sayfasi
+from src.haftalik_menu_ui import haftalik_menu_planlama_sayfasi
+from src.rota_teslimat_ui import rota_teslimat_sayfasi
+from src.denetim_izi_ui import denetim_izi_sayfasi
+from src.sabah_brifingi_ui import sabah_brifingi_sayfasi
 from src.auth_session import (
     OTURUM_SURESI_SN, MAKS_HATALI_GIRIS, KILIT_SURESI_SN, IP_MAKS_HATALI_GIRIS, 
     IP_KILIT_SURESI_SN, COOKIE_ADI, OTURUM_DOGRULAMA_ARALIGI_SN,
@@ -71,8 +86,10 @@ from src.auth_session import (
     oturum_sil, kullanici_oturumlarini_kapat,
     giris_kilit_kalan, hatali_giris_kaydet, giris_denemesini_sifirla
 )
-
+from src.yemek_receteleri_ui import SAYFA_BASLIGI_YEMEK_RECETELERI, yemek_receteleri_sayfasi
+SAYFA_ANAHTARI_YEMEK_RECETELERI = "yemek_receteleri"
 from src.yemek_utils import (
+    en_son_urun_birim_fiyati,
     fire_partisi_etiketi, fire_partisi_detayi, dashboard_skt_sayilarini_hesapla,
     qr_paket_kalanini_hesapla, qr_acik_paketleri_bul, qr_paket_secim_engeli,
     qr_kod_degerleri, yemek_sepeti_stok_hatalari, yemek_menu_alanlari,
@@ -515,18 +532,29 @@ SAYFA_VARSAYILAN_BASLIKLARI = {
     "Günlük Yemek Üretimi & Maliyet Raporu": (
         "🍲 Günlük Yemek Üretimi, Kullanımı ve Tarih Aralığı Takibi"
     ),
+    "Hazır Yemek Reçeteleri": "🍲 Hazır Yemek Reçeteleri ve Porsiyon Hesabı",
+    "Haftalık Menü Planlama": "📅 Haftalık Menü Planlama ve Malzeme İhtiyaç Listesi",
     "Kalori Hesaplama Aracı": "🔥 Reçete ve Kalori Analiz Merkezi",
     "İhtiyaç Sahibi & Yemek Dağıtım Takibi": (
         "👥 İhtiyaç Sahibi ve Yemek Dağıtım Takibi"
     ),
+    "Sıcak Yemek Dağıtım Araç ve Sefer Takibi": (
+        "🚐 Sıcak Yemek Dağıtım Araç ve Sefer Takibi"
+    ),
+    "Rota & Teslimat Takibi": (
+        "🗺 İhtiyaç Sahibi Haneleri: Rota, Teslimat Teyidi ve Hanehalkı Güncelleme",
+    ),
     "Personel & Çalışma Süresi Takibi": "👥 Personel ve Çalışma Süresi Takibi",
     "Kullanım Takibi": "📈 Tüm Sistem Kullanım Logları ve Hareket Arşivi",
+    "Denetim İzi (Audit Log)": "🕵️ Gelişmiş Denetim İzi (Audit Log) ve İşlem Geçmişi",
+    "Kritik Uyarı Merkezi & Sabah Brifingi": "🌅 Kritik Uyarı Merkezi ve Günlük Sabah Brifingi",
     "Kapsamlı Envanter ve Hareket Raporu": (
         "📋 Kapsamlı Envanter ve Hareket Raporu"
     ),
     "Ürün Birim Fiyatları & Ay Analizi": (
         "💰 Ürün Birim Fiyatları ve Ay Bazlı Maliyet Analizi"
     ),
+    "Tedarikçi ve Firma Rehberi": "🏢 Tedarikçi ve Firma Rehberi",
     "Kullanıcı Ayarları": "⚙️ Kullanıcı Yönetimi, Güvenlik ve Yedekleme",
 }
 
@@ -997,6 +1025,9 @@ def test_verisi_sayfa_koleksiyonlari():
         "Demirbaş Yönetimi": [
             ("demirbaslar", "demirbaslar", "demirbasları_kaydet", "tum"),
         ],
+        "Tedarikçi ve Firma Rehberi": [
+            ("tedarikciler", "tedarikciler", "tedarikcileri_kaydet", "tum"),
+        ],
         "Günlük Yemek Üretimi & Maliyet Raporu": [
             (
                 "yemek_arsivi",
@@ -1020,7 +1051,7 @@ def test_verisi_sayfa_koleksiyonlari():
             ),
             ("dagitimlar", "dagitim_loglari", "dagitim_loglarini_kaydet", "tum"),
         ],
-        "Personel & Çalışma Süresi Takibi": [
+        "Personel & Çalışma Süresi Takibi": [            
             ("personeller", "personeller", "personelleri_kaydet", "tum"),
             (
                 "personel_izinleri",
@@ -1030,6 +1061,102 @@ def test_verisi_sayfa_koleksiyonlari():
             ),
         ],
     }
+
+EK_TEST_VERISI_SAYFA_KOLEKSIYONLARI = {
+    "Sıcak Yemek Dağıtım Araç ve Sefer Takibi": [
+        (
+            "arac_seferleri",
+            "arac_seferleri",
+            "arac_seferlerini_kaydet",
+            "tum",
+        ),
+    ],
+    "Hazır Yemek Reçeteleri": [
+        (
+            "yemek_receteleri",
+            "yemek_receteleri",
+            "yemek_receteleri_listesini_kaydet",
+            "tum",
+        ),
+    ],
+    "Haftalık Menü Planlama": [
+        (
+            "haftalik_menu",
+            "haftalik_menu",
+            "haftalik_menu_kaydet",
+            "tum",
+        ),
+    ],
+    "Rota & Teslimat Takibi": [
+        (
+            "rota_teslimat",
+            "rota_teslimat",
+            "rota_teslimat_kaydet",
+            "tum",
+        ),
+    ],
+    "Denetim İzi (Audit Log)": [
+        (
+            "denetim_izi",
+            "denetim_izi",
+            "denetim_izi_kaydet",
+            "tum",
+        ),
+    ],
+    "Kritik Uyarı Merkezi & Sabah Brifingi": [
+        (
+            "sabah_brifingi_uyarilari",
+            "sabah_brifingi_uyarilari",
+            "sabah_brifingi_kaydet",
+            "tum",
+        ),
+    ],
+}
+
+_HARIC_SESSION_LISTELERI = {
+    "kalori_sepeti",
+    "resmi_tatiller",
+    "dashboard_widgets",
+}
+
+
+def dinamik_test_verisi_koleksiyonlarini_al():
+    """Sabit 10 sayfayı koruyarak yeni eklenen modülleri ve sayfaları otomatik listeler."""
+    birlesik = dict(test_verisi_sayfa_koleksiyonlari())
+    birlesik.update(EK_TEST_VERISI_SAYFA_KOLEKSIYONLARI)
+
+    # 1) Kod Yazmadan Sayfa Düzenleyici ile eklenen özel sayfaları otomatik dahil et
+    arayuz_ayarlari = st.session_state.get("arayuz_sayfa_ayarlari", {})
+    for ozel in arayuz_ayarlari.get("ozel_sayfalar", []):
+        baslik = str(ozel.get("baslik") or "").strip()
+        sayfa_id = str(ozel.get("id") or "").strip()
+        if baslik and sayfa_id and baslik not in birlesik:
+            birlesik[baslik] = [
+                ("bloklar", f"ozel_bloklar_{sayfa_id}", "supabase_veri_kaydet", "tum")
+            ]
+
+    # 2) Gelecekte eklenecek yeni modüllerin session_state listelerini otomatik algıla
+    tanimli_state_anahtarlari = {
+        state_key
+        for koleksiyonlar in birlesik.values()
+        for _, state_key, _, _ in koleksiyonlar
+    }
+    for anahtar, deger in st.session_state.items():
+        if (
+            anahtar.startswith("_")
+            or anahtar in _HARIC_SESSION_LISTELERI
+            or anahtar in tanimli_state_anahtarlari
+            or not isinstance(deger, list)
+        ):
+            continue
+        kaydet_fn_adi = f"{anahtar}_kaydet"
+        if kaydet_fn_adi in globals() and callable(globals()[kaydet_fn_adi]):
+            okunabilir_ad = anahtar.replace("_", " ").title()
+            birlesik[okunabilir_ad] = [
+                (anahtar, anahtar, kaydet_fn_adi, "tum")
+            ]
+
+    return birlesik
 
 def test_silme_stoku_iade_et(girisler, silinen_kayitlar):
     """Silinen test kayıtlarına bağlı stok miktarlarını `girisler` listesine iade eder."""
@@ -1103,7 +1230,10 @@ def _uretim_kayitlari_ayni_islem_mi(arsiv_kayit, log_kayit):
 
 
 def test_verilerini_temizle(sayfa, secimler):
-    sayfa_koleksiyonlari = test_verisi_sayfa_koleksiyonlari()
+    _dinamik_fn = globals().get("dinamik_test_verisi_koleksiyonlarini_al")
+    sayfa_koleksiyonlari = (
+        _dinamik_fn() if callable(_dinamik_fn) else test_verisi_sayfa_koleksiyonlari()
+    )    
     if sayfa not in sayfa_koleksiyonlari:
         raise ValueError("Test verisi temizliği için geçersiz sayfa seçildi.")
 
@@ -1286,6 +1416,18 @@ if st.session_state.oturum_aktif:
         st.session_state.depolar = depoları_yukle()
     if "demirbaslar" not in st.session_state:
         st.session_state.demirbaslar = idleri_benzersiz_yap(demirbasları_yukle(), "DEM-")
+    if "tedarikciler" not in st.session_state:
+        st.session_state.tedarikciler = tedarikcileri_yukle()
+    if "arac_seferleri" not in st.session_state:
+        st.session_state.arac_seferleri = idleri_benzersiz_yap(arac_seferlerini_yukle(), "SFR-")
+    if "haftalik_menu" not in st.session_state:
+        st.session_state.haftalik_menu = idleri_benzersiz_yap(haftalik_menu_yukle(), "HMN-")
+    if "rota_teslimat" not in st.session_state:
+        st.session_state.rota_teslimat = idleri_benzersiz_yap(rota_teslimat_yukle(), "RTS-")
+    if "denetim_izi" not in st.session_state:
+        st.session_state.denetim_izi = idleri_benzersiz_yap(denetim_izi_yukle(), "DNT-")
+    if "sabah_brifingi_uyarilari" not in st.session_state:
+        st.session_state.sabah_brifingi_uyarilari = idleri_benzersiz_yap(sabah_brifingi_yukle(), "BRF-")
     if "kritik_seviyeler" not in st.session_state:
         st.session_state.kritik_seviyeler = kritik_seviyeleri_yukle()
     if "personel_silme_mesaji" not in st.session_state:
@@ -1326,13 +1468,20 @@ gecerli_menuler = [
     "Toplu Stok Düşümü & Sarfiyat",
     "Ürün Birim Fiyatları & Ay Analizi",
     "Günlük Yemek Üretimi & Maliyet Raporu",
+    "Hazır Yemek Reçeteleri",
+    "Haftalık Menü Planlama",
     "Kalori Hesaplama Aracı",
     "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
+    "Sıcak Yemek Dağıtım Araç ve Sefer Takibi",
+    "Rota & Teslimat Takibi",
     "Personel & Çalışma Süresi Takibi",
     "Kullanım Takibi",
+    "Denetim İzi (Audit Log)",
+    "Kritik Uyarı Merkezi & Sabah Brifingi",
     "Kapsamlı Envanter ve Hareket Raporu",
     "Depo Yönetimi",
     "Demirbaş Yönetimi",
+    "Tedarikçi ve Firma Rehberi",
     "Kullanıcı Ayarları",
 ]
 _arayuz_sayfa_ayarlari = st.session_state.get(
@@ -1430,41 +1579,75 @@ if not st.session_state.oturum_aktif:
         st.markdown(
             """
             <section class="login-hero">
-                <div class="login-eyebrow">🍲 AŞEVİ OTOMASYONU</div>
-                <h1>Aziziye <span class="login-brand-accent">Aşevi</span></h1>
-                <h3>Yönetim &amp; Takip Sistemi</h3>
+                <div class="login-eyebrow" style="display:inline-flex;align-items:center;gap:8px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5.5V11.5C4 16.8 7.4 21.6 12 23C16.6 21.6 20 16.8 20 11.5V5.5L12 2Z" fill="rgba(16,185,129,0.22)" stroke="#10b981" stroke-width="2" stroke-linejoin="round"/><path d="M9 12.2L11 14.2L15.2 10" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>AŞEVİ OTOMASYONU</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px;margin:10px 0 8px 0;">
+                    <div style="width:58px;height:58px;min-width:58px;border-radius:16px;background:radial-gradient(circle at 30% 25%,rgba(16,185,129,0.28),rgba(15,23,42,0.96) 75%);border:1px solid rgba(16,185,129,0.48);box-shadow:0 0 26px rgba(16,185,129,0.24),inset 0 1px 0 rgba(251,191,36,0.25);display:flex;align-items:center;justify-content:center;">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <defs>
+                                <linearGradient id="aziziyeCrestGrad" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#34d399"/>
+                                    <stop offset="55%" stop-color="#10b981"/>
+                                    <stop offset="100%" stop-color="#fbbf24"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M16 3L6 7.2V14.8C6 21.4 10.3 27.3 16 29C21.7 27.3 26 21.4 26 14.8V7.2L16 3Z" fill="rgba(16,185,129,0.14)" stroke="url(#aziziyeCrestGrad)" stroke-width="1.8" stroke-linejoin="round"/>
+                            <path d="M10.5 16.5H21.5C21.5 19.6 19 22 16 22C13 22 10.5 19.6 10.5 16.5Z" fill="rgba(251,191,36,0.24)" stroke="#fbbf24" stroke-width="1.6" stroke-linejoin="round"/>
+                            <path d="M9.5 16.5H22.5" stroke="#34d399" stroke-width="1.8" stroke-linecap="round"/>
+                            <path d="M13.2 13.5C13.2 12.2 14.2 11.8 14.2 10.6M16 13.2C16 11.8 17 11.4 17 10M18.8 13.5C18.8 12.2 19.8 11.8 19.8 10.6" stroke="#fde68a" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 style="margin:0;line-height:1.12;">Aziziye <span class="login-brand-accent">Aşevi</span></h1>
+                        <h3 style="margin:4px 0 0 0;">Yönetim &amp; Takip Sistemi</h3>
+                    </div>
+                </div>
                 <p>Stok girişinden yemek dağıtımına, fire takibinden personel
                 yönetimine kadar tüm süreçler tek panelde. Sadece giriş yapın,
                 gerisini sistem halletsin.</p>
             </section>
             <section class="login-feature-grid">
                 <article class="login-feature-card">
-                    <div class="login-feature-icon">📦</div>
+                    <div class="login-feature-icon" style="width:42px;height:42px;border-radius:12px;background:rgba(16,185,129,0.14);border:1px solid rgba(16,185,129,0.38);box-shadow:0 0 16px rgba(16,185,129,0.16);display:inline-flex;align-items:center;justify-content:center;">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    </div>
                     <h4>Stok Yönetimi</h4>
                     <p>Fatura bazlı giriş, anlık kalan, kritik seviye uyarıları</p>
                 </article>
                 <article class="login-feature-card">
-                    <div class="login-feature-icon">🍲</div>
+                    <div class="login-feature-icon" style="width:42px;height:42px;border-radius:12px;background:rgba(251,191,36,0.14);border:1px solid rgba(251,191,36,0.38);box-shadow:0 0 16px rgba(251,191,36,0.16);display:inline-flex;align-items:center;justify-content:center;">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16a1 1 0 0 1 1 1v2a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6v-2a1 1 0 0 1 1-1Z"/><path d="M8 7c0-1.5 1-2 1-3.5"/><path d="M12 7c0-1.5 1-2 1-3.5"/><path d="M16 7c0-1.5 1-2 1-3.5"/></svg>
+                    </div>
                     <h4>Yemek Üretimi</h4>
                     <p>Kişi başı maliyet, kalori ve porsiyon hesabı</p>
                 </article>
                 <article class="login-feature-card">
-                    <div class="login-feature-icon">🗑️</div>
+                    <div class="login-feature-icon" style="width:42px;height:42px;border-radius:12px;background:rgba(244,63,94,0.14);border:1px solid rgba(244,63,94,0.38);box-shadow:0 0 16px rgba(244,63,94,0.16);display:inline-flex;align-items:center;justify-content:center;">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
                     <h4>Fire &amp; Zayiat</h4>
                     <p>Parti bazlı fire tutarı ve neden analizi</p>
                 </article>
                 <article class="login-feature-card">
-                    <div class="login-feature-icon">📱</div>
+                    <div class="login-feature-icon" style="width:42px;height:42px;border-radius:12px;background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.38);box-shadow:0 0 16px rgba(56,189,248,0.16);display:inline-flex;align-items:center;justify-content:center;">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M17 17h4v4h-4z"/><path d="M21 14v.01"/></svg>
+                    </div>
                     <h4>QR Sarfiyat</h4>
                     <p>QR ile hızlı düşüm ve paket takibi</p>
                 </article>
                 <article class="login-feature-card">
-                    <div class="login-feature-icon">👥</div>
+                    <div class="login-feature-icon" style="width:42px;height:42px;border-radius:12px;background:rgba(168,85,247,0.14);border:1px solid rgba(168,85,247,0.38);box-shadow:0 0 16px rgba(168,85,247,0.16);display:inline-flex;align-items:center;justify-content:center;">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
                     <h4>Personel</h4>
                     <p>İzin, çalışma süresi ve demirbaş zimmet takibi</p>
                 </article>
                 <article class="login-feature-card">
-                    <div class="login-feature-icon">📊</div>
+                    <div class="login-feature-icon" style="width:42px;height:42px;border-radius:12px;background:rgba(52,211,153,0.14);border:1px solid rgba(52,211,153,0.38);box-shadow:0 0 16px rgba(52,211,153,0.16);display:inline-flex;align-items:center;justify-content:center;">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    </div>
                     <h4>Raporlama</h4>
                     <p>Günlük, haftalık ve aylık otomatik e-posta raporları</p>
                 </article>
@@ -1480,13 +1663,26 @@ if not st.session_state.oturum_aktif:
     # 4. SAĞ TARAF (Giriş Formu)
     with login_right.container(key="login-card"):
         st.markdown(
-            f"""
-                <div style="text-align:center; font-size:30px; margin:0;">🍲</div>
-                <h2>Giriş Yap</h2>
-                <p class="login-subtitle">Devam etmek için hesabınızla giriş yapın</p>
+            """
+            <div style="width:62px;height:62px;margin:0 auto 12px auto;border-radius:18px;background:radial-gradient(circle at 30% 25%,rgba(16,185,129,0.28),rgba(15,23,42,0.96) 75%);border:1px solid rgba(16,185,129,0.48);box-shadow:0 0 28px rgba(16,185,129,0.26),inset 0 1px 0 rgba(251,191,36,0.28);display:flex;align-items:center;justify-content:center;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <defs>
+                        <linearGradient id="loginLockGrad" x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#34d399"/>
+                            <stop offset="60%" stop-color="#10b981"/>
+                            <stop offset="100%" stop-color="#fbbf24"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 2L4 5.5V11.5C4 16.8 7.4 21.6 12 23C16.6 21.6 20 16.8 20 11.5V5.5L12 2Z" fill="rgba(16,185,129,0.16)" stroke="url(#loginLockGrad)" stroke-width="1.8" stroke-linejoin="round"/>
+                    <rect x="8.8" y="11" width="6.4" height="5.2" rx="1.2" fill="rgba(251,191,36,0.22)" stroke="#fbbf24" stroke-width="1.6"/>
+                    <path d="M10.2 11V9.3C10.2 8.3 11 7.5 12 7.5C13 7.5 13.8 8.3 13.8 9.3V11" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h2>Giriş Yap</h2>
+            <p class="login-subtitle">Devam etmek için hesabınızla giriş yapın</p>
             """,
             unsafe_allow_html=True,
-        )
+        )        
 
         if st.session_state.get("oturum_mesaji"):
             st.warning(st.session_state.pop("oturum_mesaji"))
@@ -1612,8 +1808,8 @@ if not st.session_state.oturum_aktif:
 # =========================================================================
 # ZORUNLU ŞİFRE DEĞİŞİMİ
 # =========================================================================
-st.markdown("### 🍲 AZİZİYE - AŞEVİ TAKİP EKRANI ")
-st.markdown(f"**Hoş geldiniz** &nbsp;|&nbsp; 📅 {bugunun_turkce_tarihi()}")
+kurumsal_logo_baslik_goster(st, "AZİZİYE AŞEVİ", "Stok, Depo & Mutfak Yönetim Sistemi")
+hosgeldiniz_tarih_bari_goster(st, bugunun_turkce_tarihi())
 st.markdown("---")
 
 kullanici_adi_goruntule = (
@@ -1623,19 +1819,10 @@ kullanici_adi_goruntule = (
 )
 kullanici_adi_goruntule = html_escape(kullanici_adi_goruntule)
 
-st.sidebar.markdown(
-    f"""
-    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 18px 8px; border-bottom: 1px solid {border_color}; margin-bottom: 12px;">
-        <div style="background: rgba(16, 185, 129, 0.12); color: {text_color}; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid {border_color}; backdrop-filter: blur(12px);">
-            🍲
-        </div>
-        <div>
-            <div style="font-weight: 700; font-size: 15px; color: {text_color}; letter-spacing: -0.02em;">AZİZİYE AŞEVİ</div>
-            <div style="font-size: 11px; color: {subtext_color}; font-weight: 500;">Yönetim & Takip Sistemi</div>
-        </div>
-    </div>
-""",
-    unsafe_allow_html=True,
+kurumsal_logo_baslik_goster(
+    st.sidebar,
+    "AZİZİYE AŞEVİ",
+    "Stok & Mutfak Yönetim Sistemi",
 )
 
 st.sidebar.markdown(
@@ -1736,21 +1923,26 @@ menu_gruplari = {
         ("Ürün Birim Fiyatları & Ay Analizi", ""),
         ("Depo Yönetimi", str(len(st.session_state.depolar))),
         ("Demirbaş Yönetimi", str(len(st.session_state.demirbaslar))),
+        ("Tedarikçi ve Firma Rehberi", str(len(st.session_state.tedarikciler))),
     ],
     "🍲 Üretim & Mutfak": [
         ("Günlük Yemek Üretimi & Maliyet Raporu", ""),
+        ("Hazır Yemek Reçeteleri", ""),
+        ("Haftalık Menü Planlama", str(len(st.session_state.haftalik_menu))),
         ("Kalori Hesaplama Aracı", ""),
     ],
     "👥 Sosyal & İnsan Kaynakları": [
-        (
-            "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
-            str(len(st.session_state.ihtiyac_sahipleri)),
-        ),
-        ("Personel & Çalışma Süresi Takibi", str(aktif_personel_sayisi)),
-    ],
-    "📈 Raporlar & Arşiv": [
+        ("İhtiyaç Sahibi & Yemek Dağıtım Takibi", ""),
+        ("Sıcak Yemek Dağıtım Araç ve Sefer Takibi", str(len([s for s in st.session_state.arac_seferleri if s.get("durum") == "Devam Ediyor"]))),
+        ("Rota & Teslimat Takibi", str(len([k for k in st.session_state.rota_teslimat if k.get("teslim_durumu") == "Bekliyor"]))),
+        ("Personel & Çalışma Süresi Takibi", str(len(st.session_state.personeller))),
+    ],    
+    "📈 Raporlama & Analiz": [
         ("Kullanım Takibi", ""),
+        ("Denetim İzi (Audit Log)", str(len(st.session_state.denetim_izi))),
+        ("Kritik Uyarı Merkezi & Sabah Brifingi", str(len([u for u in st.session_state.get("sabah_brifingi_uyarilari", []) if isinstance(u, dict) and str(u.get("durum") or "Aktif") != "Okundu"]))),
         ("Kapsamlı Envanter ve Hareket Raporu", ""),
+        ("Ürün Birim Fiyatları & Ay Analizi", ""),
     ],
 }
 
@@ -1811,11 +2003,13 @@ for grup_adi, alt_menuler in menu_gruplari.items():
             "Fire / Zayiat Girişi",
             "Toplu Stok Düşümü & Sarfiyat",
             "İhtiyaç Sahibi & Yemek Dağıtım Takibi",
+            "Sıcak Yemek Dağıtım Araç ve Sefer Takibi",
             "Personel & Çalışma Süresi Takibi",
             "Kullanım Takibi",
             "Kapsamlı Envanter ve Hareket Raporu",
             "Depo Yönetimi",
             "Demirbaş Yönetimi",
+            "Tedarikçi ve Firma Rehberi",
         ]:
             continue
         if not yonetici_modu and m in yasakli_menuler_listesi:
@@ -1845,7 +2039,7 @@ for grup_adi, alt_menuler in filtrelenmis_gruplar.items():
                 "primary" if st.session_state.aktif_menu == m else "secondary"
             )
             if st.button(
-                btn_label, width="stretch", type=btn_type, key=f"menu_btn_{m}"
+                btn_label, width="stretch", type=btn_type, key=f"menu_btn_{grup_adi}_{abs(hash((grup_adi, btn_label)))}",
             ):
                 st.session_state.aktif_menu = m
                 st.query_params["menu"] = m
@@ -2068,6 +2262,8 @@ st.markdown(
 from src.dashboard_utils import dashboard_ozet_hesapla, dashboard_operasyonel_istatistikleri
 from src.dashboard_ui import dashboard_sayfasi
 from src.demirbas_ui import demirbas_yonetim_sayfasi
+from src.veri_yonetimi import tedarikcileri_kaydet, tedarikcileri_yukle
+from src.tedarikciler_ui import tedarikci_rehberi_sayfasi
 from src.depo_yonetim_ui import depo_yonetim_sayfasi
 from src.envanter_rapor_ui import kapsamli_envanter_rapor_sayfasi
 from src.fire_ui import fire_zayiat_sayfasi
@@ -2130,6 +2326,8 @@ elif menu == "Yeni Mal Alımı / Fatura Ekle":
         st, salt_okunur_modu, otomatik_yedek_al, verileri_kaydet, yeni_id_uret,
         tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani,
         ozel_html_tablo_goster,
+        tedarikcileri_kaydet=tedarikcileri_kaydet,
+        simdi_tr_str=simdi_tr_str,
     )
 elif menu == "Depo Yönetimi":
     depo_yonetim_sayfasi(
@@ -2180,6 +2378,28 @@ elif menu == "Günlük Yemek Üretimi & Maliyet Raporu":
         yemek_malzeme_kullanim_uyarilari,
         yemek_sepeti_stok_hatalari,
     )
+elif menu == "Hazır Yemek Reçeteleri":
+    _recete_maskeli = (
+        SAYFA_ANAHTARI_YEMEK_RECETELERI in yasakli_menuler_listesi
+        or "Hazır Yemek Reçeteleri" in yasakli_menuler_listesi
+    )
+    if _recete_maskeli and not yonetici_modu:
+        st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
+    else:
+        yemek_receteleri_sayfasi(
+            son_fiyat_saglayici=lambda urun_ad: en_son_urun_birim_fiyati(
+                st.session_state.get("girisler", []), urun_ad
+            ),
+            kalori_saglayici=lambda urun_ad, birim_ad: urun_kalori_hesapla(
+                urun_ad, 1.0, birim_ad
+            ),
+            stok_urunleri=[
+                g.get("urun", "").strip()
+                for g in st.session_state.get("girisler", [])
+                if g.get("urun")
+            ],
+            aktif_k_maskeleri=aktif_k_maskeleri,
+        )        
 elif menu == "Kalori Hesaplama Aracı":
     kalori_hesaplama_sayfasi(
         st, supabase_veri_oku, supabase_veri_kaydet, urun_kalori_hesapla,
@@ -2230,11 +2450,128 @@ elif menu == "Ürün Birim Fiyatları & Ay Analizi":
         benzersiz_urun_adlari, urun_fiyat_analizi_olustur, tablo_to_excel_bytes,
         tablo_to_html_pdf_bytes, ortak_indirme_alani, ozel_html_tablo_goster,
     )
+
+elif menu == "Tedarikçi ve Firma Rehberi":
+    tedarikci_rehberi_sayfasi(
+        st,
+        misafir_modu,
+        salt_okunur_modu,
+        aktif_k_maskeleri,
+        otomatik_yedek_al,
+        tedarikcileri_kaydet,
+        simdi_tr_str,
+        tablo_to_excel_bytes,
+        tablo_to_html_pdf_bytes,
+        ortak_indirme_alani,
+        ozel_html_tablo_goster,
+        yonetici_modu,
+    )
+
+elif menu == "Sıcak Yemek Dağıtım Araç ve Sefer Takibi":
+    arac_sefer_takip_sayfasi(
+        st,
+        misafir_modu,
+        salt_okunur_modu,
+        yonetici_modu,
+        aktif_k_maskeleri,
+        otomatik_yedek_al,
+        arac_seferlerini_kaydet,
+        yeni_id_uret,
+        simdi_tr_str,
+        silme_onay_kutusu,
+        tablo_to_excel_bytes,
+        tablo_to_html_pdf_bytes,
+        ortak_indirme_alani,
+        ozel_html_tablo_goster,
+    )
+
+elif menu == "Haftalık Menü Planlama":
+    haftalik_menu_planlama_sayfasi(
+        st,
+        misafir_modu,
+        salt_okunur_modu,
+        yonetici_modu,
+        aktif_k_maskeleri,
+        otomatik_yedek_al,
+        haftalik_menu_kaydet,
+        yeni_id_uret,
+        silme_onay_kutusu,
+        tablo_to_excel_bytes,
+        tablo_to_html_pdf_bytes,
+        ortak_indirme_alani,
+        ozel_html_tablo_goster,
+        yemek_receteleri_yukle_fn=yemek_receteleri_listesini_yukle,        
+    )
+
+elif menu == "Rota & Teslimat Takibi":
+    rota_teslimat_sayfasi(
+        st,
+        misafir_modu,
+        salt_okunur_modu,
+        yonetici_modu,
+        aktif_k_maskeleri,
+        otomatik_yedek_al,
+        rota_teslimat_kaydet,
+        yeni_id_uret,
+        silme_onay_kutusu,
+        tablo_to_excel_bytes,
+        tablo_to_html_pdf_bytes,
+        ortak_indirme_alani,
+        ozel_html_tablo_goster,
+        ihtiyac_sahiplerini_kaydet_fn=globals().get("ihtiyac_sahiplerini_kaydet"),
+    )
+
+elif menu == "Denetim İzi (Audit Log)":
+    denetim_izi_sayfasi(
+        st,
+        misafir_modu,
+        salt_okunur_modu,
+        yonetici_modu,
+        aktif_k_maskeleri,
+        otomatik_yedek_al,
+        denetim_izi_kaydet,
+        yeni_id_uret,
+        silme_onay_kutusu,
+        tablo_to_excel_bytes,
+        tablo_to_html_pdf_bytes,
+        ortak_indirme_alani,
+        ozel_html_tablo_goster,
+        denetim_kaydi_ekle_fn=denetim_kaydi_ekle,
+        aktif_kullanici=st.session_state.get("aktif_kullanici", "sistem"),
+        aktif_rol=st.session_state.get("aktif_rol", ""),
+    )
+
+elif menu == "Kritik Uyarı Merkezi & Sabah Brifingi":
+    sabah_brifingi_sayfasi(
+        st,
+        misafir_modu,
+        salt_okunur_modu,
+        yonetici_modu,
+        aktif_k_maskeleri,
+        otomatik_yedek_al,
+        sabah_brifingi_kaydet,
+        yeni_id_uret,
+        silme_onay_kutusu,
+        tablo_to_excel_bytes,
+        tablo_to_html_pdf_bytes,
+        ortak_indirme_alani,
+        ozel_html_tablo_goster,
+        uyari_olustur_fn=sabah_brifingi_uyarisi_olustur,
+        denetim_kaydi_ekle_fn=denetim_kaydi_ekle,
+        denetim_izi_kaydet_fn=denetim_izi_kaydet,
+        aktif_kullanici=st.session_state.get("aktif_kullanici", "sistem"),
+        aktif_rol=st.session_state.get("aktif_rol", ""),
+    )
+
 elif menu == "Kullanıcı Ayarları":
     if not yonetici_modu:
         st.warning("⚠️ Bu sayfaya erişim yetkiniz yalnızca **Admin** kullanıcısına aittir.")
     else:
-        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, menu))
+        st.markdown(
+            '<div style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(56,189,248,0.16) 0%,rgba(16,185,129,0.10) 100%);border:1px solid rgba(56,189,248,0.36);border-radius:12px;padding:7px 14px;margin-bottom:4px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="sysGearGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#38bdf8"/><stop offset="55%" stop-color="#10b981"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient></defs><circle cx="12" cy="12" r="3.2" stroke="url(#sysGearGrad)" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="url(#sysGearGrad)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-size:0.74rem;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:#38bdf8;">SİSTEM YÖNETİM & GÜVENLİK MERKEZİ</span></div>',
+            unsafe_allow_html=True,
+        )
+        st.header(sayfa_baslik_metnini_al(st.session_state.arayuz_sayfa_ayarlari, "Kullanıcı Ayarları"))
         kullanici_db = st.session_state.kullanicilar
         manuel_rapor_gonderim_alani(st, manuel_rapor_maili_gonder)
         guvenlik_durumu_rozetlerini_goster(
@@ -2277,9 +2614,8 @@ def test_temizlik_ui_goster(
 ):
     """Kullanıcı Ayarları altında sayfa bazlı test verisi temizleme arayüzünü gösterir."""
     temizle_fn = test_verilerini_temizle_fn or test_verilerini_temizle
-    koleksiyonlar_fn = globals().get("test_verisi_sayfa_koleksiyonlari")
+    koleksiyonlar_fn = globals().get("dinamik_test_verisi_koleksiyonlarini_al") or globals().get("test_verisi_sayfa_koleksiyonlari")
     uygun_mu_fn = globals().get("test_verisi_kayit_uygun_mu")
-
     if not callable(koleksiyonlar_fn) or not callable(uygun_mu_fn):
         return
 
@@ -2295,9 +2631,11 @@ def test_temizlik_ui_goster(
             key="test_temizlik_secili_sayfa",
         )
         girisler = st.session_state.get("girisler", [])
+        if secili_sayfa == "Hazır Yemek Reçeteleri" and "yemek_receteleri" not in st.session_state:
+            st.session_state["yemek_receteleri"] = yemek_receteleri_listesini_yukle()
         secimler = {}
 
-        for koleksiyon, state_key, _kaydet, kapsam in sayfa_koleksiyonlari.get(
+        for koleksiyon, state_key, _kaydet, kapsam in sayfa_koleksiyonlari.get(            
             secili_sayfa, []
         ):
             kayitlar = st.session_state.get(state_key, [])
@@ -2357,3 +2695,61 @@ if st.session_state.aktif_menu == "Kullanıcı Ayarları":
         supabase_veri_oku=supabase_veri_oku,
         test_verilerini_temizle_fn=test_verilerini_temizle,
     )
+# --- Aziziye Aşevi Faz 1: Yan Menü ve Sayfa Maskeleme Entegrasyonu ---
+SAYFA_ANAHTARI_YEMEK_RECETELERI = "yemek_receteleri"
+MENU_GRUBU_URETIM_MUTFAK = "🍲 Üretim & Mutfak"
+
+
+def maskeli_sayfalari_recete_icin_hazirla(
+    maskeli_sayfalar: list[str] | None = None,
+) -> set[str]:
+    """Mevcut sayfa maskeleme listesini bozmadan normalize edilmiş maskeli sayfa kümesi döndürür."""
+    return {str(s).strip() for s in (maskeli_sayfalar or []) if str(s).strip()}
+
+
+def uretim_mutfak_menulerini_hazirla(
+    mevcut_alt_sayfalar: list[str] | None = None,
+    maskeli_sayfalar: list[str] | None = None,
+) -> list[str]:
+    """'🍲 Üretim & Mutfak' altındaki sayfaları maskeleme listesine göre döndürür."""
+    maskeli = maskeli_sayfalari_recete_icin_hazirla(maskeli_sayfalar)
+    sayfalar = list(mevcut_alt_sayfalar or [])
+    if SAYFA_BASLIGI_YEMEK_RECETELERI not in sayfalar:
+        sayfalar.append(SAYFA_BASLIGI_YEMEK_RECETELERI)
+
+    filtreli: list[str] = []
+    for sayfa in sayfalar:
+        if sayfa == SAYFA_BASLIGI_YEMEK_RECETELERI and (
+            SAYFA_ANAHTARI_YEMEK_RECETELERI in maskeli
+            or SAYFA_BASLIGI_YEMEK_RECETELERI in maskeli
+        ):
+            continue
+        filtreli.append(sayfa)
+    return filtreli
+
+
+def yemek_receteleri_sayfasini_ac(
+    secili_sayfa: str,
+    client=None,
+    bellek_depo=None,
+    son_fiyat_saglayici=None,
+    maskeli_sayfalar: list[str] | None = None,
+) -> bool:
+    """Seçili sayfa Hazır Yemek Reçeteleri ise ve maskelenmemişse render eder."""
+    maskeli = maskeli_sayfalari_recete_icin_hazirla(maskeli_sayfalar)
+    if secili_sayfa in (
+        SAYFA_BASLIGI_YEMEK_RECETELERI,
+        SAYFA_ANAHTARI_YEMEK_RECETELERI,
+    ):
+        if (
+            SAYFA_ANAHTARI_YEMEK_RECETELERI in maskeli
+            or SAYFA_BASLIGI_YEMEK_RECETELERI in maskeli
+        ):
+            return False
+        yemek_receteleri_sayfasi(
+            client=client,
+            bellek_depo=bellek_depo,
+            son_fiyat_saglayici=son_fiyat_saglayici,
+        )
+        return True
+    return False

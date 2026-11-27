@@ -1,6 +1,11 @@
 import calendar
 import datetime
 import time
+from src.ui_kartlar import (
+    bolum_basligi_goster,
+    kpi_satiri_goster,
+    sayfa_ust_banner_goster,
+)
 
 
 def _personel_aktif_mi(personel):
@@ -39,9 +44,12 @@ def personel_ve_calisma_suresi_sayfasi(
         st.warning("⚠️ Bu sayfaya erişim yetkiniz bulunmamaktadır.")
         return
 
-    st.header("👥 Personel ve Çalışma Süresi Takibi")
-    st.markdown(
-        "Aşevi personelinin kayıtlarını tutun, aktif/pasif durumlarını yönetin, izin/rapor günlerini girin ve net çalışma günlerini takip edin."
+    sayfa_ust_banner_goster(
+        st,
+        "kullanici",
+        "Personel ve Çalışma Süresi Takibi",
+        "Aşevi personel kayıtlarını, aktif/pasif durumlarını, izin/rapor günlerini ve aylık net çalışma sürelerini yönetin",
+        tema="mavi",
     )
 
     if "personeller" not in st.session_state or st.session_state.personeller is None:
@@ -61,11 +69,17 @@ def personel_ve_calisma_suresi_sayfasi(
     toplam_p = len(st.session_state.personeller)
     aktif_p = sum(1 for p in st.session_state.personeller if _personel_aktif_mi(p))
     pasif_p = toplam_p - aktif_p
+    toplam_izin_kaydi = len(st.session_state.personel_izinleri)
 
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Toplam Personel", toplam_p)
-    m2.metric("Aktif Personel", aktif_p)
-    m3.metric("Pasif Personel", pasif_p)
+    kpi_satiri_goster(
+        st,
+        [
+            ("kullanici", "Toplam Personel", toplam_p, "Sistemde kayıtlı tüm personel", "#38bdf8"),
+            ("mutfak", "Aktif Personel", aktif_p, "Görev başında olan aktif kadro", "#10b981"),
+            ("uyari", "Pasif Personel", pasif_p, "Ayrılan veya pasif durumdaki kayıt", "#f43f5e"),
+            ("takvim", "Kayıtlı İzin / Rapor", toplam_izin_kaydi, "Sistemdeki toplam izin ve rapor kaydı", "#f59e0b"),
+        ],
+    )
 
     # Son Personel / İzin İşlemini Geri Al Butonu ve Bildirimi
     if st.session_state.get("son_personel_islem"):
@@ -151,7 +165,13 @@ def personel_ve_calisma_suresi_sayfasi(
     with tab_p1:
         col_b_pers, col_indir_pers = st.columns([2, 2])
         with col_b_pers:
-            st.subheader("📋 Personel Kayıtları ve Yönetimi")
+            bolum_basligi_goster(
+                st,
+                "kullanici",
+                "Personel Kayıtları ve Yönetimi",
+                "Personel ekleme, aktif/pasif durum güncelleme ve liste dışa aktarımı",
+                vurgu_renk="#38bdf8",
+            )
             durum_filtre = st.selectbox(
                 "Durum Filtresi",
                 ["Tümü", "Aktif", "Pasif"],
@@ -391,7 +411,13 @@ def personel_ve_calisma_suresi_sayfasi(
                             st.info("Silinecek personel bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı Personel Tablosu")
+        bolum_basligi_goster(
+            st,
+            "liste",
+            "Kayıtlı Personel Tablosu",
+            "Filtrelenmiş aşevi personel listesi",
+            vurgu_renk="#10b981",
+        )
         if personel_gosterim:
             ozel_html_tablo_goster(personel_gosterim)
         else:
@@ -399,7 +425,13 @@ def personel_ve_calisma_suresi_sayfasi(
 
     # TAB 2: İZİN & RAPOR GİRİŞİ VE TAKİBİ
     with tab_p2:
-        st.subheader("📅 Personel İzin ve Rapor Girişi")
+        bolum_basligi_goster(
+            st,
+            "takvim",
+            "Personel İzin ve Rapor Girişi",
+            "Yıllık izin, mazeret izni ve hastalık/rapor kayıtlarını işleyin",
+            vurgu_renk="#f59e0b",
+        )
 
         if not st.session_state.personeller:
             st.warning("İzin girmek için öncelikle personel eklemelisiniz.")
@@ -566,7 +598,13 @@ def personel_ve_calisma_suresi_sayfasi(
                                 st.info("Silinecek izin kaydı bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı İzin ve Raporlar Tablosu")
+        bolum_basligi_goster(
+            st,
+            "liste",
+            "Kayıtlı İzin ve Raporlar Tablosu",
+            "Tüm personelin geçmiş ve güncel izin/rapor kayıtları",
+            vurgu_renk="#38bdf8",
+        )
         if st.session_state.personel_izinleri:
             iz_tablo = []
             for iz in reversed(st.session_state.personel_izinleri):
@@ -585,7 +623,13 @@ def personel_ve_calisma_suresi_sayfasi(
 
     # TAB 3: NET ÇALIŞMA GÜNÜ RAPORU
     with tab_p3:
-        st.subheader("📊 Personel Net Çalışma Günü Raporu")
+        bolum_basligi_goster(
+            st,
+            "rapor",
+            "Personel Net Çalışma Günü Raporu",
+            "Hafta sonu, resmi tatil ve izin düşümleri sonrası net çalışma günleri",
+            vurgu_renk="#10b981",
+        )
 
         sorgu_ay = st.date_input(
             "Sorgulanacak Ay ve Yıl Seçin",

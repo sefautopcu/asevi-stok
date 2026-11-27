@@ -1,10 +1,73 @@
 import time
+from src.ui_kartlar import (
+    bolum_basligi_goster,
+    kpi_satiri_goster,
+    sayfa_ust_banner_goster,
+)
 
-def ihtiyac_sahibi_listesi_tabini_goster(tab1, st, aktif_k_maskeleri, tablo_to_excel_bytes, tablo_to_html_pdf_bytes, ortak_indirme_alani, salt_okunur_modu, yonetim_modu, simdi_tr_str, yeni_id_uret, ihtiyac_sahiplerini_kaydet, yonetici_modu, silme_onay_kutusu, otomatik_yedek_al, ozel_html_tablo_goster):
+
+def ihtiyac_sahibi_listesi_tabini_goster(
+    tab1,
+    st,
+    aktif_k_maskeleri,
+    tablo_to_excel_bytes,
+    tablo_to_html_pdf_bytes,
+    ortak_indirme_alani,
+    salt_okunur_modu,
+    yonetim_modu,
+    simdi_tr_str,
+    yeni_id_uret,
+    ihtiyac_sahiplerini_kaydet,
+    yonetici_modu,
+    silme_onay_kutusu,
+    otomatik_yedek_al,
+    ozel_html_tablo_goster,
+):
     with tab1:
+        tum_kisiler = st.session_state.get("ihtiyac_sahipleri", []) or []
+        toplam_kisi = len(tum_kisiler)
+        aktif_kisi = sum(1 for k in tum_kisiler if k.get("aktif", True))
+        pasif_kisi = toplam_kisi - aktif_kisi
+        birey_gizli = "4. Sayfa: İhtiyaç Sahipleri - Birey Sayısı" in aktif_k_maskeleri
+        toplam_birey_aktif = sum(
+            int(k.get("birey_sayisi", 1) or 1)
+            for k in tum_kisiler
+            if k.get("aktif", True)
+        )
+
+        sayfa_ust_banner_goster(
+            st,
+            "kullanici",
+            "İhtiyaç Sahibi Listesi ve Hane Yönetimi",
+            "Kayıtlı ihtiyaç sahibi haneleri, aktif/pasif durumlarını ve aile birey sayılarını yönetin",
+            tema="mavi",
+        )
+
+        kpi_satiri_goster(
+            st,
+            [
+                ("kullanici", "Toplam Kayıtlı Hane", toplam_kisi, "Sistemdeki tüm ihtiyaç sahibi kayıtları", "#38bdf8"),
+                ("mutfak", "Aktif Hane / Kişi", aktif_kisi, "Düzenli yemek yardımı alan aktif kayıt", "#10b981"),
+                ("uyari", "Pasif Hane / Kişi", pasif_kisi, "Yardımı durdurulan veya pasif kayıt", "#f43f5e"),
+                (
+                    "liste",
+                    "Aktif Faydalanan Birey",
+                    "🔒 Gizli" if birey_gizli else f"{toplam_birey_aktif:,}",
+                    "Aktif hanelerdeki toplam kişi sayısı",
+                    "#f59e0b",
+                ),
+            ],
+        )
+
         col_b_kisi, col_indir_kisi = st.columns([2, 2])
         with col_b_kisi:
-            st.subheader("📋 İhtiyaç Sahibi Listesi ve Yönetimi")
+            bolum_basligi_goster(
+                st,
+                "kullanici",
+                "İhtiyaç Sahibi İşlemleri ve Dışa Aktarım",
+                "Listeyi Excel/PDF olarak indirin veya yeni hane kaydı oluşturun",
+                vurgu_renk="#38bdf8",
+            )
 
         if st.session_state.kisi_silme_mesaji:
             st.success(st.session_state.kisi_silme_mesaji)
@@ -49,13 +112,16 @@ def ihtiyac_sahibi_listesi_tabini_goster(tab1, st, aktif_k_maskeleri, tablo_to_e
         if not salt_okunur_modu:
             with st.expander("🔄 Vatandaşın Aktif / Pasif Durumunu Değiştir"):
                 with st.form("aktif_pasif_form"):
-                    kisi_sec_list = [f"{k['id']} - {k['ad_soyad']} (Mevcut: {'Aktif' if k.get('aktif', True) else 'Pasif'})" for k in st.session_state.ihtiyac_sahipleri]
+                    kisi_sec_list = [
+                        f"{k['id']} - {k['ad_soyad']} (Mevcut: {'Aktif' if k.get('aktif', True) else 'Pasif'})"
+                        for k in st.session_state.ihtiyac_sahipleri
+                    ]
                     secilen_kisi_durum_str = st.selectbox(
                         "Vatandaş Seçin",
                         kisi_sec_list if kisi_sec_list else [],
                         index=None,
                         placeholder="Vatandaş Seçiniz...",
-                        key="kisi_durum_selectbox"
+                        key="kisi_durum_selectbox",
                     )
                     yeni_durum_secim = st.radio("Yeni Durum", ["Aktif Yap", "Pasif Yap"], horizontal=True)
                     durum_degis_btn = st.form_submit_button("Durumu Güncelle", type="primary")
@@ -67,7 +133,7 @@ def ihtiyac_sahibi_listesi_tabini_goster(tab1, st, aktif_k_maskeleri, tablo_to_e
                             h_id = secilen_kisi_durum_str.split(" - ")[0]
                             for k in st.session_state.ihtiyac_sahipleri:
                                 if k["id"] == h_id:
-                                    k["aktif"] = (yeni_durum_secim == "Aktif Yap")
+                                    k["aktif"] = yeni_durum_secim == "Aktif Yap"
                             ihtiyac_sahiplerini_kaydet(st.session_state.ihtiyac_sahipleri)
                             st.success("🎉 Başarılı! Vatandaşın aktif/pasif durumu güncellendi.")
                             st.rerun()
@@ -125,7 +191,7 @@ def ihtiyac_sahibi_listesi_tabini_goster(tab1, st, aktif_k_maskeleri, tablo_to_e
                                 kisi_secenekleri_sil,
                                 index=None,
                                 placeholder="Kişi Seçiniz...",
-                                key="ihtiyac_sil_selectbox"
+                                key="ihtiyac_sil_selectbox",
                             )
                             onay_sil_btn = silme_onay_kutusu("onay_ihtiyac_sil")
                             sil_btn = st.form_submit_button(
@@ -169,7 +235,13 @@ def ihtiyac_sahibi_listesi_tabini_goster(tab1, st, aktif_k_maskeleri, tablo_to_e
                             st.info("Silinecek kayıt bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("📋 Kayıtlı İhtiyaç Sahipleri Tablosu")
+        bolum_basligi_goster(
+            st,
+            "liste",
+            "Kayıtlı İhtiyaç Sahipleri Tablosu",
+            "Tüm hane kayıtları, iletişim bilgileri ve aktiflik durumları",
+            vurgu_renk="#10b981",
+        )
         if kisi_liste_gosterim:
             ozel_html_tablo_goster(kisi_liste_gosterim)
         else:

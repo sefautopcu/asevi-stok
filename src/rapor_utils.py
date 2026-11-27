@@ -18,6 +18,16 @@ TR_AYLAR = {
 }
 
 
+def para_formatla_tr(deger):
+    """Sayısal parasal değeri Türkçe biçimde (***.***,** ₺) döndürür."""
+    try:
+        sayi = float(deger or 0)
+    except (TypeError, ValueError):
+        sayi = 0.0
+    metin = f"{sayi:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    return f"{metin} ₺"
+
+
 def tablo_html_olustur(veri_listesi):
     """Render a list of dictionaries as an escaped HTML table."""
     if not veri_listesi:
@@ -53,12 +63,24 @@ def benzersiz_urun_adlari(girisler):
     )
 
 
+def kayit_birim_fiyati_al(kayit):
+    """Kayıttan birim fiyatı güvenli biçimde döndürür; eski kayıt şemasıyla da uyumludur."""
+    if not isinstance(kayit, dict):
+        return 0.0
+    try:
+        if kayit.get("birim_fiyat") is not None:
+            return float(kayit.get("birim_fiyat") or 0)
+        return float(kayit.get("fiyat") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def urun_fiyat_analizi_olustur(urun_kayitlari, fiyat_gizli=False):
     """Build display and export rows while keeping their existing shape distinct."""
     gorunum, disari_aktarim = [], []
     for kayit in urun_kayitlari:
-        fiyat = kayit.get("fiyat", 0)
-        gosterilen_fiyat = "🔒 Gizli" if fiyat_gizli else f"{fiyat:,.2f} ₺"
+        fiyat = kayit_birim_fiyati_al(kayit)
+        gosterilen_fiyat = "🔒 Gizli" if fiyat_gizli else para_formatla_tr(fiyat)
         gorunum.append({
             "Alım Tarihi": kayit.get("tarih", "-"),
             "Fatura No": kayit.get("fatura_no", "-"),
@@ -80,22 +102,30 @@ def urun_fiyat_analizi_olustur(urun_kayitlari, fiyat_gizli=False):
 
 def kapsamli_envanter_liste_olustur(girisler):
     """Build the display/export rows for the comprehensive inventory report."""
-    return [
-        {
-            "Kayıt ID": kayit.get("id", "-"),
-            "Tarih": kayit.get("tarih", "-"),
-            "Fatura No": kayit.get("fatura_no", "-"),
-            "Ürün Adı": kayit.get("urun", "-"),
-            "Kategori": kayit.get("kategori", "-"),
-            "Depo": kayit.get("depo", "-"),
-            "Alınan Miktar": f"{kayit.get('miktar', 0)} {kayit.get('birim', 'Kg')}",
-            "Kalan Miktar": f"{kayit.get('kalan', 0)} {kayit.get('birim', 'Kg')}",
-            "Birim Fiyat": f"{kayit.get('fiyat', 0):,.2f} ₺",
-            "Toplam Değer": f"{(kayit.get('kalan', 0) * kayit.get('fiyat', 0)):,.2f} ₺",
-            "İşlemi Yapan": kayit.get("islem_yapan", "admin"),
-        }
-        for kayit in girisler
-    ]
+    satirlar = []
+    for kayit in girisler or []:
+        birim_fiyat = kayit_birim_fiyati_al(kayit)
+        try:
+            kalan_miktar = float(kayit.get("kalan", 0) or 0)
+        except (TypeError, ValueError):
+            kalan_miktar = 0.0
+        toplam_deger = kalan_miktar * birim_fiyat
+        satirlar.append(
+            {
+                "Kayıt ID": kayit.get("id", "-"),
+                "Tarih": kayit.get("tarih", "-"),
+                "Fatura No": kayit.get("fatura_no", "-"),
+                "Ürün Adı": kayit.get("urun", "-"),
+                "Kategori": kayit.get("kategori", "-"),
+                "Depo": kayit.get("depo", "-"),
+                "Alınan Miktar": f"{kayit.get('miktar', 0)} {kayit.get('birim', 'Kg')}",
+                "Kalan Miktar": f"{kayit.get('kalan', 0)} {kayit.get('birim', 'Kg')}",
+                "Birim Fiyat": para_formatla_tr(birim_fiyat),
+                "Toplam Değer": para_formatla_tr(toplam_deger),
+                "İşlemi Yapan": kayit.get("islem_yapan", "admin"),
+            }
+        )
+    return satirlar
 
 
 def rapor_donemini_hesapla(bugun, rapor_tipi, manuel=False):
@@ -283,7 +313,7 @@ def rapor_html_olustur(
                 f"<td>{html_guvenli(row.get('tur', '-'))}</td>"
                 f"<td>{html_guvenli(row.get('urun', '-'))}</td>"
                 f"<td>{html_guvenli(row.get('miktar', 0))} {html_guvenli(row.get('birim', ''))}</td>"
-                f"<td>{float(row.get('tutar', 0) or 0):,.2f} ₺</td></tr>"
+                f"<td>{para_formatla_tr(row.get('tutar', 0))}</td></tr>"
             )
         html += "</table>"
 
@@ -294,7 +324,7 @@ def rapor_html_olustur(
                 f"<tr><td>{html_guvenli(row.get('urun'))}</td>"
                 f"<td>{html_guvenli(row.get('fatura_no', '-'))}</td>"
                 f"<td>{html_guvenli(row.get('miktar'))}</td>"
-                f"<td>{float(row.get('tutar', 0) or 0):,.2f} ₺</td>"
+                f"<td>{para_formatla_tr(row.get('tutar', 0))}</td>"
                 f"<td>{html_guvenli(row.get('aciklama', '-'))}</td></tr>"
             )
         html += "</table>"
@@ -314,11 +344,11 @@ def rapor_html_olustur(
             menu_detayi = _menu_detay_metni(row)
             html += f"<div class='yemek-box'><h4 style='margin:0 0 8px;'>{html_guvenli(row.get('tarih'))} - {html_guvenli(row.get('yemek_adi'))} ({kisi} Kişilik)</h4>"
             html += f"<p style='margin:0 0 8px;font-size:13px;color:#374151;'><b>Çıkan Menü Detayı:</b> {html_guvenli(menu_detayi)}</p>"
-            html += f"<p style='margin:0 0 10px;font-size:14px;'><b>Toplam Maliyet:</b> {toplam:,.2f} ₺ | <b>Kişi Başı:</b> {kisi_basi:,.2f} ₺</p>"
+            html += f"<p style='margin:0 0 10px;font-size:14px;'><b>Toplam Maliyet:</b> {para_formatla_tr(toplam)} | <b>Kişi Başı:</b> {para_formatla_tr(kisi_basi)}</p>"
             if row.get("malzemeler"):
                 html += "<table style='margin:0;'><tr><th>Kullanılan Malzeme</th><th>Miktar</th><th>Maliyet</th></tr>"
                 for ingredient in row.get("malzemeler", []):
-                    html += f"<tr><td>{html_guvenli(ingredient.get('urun'))}</td><td>{html_guvenli(ingredient.get('miktar'))} {html_guvenli(ingredient.get('birim', ''))}</td><td>{float(ingredient.get('tutar', 0) or 0):,.2f} ₺</td></tr>"
+                    html += f"<tr><td>{html_guvenli(ingredient.get('urun'))}</td><td>{html_guvenli(ingredient.get('miktar'))} {html_guvenli(ingredient.get('birim', ''))}</td><td>{para_formatla_tr(ingredient.get('tutar', 0))}</td></tr>"
                 html += "</table>"
             html += "</div>"
 

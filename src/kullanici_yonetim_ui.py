@@ -1,10 +1,63 @@
+import html
 import re
 import time
 import pandas as pd
+from src.ui_kartlar import (
+    bolum_basligi_goster,
+    ikon_rozeti_html,
+    kpi_satiri_goster,
+    kullanici_ayarlari_luks_banner_goster,
+)
+
+_MASKE_GRUP_IKONLARI = {
+    "Kurumsal Dashboard": ("rapor", "#38bdf8"),
+    "Güncel Stok / Fire / Fiyat": ("stok", "#10b981"),
+    "Günlük Yemek Üretimi": ("mutfak", "#f59e0b"),
+    "Hazır Yemek Reçeteleri": ("mutfak", "#10b981"),
+    "İhtiyaç Sahipleri Listesi": ("kullanici", "#a855f7"),
+    "Yemek Dağıtımları": ("takvim", "#38bdf8"),
+    "Dağıtım Sayaç Raporu": ("liste", "#fbbf24"),
+}
+
 
 def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILAN_HASHLER, gecerli_menuler, otomatik_yedek_al, kullanici_oturumlarini_kapat, kullanıcıları_kaydet, giris_logla, sifre_hashle_yeni, sifre_politika_hatasi, sifre_degistir):
     with sekme_k:
-        st.subheader("📋 Aktif Kullanıcılar ve Yetki Matrisi")
+        toplam_kullanici = len(kullanici_db)
+        yetkili_sayisi = sum(
+            1
+            for k_adi, k_obj in kullanici_db.items()
+            if k_adi == "admin" or k_obj.get("rol") == "Yönetim"
+        )
+        kisitli_hesap_sayisi = sum(
+            1
+            for k_obj in kullanici_db.values()
+            if k_obj.get("maskeli_alanlar") or k_obj.get("yasakli_menuler") or k_obj.get("salt_okunur")
+        )
+        sifre_bekleyen_sayisi = sum(
+            1
+            for k_obj in kullanici_db.values()
+            if k_obj.get("sifre_degistirilmeli") or k_obj.get("sifre", "") in ESKI_VARSAYILAN_HASHLER
+        )
+
+        kullanici_ayarlari_luks_banner_goster(st, toplam_kullanici=toplam_kullanici)
+
+        kpi_satiri_goster(
+            st,
+            [
+                ("kalkan", "Toplam Sistem Kullanıcısı", toplam_kullanici, "Tanımlı aktif kullanıcı hesapları", "#fbbf24"),
+                ("tac", "Admin & Yönetim Rolü", yetkili_sayisi, "Üst düzey yönetici ve denetim hesapları", "#10b981"),
+                ("maske", "Maskeli / Kısıtlı Hesap", kisitli_hesap_sayisi, "Alan maskesi veya sayfa kısıtı olanlar", "#38bdf8"),
+                ("kilit", "Şifre Değişimi Bekleyen", sifre_bekleyen_sayisi, "İlk girişte şifre yenileyecek hesaplar", "#f43f5e"),
+            ],
+        )
+
+        bolum_basligi_goster(
+            st,
+            "kalkan",
+            "Aktif Kullanıcılar ve Yetki Matrisi",
+            "Tüm kullanıcıların rol, salt okunur modu, maskelenen alan sayısı ve şifre durumu özeti",
+            vurgu_renk="#fbbf24",
+        )
         if len(kullanici_db) > 0:
             tablo_satirlari = []
             for k_adi, k_obj in kullanici_db.items():
@@ -21,19 +74,25 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
             st.dataframe(pd.DataFrame(tablo_satirlari), use_container_width=True, hide_index=True)
 
         st.markdown("---")
-        st.subheader("🛠️ Kullanıcı Düzenle, Yetki Ver ve Alan Maskele")
+        bolum_basligi_goster(
+            st,
+            "yetki",
+            "Kullanıcı Düzenle, Yetki Ver ve Alan Maskele",
+            "Mevcut kullanıcıların rolünü, şifresini, gizli veri alanlarını ve menü erişimlerini yapılandırın",
+            vurgu_renk="#10b981",
+        )
 
         MASKE_SECENEKLERI = {
             "Kurumsal Dashboard": [
-            ("Ürün Çeşidi", "1. Sayfa: Ürün Çeşidi"),
-            ("Toplam Fire", "1. Sayfa: Toplam Fire"),
-            ("Stok Değeri", "1. Sayfa: Stok Değeri"),
-            ("Aktif Personel", "1. Sayfa: Aktif Personel"),
-            ("Grafik Alanı", "1. Sayfa: Grafik Alanı"),
-            ("Kategori Doluluk Tablosu", "1. Sayfa: Kategori Doluluk"),
-            ("Depo Doluluk Tablosu", "1. Sayfa: Depo Doluluk"),
-            ("Operasyonel Sağlık Tablosu", "1. Sayfa: Operasyonel Sağlık"),
-        ],
+                ("Ürün Çeşidi", "1. Sayfa: Ürün Çeşidi"),
+                ("Toplam Fire", "1. Sayfa: Toplam Fire"),
+                ("Stok Değeri", "1. Sayfa: Stok Değeri"),
+                ("Aktif Personel", "1. Sayfa: Aktif Personel"),
+                ("Grafik Alanı", "1. Sayfa: Grafik Alanı"),
+                ("Kategori Doluluk Tablosu", "1. Sayfa: Kategori Doluluk"),
+                ("Depo Doluluk Tablosu", "1. Sayfa: Depo Doluluk"),
+                ("Operasyonel Sağlık Tablosu", "1. Sayfa: Operasyonel Sağlık"),
+            ],
             "Güncel Stok / Fire / Fiyat": [
                 ("Stok - Kalan Miktar", "2. Sayfa: Güncel Stok Durumu - Kalan Miktar"),
                 ("Kayıtlı Fire ve Zayiat Listesi", "2. Sayfa: Kayıtlı Fire ve Zayiatlar Listesi"),
@@ -62,6 +121,11 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
                 ("Haftalık Alım", "4. Sayfa: Haftalık Alım"),
                 ("Aylık Alım", "4. Sayfa: Sayaç Raporu - Aylık Alım"),
             ],
+            "Hazır Yemek Reçeteleri": [
+                ("Reçete Maliyet Bilgileri", "3. Sayfa: Hazır Yemek Reçeteleri - Maliyet"),
+                ("Reçete Kalori Bilgileri", "3. Sayfa: Hazır Yemek Reçeteleri - Kalori"),
+                ("Kayıtlı Reçete Listesi", "3. Sayfa: Hazır Yemek Reçeteleri - Liste"),
+            ],
         }
         _bilinen_maskeler = {a for liste in MASKE_SECENEKLERI.values() for _, a in liste}
 
@@ -72,10 +136,30 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
                 yonetilebilir_kullanicilar,
                 index=None,
                 placeholder="Kullanıcı Seçiniz...",
-                key="secilen_k_ozel_mask"
+                key="secilen_k_ozel_mask",
             )
             if secilen_k_adi:
                 k_obj = kullanici_db[secilen_k_adi]
+
+                # Seçili kullanıcı için lüks kimlik ve güvenlik özeti kartı
+                secili_rol = html.escape(str(k_obj.get("rol", "Personel")))
+                secili_salt = "Salt Okunur" if k_obj.get("salt_okunur", False) else "Tam Yazma Yetkili"
+                secili_maske_sayi = len(k_obj.get("maskeli_alanlar", []))
+                secili_yasak_sayi = len(k_obj.get("yasakli_menuler", []))
+                yetki_rozet = ikon_rozeti_html("yetki", renk="#fbbf24", boyut=40)
+                st.markdown(
+                    f'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;'
+                    f'background:linear-gradient(90deg,rgba(251,191,36,0.12) 0%,rgba(16,185,129,0.08) 100%);'
+                    f'border:1px solid rgba(251,191,36,0.34);border-radius:12px;padding:12px 16px;margin:6px 0 14px 0;">'
+                    f'<div style="display:flex;align-items:center;gap:12px;">{yetki_rozet}'
+                    f'<div><div style="font-size:1.02rem;font-weight:800;color:#f8fafc;">{html.escape(str(secilen_k_adi))}</div>'
+                    f'<div style="font-size:0.78rem;color:#94a3b8;">Rol: <strong style="color:#fbbf24;">{secili_rol}</strong> · Mod: <strong style="color:#10b981;">{secili_salt}</strong></div></div></div>'
+                    f'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+                    f'<span style="font-size:0.76rem;font-weight:700;color:#38bdf8;background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.32);padding:4px 10px;border-radius:999px;">Maskeli Alan: {secili_maske_sayi}</span>'
+                    f'<span style="font-size:0.76rem;font-weight:700;color:#f43f5e;background:rgba(244,63,94,0.14);border:1px solid rgba(244,63,94,0.32);padding:4px 10px;border-radius:999px;">Yasaklı Menü: {secili_yasak_sayi}</span>'
+                    f'</div></div>',
+                    unsafe_allow_html=True,
+                )
 
                 col_d1, col_d2 = st.columns(2)
                 with col_d1:
@@ -91,11 +175,24 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
                     "⚠️ Bu kullanıcıyı KALICI olarak sil (işaretlemezseniz silinmez)", value=False, key=f"sil_ozel_{secilen_k_adi}"
                 )
 
-                st.markdown("##### 🔒 Gizlenecek (maskelenecek) alanlar")
+                bolum_basligi_goster(
+                    st,
+                    "maske",
+                    "Gizlenecek (Maskelenecek) Alanlar",
+                    "Seçilen kullanıcının ekranlarında '🔒 Gizli' olarak maskelenecek hassas veri alanları",
+                    vurgu_renk="#38bdf8",
+                )
                 mevcut_maskeler = k_obj.get("maskeli_alanlar", [])
                 secilen_maskeler = []
                 for g_idx, (grup_adi, secenekler) in enumerate(MASKE_SECENEKLERI.items()):
-                    st.markdown(f"**📂 {grup_adi}**")
+                    g_ikon, g_renk = _MASKE_GRUP_IKONLARI.get(grup_adi, ("liste", "#38bdf8"))
+                    g_rozet = ikon_rozeti_html(g_ikon, renk=g_renk, boyut=26)
+                    st.markdown(
+                        f'<div style="display:flex;align-items:center;gap:9px;margin:10px 0 6px 0;padding:5px 10px;'
+                        f'background:rgba(15,23,42,0.52);border-left:3px solid {g_renk};border-radius:0 8px 8px 0;">'
+                        f'{g_rozet}<span style="font-size:0.92rem;font-weight:700;color:#f8fafc;">{html.escape(grup_adi)}</span></div>',
+                        unsafe_allow_html=True,
+                    )
                     m_cols = st.columns(3)
                     for o_idx, (etiket, anahtar) in enumerate(secenekler):
                         with m_cols[o_idx % 3]:
@@ -103,7 +200,13 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
                                 secilen_maskeler.append(anahtar)
                 yeni_maskeler = [m for m in mevcut_maskeler if m not in _bilinen_maskeler] + secilen_maskeler
 
-                st.markdown("##### 🚫 Sayfa / Menü Erişim Kısıtlamaları")
+                bolum_basligi_goster(
+                    st,
+                    "kilit",
+                    "Sayfa / Menü Erişim Kısıtlamaları",
+                    "Kullanıcının sol menüde görmesini istemediğiniz modülleri işaretleyin",
+                    vurgu_renk="#f43f5e",
+                )
                 tum_menu_ogeleri = [m for m in gecerli_menuler if m != "Kullanıcı Ayarları"]
                 mevcut_yasaklar = k_obj.get("yasakli_menuler", [])
                 yeni_yasaklar = [m for m in mevcut_yasaklar if m not in tum_menu_ogeleri]
@@ -121,7 +224,7 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
                         st.session_state["son_kullanici_islem"] = {
                             "tur": "sil",
                             "kullanici_adi": secilen_k_adi,
-                            "eski_obje": dict(kullanici_db[secilen_k_adi])
+                            "eski_obje": dict(kullanici_db[secilen_k_adi]),
                         }
 
                         del kullanici_db[secilen_k_adi]
@@ -142,7 +245,7 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
                             st.session_state["son_kullanici_islem"] = {
                                 "tur": "guncelle",
                                 "kullanici_adi": secilen_k_adi,
-                                "eski_obje": dict(kullanici_db[secilen_k_adi])
+                                "eski_obje": dict(kullanici_db[secilen_k_adi]),
                             }
 
                             k_obj["rol"] = yeni_rol
@@ -161,7 +264,13 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
             st.info("Düzenlenebilecek ek kullanıcı bulunmuyor.")
 
         st.markdown("---")
-        st.subheader("➕ Yeni Sistem Kullanıcısı Ekle")
+        bolum_basligi_goster(
+            st,
+            "kullanici_ekle",
+            "Yeni Sistem Kullanıcısı Ekle",
+            "Güçlü şifre politikasıyla yeni personel, yönetim veya misafir hesabı oluşturun",
+            vurgu_renk="#a855f7",
+        )
         yeni_k_adi = st.text_input("Kullanıcı Adı (3-30 karakter: harf, rakam, . _ -)", key="yeni_k_adi_input_ozel").strip().lower()
         yeni_sifre = st.text_input("Şifre (en az 10 karakter, harf ve rakam)", type="password", key="yeni_sifre_input_ozel")
         y_col1, y_col2, y_col3 = st.columns(3)
@@ -192,7 +301,7 @@ def kullanici_yonetim_sekmesini_goster(sekme_k, st, kullanici_db, ESKI_VARSAYILA
 
                 st.session_state["son_kullanici_islem"] = {
                     "tur": "ekle",
-                    "kullanici_adi": yeni_k_adi
+                    "kullanici_adi": yeni_k_adi,
                 }
 
                 kullanıcıları_kaydet(kullanici_db)
